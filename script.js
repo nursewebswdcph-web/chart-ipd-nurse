@@ -118,22 +118,41 @@ function nurseApp() {
 
         // --- 4. Admission & Bed Logic ---
         async openAdmitForm() {
-            this.resetForm();
-            this.form.date = new Date().toISOString().split('T')[0];
-            this.form.time = new Date().toLocaleTimeString('th-TH', { hour12: false, hour: '2-digit', minute: '2-digit' });
-            this.form.ward = this.currentWard;
+            // 1. เริ่มแสดงตัวโหลดทันทีที่คลิก
+            this.isLoading = true; 
             
-            // ดึงเตียงว่างล่าสุด
-            await this.fetchAvailableBeds();
-            this.showAdmitModal = true;
+            try {
+                // 2. เคลียร์ค่าฟอร์มเก่า
+                this.resetForm();
+                this.form.ward = this.currentWard;
+                this.form.date = new Date().toISOString().split('T')[0];
+                this.form.time = new Date().toLocaleTimeString('th-TH', { hour12: false, hour: '2-digit', minute: '2-digit' });
+        
+                // 3. ดึงข้อมูลเตียงว่างล่าสุดจาก Server
+                // (เราใส่ isLoading = true ซ้ำใน fetchAvailableBeds ได้เพื่อความชัวร์)
+                await this.fetchAvailableBeds(); 
+        
+                // 4. เมื่อข้อมูลมาครบแล้ว จึงเปิด Modal
+                this.showAdmitModal = true;
+                
+            } catch (error) {
+                console.error("Error opening form:", error);
+                alert("ไม่สามารถโหลดข้อมูลเตียงได้ กรุณาลองใหม่อีกครั้ง");
+            } finally {
+                // 5. ปิดตัวโหลด (ไม่ว่าจะโหลดสำเร็จหรือพัง)
+                this.isLoading = false; 
+            }
         },
 
         async fetchAvailableBeds() {
+            // ฟังก์ชันนี้จะถูกเรียกจาก openAdmitForm
             try {
-                const res = await fetch(`${this.API_URL}?action=getBeds&ward=${this.currentWard}`);
-                this.availableBeds = await res.json();
+                const response = await fetch(`${this.API_URL}?action=getBeds&ward=${this.currentWard}`);
+                const data = await response.json();
+                this.availableBeds = data || [];
             } catch (e) {
                 this.availableBeds = [];
+                throw e; // ส่ง Error กลับไปให้ openAdmitForm จัดการ
             }
         },
 
