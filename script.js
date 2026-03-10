@@ -1,20 +1,22 @@
 function nurseApp() {
     return {
-        // --- 1. State ---
+        // --- 1. CONFIG & STATE ---
         API_URL: 'https://script.google.com/macros/s/AKfycbxqaydhsgGZKV8hz28qYUzsTVDl7c-DzgFZD9FDzcWE_uCnwIaJryjqiNQ2ggxOYn49/exec',
         isLoading: false,
         realTimeClock: '',
         currentWard: null,
-        viewMode: 'list', 
+        viewMode: 'list', // 'list' หรือ 'detail'
         isEditing: false,
 
-        // ย้ายเตียง/ย้ายตึก
+        // ระบบย้ายเตียง/ตึก
         showMoveModal: false,
         moveBeds: [], 
         moveForm: { targetWard: '', targetBed: '' },
 
-        // ระบบแจ้งเตือน & Dialog
-        dialog: { show: false, type: 'alert', title: '', msg: '', confirmBtnText: 'ตกลง', onConfirm: null },
+        // ระบบแจ้งเตือน
+        showSuccess: false,
+        successMsg: '',
+        dialog: { show: false, type: 'alert', title: '', msg: '', input: '', confirmBtnText: 'ตกลง', onConfirm: null },
         
         // Data Storage
         wards: [], patients: [], doctors: [], availableBeds: [], configs: { depts: [] },
@@ -28,41 +30,46 @@ function nurseApp() {
         },
         selectedPatient: null,
 
-        // --- 2. Initialization ---
+        // --- 2. INITIALIZATION ---
         init() {
             this.startClock();
             this.loadInitialData();
         },
 
         startClock() {
-            setInterval(() => {
+            const update = () => {
                 this.realTimeClock = new Date().toLocaleDateString('th-TH', {
                     year: 'numeric', month: 'long', day: 'numeric',
                     hour: '2-digit', minute: '2-digit', second: '2-digit'
                 });
-            }, 1000);
+            };
+            update();
+            setInterval(update, 1000);
         },
 
-        // --- 3. Getters ---
+        // --- 3. GETTERS (สรุปข้อมูลแบบ Reactive) ---
         get patientSummary() {
-            if (!this.patients || this.patients.length === 0) return { total: 0, deptStr: 'ยังไม่มีคนไข้ในตึกนี้' };
+            if (!this.patients || this.patients.length === 0) return { total: 0, deptStr: 'ยังไม่มีคนไข้ในระบบ' };
+            const total = this.patients.length;
             const counts = this.patients.reduce((acc, p) => {
                 const d = p.dept || 'ไม่ระบุ';
                 acc[d] = (acc[d] || 0) + 1;
                 return acc;
             }, {});
-            const deptStr = Object.entries(counts).map(([n, c]) => `${n} ${c} ราย`).join(' • ');
-            return { total: this.patients.length, deptStr };
+            const deptStr = Object.entries(counts).map(([n, c]) => `${n} ${c}`).join(' • ');
+            return { total, deptStr };
         },
 
         get filteredPatients() {
             return this.patients.filter(p => 
                 (p.hn || '').toLowerCase().includes(this.searchHN.toLowerCase()) &&
-                (p.name || '').toLowerCase().includes(this.searchName.toLowerCase())
+                (p.an || '').toLowerCase().includes(this.searchAN.toLowerCase()) &&
+                (p.name || '').toLowerCase().includes(this.searchName.toLowerCase()) &&
+                (p.doctor || '').toLowerCase().includes(this.searchDoc.toLowerCase())
             );
         },
 
-        // --- 4. Logic Functions ---
+        // --- 4. CORE FETCHING ---
         async loadInitialData() {
             this.isLoading = true;
             try {
@@ -71,12 +78,16 @@ function nurseApp() {
                 this.wards = data.wards || [];
                 this.configs.depts = data.depts || [];
                 this.doctors = data.doctors || [];
-            } catch (e) { console.error("Init failed", e); }
+            } catch (e) { 
+                console.error("Initial Load Error", e); 
+                this.wards = ['ปาริฉัตร', 'สงฆ์อาพาธ']; // Fallback
+            }
             this.isLoading = false;
         },
 
         async selectWard(ward) {
             this.currentWard = ward;
+            this.viewMode = 'list';
             await this.fetchPatients();
         },
 
@@ -89,12 +100,59 @@ function nurseApp() {
             this.isLoading = false;
         },
 
-        openNursingChart(an) {
-            window.open(`chart.html?an=${an}`, '_blank');
+        async fetchAvailableBeds() {
+            try {
+                const res = await fetch(`${this.API_URL}?action=getBeds&ward=${this.currentWard}`);
+                this.availableBeds = await res.json();
+            } catch (e) { this.availableBeds = []; }
         },
 
+        // --- 5. ADMISSION & EDIT LOGIC ---
+        async openAdmitForm() {
+            this.isLoading = true;
+            this.isEditing = false;
+            this.resetForm();
+            try {
+                await this.fetchAvailableBeds();
+                this.form.ward = this.currentWard;
+                this.form.date = new Date().toISOString().split('T')[0];
+                this.form.time = new Date().toLocaleTimeString('th-TH', { hour12: false, hour: '2-digit', minute: '2-digit' });
+                this.showAdmitModal = true;
+            } catch (e) { this.showAlert("Error", "โหลดเตียงไม่สำเร็จ"); }
+            this.isLoading = false;
+        },
+
+        async openEditForm() {
+            this.isLoading = true;
+            this.isEditing = true;
+            try {
+                this.form = { ...this.selectedPatient };
+                this.form.dobInput = this.selectedPatient.dob;
+                await this.fetchAvailableBeds();
+                // ถ้าแก้ไข ให้รวมเตียงปัจจุบันของเขาเข้าไปในรายการเลือกด้วย
+                if (!this.availableBeds.includes(this.selectedPatient.bed)) {
+                    this.availableBeds.unshift(this.selectedPatient.bed);
+                }
+                this.viewMode = 'list';
+                this.showAdmitModal = true;
+            } catch (e) { this.showAlert("Error", "โหลดข้อมูลไม่สำเร็จ"); }
+            this.isLoading = false;
+        },
+
+        async submitAdmit() {
+            if (!this.form.bed || !this.form.hn || !this.form.an) {
+                this.showAlert("ข้อมูลไม่ครบ", "กรุณาระบุเตียง, HN และ AN");
+                return;
+            }
+            const action = this.isEditing ? 'editPatient' : 'admitPatient';
+            const msg = this.isEditing ? "อัปเดตเวชระเบียนเรียบร้อย" : "รับผู้ป่วยใหม่เข้าระบบสำเร็จ";
+            await this.postToGAS(action, this.form, msg);
+            this.showAdmitModal = false;
+        },
+
+        // --- 6. TRANSFER & DISCHARGE ---
         async openMoveModal() {
-            this.moveForm.targetWard = this.currentWard;
+            this.moveForm.targetWard = this.currentWard; 
             this.moveForm.targetBed = '';
             await this.fetchMoveBeds();
             this.showMoveModal = true;
@@ -122,45 +180,32 @@ function nurseApp() {
             this.viewMode = 'list';
         },
 
-        async openAdmitForm() {
-            this.isLoading = true;
-            this.isEditing = false;
-            this.resetForm();
-            try {
-                const res = await fetch(`${this.API_URL}?action=getBeds&ward=${this.currentWard}`);
-                this.availableBeds = await res.json();
-                this.form.date = new Date().toISOString().split('T')[0];
-                this.form.time = new Date().toLocaleTimeString('th-TH', { hour12: false, hour: '2-digit', minute: '2-digit' });
-                this.showAdmitModal = true;
-            } catch (e) { this.showAlert("Error", "โหลดข้อมูลไม่สำเร็จ"); }
-            this.isLoading = false;
+        async dischargePatient() {
+            this.showConfirm(
+                "ยืนยันการจำหน่าย", 
+                `ต้องการทำรายการ Discharge คุณ ${this.selectedPatient.name} ออกจากหอผู้ป่วยใช่หรือไม่?`,
+                async () => {
+                    const p = { an: this.selectedPatient.an, bed: this.selectedPatient.bed, ward: this.currentWard };
+                    await this.postToGAS('discharge', p, "จำหน่ายผู้ป่วยและคืนสถานะเตียงว่างแล้ว");
+                    this.viewMode = 'list';
+                }
+            );
         },
 
-        async submitAdmit() {
-            const action = this.isEditing ? 'editPatient' : 'admitPatient';
-            await this.postToGAS(action, this.form, "บันทึกข้อมูลเรียบร้อยแล้ว");
-            this.showAdmitModal = false;
+        // --- 7. UTILITIES & HELPERS ---
+        openNursingChart(an) {
+            window.open(`chart.html?an=${an}`, '_blank'); 
         },
 
         async postToGAS(action, payload, msg) {
             this.isLoading = true;
             try {
                 await fetch(this.API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action, payload }) });
-                this.showAlert("สำเร็จ", msg);
+                this.successMsg = msg;
+                this.showSuccess = true;
+                setTimeout(() => { this.showSuccess = false; }, 3000);
                 setTimeout(async () => { await this.fetchPatients(); this.isLoading = false; }, 1500);
-            } catch (e) { 
-                this.isLoading = false; 
-                this.showAlert("Error", "ไม่สามารถเชื่อมต่อฐานข้อมูลได้");
-            }
-        },
-
-        showAlert(title, msg) {
-            this.dialog = { show: true, type: 'alert', title, msg, confirmBtnText: 'รับทราบ', onConfirm: null };
-        },
-
-        handleDialogConfirm() {
-            if (this.dialog.onConfirm) this.dialog.onConfirm();
-            this.dialog.show = false;
+            } catch (e) { this.isLoading = false; this.showAlert("Error", "การเชื่อมต่อขัดข้อง"); }
         },
 
         autoFormatDate(e) {
@@ -172,27 +217,45 @@ function nurseApp() {
         },
 
         updateAgeFromText() {
-            if (!this.form.dobInput || this.form.dobInput.length < 10) return;
-            const [d, m, yBE] = this.form.dobInput.split('/').map(Number);
+            const input = this.form.dobInput;
+            if (!input || input.length < 10) return;
+            const [d, m, yBE] = input.split('/').map(Number);
             const yAD = yBE - 543;
             const birth = new Date(yAD, m - 1, d);
             const now = new Date();
+            if (birth.toString() === 'Invalid Date') return;
             let yrs = now.getFullYear() - birth.getFullYear();
             let mos = now.getMonth() - birth.getMonth();
             let days = now.getDate() - birth.getDate();
             if (days < 0) { mos--; days += new Date(now.getFullYear(), now.getMonth(), 0).getDate(); }
             if (mos < 0) { yrs--; mos += 12; }
             this.form.ageDisplay = `${yrs} ปี ${mos} เดือน ${days} วัน`;
-            this.form.dob = this.form.dobInput;
+            this.form.dob = input;
         },
 
-        calculateLOS(dateStr) {
-            if(!dateStr) return 0;
-            const d = Math.floor(Math.abs(new Date() - new Date(dateStr)) / (1000 * 60 * 60 * 24));
+        calculateLOS(date) {
+            if(!date) return 0;
+            const d = Math.floor(Math.abs(new Date() - new Date(date)) / (1000 * 60 * 60 * 24));
             return d === 0 ? 1 : d;
         },
 
+        showAlert(title, msg) { this.dialog = { show: true, type: 'alert', title, msg, confirmBtnText: 'ตกลง' }; },
+        showConfirm(title, msg, onConfirm) { this.dialog = { show: true, type: 'confirm', title, msg, confirmBtnText: 'ยืนยัน', onConfirm }; },
+        handleDialogConfirm() { if (this.dialog.onConfirm) this.dialog.onConfirm(); this.dialog.show = false; },
+        
         openPatientDetail(p) { this.selectedPatient = p; this.viewMode = 'detail'; },
-        resetForm() { this.form = { dobInput: '', dob: '', ageDisplay: '', date: '', time: '', bed: '', hn: '', an: '', name: '', dept: this.configs.depts[0] || '', ward: this.currentWard }; }
+        
+        resetForm() {
+            this.form = { dobInput: '', dob: '', ageDisplay: '', date: '', time: '', receivedFrom: 'ER', referFrom: '', bed: '', hn: '', an: '', name: '', address: '', dept: this.configs.depts[0] || '', cc: '', pi: '', dx: '', doctor: '', ward: this.currentWard };
+        },
+
+        addNewDoctor() {
+            const name = prompt("ระบุชื่อ-นามสกุล แพทย์:");
+            if (name) {
+                this.doctors.push(name);
+                this.form.doctor = name;
+                this.postToGAS('addDoctor', { name: name }, "เพิ่มชื่อแพทย์เรียบร้อย");
+            }
+        }
     };
 }
