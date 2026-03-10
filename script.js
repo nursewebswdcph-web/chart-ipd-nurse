@@ -119,15 +119,36 @@ function nurseApp() {
 
         openNursingChart(patient) {
             this.selectedPatient = patient;
-            this.currentForm = this.activeForms.find(f => f.id === 'assess_initial');
+            // ตั้งค่าฟอร์มเริ่มต้นเป็น "ประเมินแรกรับ"
+            const initialForm = this.activeForms.find(f => f.id === 'assess_initial');
+            this.currentForm = initialForm || this.activeForms[0];
             
-            // ล้างข้อมูลในฟอร์ม HTML (ถ้ามี)
-            const form = document.getElementById('assessment-form-v2');
-            if (form) form.reset();
+            // ล้างข้อมูลในฟอร์ม HTML เมื่อเปิดใหม่
+            this.$nextTick(() => {
+                const formElement = document.getElementById('assessment-form-v2');
+                if (formElement) formElement.reset();
+            });
             
             this.viewMode = 'chart';
             window.scrollTo(0, 0);
-        }
+        },
+
+        // --- บันทึกแบบประเมินแรกรับ ---
+        async saveAssessmentData() {
+            const formElement = document.getElementById('assessment-form-v2');
+            if (!formElement) return this.showAlert('Error', 'ไม่พบฟอร์มข้อมูล');
+
+            const formDataObj = new FormData(formElement);
+            const payload = {
+                an: this.selectedPatient.an,
+                hn: this.selectedPatient.hn,
+                formData: Object.fromEntries(formDataObj.entries())
+            };
+
+            // ใช้ postToGAS เพื่อส่งข้อมูล
+            await this.postToGAS('saveAssessmentInitial', payload, "บันทึกแบบประเมินแรกรับสำเร็จ");
+            this.viewMode = 'detail'; // บันทึกเสร็จกลับไปหน้าสิทธิการรักษา
+        },
 
         async openAdmitForm() {
             this.isLoading = true;
@@ -166,45 +187,6 @@ function nurseApp() {
             this.showAdmitModal = false;
         },
 
-        // --- NEW: ฟังก์ชันบันทึกแบบประเมินแรกรับ ---
-        async saveAssessmentData() {
-            const formElement = document.getElementById('assessment-form-v2');
-            if (!formElement) {
-                this.showAlert('Error', 'ไม่พบฟอร์มข้อมูล');
-                return;
-            }
-
-            const formDataObj = new FormData(formElement);
-            const payload = {
-                an: this.selectedPatient.an,
-                formData: Object.fromEntries(formDataObj.entries())
-            };
-
-            this.isLoading = true;
-            try {
-                // ใช้รูปแบบเดียวกับ postToGAS เพื่อความสม่ำเสมอ
-                await fetch(this.API_URL, { 
-                    method: 'POST', 
-                    mode: 'no-cors', 
-                    body: JSON.stringify({ 
-                        action: 'saveAssessmentInitial', 
-                        an: payload.an,
-                        formData: payload.formData 
-                    }) 
-                });
-                
-                this.successMsg = "บันทึกแบบประเมินแรกรับสำเร็จ";
-                this.showSuccess = true;
-                setTimeout(() => { this.showSuccess = false; }, 3000);
-                // กลับไปหน้าสิทธิการรักษาหรือหน้ารายการ
-                this.viewMode = 'detail';
-            } catch (e) { 
-                this.showAlert("Error", "บันทึกข้อมูลล้มเหลว: " + e.message); 
-            } finally {
-                this.isLoading = false;
-            }
-        },
-
         async openMoveModal() {
             this.moveForm.targetWard = this.currentWard; 
             this.moveForm.targetBed = '';
@@ -236,15 +218,31 @@ function nurseApp() {
             });
         },
 
+        // ฟังก์ชันกลางสำหรับการ POST ข้อมูล
         async postToGAS(action, payload, msg) {
             this.isLoading = true;
             try {
-                await fetch(this.API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action, payload }) });
+                // ใช้ no-cors สำหรับ Google Apps Script (เพราะปกติมันจะ Redirect)
+                await fetch(this.API_URL, { 
+                    method: 'POST', 
+                    mode: 'no-cors', 
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action, payload }) 
+                });
+                
                 this.successMsg = msg;
                 this.showSuccess = true;
                 setTimeout(() => { this.showSuccess = false; }, 3000);
-                setTimeout(async () => { await this.fetchPatients(); this.isLoading = false; }, 1500);
-            } catch (e) { this.isLoading = false; this.showAlert("Error", "เชื่อมต่อฐานข้อมูลไม่ได้"); }
+                
+                // โหลดข้อมูลผู้ป่วยใหม่หลังจากบันทึก
+                setTimeout(async () => { 
+                    await this.fetchPatients(); 
+                    this.isLoading = false; 
+                }, 1000);
+            } catch (e) { 
+                this.isLoading = false; 
+                this.showAlert("Error", "ไม่สามารถบันทึกข้อมูลได้: " + e.message); 
+            }
         },
 
         autoFormatDate(e) {
@@ -274,8 +272,13 @@ function nurseApp() {
 
         calculateLOS(date) {
             if(!date) return 0;
-            const d = Math.floor(Math.abs(new Date() - new Date(date)) / (1000 * 60 * 60 * 24));
-            return d === 0 ? 1 : d;
+            const entryDate = new Date(date);
+            const today = new Date();
+            entryDate.setHours(0,0,0,0);
+            today.setHours(0,0,0,0);
+            const diffTime = Math.abs(today - entryDate);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+            return diffDays === 0 ? 1 : diffDays;
         },
 
         showAlert(title, msg) { this.dialog = { show: true, type: 'alert', title, msg, confirmBtnText: 'ตกลง' }; },
