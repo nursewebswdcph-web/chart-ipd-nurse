@@ -80,16 +80,16 @@
                         </div>
                         <div>
                             <h2 class="text-2xl font-bold text-gray-800">IPD Registry</h2>
-                            <p class="text-sm text-gray-500">ตึกปาริฉัตร / ตึกสงฆ์อาพาธ</p>
-                        </div>
-                    </div>
-                    
-                    <div class="flex flex-wrap gap-2">
-                        <select x-model="currentWard" @change="fetchPatients()" class="border-gray-200 rounded-lg text-sm focus:ring-emerald-500">
+                            <p class="text-sm text-gray-500">ทะเบียนผู้ป่วยใน</p>
+                            <select x-model="currentWard" @change="fetchPatients()" class="border-gray-200 rounded-lg text-sm focus:ring-emerald-500">
                             <template x-for="w in wards" :key="w">
                                 <option :value="w" x-text="w"></option>
                             </template>
                         </select>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-2">
                         <button @click="showAdmitModal = true" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl transition shadow-md flex items-center gap-2">
                             <i class="fa-solid fa-user-plus"></i> Admitted ผู้ป่วยใหม่
                         </button>
@@ -190,13 +190,18 @@
                     <input type="text" x-model="form.referFrom" placeholder="ระบุโรงพยาบาล" class="w-full border-gray-200 rounded-lg p-2">
                 </div>
                 <div class="md:col-span-2">
-                    <label class="block text-xs font-semibold text-gray-500 text-red-500">ระบุเตียง (ตึก <span x-text="currentWard"></span>)</label>
+                    <label class="block text-xs font-semibold text-gray-500 text-red-500">
+                        ระบุเตียง (ตึก <span x-text="currentWard"></span>)
+                    </label>
                     <select x-model="form.bed" required class="w-full border-red-200 rounded-lg p-2 bg-red-50">
                         <option value="">-- เลือกเตียงว่าง --</option>
-                        <template x-for="bed in availableBeds" :key="bed">
-                            <option :value="bed" x-text="bed"></option>
+                        <template x-for="bedName in availableBeds" :key="bedName">
+                            <option :value="bedName" x-text="bedName"></option>
                         </template>
                     </select>
+                    <template x-if="availableBeds.length === 0">
+                        <p class="text-[10px] text-red-500 mt-1">* ไม่มีเตียงว่างในระบบ</p>
+                    </template>
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-xs font-semibold text-gray-500">แผนก</label>
