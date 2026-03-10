@@ -1,6 +1,6 @@
 function nursingChart() {
     return {
-        // ✅ URL ของคุณ
+        // ✅ URL GAS ของคุณ
         API_URL: 'https://script.google.com/macros/s/AKfycbxqaydhsgGZKV8hz28qYUzsTVDl7c-DzgFZD9FDzcWE_uCnwIaJryjqiNQ2ggxOYn49/exec',
         isLoading: false,
         patient: null,
@@ -13,9 +13,9 @@ function nursingChart() {
             { id: 'patient_class', title: '2. แบบบันทึกการจำแนกประเภทผู้ป่วย', isMain: true },
             { id: 'fall_risk', title: '3. แบบประเมินความเสี่ยง Morse / MAAS', isMain: true },
             { id: 'braden_scale', title: '4. แบบประเมินแผลกดทับ (Braden Scale)', isMain: true },
-            { id: 'patient_edu', title: '5. แบบบันทึกการให้คำแนะนำผู้ป่วยระหว่างเข้ารับการรักษาและเมื่อกลับบ้าน', isMain: true },
+            { id: 'patient_edu', title: '5. แบบบันทึกการให้คำแนะนำผู้ป่วย', isMain: true },
             { id: 'focus_list', title: '6. แบบบันทึกรายการปัญหาสุขภาพ (Focus List)', isMain: true },
-            { id: 'progress_note', title: '7. แบบบันทึกความก้าวหน้าทางการพยาบาล Nursing Progress Note', isMain: true },
+            { id: 'progress_note', title: '7. Nursing Progress Note', isMain: true },
             { id: 'discharge_summary', title: '8. แบบบันทึกการพยาบาลผู้ป่วยจำหน่าย', isMain: true }
         ],
 
@@ -26,35 +26,46 @@ function nursingChart() {
             { id: 'home_care_transfer', title: 'แบบบันทึกส่งต่อเพื่อการดูแลต่อเนื่องที่บ้าน' }
         ],
 
-        init() {
+        async init() {
             this.currentForm = this.activeForms[0];
             const urlParams = new URLSearchParams(window.location.search);
-            const an = urlParams.get('an');
-            if (an) {
-                this.fetchPatientData(an);
+            const anFromUrl = urlParams.get('an');
+            
+            if (anFromUrl) {
+                console.log("Searching for AN from URL:", anFromUrl);
+                await this.fetchPatientData(anFromUrl);
+            } else {
+                this.showAlert("ลิ้งค์ไม่ถูกต้อง", "ไม่พบเลข AN จากหน้าทะเบียน");
             }
         },
 
-        // ✅ แก้ไขปัญหาค้นหา AN ไม่พบ
-        async fetchPatientData(an) {
+        // ✅ ฟังก์ชันดึงข้อมูลที่เสถียรที่สุด (Strict Matching)
+        async fetchPatientData(anToFind) {
             this.isLoading = true;
             try {
-                // ดึงข้อมูลจาก API ที่เชื่อมต่อกับชีต CurrentPatients 
+                // ดึงข้อมูลทะเบียนผู้ป่วยปัจจุบัน (CurrentPatients)
                 const res = await fetch(`${this.API_URL}?action=getPatients&ward=all`);
                 const allPatients = await res.json();
                 
-                // ✅ ใช้การเปรียบเทียบแบบ String Matching ที่เข้มงวดเพื่อรองรับ AN แบบข้อความ
-                const foundPatient = allPatients.find(p => 
-                    p.an && p.an.toString().trim() === an.toString().trim()
-                );
+                // แปลงค่า AN ที่ต้องการค้นหาให้เป็น String และตัดช่องว่างออกทั้งหมด
+                const targetAN = String(anToFind).trim();
+
+                // ค้นหาโดยการเปรียบเทียบแบบละเอียด
+                const found = allPatients.find(p => {
+                    if (!p.an) return false;
+                    // แปลงค่า AN ในชีตให้เป็น String และตัดช่องว่างออกเพื่อความแม่นยำ 100%
+                    return String(p.an).trim() === targetAN;
+                });
                 
-                if (foundPatient) {
-                    this.patient = foundPatient;
+                if (found) {
+                    this.patient = found;
+                    console.log("Found Patient Data:", found);
                 } else {
-                    this.showAlert("ไม่พบผู้ป่วย", `ไม่พบ AN: ${an} ในฐานข้อมูลทะเบียนผู้ป่วยปัจจุบัน`);
+                    this.showAlert("ไม่พบผู้ป่วย", `ไม่พบเลข AN: ${targetAN} ในฐานข้อมูลทะเบียนผู้ป่วยปัจจุบัน`);
                 }
             } catch (e) {
-                this.showAlert("ผิดพลาด", "ไม่สามารถเข้าถึงฐานข้อมูล CurrentPatients ได้");
+                console.error("Fetch Error:", e);
+                this.showAlert("Error", "ไม่สามารถเชื่อมต่อฐานข้อมูลได้ โปรดตรวจสอบอินเทอร์เน็ต");
             }
             this.isLoading = false;
         },
@@ -62,7 +73,6 @@ function nursingChart() {
         selectForm(form) {
             this.currentForm = form;
             this.viewMode = 'preview';
-            window.scrollTo({ top: 0, behavior: 'smooth' });
         },
 
         addForm(opt) {
@@ -75,21 +85,14 @@ function nursingChart() {
         },
 
         removeForm(id) {
-            this.showConfirm("ยืนยันการลบ", "ต้องการนำรายการเอกสารเพิ่มเติมนี้ออกจากแถบรายการใช่หรือไม่?", () => {
+            this.showConfirm("ยืนยันการลบ", "ต้องการนำแบบฟอร์มเพิ่มเติมนี้ออกจากชาร์ตชั่วคราวหรือไม่?", () => {
                 this.activeForms = this.activeForms.filter(f => f.id !== id);
                 if (this.currentForm.id === id) this.currentForm = this.activeForms[0];
             });
         },
 
-        showAlert(title, msg) {
-            this.dialog = { show: true, type: 'alert', title, msg, confirmBtnText: 'ตกลง', onConfirm: null };
-        },
-        showConfirm(title, msg, onConfirm) {
-            this.dialog = { show: true, type: 'confirm', title, msg, confirmBtnText: 'ยืนยันการลบ', onConfirm };
-        },
-        handleDialogConfirm() {
-            if (this.dialog.onConfirm) this.dialog.onConfirm();
-            this.dialog.show = false;
-        }
+        showAlert(title, msg) { this.dialog = { show: true, type: 'alert', title, msg, confirmBtnText: 'ตกลง', onConfirm: null }; },
+        showConfirm(title, msg, onConfirm) { this.dialog = { show: true, type: 'confirm', title, msg, confirmBtnText: 'ยืนยัน', onConfirm }; },
+        handleDialogConfirm() { if (this.dialog.onConfirm) this.dialog.onConfirm(); this.dialog.show = false; }
     };
 }
