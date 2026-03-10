@@ -8,6 +8,7 @@ function nurseApp() {
         viewMode: 'list', 
         showSuccess: false,
         successMsg: '',
+        isEditing: false,
         
         // Data Storage
         wards: [],
@@ -119,22 +120,30 @@ function nurseApp() {
         // --- 4. Admission & Bed Logic ---
         async openAdmitForm() {
             this.isLoading = true; 
+            this.isEditing = false; // 👈 ระบุว่านี่คือการ "รับใหม่" ไม่ใช่การแก้ไข
+            
             try {
-                this.resetForm();
+                this.resetForm(); // ล้างข้อมูลเก่าออกให้หมด
                 this.form.ward = this.currentWard;
+                
+                // ตั้งค่าวันที่และเวลาปัจจุบัน (ค.ศ. สำหรับ input type="date")
                 this.form.date = new Date().toISOString().split('T')[0];
-                this.form.time = new Date().toLocaleTimeString('th-TH', { hour12: false, hour: '2-digit', minute: '2-digit' });
-
-                await this.fetchAvailableBeds(); 
+                this.form.time = new Date().toLocaleTimeString('th-TH', { 
+                    hour12: false, 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+        
+                await this.fetchAvailableBeds(); // โหลดเตียงว่าง
                 this.showAdmitModal = true;
+                
             } catch (error) {
-                console.error("Error opening form:", error);
+                console.error("Error opening admit form:", error);
                 alert("ไม่สามารถโหลดข้อมูลเตียงได้");
             } finally {
                 this.isLoading = false; 
             }
         },
-
         async fetchAvailableBeds() {
             try {
                 const response = await fetch(`${this.API_URL}?action=getBeds&ward=${this.currentWard}`);
@@ -217,11 +226,16 @@ function nurseApp() {
 
         async submitAdmit() {
             if (!this.form.bed || !this.form.hn || !this.form.an) {
-                alert("กรุณากรอกข้อมูล เตียง, HN และ AN ให้ครบถ้วน");
+                alert("กรุณากรอกข้อมูลสำคัญให้ครบถ้วน");
                 return;
             }
-            await this.postToGAS('admitPatient', this.form, "Admitted เรียบร้อยแล้ว");
+    
+            const action = this.isEditing ? 'editPatient' : 'admitPatient';
+            const msg = this.isEditing ? 'แก้ไขข้อมูลสำเร็จ' : 'บันทึก Admit สำเร็จ';
+            
+            await this.postToGAS(action, this.form, msg);
             this.showAdmitModal = false;
+            this.isEditing = false; // รีเซ็ตสถานะหลังจบงาน
         },
 
         async dischargePatient() {
@@ -237,6 +251,33 @@ function nurseApp() {
             if (newBed) {
                 const payload = { an: this.selectedPatient.an, oldBed: this.selectedPatient.bed, newBed: newBed, ward: this.currentWard };
                 await this.postToGAS('moveBed', payload, "ย้ายเตียงเรียบร้อยแล้ว");
+            }
+        },
+        async openEditForm() {
+            this.isLoading = true;
+            this.isEditing = true; // ตั้งสถานะว่ากำลังแก้ไข
+            
+            try {
+                // 1. ดึงข้อมูลจากคนไข้ที่เลือก (selectedPatient) เข้าสู่ฟอร์ม
+                // ใช้การ Copy ข้อมูลแบบ Spread เพื่อไม่ให้ค่าในตารางเปลี่ยนทันทีขณะพิมพ์
+                this.form = { ...this.selectedPatient };
+                
+                // 2. จัดการเรื่องวันที่ พ.ศ. ให้แสดงในช่องกรอก
+                this.form.dobInput = this.selectedPatient.dob; 
+    
+                // 3. โหลดเตียง (รวมเตียงปัจจุบันของคนไข้เข้าไปในตัวเลือกด้วย)
+                await this.fetchAvailableBeds();
+                if (!this.availableBeds.includes(this.selectedPatient.bed)) {
+                    this.availableBeds.unshift(this.selectedPatient.bed);
+                }
+    
+                // 4. ปิดหน้า Detail และเปิดหน้าฟอร์ม
+                this.viewMode = 'list';
+                this.showAdmitModal = true;
+            } catch (e) {
+                alert("ไม่สามารถโหลดข้อมูลแก้ไขได้");
+            } finally {
+                this.isLoading = false;
             }
         },
 
