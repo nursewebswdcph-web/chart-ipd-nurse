@@ -63,6 +63,27 @@ function nurseApp() {
             update();
             setInterval(update, 1000);
         },
+        get patientSummary() {
+            if (!this.patients || this.patients.length === 0) {
+                return { total: 0, deptStr: 'ไม่มีข้อมูล' };
+            }
+        
+            const total = this.patients.length;
+        
+            // 1. นับแยกตามแผนก (Dept)
+            const counts = this.patients.reduce((acc, p) => {
+                const dName = p.dept || 'ไม่ระบุแผนก';
+                acc[dName] = (acc[dName] || 0) + 1;
+                return acc;
+            }, {});
+        
+            // 2. แปลงผลลัพธ์เป็นข้อความสวยๆ เช่น "อายุรกรรม 5 ราย, ศัลยกรรม 2 ราย"
+            const deptStr = Object.entries(counts)
+                .map(([name, count]) => `${name} ${count} ราย`)
+                .join(' • '); // ใช้เครื่องหมายจุดกลางแบ่งแผนก
+        
+            return { total, deptStr };
+        },
 
         async loadInitialData() {
             this.isLoading = true;
