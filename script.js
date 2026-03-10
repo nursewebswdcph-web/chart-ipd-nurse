@@ -11,6 +11,9 @@ function nurseApp() {
         selectedPatient: null,
         currentForm: null, // เก็บฟอร์มที่กำลังเปิดใน Chart
         
+        // รายชื่อพยาบาล
+        nurseList: [],
+
         // รายการฟอร์มหลัก 8 รายการ
         activeForms: [
             { id: 'assess_initial', title: '1. แบบประเมินประวัติและสมรรถนะผู้ป่วยแรกรับ', isMain: true },
@@ -53,6 +56,7 @@ function nurseApp() {
         init() {
             this.startClock();
             this.loadInitialData();
+            this.fetchStaff(); // ดึงรายชื่อพยาบาล
         },
 
         startClock() {
@@ -102,6 +106,74 @@ function nurseApp() {
                 console.error("Initialization error", e); 
             }
             this.isLoading = false;
+        },
+
+        async fetchStaff() {
+            try {
+                const res = await fetch(this.API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'getStaff' })
+                });
+                this.nurseList = await res.json();
+            } catch (e) { console.error("Load staff failed", e); }
+        },
+
+        updateAssessorPosition(e) {
+            const name = e.target.value;
+            const staff = this.nurseList.find(s => s.name === name);
+            const posInput = document.getElementById('assessor-position-display');
+            if (staff && posInput) {
+                posInput.value = staff.position;
+            }
+        },
+
+        calculateBradenInForm() {
+            const form = document.getElementById('assessment-form');
+            if (!form) return;
+            const formData = new FormData(form);
+            let total = 0;
+            const metrics = ['Sensory', 'Moisture', 'Activity', 'Mobility', 'Nutrition', 'Friction'];
+            
+            metrics.forEach(m => {
+                const val = formData.get(`Braden_${m}`);
+                if (val) total += parseInt(val);
+            });
+
+            const display = document.getElementById('braden-total-display');
+            const riskDisplay = document.getElementById('braden-risk-text');
+            const hiddenInput = document.getElementById('braden-total-hidden');
+
+            if (display) display.innerText = total;
+            if (hiddenInput) hiddenInput.value = total;
+
+            let risk = "";
+            let riskClass = "text-slate-500";
+
+            if (total > 0) {
+                if (total <= 12) { risk = "ความเสี่ยงสูงมาก (High Risk)"; riskClass = "text-red-600 font-black"; }
+                else if (total <= 14) { risk = "ความเสี่ยงสูง (Moderate Risk)"; riskClass = "text-orange-600 font-bold"; }
+                else if (total <= 18) { risk = "ความเสี่ยงปานกลาง/ต่ำ (Mild Risk)"; riskClass = "text-amber-600 font-bold"; }
+                else { risk = "ปกติ (No Risk)"; riskClass = "text-emerald-600 font-bold"; }
+            }
+            
+            if (riskDisplay) {
+                riskDisplay.innerText = risk;
+                riskDisplay.className = `font-bold italic text-[13px] ${riskClass}`;
+            }
+        },
+
+        async submitInitialAssessment() {
+            const form = document.getElementById('assessment-form');
+            if (!form) return;
+            const formData = new FormData(form);
+            const payload = Object.fromEntries(formData.entries());
+            
+            // เพิ่มข้อมูลอ้างอิง
+            payload.AN = this.selectedPatient.an;
+            payload.HN = this.selectedPatient.hn;
+            payload.PatientName = this.selectedPatient.name;
+
+            await this.postToGAS('saveAssessment', payload, "บันทึกแบบประเมินแรกรับสำเร็จ");
         },
 
         async selectWard(ward) {
