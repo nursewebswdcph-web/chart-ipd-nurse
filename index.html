@@ -122,36 +122,31 @@
                         </thead>
                         <tbody class="divide-y divide-gray-50">
                             <template x-for="p in filteredPatients" :key="p.an">
-                                <tr class="hover:bg-emerald-50/30 transition-colors cursor-pointer" @click="openPatientDetail(p)">
+                                <tr @click="openPatientDetail(p)" class="hover:bg-emerald-50/50 transition-colors cursor-pointer group">
                                     <td class="p-4">
-                                        <span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full font-bold" x-text="p.bed"></span>
+                                        <span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full font-bold text-sm" x-text="p.bed"></span>
                                     </td>
                                     <td class="p-4">
-                                        <div class="font-semibold text-emerald-700" x-text="p.hn"></div>
+                                        <div class="font-semibold text-emerald-800" x-text="p.hn"></div>
                                         <div class="text-xs text-gray-400" x-text="p.an"></div>
                                     </td>
                                     <td class="p-4">
-                                        <div class="font-bold text-gray-700" x-text="p.name"></div>
+                                        <div class="font-bold text-gray-800 group-hover:text-emerald-600 transition" x-text="p.name"></div>
                                     </td>
                                     <td class="p-4 text-sm text-gray-600" x-text="p.ageDisplay"></td>
                                     <td class="p-4">
-                                        <div class="text-sm font-medium" x-text="p.dept"></div>
-                                        <div class="text-xs text-emerald-600" x-text="p.doctor"></div>
+                                        <div class="text-sm font-medium text-gray-700" x-text="p.dept"></div>
+                                        <div class="text-xs text-emerald-600 italic" x-text="p.doctor"></div>
                                     </td>
                                     <td class="p-4">
-                                        <div class="text-xs text-gray-500" x-text="p.admitDate"></div>
-                                        <div class="text-sm font-bold text-orange-600"><span x-text="calculateLOS(p.admitDate)"></span> วัน</div>
+                                        <div class="text-xs text-gray-400" x-text="p.date"></div>
+                                        <div class="text-sm font-bold text-orange-600">
+                                            <span x-text="calculateLOS(p.date)"></span> วัน
+                                        </div>
                                     </td>
-                                    <td class="p-4 text-center">
-                                        <button class="text-emerald-500 hover:bg-emerald-100 p-2 rounded-lg">
-                                            <i class="fa-solid fa-file-medical text-lg"></i>
-                                        </button>
+                                    <td class="p-4 text-right">
+                                        <i class="fa-solid fa-chevron-right text-gray-300 group-hover:text-emerald-400 transition"></i>
                                     </td>
-                                </tr>
-                            </template>
-                            <template x-if="filteredPatients.length === 0">
-                                <tr>
-                                    <td colspan="7" class="p-10 text-center text-gray-400 italic">ไม่พบข้อมูลรายชื่อผู้ป่วย</td>
                                 </tr>
                             </template>
                         </tbody>
@@ -274,6 +269,82 @@
                 <button type="submit" class="px-12 py-3 rounded-xl bg-emerald-600 text-white font-bold shadow-lg hover:bg-emerald-700 transform active:scale-95 transition">บันทึก Admission</button>
             </div>
         </form>
+    </div>
+</div>
+    <div x-show="viewMode === 'detail'" class="modal-container fixed inset-0 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" x-cloak>
+    <div class="bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden border border-emerald-100">
+        <div class="hospital-gradient p-6 text-white flex justify-between items-start">
+            <div class="flex items-center gap-4">
+                <div class="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center text-3xl">
+                    <i class="fa-solid fa-user-injured"></i>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold" x-text="selectedPatient?.name"></h2>
+                    <p class="opacity-90">HN: <span x-text="selectedPatient?.hn"></span> | AN: <span x-text="selectedPatient?.an"></span></p>
+                </div>
+            </div>
+            <button @click="viewMode = 'list'" class="bg-white/10 hover:bg-white/20 p-2 rounded-full transition">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+        </div>
+
+        <div class="p-8 grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="md:col-span-2 space-y-6">
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div class="bg-gray-50 p-3 rounded-xl">
+                        <span class="block text-gray-400 text-xs">เตียง</span>
+                        <span class="font-bold text-lg text-emerald-700" x-text="selectedPatient?.bed"></span>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded-xl">
+                        <span class="block text-gray-400 text-xs">อายุ</span>
+                        <span class="font-bold text-gray-700" x-text="selectedPatient?.ageDisplay"></span>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded-xl">
+                        <span class="block text-gray-400 text-xs">แผนก</span>
+                        <span class="font-bold text-gray-700" x-text="selectedPatient?.dept"></span>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded-xl">
+                        <span class="block text-gray-400 text-xs">แพทย์เจ้าของไข้</span>
+                        <span class="font-bold text-emerald-600" x-text="selectedPatient?.doctor"></span>
+                    </div>
+                </div>
+
+                <div class="border-l-4 border-emerald-500 pl-4">
+                    <h4 class="font-bold text-gray-700 mb-1">การวินิจฉัยแรกรับ (Diagnosis)</h4>
+                    <p class="text-gray-600" x-text="selectedPatient?.dx || 'ไม่ระบุ'"></p>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-3">
+                <h4 class="font-bold text-gray-400 uppercase text-xs tracking-widest mb-2">จัดการข้อมูล</h4>
+                
+                <button @click="showAdmitModal = true; viewMode = 'list'; /* ฟังก์ชันโหลดข้อมูลเก่าลงฟอร์ม */" 
+                        class="flex items-center justify-between bg-blue-50 text-blue-700 p-4 rounded-2xl hover:bg-blue-100 transition font-bold">
+                    <span><i class="fa-solid fa-user-pen mr-2"></i> แก้ไขข้อมูล</span>
+                    <i class="fa-solid fa-chevron-right text-blue-300"></i>
+                </button>
+
+                <button @click="moveBed()" 
+                        class="flex items-center justify-between bg-amber-50 text-amber-700 p-4 rounded-2xl hover:bg-amber-100 transition font-bold">
+                    <span><i class="fa-solid fa-bed mr-2"></i> ย้ายเตียง (ภายในตึก)</span>
+                    <i class="fa-solid fa-chevron-right text-amber-300"></i>
+                </button>
+
+                <button @click="moveWard()" 
+                        class="flex items-center justify-between bg-purple-50 text-purple-700 p-4 rounded-2xl hover:bg-purple-100 transition font-bold">
+                    <span><i class="fa-solid fa-hospital-user mr-2"></i> ย้ายตึก (Transfer)</span>
+                    <i class="fa-solid fa-chevron-right text-purple-300"></i>
+                </button>
+
+                <hr class="my-2 border-gray-100">
+
+                <button @click="dischargePatient()" 
+                        class="flex items-center justify-between bg-red-600 text-white p-4 rounded-2xl hover:bg-red-700 transition font-bold shadow-lg shadow-red-100">
+                    <span><i class="fa-solid fa-door-open mr-2"></i> จำหน่าย (Discharge)</span>
+                    <i class="fa-solid fa-check-circle"></i>
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 
