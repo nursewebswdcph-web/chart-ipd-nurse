@@ -5,10 +5,12 @@ function nurseApp() {
         isLoading: false,
         realTimeClock: '',
         currentWard: null,
-        viewMode: 'list',
+        viewMode: 'list', // 'list', 'detail', 'chart'
         isEditing: false,
 
+        selectedPatient: null,
         currentForm: null, // เก็บฟอร์มที่กำลังเปิดใน Chart
+        
         // รายการฟอร์มหลัก 8 รายการ
         activeForms: [
             { id: 'assess_initial', title: '1. แบบประเมินประวัติและสมรรถนะผู้ป่วยแรกรับ', isMain: true },
@@ -20,6 +22,7 @@ function nurseApp() {
             { id: 'progress_note', title: '7. แบบบันทึกความก้าวหน้าทางการพยาบาล Nursing Progress Note', isMain: true },
             { id: 'discharge_summary', title: '8. แบบบันทึกการพยาบาลผู้ป่วยจำหน่าย', isMain: true }
         ],
+
         // รายการเอกสารเพิ่มเติม
         extraOptions: [
             { id: 'stress_assess', title: 'แบบประเมินความเครียด' },
@@ -45,7 +48,6 @@ function nurseApp() {
             receivedFrom: 'ER', referFrom: '', bed: '', hn: '', an: '', 
             name: '', address: '', dept: '', cc: '', pi: '', dx: '', doctor: '', ward: ''
         },
-        selectedPatient: null,
 
         // --- 2. INITIALIZATION ---
         init() {
@@ -117,6 +119,13 @@ function nurseApp() {
             this.isLoading = false;
         },
 
+        openNursingChart(patient) {
+            this.selectedPatient = patient; // ล็อคข้อมูลผู้ป่วย
+            this.currentForm = this.activeForms[0]; // เริ่มที่ฟอร์มแรก
+            this.viewMode = 'chart'; // เข้าโหมด Chart ทันที
+            window.scrollTo(0, 0);
+        },
+
         async openAdmitForm() {
             this.isLoading = true;
             this.isEditing = false;
@@ -140,9 +149,8 @@ function nurseApp() {
                 const res = await fetch(`${this.API_URL}?action=getBeds&ward=${this.currentWard}`);
                 this.availableBeds = await res.json();
                 if (!this.availableBeds.includes(this.selectedPatient.bed)) {
-                    this.availableBeds.unshift(this.selectedPatient.bed);
+                    this.availableBeds.push(this.selectedPatient.bed);
                 }
-                this.viewMode = 'list';
                 this.showAdmitModal = true;
             } catch (e) { this.showAlert("Error", "โหลดข้อมูลล้มเหลว"); }
             this.isLoading = false;
@@ -186,7 +194,6 @@ function nurseApp() {
             });
         },
 
-        // --- 5. HELPERS ---
         async postToGAS(action, payload, msg) {
             this.isLoading = true;
             try {
@@ -196,13 +203,6 @@ function nurseApp() {
                 setTimeout(() => { this.showSuccess = false; }, 3000);
                 setTimeout(async () => { await this.fetchPatients(); this.isLoading = false; }, 1500);
             } catch (e) { this.isLoading = false; this.showAlert("Error", "เชื่อมต่อฐานข้อมูลไม่ได้"); }
-        },
-
-        openNursingChart(patient) {
-            this.selectedPatient = patient; // ล็อคข้อมูลผู้ป่วยรายนี้ไว้
-            this.currentForm = this.activeForms[0]; // เริ่มที่ฟอร์มแรก
-            this.viewMode = 'chart'; // เปลี่ยนหน้าจอหลักเป็นโหมด Chart
-            window.scrollTo(0, 0);
         },
 
         autoFormatDate(e) {
@@ -240,23 +240,30 @@ function nurseApp() {
         showConfirm(title, msg, onConfirm) { this.dialog = { show: true, type: 'confirm', title, msg, confirmBtnText: 'ยืนยัน', onConfirm }; },
         handleDialogConfirm() { if (this.dialog.onConfirm) this.dialog.onConfirm(); this.dialog.show = false; },
         openPatientDetail(p) { this.selectedPatient = p; this.viewMode = 'detail'; },
+        
         resetForm() {
-            this.form = { dobInput: '', dob: '', ageDisplay: '', date: '', time: '', receivedFrom: 'ER', referFrom: '', bed: '', hn: '', an: '', name: '', address: '', dept: this.configs.depts[0] || '', cc: '', pi: '', dx: '', doctor: '', ward: this.currentWard };
+            this.form = { dobInput: '', dob: '', ageDisplay: '', date: '', time: '', receivedFrom: 'ER', referFrom: '', bed: '', hn: '', an: '', name: '', address: '', dept: '', cc: '', pi: '', dx: '', doctor: '', ward: this.currentWard };
         },
+
         addNewDoctor() {
             const name = prompt("ระบุชื่อ-นามสกุล แพทย์:");
-            if (name) { this.doctors.push(name); this.form.doctor = name; this.postToGAS('addDoctor', { name: name }, "เพิ่มชื่อแพทย์ลงฐานข้อมูลแล้ว"); }
-        }
+            if (name) { this.doctors.push(name); this.form.doctor = name; }
+        },
+
         selectForm(form) { this.currentForm = form; },
+        
         addForm(opt) {
             if (!this.activeForms.find(f => f.id === opt.id)) {
                 this.activeForms.push({ ...opt, isMain: false });
             }
             this.currentForm = opt;
         },
+
         removeForm(id) {
             this.activeForms = this.activeForms.filter(f => f.id !== id);
-            if (this.currentForm.id === id) this.currentForm = this.activeForms[0];
-        },
+            if (this.currentForm && this.currentForm.id === id) {
+                this.currentForm = this.activeForms[0];
+            }
+        }
     };
 }
