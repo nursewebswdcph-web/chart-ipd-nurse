@@ -1,6 +1,6 @@
 function nursingChart() {
     return {
-        // ✅ เปลี่ยน URL ของคุณที่นี่
+        // ✅ URL ของคุณ
         API_URL: 'https://script.google.com/macros/s/AKfycbxqaydhsgGZKV8hz28qYUzsTVDl7c-DzgFZD9FDzcWE_uCnwIaJryjqiNQ2ggxOYn49/exec',
         isLoading: false,
         patient: null,
@@ -31,19 +31,19 @@ function nursingChart() {
             const urlParams = new URLSearchParams(window.location.search);
             const an = urlParams.get('an');
             if (an) {
-                // ✅ แก้ไขปัญหาค้นหา AN ไม่พบด้วยการ Trim และแปลงเป็น String ทั้งคู่
                 this.fetchPatientData(an);
             }
         },
 
+        // ✅ แก้ไขปัญหาค้นหา AN ไม่พบ
         async fetchPatientData(an) {
             this.isLoading = true;
             try {
-                // ดึงข้อมูลจาก API ตัวเดิมที่ใช้แสดงในหน้าทะเบียน (ดึงจากชีต CurrentPatients)
+                // ดึงข้อมูลจาก API ที่เชื่อมต่อกับชีต CurrentPatients 
                 const res = await fetch(`${this.API_URL}?action=getPatients&ward=all`);
                 const allPatients = await res.json();
                 
-                // ✅ ใช้ String Matching ที่เข้มงวดเพื่อรองรับ AN แบบข้อความจากคอลัมน์ H
+                // ✅ ใช้การเปรียบเทียบแบบ String Matching ที่เข้มงวดเพื่อรองรับ AN แบบข้อความ
                 const foundPatient = allPatients.find(p => 
                     p.an && p.an.toString().trim() === an.toString().trim()
                 );
@@ -51,7 +51,6 @@ function nursingChart() {
                 if (foundPatient) {
                     this.patient = foundPatient;
                 } else {
-                    // หากไม่พบ ให้ลองดึงข้อมูลจาก Source อื่นหรือแจ้งเตือน
                     this.showAlert("ไม่พบผู้ป่วย", `ไม่พบ AN: ${an} ในฐานข้อมูลทะเบียนผู้ป่วยปัจจุบัน`);
                 }
             } catch (e) {
@@ -82,7 +81,6 @@ function nursingChart() {
             });
         },
 
-        // ✅ ฟังก์ชันแจ้งเตือนแบบกำหนดเอง (Custom Dialog)
         showAlert(title, msg) {
             this.dialog = { show: true, type: 'alert', title, msg, confirmBtnText: 'ตกลง', onConfirm: null };
         },
