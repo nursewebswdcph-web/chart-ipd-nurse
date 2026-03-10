@@ -3,50 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IPD Nurse Workbench | โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน</title>
+    <title>SawangHos IPD Nurse Workbench</title>
     <link rel="icon" type="image/png" href="https://png.pngtree.com/png-vector/20250520/ourmid/pngtree-healthcare-nurse-station-symbol-for-medical-facilities-png-image_16333172.png">
-    
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        body { font-family: 'Sarabun', sans-serif; background-color: #f8fafc; scroll-behavior: smooth; }
+        body { font-family: 'Sarabun', sans-serif; background-color: #f8fafc; }
         [x-cloak] { display: none !important; }
         .hospital-gradient { background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%); }
-        .card-hover:hover { transform: translateY(-5px); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }
-        .modal-container { z-index: 10001; }
-        .loader-overlay { z-index: 10002; }
+        .card-hover:hover { transform: translateY(-5px); transition: all 0.3s ease; shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
     </style>
 </head>
-<body x-data="nurseApp()" x-init="init()" class="antialiased text-slate-900">
+<body x-data="nurseApp()" x-init="init()">
 
-    <div x-show="isLoading" class="loader-overlay fixed inset-0 bg-slate-900/60 backdrop-blur-md flex flex-col items-center justify-center text-white" x-cloak>
-        <div class="relative">
-            <div class="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping"></div>
-            <div class="relative bg-white p-6 rounded-3xl shadow-2xl">
-                <div class="animate-spin rounded-full h-16 w-16 border-4 border-emerald-500 border-t-transparent"></div>
-                <i class="fa-solid fa-microchip absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-emerald-600 text-xl"></i>
-            </div>
+    <div x-show="isLoading" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex flex-col items-center justify-center text-white" style="z-index: 99999;" x-cloak>
+        <div class="relative bg-white p-6 rounded-3xl shadow-2xl">
+            <div class="animate-spin rounded-full h-16 w-16 border-4 border-emerald-500 border-t-transparent"></div>
+            <i class="fa-solid fa-microchip absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-emerald-600 text-xl"></i>
         </div>
         <p class="mt-6 text-xl font-bold tracking-widest text-emerald-400 animate-pulse uppercase">Processing...</p>
-        <p class="text-xs text-slate-300 mt-2 font-light">กำลังประมวลผล กรุณาราสักครู่</p>
     </div>
 
-    <div x-show="showSuccess" 
-         x-transition:enter="transition ease-out duration-300" 
-         x-transition:enter-start="opacity-0 translate-y-4" 
-         x-transition:enter-end="opacity-100 translate-y-0"
-         class="fixed top-24 left-1/2 -translate-x-1/2 z-[10005] w-full max-w-sm" x-cloak>
-        <div class="bg-white rounded-3xl p-6 shadow-2xl border border-emerald-100 flex items-center gap-4">
-            <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shrink-0">
-                <i class="fa-solid fa-check text-2xl"></i>
-            </div>
-            <div>
-                <h4 class="font-bold text-slate-800">บันทึกสำเร็จ</h4>
-                <p class="text-xs text-slate-500" x-text="successMsg"></p>
-            </div>
+    <div x-show="showSuccess" class="fixed top-24 left-1/2 -translate-x-1/2 z-[10005] w-full max-w-sm px-4" x-cloak>
+        <div class="bg-white rounded-2xl p-6 shadow-2xl border border-emerald-100 flex items-center gap-4">
+            <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shrink-0"><i class="fa-solid fa-check text-2xl"></i></div>
+            <div><h4 class="font-bold text-slate-800">ดำเนินการสำเร็จ</h4><p class="text-xs text-slate-500" x-text="successMsg"></p></div>
         </div>
     </div>
 
@@ -55,52 +39,35 @@
             <div class="flex items-center space-x-3">
                 <img src="https://swdcph.moph.go.th/intranet/login/images/logo_swd.png" alt="Logo" class="h-12 w-auto bg-white rounded-full p-1 shadow-sm">
                 <div>
-                    <h1 class="text-lg md:text-2xl font-bold tracking-tight leading-none text-white">IPD Nurse Workbench</h1>
-                    <div class="text-[10px] md:text-xs mt-1 opacity-80 font-light tracking-wide" x-text="realTimeClock"></div>
+                    <h1 class="text-xl md:text-2xl font-bold leading-none text-white">IPD Nurse Workbench</h1>
+                    <div class="text-[10px] md:text-xs mt-1 opacity-80" x-text="realTimeClock"></div>
                 </div>
             </div>
-
-            <div class="flex items-center space-x-2 md:space-x-4">
+            <div class="flex items-center space-x-3">
                 <template x-if="currentWard">
                     <div class="flex items-center gap-2">
-                        <div class="hidden lg:flex items-center bg-white/10 px-3 py-1.5 rounded-xl border border-white/20">
-                            <span class="text-[10px] uppercase opacity-70 mr-2">ผู้ป่วยรวม</span>
-                            <span class="text-sm font-bold text-emerald-300" x-text="patientSummary.total"></span>
+                        <div class="hidden lg:block bg-white/10 px-3 py-1.5 rounded-xl border border-white/20">
+                            <span class="text-[10px] uppercase opacity-70">Total: </span><span class="font-bold text-emerald-300" x-text="patientSummary.total"></span>
                         </div>
-                        <div class="hidden xl:block bg-black/10 px-3 py-1.5 rounded-xl text-[11px] text-emerald-100 border border-white/5">
-                            <i class="fa-solid fa-layer-group mr-1 opacity-70"></i>
-                            <span x-text="patientSummary.deptStr"></span>
-                        </div>
-                        <div class="bg-emerald-500/30 px-3 py-1.5 rounded-full text-xs md:text-sm font-bold border border-emerald-400/30 shadow-inner flex items-center">
-                            <i class="fa-solid fa-hospital-user mr-2 text-emerald-200"></i>
-                            <span x-text="currentWard"></span>
+                        <div class="bg-emerald-500/30 px-4 py-1.5 rounded-full text-sm font-bold border border-emerald-400/30 flex items-center">
+                            <i class="fa-solid fa-hospital-user mr-2 text-emerald-200"></i><span x-text="currentWard"></span>
                         </div>
                     </div>
                 </template>
-                <button @click="currentWard = null; viewMode = 'list'" x-show="currentWard" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all border border-white/10">
-                    <i class="fa-solid fa-house"></i>
-                </button>
+                <button @click="currentWard = null; viewMode = 'list'" x-show="currentWard" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 border border-white/10"><i class="fa-solid fa-house text-white"></i></button>
             </div>
         </div>
     </nav>
 
     <main class="container mx-auto p-4 md:p-8">
         <div x-show="!currentWard" x-cloak>
-            <div class="mb-10 text-center">
-                <h2 class="text-3xl font-bold text-slate-800">กรุณาเลือกหอผู้ป่วย</h2>
-                <p class="text-slate-400 mt-2 font-light">Somdet Phra Yupparat Sawang Daen Din Hospital</p>
-            </div>
+            <div class="mb-10 text-center"><h2 class="text-3xl font-bold text-slate-800">กรุณาเลือกหอผู้ป่วย</h2></div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                 <template x-for="ward in wards" :key="ward">
-                    <div @click="selectWard(ward)" class="card-hover bg-white p-10 rounded-[2.5rem] shadow-sm border-b-8 border-emerald-500 cursor-pointer text-center group transition-all">
-                        <div class="w-24 h-24 bg-emerald-50 rounded-3xl flex items-center justify-center mx-auto mb-6 group-hover:bg-emerald-500 group-hover:text-white transition-all duration-500 rotate-3 group-hover:rotate-0">
-                            <i class="fa-solid fa-hospital text-4xl"></i>
-                        </div>
-                        <h3 class="text-2xl font-bold text-slate-700 mb-2" x-text="ward"></h3>
-                        <div class="text-emerald-600 font-bold flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <span>เข้าสู่ระบบ Registry</span>
-                            <i class="fa-solid fa-arrow-right-long animate-bounce-x"></i>
-                        </div>
+                    <div @click="selectWard(ward)" class="card-hover bg-white p-10 rounded-[2.5rem] shadow-sm border-b-8 border-emerald-500 cursor-pointer text-center group">
+                        <div class="w-20 h-20 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-emerald-500 group-hover:text-white transition-all duration-300"><i class="fa-solid fa-hospital text-3xl"></i></div>
+                        <h3 class="text-2xl font-bold text-slate-700" x-text="ward"></h3>
+                        <p class="text-emerald-600 mt-2 font-bold opacity-0 group-hover:opacity-100 transition-opacity italic">Open Registry &rarr;</p>
                     </div>
                 </template>
             </div>
@@ -110,83 +77,56 @@
             <div class="bg-white p-6 rounded-[2rem] shadow-sm mb-6 border border-slate-100">
                 <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                     <div class="flex items-center space-x-4">
-                        <div class="p-4 bg-emerald-100 text-emerald-700 rounded-2xl shadow-inner">
-                            <i class="fa-solid fa-clipboard-list text-3xl"></i>
-                        </div>
+                        <div class="p-4 bg-emerald-100 text-emerald-700 rounded-2xl shadow-inner"><i class="fa-solid fa-clipboard-list text-3xl"></i></div>
                         <div>
-                            <div class="flex items-center gap-3">
-                                <h2 class="text-2xl font-extrabold text-slate-800">ทะเบียนผู้ป่วยใน IPD Registry</h2>
-                                <span class="bg-slate-100 text-slate-500 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Live View</span>
-                            </div>
-                            <p class="text-sm text-slate-400">หอผู้ป่วย: <span class="text-emerald-600 font-bold" x-text="currentWard"></span></p>
+                            <h2 class="text-2xl font-extrabold text-slate-800">IPD Registry</h2>
+                            <p class="text-sm text-slate-400" x-text="patientSummary.deptStr"></p>
                         </div>
                     </div>
-                    <button @click="openAdmitForm()" :disabled="isLoading" 
-                            class="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white px-8 py-3.5 rounded-2xl transition-all shadow-lg shadow-emerald-100 flex items-center justify-center gap-3 font-bold active:scale-95">
-                        <i class="fa-solid fa-user-plus text-lg" x-show="!isLoading"></i>
-                        <i class="fa-solid fa-circle-notch animate-spin" x-show="isLoading"></i>
-                        <span x-text="isLoading ? 'กำลังโหลด...' : 'Admitted ผู้ป่วยใหม่'"></span>
+                    <button @click="openAdmitForm()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3.5 rounded-2xl shadow-lg shadow-emerald-100 flex items-center gap-3 font-bold transition-all active:scale-95">
+                        <i class="fa-solid fa-user-plus"></i><span>Admitted ผู้ป่วยใหม่</span>
                     </button>
                 </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-8 pt-6 border-t border-slate-50">
-                    <div class="relative"><i class="fa-solid fa-id-card absolute left-4 top-3 text-slate-300"></i><input type="text" x-model="searchHN" placeholder="ค้นหา HN..." class="w-full bg-slate-50 border-none rounded-xl text-sm pl-11 pr-4 py-3 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"></div>
-                    <div class="relative"><i class="fa-solid fa-hashtag absolute left-4 top-3 text-slate-300"></i><input type="text" x-model="searchAN" placeholder="ค้นหา AN..." class="w-full bg-slate-50 border-none rounded-xl text-sm pl-11 pr-4 py-3 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"></div>
-                    <div class="relative md:col-span-2"><i class="fa-solid fa-magnifying-glass absolute left-4 top-3 text-slate-300"></i><input type="text" x-model="searchName" placeholder="ค้นหาชื่อ-นามสกุล..." class="w-full bg-slate-50 border-none rounded-xl text-sm pl-11 pr-4 py-3 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"></div>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-8">
+                    <input type="text" x-model="searchHN" placeholder="ค้นหา HN..." class="bg-slate-50 border-none rounded-xl text-sm px-4 py-3 focus:ring-2 focus:ring-emerald-500 outline-none">
+                    <input type="text" x-model="searchAN" placeholder="ค้นหา AN..." class="bg-slate-50 border-none rounded-xl text-sm px-4 py-3 focus:ring-2 focus:ring-emerald-500 outline-none">
+                    <input type="text" x-model="searchName" placeholder="ค้นหาชื่อ-นามสกุล..." class="md:col-span-2 bg-slate-50 border-none rounded-xl text-sm px-4 py-3 focus:ring-2 focus:ring-emerald-500 outline-none">
                 </div>
             </div>
 
             <div class="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead class="bg-slate-50/50 border-b border-slate-100">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-50 border-b border-slate-100">
                             <tr class="text-slate-400 text-[10px] uppercase font-bold tracking-widest">
-                                <th class="p-5 text-center w-24">Chart</th>
+                                <th class="p-5 text-center w-20">Chart</th>
                                 <th class="p-5 w-24 text-center">เตียง</th>
                                 <th class="p-5">ข้อมูลผู้ป่วย</th>
                                 <th class="p-5">แผนก/แพทย์</th>
                                 <th class="p-5 text-center">Admit/LOS</th>
-                                <th class="p-5 text-right">Detail</th>
+                                <th class="p-5"></th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-50">
                             <template x-for="p in filteredPatients" :key="p.an">
-                                <tr class="hover:bg-emerald-50/30 transition-all duration-200 group">
+                                <tr class="hover:bg-emerald-50/30 transition-all cursor-pointer">
                                     <td class="p-5 text-center">
-                                        <button @click.stop="openNursingChart(p.an)" 
-                                                class="w-12 h-12 bg-white text-blue-600 rounded-2xl hover:bg-blue-600 hover:text-white transition-all shadow-sm border border-slate-100 flex items-center justify-center mx-auto active:scale-90 group-hover:shadow-md">
-                                            <i class="fa-solid fa-folder-medical text-xl"></i>
-                                        </button>
+                                        <button @click.stop="openNursingChart(p.an)" class="w-10 h-10 bg-white text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition shadow-sm border border-slate-100 flex items-center justify-center mx-auto"><i class="fa-solid fa-folder-medical"></i></button>
                                     </td>
-                                    <td @click="openPatientDetail(p)" class="p-5 text-center">
-                                        <span class="bg-emerald-100 text-emerald-700 px-4 py-1.5 rounded-full font-black text-sm" x-text="p.bed"></span>
-                                    </td>
+                                    <td @click="openPatientDetail(p)" class="p-5 text-center"><span class="bg-emerald-100 text-emerald-700 px-4 py-1.5 rounded-full font-black text-sm" x-text="p.bed"></span></td>
                                     <td @click="openPatientDetail(p)" class="p-5">
-                                        <div class="text-slate-800 font-bold text-base" x-text="p.name"></div>
-                                        <div class="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5">
-                                            <span class="font-mono bg-slate-50 px-1 rounded" x-text="'HN: ' + p.hn"></span>
-                                            <span class="font-mono bg-slate-50 px-1 rounded" x-text="'AN: ' + p.an"></span>
-                                        </div>
+                                        <div class="font-bold text-slate-800" x-text="p.name"></div>
+                                        <div class="text-[11px] text-slate-400 mt-0.5" x-text="'HN: '+p.hn+' | AN: '+p.an"></div>
                                     </td>
                                     <td @click="openPatientDetail(p)" class="p-5">
                                         <div class="text-xs font-bold text-slate-600" x-text="p.dept"></div>
-                                        <div class="text-[11px] text-emerald-600 mt-1 flex items-center gap-1">
-                                            <i class="fa-solid fa-user-doctor text-[9px]"></i>
-                                            <span x-text="p.doctor"></span>
-                                        </div>
+                                        <div class="text-[10px] text-emerald-600" x-text="p.doctor"></div>
                                     </td>
                                     <td @click="openPatientDetail(p)" class="p-5 text-center">
-                                        <div class="text-xs text-slate-400 mb-1" x-text="p.date"></div>
-                                        <div class="inline-flex items-center bg-slate-100 px-3 py-1 rounded-lg">
-                                            <i class="fa-solid fa-clock text-[9px] text-slate-400 mr-1.5"></i>
-                                            <span class="font-bold text-slate-600 text-xs" x-text="calculateLOS(p.date) + ' วัน'"></span>
-                                        </div>
+                                        <div class="text-[10px] text-slate-400 mb-1" x-text="p.date"></div>
+                                        <div class="bg-slate-100 px-3 py-1 rounded-lg inline-block font-bold text-slate-600 text-xs" x-text="calculateLOS(p.date) + ' วัน'"></div>
                                     </td>
-                                    <td class="p-5 text-right">
-                                        <button @click="openPatientDetail(p)" class="w-10 h-10 text-slate-300 hover:text-emerald-500 hover:bg-emerald-50 rounded-full transition-all flex items-center justify-center ml-auto">
-                                            <i class="fa-solid fa-circle-chevron-right text-2xl"></i>
-                                        </button>
-                                    </td>
+                                    <td class="p-5 text-right"><i class="fa-solid fa-chevron-right text-slate-300"></i></td>
                                 </tr>
                             </template>
                         </tbody>
@@ -196,20 +136,76 @@
         </div>
     </main>
 
-    <div x-show="dialog.show" class="fixed inset-0 z-[20000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md" x-cloak>
-        <div class="bg-white rounded-[2.5rem] shadow-2xl max-w-sm w-full overflow-hidden border border-white/20 transform transition-all">
-            <div class="p-10 text-center">
-                <template x-if="dialog.type === 'alert'"><div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce"><i class="fa-solid fa-check text-4xl"></i></div></template>
-                <template x-if="dialog.type === 'confirm'"><div class="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6"><i class="fa-solid fa-triangle-exclamation text-4xl"></i></div></template>
-                
-                <h3 class="text-2xl font-bold text-slate-800 mb-2" x-text="dialog.title"></h3>
-                <p class="text-sm text-slate-500 leading-relaxed mb-8" x-text="dialog.msg"></p>
+    <div x-show="showAdmitModal" class="fixed inset-0 z-[10001] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-md" x-cloak>
+        <div class="bg-white w-full max-w-5xl max-h-[92vh] overflow-y-auto rounded-[3rem] shadow-2xl relative border border-emerald-100">
+            <div class="sticky top-0 bg-white/95 backdrop-blur border-b p-6 flex justify-between items-center z-10 px-10">
+                <h3 class="text-2xl font-black text-slate-800" x-text="isEditing ? 'แก้ไขข้อมูลผู้ป่วย' : 'แบบฟอร์มรับผู้ป่วยใหม่'"></h3>
+                <button @click="showAdmitModal = false" class="text-slate-400 hover:text-red-500"><i class="fa-solid fa-xmark text-2xl"></i></button>
+            </div>
+            
+            <form @submit.prevent="submitAdmit" class="p-10 space-y-8">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 bg-slate-50 p-8 rounded-[2rem] border border-slate-100">
+                    <div class="md:col-span-4 font-bold text-emerald-700 text-xs uppercase tracking-widest border-b pb-2 mb-2">1. Admission Info</div>
+                    <div><label class="block text-[10px] font-bold text-slate-400 mb-2">วันที่รับ</label><input type="date" x-model="form.date" required class="w-full border-2 border-slate-100 rounded-xl p-3 text-sm focus:border-emerald-500 outline-none"></div>
+                    <div><label class="block text-[10px] font-bold text-slate-400 mb-2">เวลารับ</label><input type="time" x-model="form.time" required class="w-full border-2 border-slate-100 rounded-xl p-3 text-sm focus:border-emerald-500 outline-none"></div>
+                    <div><label class="block text-[10px] font-bold text-slate-400 mb-2">รับจาก</label><select x-model="form.receivedFrom" class="w-full border-2 border-slate-100 rounded-xl p-3 text-sm focus:border-emerald-500 outline-none"><option value="ER">ER</option><option value="OPD">OPD</option><option value="Transfer">Transfer</option></select></div>
+                    <div><label class="block text-[10px] font-bold text-slate-400 mb-2">เตียง (ตึก <span x-text="currentWard"></span>)</label><select x-model="form.bed" required class="w-full bg-emerald-50 border-2 border-emerald-200 rounded-xl p-3 text-sm font-bold text-emerald-800 outline-none"><option value="">-- เลือกเตียง --</option><template x-for="bed in availableBeds" :key="bed"><option :value="bed" x-text="bed"></option></template></select></div>
+                    <div class="md:col-span-2"><label class="block text-[10px] font-bold text-slate-400 mb-2">Refer จาก (ถ้ามี)</label><input type="text" x-model="form.referFrom" class="w-full border-2 border-slate-100 rounded-xl p-3 text-sm focus:border-emerald-500 outline-none"></div>
+                    <div class="md:col-span-2"><label class="block text-[10px] font-bold text-slate-400 mb-2">แผนก</label><select x-model="form.dept" class="w-full border-2 border-slate-100 rounded-xl p-3 text-sm focus:border-emerald-500 outline-none"><template x-for="d in configs.depts" :key="d"><option :value="d" x-text="d"></option></template></select></div>
+                </div>
 
-                <div class="flex gap-3">
-                    <template x-if="dialog.type !== 'alert'"><button @click="dialog.show = false" class="flex-1 py-4 rounded-2xl font-bold text-slate-400 hover:bg-slate-50 transition">ยกเลิก</button></template>
-                    <button @click="handleDialogConfirm()" 
-                            :class="dialog.type === 'confirm' ? 'bg-red-600 hover:bg-red-700' : 'bg-emerald-600 hover:bg-emerald-700'"
-                            class="flex-1 py-4 rounded-2xl font-bold text-white shadow-lg transition active:scale-95" x-text="dialog.confirmBtnText"></button>
+                <div class="grid grid-cols-1 md:grid-cols-6 gap-6 bg-white border-2 border-slate-50 p-8 rounded-[2rem]">
+                    <div class="md:col-span-6 font-bold text-blue-700 text-xs uppercase tracking-widest border-b pb-2 mb-2">2. Patient Identity</div>
+                    <div class="md:col-span-2"><label class="block text-[10px] font-bold text-slate-400 mb-2">HN</label><input type="text" x-model="form.hn" required class="w-full bg-slate-50 border-none rounded-xl p-3 text-base font-bold outline-none"></div>
+                    <div class="md:col-span-2"><label class="block text-[10px] font-bold text-slate-400 mb-2">AN</label><input type="text" x-model="form.an" required class="w-full bg-slate-50 border-none rounded-xl p-3 text-base font-bold outline-none"></div>
+                    <div class="md:col-span-2"><label class="block text-[10px] font-bold text-slate-400 mb-2">ชื่อ-นามสกุล</label><input type="text" x-model="form.name" required class="w-full bg-slate-50 border-none rounded-xl p-3 text-base font-bold outline-none"></div>
+                    <div class="md:col-span-2"><label class="block text-[10px] font-bold text-slate-400 mb-2">วันเกิด (พ.ศ.)</label><input type="text" x-model="form.dobInput" @input="autoFormatDate" @blur="updateAgeFromText" placeholder="วว/ดด/พศ" class="w-full bg-blue-50 border-2 border-blue-100 rounded-xl p-3 text-base font-mono font-bold text-blue-800 outline-none"></div>
+                    <div class="md:col-span-4"><label class="block text-[10px] font-bold text-slate-400 mb-2">อายุ (Auto)</label><input type="text" x-model="form.ageDisplay" readonly class="w-full bg-slate-100 border-none rounded-xl p-3 text-sm text-slate-500 font-bold italic"></div>
+                    <div class="md:col-span-6"><label class="block text-[10px] font-bold text-slate-400 mb-2">ที่อยู่</label><textarea x-model="form.address" rows="1" class="w-full border-2 border-slate-100 rounded-xl p-3 text-sm focus:border-emerald-500 outline-none"></textarea></div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-8 rounded-[2rem] border border-slate-100">
+                    <div class="md:col-span-2 font-bold text-orange-700 text-xs uppercase tracking-widest border-b pb-2 mb-2">3. Clinical Information</div>
+                    <div class="md:col-span-2"><label class="block text-[10px] font-bold text-slate-400 mb-2">แพทย์เจ้าของไข้</label>
+                        <div class="flex gap-2"><input list="doc-list" x-model="form.doctor" placeholder="ค้นหาแพทย์..." class="flex-1 bg-white border-2 border-slate-100 rounded-xl p-3 text-sm focus:border-orange-500 outline-none">
+                        <datalist id="doc-list"><template x-for="doc in doctors" :key="doc"><option :value="doc"></option></template></datalist>
+                        <button type="button" @click="addNewDoctor" class="bg-orange-600 text-white px-4 rounded-xl font-bold">+</button></div>
+                    </div>
+                    <div><label class="block text-[10px] font-bold text-slate-400 mb-2">CC (อาการสำคัญ)</label><textarea x-model="form.cc" rows="2" class="w-full bg-white border-2 border-slate-100 rounded-xl p-3 text-sm outline-none"></textarea></div>
+                    <div><label class="block text-[10px] font-bold text-slate-400 mb-2">PI (ประวัติปัจจุบัน)</label><textarea x-model="form.pi" rows="2" class="w-full bg-white border-2 border-slate-100 rounded-xl p-3 text-sm outline-none"></textarea></div>
+                    <div class="md:col-span-2"><label class="block text-[10px] font-bold text-slate-400 mb-2">Dx (การวินิจฉัย)</label><input type="text" x-model="form.dx" class="w-full bg-white border-2 border-slate-100 rounded-xl p-3 text-sm outline-none"></div>
+                </div>
+
+                <div class="pt-6 flex justify-end gap-4 border-t">
+                    <button type="button" @click="showAdmitModal = false" class="px-10 py-4 rounded-2xl border-2 border-slate-100 text-slate-400 font-bold">ยกเลิก</button>
+                    <button type="submit" class="px-16 py-4 rounded-2xl bg-emerald-600 text-white font-black text-lg shadow-xl shadow-emerald-100 hover:bg-emerald-700 transition-all" x-text="isEditing ? 'บันทึกการแก้ไข' : 'ยืนยัน Admit'"></button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div x-show="viewMode === 'detail'" class="fixed inset-0 z-[10001] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md" x-cloak>
+        <div class="bg-white w-full max-w-4xl rounded-[3rem] shadow-2xl overflow-hidden border border-slate-100">
+            <div class="hospital-gradient p-10 text-white flex justify-between items-start">
+                <div class="flex items-center gap-6">
+                    <div class="w-20 h-20 bg-white/20 rounded-[2rem] flex items-center justify-center text-4xl shadow-inner"><i class="fa-solid fa-user-injured"></i></div>
+                    <div><h2 class="text-3xl font-black" x-text="selectedPatient?.name"></h2><p class="opacity-70 font-bold" x-text="'HN: '+selectedPatient?.hn+' | AN: '+selectedPatient?.an"></p></div>
+                </div>
+                <button @click="viewMode = 'list'" class="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div class="p-12 grid grid-cols-1 md:grid-cols-3 gap-10">
+                <div class="md:col-span-2 space-y-8">
+                    <div class="grid grid-cols-2 gap-6 text-sm">
+                        <div class="bg-slate-50 p-6 rounded-3xl border border-slate-100"><span class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">เตียง</span><span class="text-2xl font-black text-emerald-700" x-text="selectedPatient?.bed"></span></div>
+                        <div class="bg-slate-50 p-6 rounded-3xl border border-slate-100"><span class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">แผนก</span><span class="text-lg font-bold" x-text="selectedPatient?.dept"></span></div>
+                    </div>
+                    <div class="bg-blue-50/50 p-6 rounded-3xl border border-blue-100"><h4 class="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-2">Diagnosis</h4><p class="text-xl font-bold text-blue-900" x-text="selectedPatient?.dx || '-'"></p></div>
+                </div>
+                <div class="flex flex-col gap-3">
+                    <h4 class="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-2">Actions</h4>
+                    <button @click="openEditForm()" class="flex items-center justify-between bg-emerald-50 text-emerald-700 p-5 rounded-3xl hover:bg-emerald-100 border border-emerald-100 font-bold"><span><i class="fa-solid fa-user-pen mr-3"></i> แก้ไขข้อมูล</span><i class="fa-solid fa-chevron-right"></i></button>
+                    <button @click="openMoveModal()" class="flex items-center justify-between bg-amber-50 text-amber-700 p-5 rounded-3xl hover:bg-amber-100 border border-amber-100 font-bold"><span><i class="fa-solid fa-arrows-spin mr-3"></i> ย้ายเตียง/ตึก</span><i class="fa-solid fa-chevron-right"></i></button>
+                    <button @click="dischargePatient()" class="flex items-center justify-between bg-red-600 text-white p-5 rounded-3xl hover:bg-red-700 font-black shadow-lg shadow-red-100 mt-4"><span><i class="fa-solid fa-door-open mr-3"></i> DISCHARGE</span><i class="fa-solid fa-check-double"></i></button>
                 </div>
             </div>
         </div>
@@ -217,104 +213,25 @@
 
     <div x-show="showMoveModal" class="fixed inset-0 z-[15000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" x-cloak>
         <div class="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden border border-amber-100">
-            <div class="bg-amber-500 p-8 text-white flex justify-between items-center">
-                <div>
-                    <h3 class="text-2xl font-bold tracking-tight">Move Patient</h3>
-                    <p class="text-amber-100 text-xs mt-1">ย้ายตำแหน่งผู้ป่วย (Transfer)</p>
-                </div>
-                <button @click="showMoveModal = false" class="w-10 h-10 bg-black/10 rounded-full hover:bg-black/20 transition-all flex items-center justify-center"><i class="fa-solid fa-xmark text-xl"></i></button>
-            </div>
-            <div class="p-10 space-y-8">
-                <div><label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 ml-2">1. เลือกตึกปลายทาง</label>
-                    <select x-model="moveForm.targetWard" @change="fetchMoveBeds()" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 text-lg font-bold text-slate-700 focus:border-amber-400 outline-none transition-all">
-                        <template x-for="ward in wards" :key="ward"><option :value="ward" x-text="ward"></option></template>
-                    </select>
-                </div>
-                <div><label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 ml-2">2. ระบุเตียงว่างใน <span class="text-amber-600" x-text="moveForm.targetWard"></span></label>
-                    <select x-model="moveForm.targetBed" class="w-full bg-amber-50 border-2 border-amber-200 rounded-2xl p-4 text-xl font-black text-amber-700 focus:border-amber-500 outline-none transition-all">
-                        <option value="">-- เลือกเตียงว่าง --</option>
-                        <template x-for="bed in moveBeds" :key="bed"><option :value="bed" x-text="bed"></option></template>
-                    </select>
-                </div>
-                <button @click="confirmMove()" :disabled="!moveForm.targetBed" class="w-full bg-amber-600 text-white py-5 rounded-2xl font-bold text-xl shadow-xl shadow-amber-200 hover:bg-amber-700 disabled:bg-slate-100 disabled:text-slate-300 transition-all active:scale-95">ยืนยันการย้ายทันที</button>
+            <div class="bg-amber-500 p-8 text-white flex justify-between items-center"><h3 class="text-2xl font-bold">ย้ายตำแหน่งผู้ป่วย</h3><button @click="showMoveModal = false"><i class="fa-solid fa-xmark text-2xl"></i></button></div>
+            <div class="p-10 space-y-8 text-center">
+                <div><label class="block text-xs font-bold text-slate-400 uppercase mb-3">1. เลือกตึกปลายทาง</label><select x-model="moveForm.targetWard" @change="fetchMoveBeds()" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 text-lg font-bold text-slate-700 outline-none"><template x-for="ward in wards" :key="ward"><option :value="ward" x-text="ward"></option></template></select></div>
+                <div><label class="block text-xs font-bold text-slate-400 uppercase mb-3">2. ระบุเตียงว่างใน <span class="text-amber-600" x-text="moveForm.targetWard"></span></label><select x-model="moveForm.targetBed" class="w-full bg-amber-50 border-2 border-amber-200 rounded-2xl p-4 text-xl font-black text-amber-700 outline-none"><option value="">-- เลือกเตียง --</option><template x-for="bed in moveBeds" :key="bed"><option :value="bed" x-text="bed"></option></template></select></div>
+                <button @click="confirmMove()" :disabled="!moveForm.targetBed" class="w-full bg-amber-600 text-white py-5 rounded-2xl font-bold text-xl shadow-xl shadow-amber-200 hover:bg-amber-700 transition-all active:scale-95">ยืนยันการย้ายทันที</button>
             </div>
         </div>
     </div>
 
-    <div x-show="showAdmitModal" class="modal-container fixed inset-0 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-md" x-cloak>
-        <div class="bg-white w-full max-w-5xl max-h-[92vh] overflow-y-auto rounded-[3rem] shadow-2xl relative border border-emerald-100 scrollbar-hide">
-            <div class="sticky top-0 bg-white/90 backdrop-blur border-b p-6 flex justify-between items-center z-10 px-10">
-                <div class="flex items-center gap-4">
-                    <div class="bg-emerald-600 text-white w-12 h-12 rounded-2xl flex items-center justify-center text-xl shadow-lg shadow-emerald-100"><i class="fa-solid fa-file-medical"></i></div>
-                    <div><h3 class="text-2xl font-extrabold text-slate-800" x-text="isEditing ? 'Edit Patient Profile' : 'New Admission Form'"></h3><p class="text-xs text-slate-400 font-light" x-text="isEditing ? 'แก้ไขข้อมูลการนอนโรงพยาบาล' : 'รับตัวผู้ป่วยใหม่เข้าระบบ IPD'"></p></div>
-                </div>
-                <button @click="showAdmitModal = false" class="w-10 h-10 rounded-full hover:bg-slate-100 text-slate-400 hover:text-red-500 transition-all flex items-center justify-center"><i class="fa-solid fa-xmark text-2xl"></i></button>
-            </div>
-            
-            <form @submit.prevent="submitAdmit" class="p-10 space-y-10">
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 bg-slate-50 p-8 rounded-[2rem] border border-slate-100">
-                    <div class="md:col-span-4 font-black text-emerald-700 text-sm uppercase tracking-widest border-b border-emerald-100 pb-3 mb-2 flex items-center gap-2"><i class="fa-solid fa-hospital-user"></i> 1. Admission Details</div>
-                    <div><label class="block text-[10px] font-bold text-slate-400 uppercase mb-2 ml-1">วันที่รับ</label><input type="date" x-model="form.date" required class="w-full bg-white border-2 border-slate-100 rounded-xl p-3 text-sm focus:border-emerald-500 outline-none"></div>
-                    <div><label class="block text-[10px] font-bold text-slate-400 uppercase mb-2 ml-1">เวลารับ</label><input type="time" x-model="form.time" required class="w-full bg-white border-2 border-slate-100 rounded-xl p-3 text-sm focus:border-emerald-500 outline-none"></div>
-                    <div><label class="block text-[10px] font-bold text-slate-400 uppercase mb-2 ml-1">รับจาก</label><select x-model="form.receivedFrom" class="w-full bg-white border-2 border-slate-100 rounded-xl p-3 text-sm focus:border-emerald-500 outline-none"><option value="ER">ER</option><option value="OPD">OPD</option><option value="Transfer">Transfer</option></select></div>
-                    <div><label class="block text-[10px] font-bold text-slate-400 uppercase mb-2 ml-1">เตียง (ตึก <span x-text="currentWard"></span>)</label><select x-model="form.bed" required class="w-full bg-emerald-100 border-2 border-emerald-200 rounded-xl p-3 text-sm font-bold text-emerald-800 focus:border-emerald-500 outline-none">
-                        <option value="">-- เลือกเตียง --</option>
-                        <template x-for="bed in availableBeds" :key="bed"><option :value="bed" x-text="bed"></option></template>
-                    </select></div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-6 gap-6 bg-white border-2 border-slate-50 p-8 rounded-[2rem]">
-                    <div class="md:col-span-6 font-black text-blue-700 text-sm uppercase tracking-widest border-b border-blue-50 pb-3 mb-2 flex items-center gap-2"><i class="fa-solid fa-user-circle"></i> 2. Patient Identity</div>
-                    <div class="md:col-span-2"><label class="block text-[10px] font-bold text-slate-400 uppercase mb-2 ml-1">HN</label><input type="text" x-model="form.hn" required class="w-full bg-slate-50 border-none rounded-xl p-3 text-base font-bold focus:ring-2 focus:ring-blue-500 outline-none"></div>
-                    <div class="md:col-span-2"><label class="block text-[10px] font-bold text-slate-400 uppercase mb-2 ml-1">AN</label><input type="text" x-model="form.an" required class="w-full bg-slate-50 border-none rounded-xl p-3 text-base font-bold focus:ring-2 focus:ring-blue-500 outline-none"></div>
-                    <div class="md:col-span-2"><label class="block text-[10px] font-bold text-slate-400 uppercase mb-2 ml-1">ชื่อ-นามสกุล</label><input type="text" x-model="form.name" required class="w-full bg-slate-50 border-none rounded-xl p-3 text-base font-bold focus:ring-2 focus:ring-blue-500 outline-none"></div>
-                    <div class="md:col-span-2"><label class="block text-[10px] font-bold text-slate-400 uppercase mb-2 ml-1">ว/ด/ป เกิด (พ.ศ.)</label><input type="text" x-model="form.dobInput" @input="autoFormatDate" @blur="updateAgeFromText" placeholder="วว/ดด/พศ" class="w-full bg-blue-50 border-2 border-blue-100 rounded-xl p-3 text-base font-mono font-bold text-blue-800 focus:border-blue-500 outline-none"></div>
-                    <div class="md:col-span-4"><label class="block text-[10px] font-bold text-slate-400 uppercase mb-2 ml-1">อายุ (Auto Calc)</label><input type="text" x-model="form.ageDisplay" readonly class="w-full bg-slate-100 border-none rounded-xl p-3 text-sm text-slate-500 font-bold italic"></div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-8 rounded-[2rem] border border-slate-100">
-                    <div class="md:col-span-2 font-black text-orange-700 text-sm uppercase tracking-widest border-b border-orange-100 pb-3 mb-2 flex items-center gap-2"><i class="fa-solid fa-stethoscope"></i> 3. Clinical Information</div>
-                    <div class="md:col-span-2"><label class="block text-[10px] font-bold text-slate-400 uppercase mb-2 ml-1">แพทย์เจ้าของไข้</label>
-                        <div class="flex gap-2"><input list="doc-list" x-model="form.doctor" placeholder="พิมพ์ชื่อเพื่อค้นหาแพทย์..." class="flex-1 bg-white border-2 border-slate-100 rounded-xl p-3 text-sm focus:border-orange-500 outline-none">
-                        <datalist id="doc-list"><template x-for="doc in doctors" :key="doc"><option :value="doc"></option></template></datalist>
-                        <button type="button" @click="addNewDoctor" class="bg-orange-600 text-white px-4 rounded-xl font-bold shadow-lg shadow-orange-100 hover:bg-orange-700 transition-all">+</button></div>
-                    </div>
-                    <div class="md:col-span-2"><label class="block text-[10px] font-bold text-slate-400 uppercase mb-2 ml-1">การวินิจฉัย (Dx)</label><input type="text" x-model="form.dx" class="w-full bg-white border-2 border-slate-100 rounded-xl p-3 text-sm focus:border-orange-500 outline-none"></div>
-                </div>
-
-                <div class="pt-6 flex justify-end gap-4 sticky bottom-0 bg-white/90 backdrop-blur pb-4 border-t mt-4">
-                    <button type="button" @click="showAdmitModal = false" class="px-10 py-4 rounded-2xl border-2 border-slate-100 text-slate-400 font-bold hover:bg-slate-50 transition-all">ยกเลิก</button>
-                    <button type="submit" class="px-16 py-4 rounded-2xl bg-emerald-600 text-white font-black text-lg shadow-xl shadow-emerald-100 hover:bg-emerald-700 hover:-translate-y-1 transition-all active:scale-95" x-text="isEditing ? 'บันทึกการแก้ไข' : 'ยืนยัน Admit ผู้ป่วย'"></button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <div x-show="viewMode === 'detail'" class="modal-container fixed inset-0 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md" x-cloak>
-        <div class="bg-white w-full max-w-4xl rounded-[3rem] shadow-2xl overflow-hidden border border-slate-100 animate-scale-up">
-            <div class="hospital-gradient p-10 text-white relative">
-                <button @click="viewMode = 'list'" class="absolute top-8 right-8 w-12 h-12 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition-all"><i class="fa-solid fa-xmark text-xl"></i></button>
-                <div class="flex items-center gap-8">
-                    <div class="w-24 h-24 bg-white/20 rounded-[2rem] flex items-center justify-center text-5xl shadow-inner"><i class="fa-solid fa-user-injured"></i></div>
-                    <div>
-                        <h2 class="text-4xl font-black tracking-tight" x-text="selectedPatient?.name"></h2>
-                        <p class="opacity-70 text-lg mt-1 font-light">HN: <span class="font-bold" x-text="selectedPatient?.hn"></span> | AN: <span class="font-bold" x-text="selectedPatient?.an"></span></p>
-                    </div>
-                </div>
-            </div>
-            <div class="p-12 grid grid-cols-1 md:grid-cols-3 gap-12">
-                <div class="md:col-span-2 space-y-10">
-                    <div class="grid grid-cols-2 gap-6">
-                        <div class="bg-slate-50 p-6 rounded-3xl border border-slate-100"><span class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">เตียงปัจจุบัน</span><span class="text-2xl font-black text-emerald-700" x-text="selectedPatient?.bed"></span></div>
-                        <div class="bg-slate-50 p-6 rounded-3xl border border-slate-100"><span class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">อายุผู้ป่วย</span><span class="text-lg font-bold text-slate-700" x-text="selectedPatient?.ageDisplay"></span></div>
-                    </div>
-                    <div class="bg-blue-50/50 p-6 rounded-3xl border border-blue-100"><h4 class="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-3">Diagnosis (แรกรับ)</h4><p class="text-xl font-bold text-blue-900" x-text="selectedPatient?.dx || '-'"></p></div>
-                </div>
-                <div class="flex flex-col gap-4">
-                    <h4 class="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] mb-2 ml-1">Care Actions</h4>
-                    <button @click="openEditForm()" class="flex items-center justify-between bg-emerald-50 text-emerald-700 p-5 rounded-3xl hover:bg-emerald-100 transition-all border border-emerald-100 font-bold shadow-sm"><span><i class="fa-solid fa-user-pen mr-3 opacity-50"></i> แก้ไขข้อมูล</span><i class="fa-solid fa-chevron-right text-[10px]"></i></button>
-                    <button @click="openMoveModal()" class="flex items-center justify-between bg-amber-50 text-amber-700 p-5 rounded-3xl hover:bg-amber-100 transition-all border border-amber-100 font-bold shadow-sm"><span><i class="fa-solid fa-arrows-spin mr-3 opacity-50"></i> ย้ายเตียง/ตึก</span><i class="fa-solid fa-chevron-right text-[10px]"></i></button>
-                    <button @click="dischargePatient()" class="flex items-center justify-between bg-red-600 text-white p-5 rounded-3xl hover:bg-red-700 transition-all font-black shadow-lg shadow-red-100 mt-4"><span><i class="fa-solid fa-door-open mr-3"></i> DISCHARGE</span><i class="fa-solid fa-check-double"></i></button>
+    <div x-show="dialog.show" class="fixed inset-0 z-[20000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md" x-cloak>
+        <div class="bg-white rounded-[2.5rem] shadow-2xl max-w-sm w-full overflow-hidden border border-white/20 transform transition-all">
+            <div class="p-10 text-center">
+                <template x-if="dialog.type === 'alert'"><div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6"><i class="fa-solid fa-check text-4xl"></i></div></template>
+                <template x-if="dialog.type === 'confirm'"><div class="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6"><i class="fa-solid fa-triangle-exclamation text-4xl"></i></div></template>
+                <h3 class="text-2xl font-bold text-slate-800 mb-2" x-text="dialog.title"></h3>
+                <p class="text-sm text-slate-500 leading-relaxed mb-8" x-text="dialog.msg"></p>
+                <div class="flex gap-3">
+                    <template x-if="dialog.type !== 'alert'"><button @click="dialog.show = false" class="flex-1 py-4 rounded-2xl font-bold text-slate-400 hover:bg-slate-50 transition">ยกเลิก</button></template>
+                    <button @click="handleDialogConfirm()" :class="dialog.type === 'confirm' ? 'bg-red-600' : 'bg-emerald-600'" class="flex-1 py-4 rounded-2xl font-bold text-white shadow-lg transition active:scale-95" x-text="dialog.confirmBtnText"></button>
                 </div>
             </div>
         </div>
