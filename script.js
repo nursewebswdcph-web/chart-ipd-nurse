@@ -5,7 +5,7 @@ function nurseApp() {
         isLoading: false,
         realTimeClock: '',
         currentWard: null,
-        viewMode: 'list', // 'list', 'detail', 'chart'
+        viewMode: 'list', 
         isEditing: false,
 
         selectedPatient: null,
@@ -22,21 +22,13 @@ function nurseApp() {
             { id: 'discharge_summary', title: '8. แบบบันทึกการพยาบาลผู้ป่วยจำหน่าย', isMain: true }
         ],
 
-        extraOptions: [
-            { id: 'stress_assess', title: 'แบบประเมินความเครียด' },
-            { id: 'pre_endo_prep', title: 'แบบเตรียมผู้ป่วยก่อนส่องกล้อง' },
-            { id: 'pre_op_prep', title: 'แบบเตรียมผู้ป่วยก่อนผ่าตัด' },
-            { id: 'home_care_transfer', title: 'แบบบันทึกส่งต่อเพื่อการดูแลต่อเนื่องที่บ้าน' }
-        ],
-
+        extraOptions: [],
         showMoveModal: false,
         moveBeds: [], 
         moveForm: { targetWard: '', targetBed: '' },
-
         showSuccess: false,
         successMsg: '',
         dialog: { show: false, type: 'alert', title: '', msg: '', input: '', confirmBtnText: 'ตกลง', onConfirm: null },
-        
         wards: [], patients: [], doctors: [], availableBeds: [], configs: { depts: [] },
         showAdmitModal: false,
         searchHN: '', searchAN: '', searchName: '', searchDoc: '',
@@ -47,7 +39,6 @@ function nurseApp() {
             name: '', address: '', dept: '', cc: '', pi: '', dx: '', doctor: '', ward: ''
         },
 
-        // --- 2. INITIALIZATION ---
         init() {
             this.startClock();
             this.loadInitialData();
@@ -55,8 +46,7 @@ function nurseApp() {
 
         startClock() {
             const update = () => {
-                const now = new Date();
-                this.realTimeClock = now.toLocaleDateString('th-TH', {
+                this.realTimeClock = new Date().toLocaleDateString('th-TH', {
                     year: 'numeric', month: 'long', day: 'numeric',
                     hour: '2-digit', minute: '2-digit', second: '2-digit'
                 });
@@ -65,7 +55,6 @@ function nurseApp() {
             setInterval(update, 1000);
         },
 
-        // --- 3. REACTIVE GETTERS ---
         get patientSummary() {
             if (!this.patients || this.patients.length === 0) return { total: 0, deptStr: 'ยังไม่มีข้อมูลผู้ป่วย' };
             const total = this.patients.length;
@@ -87,7 +76,6 @@ function nurseApp() {
             );
         },
 
-        // --- 4. CORE ACTIONS ---
         async loadInitialData() {
             this.isLoading = true;
             try {
@@ -96,9 +84,7 @@ function nurseApp() {
                 this.wards = data.wards || [];
                 this.configs.depts = data.depts || [];
                 this.doctors = data.doctors || [];
-            } catch (e) { 
-                console.error("Initialization error", e); 
-            }
+            } catch (e) { console.error("Initialization error", e); }
             this.isLoading = false;
         },
 
@@ -119,37 +105,26 @@ function nurseApp() {
 
         openNursingChart(patient) {
             this.selectedPatient = patient;
-            
-            // บังคับให้เลือกฟอร์มแรกรับเสมอเมื่อเปิด Chart
-            const initialForm = this.activeForms.find(f => f.id === 'assess_initial');
-            this.currentForm = initialForm; // ตรวจสอบว่า id ตรงกับใน HTML
-            
+            this.currentForm = this.activeForms.find(f => f.id === 'assess_initial');
             this.viewMode = 'chart';
-            
-            // เลื่อนขึ้นด้านบนสุด
             window.scrollTo(0, 0);
-            
-            // ล้างข้อมูลฟอร์มเดิม (ถ้ามี)
             this.$nextTick(() => {
                 const formElement = document.getElementById('assessment-form-v2');
                 if (formElement) formElement.reset();
             });
-        }
-        // --- บันทึกแบบประเมินแรกรับ ---
+        },
+
         async saveAssessmentData() {
             const formElement = document.getElementById('assessment-form-v2');
             if (!formElement) return this.showAlert('Error', 'ไม่พบฟอร์มข้อมูล');
-
             const formDataObj = new FormData(formElement);
             const payload = {
                 an: this.selectedPatient.an,
                 hn: this.selectedPatient.hn,
                 formData: Object.fromEntries(formDataObj.entries())
             };
-
-            // ใช้ postToGAS เพื่อส่งข้อมูล
             await this.postToGAS('saveAssessmentInitial', payload, "บันทึกแบบประเมินแรกรับสำเร็จ");
-            this.viewMode = 'detail'; // บันทึกเสร็จกลับไปหน้าสิทธิการรักษา
+            this.viewMode = 'detail';
         },
 
         async openAdmitForm() {
@@ -220,27 +195,19 @@ function nurseApp() {
             });
         },
 
-        // ฟังก์ชันกลางสำหรับการ POST ข้อมูล
         async postToGAS(action, payload, msg) {
             this.isLoading = true;
             try {
-                // ใช้ no-cors สำหรับ Google Apps Script (เพราะปกติมันจะ Redirect)
                 await fetch(this.API_URL, { 
                     method: 'POST', 
                     mode: 'no-cors', 
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action, payload }) 
                 });
-                
                 this.successMsg = msg;
                 this.showSuccess = true;
                 setTimeout(() => { this.showSuccess = false; }, 3000);
-                
-                // โหลดข้อมูลผู้ป่วยใหม่หลังจากบันทึก
-                setTimeout(async () => { 
-                    await this.fetchPatients(); 
-                    this.isLoading = false; 
-                }, 1000);
+                setTimeout(async () => { await this.fetchPatients(); this.isLoading = false; }, 1000);
             } catch (e) { 
                 this.isLoading = false; 
                 this.showAlert("Error", "ไม่สามารถบันทึกข้อมูลได้: " + e.message); 
@@ -278,8 +245,7 @@ function nurseApp() {
             const today = new Date();
             entryDate.setHours(0,0,0,0);
             today.setHours(0,0,0,0);
-            const diffTime = Math.abs(today - entryDate);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+            const diffDays = Math.ceil(Math.abs(today - entryDate) / (1000 * 60 * 60 * 24)); 
             return diffDays === 0 ? 1 : diffDays;
         },
 
