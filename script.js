@@ -8,6 +8,14 @@ function nurseApp() {
         viewMode: 'list', 
         isEditing: false,
 
+        // ย้ายเตียง
+        showMoveModal: false,
+        moveBeds: [], // เก็บรายชื่อเตียงสำหรับหน้าย้ายโดยเฉพาะ
+        moveForm: {
+            targetWard: '',
+            targetBed: ''
+        },
+
         // ระบบแจ้งเตือน (Success/Error)
         showSuccess: false,
         successMsg: '',
@@ -164,6 +172,49 @@ function nurseApp() {
                 throw e;
             }
         },
+
+        // ✅ ฟังก์ชันเปิดหน้าเวชระเบียนใหม่ (Nursing Chart)
+        openNursingChart(an) {
+            // สร้าง URL โดยส่ง AN ไปด้วย (เช่น chart.html?an=12345)
+            const chartUrl = `chart.html?an=${an}`;
+            window.open(chartUrl, '_blank'); // '_blank' คือการเปิด Tab ใหม่
+        },
+    
+        // ✅ ฟังก์ชันเปิด Modal ย้ายเตียง
+        async openMoveModal() {
+            this.moveForm.targetWard = this.currentWard; // ค่าเริ่มต้นเป็นตึกปัจจุบัน
+            this.moveForm.targetBed = '';
+            await this.fetchMoveBeds();
+            this.showMoveModal = true;
+        },
+        // ✅ ดึงข้อมูลเตียงตามตึกที่เลือกในหน้าย้าย
+        async fetchMoveBeds() {
+            this.isLoading = true;
+            try {
+                const res = await fetch(`${this.API_URL}?action=getBeds&ward=${this.moveForm.targetWard}`);
+                this.moveBeds = await res.json();
+            } catch (e) {
+                this.moveBeds = [];
+            }
+            this.isLoading = false;
+        },
+    
+        // ✅ ยืนยันการย้าย
+        async confirmMove() {
+            const payload = {
+                an: this.selectedPatient.an,
+                oldWard: this.currentWard,
+                oldBed: this.selectedPatient.bed,
+                newWard: this.moveForm.targetWard,
+                newBed: this.moveForm.targetBed
+            };
+            
+            // ส่งไปที่ Backend (ใช้ Action เดียวกันครอบคลุมทั้งย้ายเตียงและย้ายตึก)
+            await this.postToGAS('movePatient', payload, "ทำการย้ายผู้ป่วยไปยังที่ใหม่เรียบร้อยแล้ว");
+            this.showMoveModal = false;
+            this.viewMode = 'list';
+        }
+    }
 
         // --- 6. Form Management ---
         async openAdmitForm() {
