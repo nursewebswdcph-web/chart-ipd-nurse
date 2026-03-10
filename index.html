@@ -363,7 +363,7 @@
             </div>
         </div>
     </div>
-    <div x-show="viewMode === 'chart' && currentForm && currentForm.id === 'assess_initial'" 
+    <div x-show="viewMode === 'chart' && currentForm?.id === 'assess_initial'" 
      class="fixed inset-0 bg-slate-100 z-[1000] overflow-y-auto" x-cloak>
     
     <div class="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center shadow-md z-50">
@@ -380,128 +380,139 @@
             </div>
         </div>
         <div class="flex gap-3">
-            <button @click="currentForm = null" type="button" class="bg-white hover:bg-slate-50 text-slate-600 font-bold py-2 px-6 rounded-xl border border-slate-200 transition-all">ยกเลิก</button>
+            <button @click="viewMode = 'detail'" type="button" class="bg-white hover:bg-slate-50 text-slate-600 font-bold py-2 px-6 rounded-xl border border-slate-200 transition-all">ยกเลิก</button>
             <button type="button" @click="saveAssessmentData()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-8 rounded-xl shadow-lg transition-all">บันทึกข้อมูล</button>
         </div>
     </div>
 
     <div class="container mx-auto max-w-6xl py-8 px-6">
         <form id="assessment-form-v2" class="space-y-6 pb-20">
+            <input type="hidden" name="HN" :value="selectedPatient?.hn">
+            <input type="hidden" name="AN" :value="selectedPatient?.an">
+
             <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
                 <div class="flex items-center gap-2 mb-6 border-b border-slate-100 pb-3">
                     <div class="w-1.5 h-6 bg-indigo-500 rounded-full"></div>
-                    <h4 class="font-bold text-lg text-slate-800">ข้อมูลทั่วไป (ดึงจากข้อมูลแรกรับ) </h4>
+                    <h4 class="font-bold text-lg text-slate-800">1. ข้อมูลทั่วไป</h4>
                 </div>
                 
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 text-sm">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                     <div>
-                        <label class="block font-bold text-slate-600 mb-1">วันที่รับ</label>
-                        <input type="text" :value="selectedPatient?.date" class="w-full border border-slate-200 rounded-lg p-2.5 bg-slate-50 text-slate-500" readonly>
-                    </div>
-                    <div>
-                        <label class="block font-bold text-slate-600 mb-1">เวลา</label>
-                        <input type="text" :value="selectedPatient?.time" class="w-full border border-slate-200 rounded-lg p-2.5 bg-slate-50 text-slate-500" readonly>
-                    </div>
-                    <div>
-                        <label class="block font-bold text-slate-600 mb-1">รับจาก</label>
-                        <input type="text" :value="selectedPatient?.receivedFrom" class="w-full border border-slate-200 rounded-lg p-2.5 bg-slate-50 text-slate-500" readonly>
-                    </div>
-                    <div>
-                        <label class="block font-bold text-slate-600 mb-1">รับ REFER จาก</label>
-                        <input type="text" :value="selectedPatient?.referFrom" class="w-full border border-slate-200 rounded-lg p-2.5 bg-slate-50 text-slate-500" readonly>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                    <div>
-                        <label class="block font-bold text-slate-600 mb-1">อาการสำคัญ (Chief Complaint)</label>
-                        <textarea :value="selectedPatient?.cc" rows="2" class="w-full border border-slate-200 rounded-lg p-3 bg-slate-50 text-slate-600 resize-none" readonly></textarea>
-                    </div>
-                    <div>
-                        <label class="block font-bold text-slate-600 mb-1">ประวัติการเจ็บป่วย (Present Illness)</label>
-                        <textarea :value="selectedPatient?.pi" rows="2" class="w-full border border-slate-200 rounded-lg p-3 bg-slate-50 text-slate-600 resize-none" readonly></textarea>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8 border-t pt-6">
-                    <div>
-                        <label class="block font-bold text-slate-700 mb-2">มาโดย </label>
+                        <label class="block font-bold text-slate-700 mb-2">มาโดย</label>
                         <div class="flex gap-4">
-                            <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="ArriveBy" value="เดินมา"> เดินมา</label>
-                            <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="ArriveBy" value="รถนั่ง"> รถนั่ง</label>
-                            <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="ArriveBy" value="เปลนอน"> เปลนอน</label>
+                            <label class="flex items-center gap-2"><input type="radio" name="ArriveBy" value="เดินมา"> เดินมา</label>
+                            <label class="flex items-center gap-2"><input type="radio" name="ArriveBy" value="รถนั่ง"> รถนั่ง</label>
+                            <label class="flex items-center gap-2"><input type="radio" name="ArriveBy" value="เปลนอน"> เปลนอน</label>
                         </div>
                     </div>
                     <div>
-                        <label class="block font-bold text-slate-700 mb-2">ผู้ให้ข้อมูล </label>
-                        <div class="flex flex-wrap gap-4">
-                            <label class="flex items-center gap-2"><input type="checkbox" name="Source" value="ผู้ป่วย"> ผู้ป่วย</label>
-                            <label class="flex items-center gap-2"><input type="checkbox" name="Source" value="ผู้นำส่ง"> ผู้นำส่ง</label>
-                            <label class="flex items-center gap-2"><input type="checkbox" name="Source" value="ญาติ"> ญาติ</label>
+                        <label class="block font-bold text-slate-700 mb-2">แหล่งข้อมูล</label>
+                        <div class="flex gap-4">
+                            <label class="flex items-center gap-2"><input type="checkbox" name="InfoSource" value="ผู้ป่วย"> ผู้ป่วย</label>
+                            <label class="flex items-center gap-2"><input type="checkbox" name="InfoSource" value="ญาติ"> ญาติ</label>
                         </div>
                     </div>
                     <div>
-                        <label class="block font-bold text-slate-700 mb-2">ผู้ดูแลหลัก (ระบุชื่อและความสัมพันธ์) </label>
-                        <input type="text" name="Caregiver" class="w-full border-b border-slate-300 focus:border-indigo-500 outline-none" placeholder="...">
+                        <label class="block font-bold text-slate-700 mb-2">ผู้ดูแลหลัก (ชื่อ-ความสัมพันธ์)</label>
+                        <input type="text" name="MainCaregiver_Name" class="w-full border-b border-slate-300 focus:border-indigo-500 outline-none p-1">
                     </div>
+                </div>
+
+                <div class="space-y-4">
+                    <label class="block font-bold text-slate-700">อาการสำคัญ (ดึงจาก Admit):</label>
+                    <textarea name="AdmitSymptoms" :value="selectedPatient?.cc" class="w-full border border-slate-200 rounded-lg p-3 bg-slate-50" rows="2"></textarea>
                 </div>
             </div>
 
             <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
                 <div class="flex items-center gap-2 mb-6 border-b border-slate-100 pb-3">
                     <div class="w-1.5 h-6 bg-teal-500 rounded-full"></div>
-                    <h4 class="font-bold text-lg text-slate-800">อาการแสดงแรกรับและสัญญาณชีพ </h4>
+                    <h4 class="font-bold text-lg text-slate-800">2. สัญญาณชีพแรกรับ</h4>
                 </div>
-                <div class="space-y-4">
-                    <label class="block font-bold text-slate-700">อาการและอาการแสดงแรกรับ:</label>
-                    <input type="text" name="AdmitSymptoms" class="w-full border border-slate-300 rounded-lg p-3">
-                    
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 bg-teal-50 p-4 rounded-xl border border-teal-100">
-                        <div>BT: <input type="text" name="VS_BT" class="w-16 border rounded p-1"> °C</div>
-                        <div>PR: <input type="text" name="VS_PR" class="w-16 border rounded p-1"> /min</div>
-                        <div>RR: <input type="text" name="VS_RR" class="w-16 border rounded p-1"> /min</div>
-                        <div>BP: <input type="text" name="VS_BP" class="w-24 border rounded p-1"> mmHg</div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                    <div class="bg-teal-50 p-4 rounded-xl border border-teal-100">
+                        <label class="block text-xs font-bold text-teal-700 uppercase">BT (°C)</label>
+                        <input type="text" name="Admit_BT" class="w-full bg-transparent text-xl font-bold outline-none" placeholder="36.5">
+                    </div>
+                    <div class="bg-teal-50 p-4 rounded-xl border border-teal-100">
+                        <label class="block text-xs font-bold text-teal-700 uppercase">PR (/min)</label>
+                        <input type="text" name="Admit_PR" class="w-full bg-transparent text-xl font-bold outline-none" placeholder="80">
+                    </div>
+                    <div class="bg-teal-50 p-4 rounded-xl border border-teal-100">
+                        <label class="block text-xs font-bold text-teal-700 uppercase">RR (/min)</label>
+                        <input type="text" name="Admit_RR" class="w-full bg-transparent text-xl font-bold outline-none" placeholder="20">
+                    </div>
+                    <div class="bg-teal-50 p-4 rounded-xl border border-teal-100">
+                        <label class="block text-xs font-bold text-teal-700 uppercase">BP (mmHg)</label>
+                        <input type="text" name="Admit_BP" class="w-full bg-transparent text-xl font-bold outline-none" placeholder="120/80">
                     </div>
                 </div>
             </div>
 
-            <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 space-y-8">
-                <h4 class="font-bold text-lg text-indigo-800 border-b pb-2">การประเมิน 11 แบบแผน และอื่นๆ </h4>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm">
-                    <div class="p-4 border rounded-xl">
-                        <h5 class="font-bold mb-2">1. การรับรู้สุขภาพ/การดูแล </h5>
-                        <div class="space-y-2">
-                            <div>ก่อนเจ็บป่วย: <label><input type="radio" name="H1_Before" value="ดี"> ดี</label> <label><input type="radio" name="H1_Before" value="ไม่ดี"> ไม่ดี</label></div>
-                            <div>ความคาดหวัง: <label><input type="radio" name="H1_Expect" value="หาย"> หาย</label> <label><input type="radio" name="H1_Expect" value="ไม่หาย"> ไม่หาย</label></div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+                    <h4 class="font-bold text-lg text-orange-800 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-bed-pulse"></i> 13. การประเมินความปวด
+                    </h4>
+                    <div class="space-y-4">
+                        <div class="flex gap-6">
+                            <label class="flex items-center gap-2"><input type="radio" name="Pain_Status" value="ไม่มี"> ไม่มี</label>
+                            <label class="flex items-center gap-2"><input type="radio" name="Pain_Status" value="มี"> มี</label>
                         </div>
-                    </div>
-
-                    <div class="p-4 border border-amber-200 bg-amber-50 rounded-xl">
-                        <h5 class="font-bold mb-2">13. PAIN MANAGEMENT </h5>
-                        <div class="flex gap-4 mb-2">
-                            <span>Pain: <label><input type="radio" name="Pain" value="ไม่มี"> ไม่มี</label> <label><input type="radio" name="Pain" value="มี"> มี</label></span>
-                        </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <input type="text" placeholder="บริเวณ..." class="p-1 border rounded">
-                            <input type="number" placeholder="Pain Scale (0-10)" class="p-1 border rounded">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-xs font-bold text-slate-500">ตำแหน่งที่ปวด</label>
+                                <input type="text" name="Pain_Location" class="w-full border-b border-slate-300 p-1">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-slate-500">Pain Scale (0-10)</label>
+                                <input type="number" name="Pain_Scale_Score" min="0" max="10" class="w-full border-b border-slate-300 p-1 font-bold text-orange-600">
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="p-4 border border-red-200 bg-red-50 rounded-xl">
-                    <h5 class="font-bold text-red-700 mb-3">14. Braden Scale (ประเมินแผลกดทับ) </h5>
-                    <div class="grid grid-cols-3 md:grid-cols-6 gap-2 text-[10px]">
-                        <div class="flex flex-col"><span>การรับรู้:</span><select name="B_Sensory" class="p-1 rounded border"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4" selected>4</option></select></div>
-                        <div class="flex flex-col"><span>ความเปียกชื้น:</span><select name="B_Moisture" class="p-1 rounded border"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4" selected>4</option></select></div>
-                        <div class="flex flex-col"><span>กิจกรรม:</span><select name="B_Activity" class="p-1 rounded border"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4" selected>4</option></select></div>
-                        <div class="flex flex-col"><span>เคลื่อนไหว:</span><select name="B_Mobility" class="p-1 rounded border"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4" selected>4</option></select></div>
-                        <div class="flex flex-col"><span>โภชนาการ:</span><select name="B_Nutrition" class="p-1 rounded border"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4" selected>4</option></select></div>
-                        <div class="flex flex-col"><span>แรงเสียดทาน:</span><select name="B_Friction" class="p-1 rounded border"><option value="1">1</option><option value="2">2</option><option value="3" selected>3</option></select></div>
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+                    <h4 class="font-bold text-lg text-blue-800 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-clipboard-check"></i> 14. Braden Scale
+                    </h4>
+                    <div class="grid grid-cols-3 gap-3 text-[10px]">
+                        <div>
+                            <label>การรับรู้</label>
+                            <select name="Braden_Sensory" class="w-full border rounded p-1">
+                                <option value="4">4.ไม่บกพร่อง</option>
+                                <option value="3">3.จำกัดเล็กน้อย</option>
+                                <option value="2">2.จำกัดมาก</option>
+                                <option value="1">1.จำกัดทั้งหมด</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>ความเปียกชื้น</label>
+                            <select name="Braden_Moisture" class="w-full border rounded p-1">
+                                <option value="4">4.เปียกชื้นน้อย</option>
+                                <option value="3">3.บางครั้ง</option>
+                                <option value="2">2.เปียกชื้นมาก</option>
+                                <option value="1">1.ตลอดเวลา</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>โภชนาการ</label>
+                            <select name="Braden_Nutrition" class="w-full border rounded p-1">
+                                <option value="4">4.ดีเยี่ยม</option>
+                                <option value="3">3.เพียงพอ</option>
+                                <option value="2">2.อาจไม่เพียงพอ</option>
+                                <option value="1">1.ไม่เพียงพอ</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-3 border-t text-right">
+                        <span class="text-sm font-bold text-slate-500">ผู้ประเมิน:</span>
+                        <input type="text" name="Assessor_Name" class="border-b border-slate-300 ml-2 p-1" placeholder="ชื่อพยาบาล">
                     </div>
                 </div>
             </div>
-        </form>
+
+            </form>
     </div>
 </div>
 
