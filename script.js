@@ -95,14 +95,29 @@ function nurseApp() {
         },
 
         // --- 3. Admission Logic ---
+        async fetchAvailableBeds() {
+            if (!this.currentWard) return;
+            
+            this.isLoading = true;
+            try {
+                const response = await fetch(`${this.API_URL}?action=getBeds&ward=${this.currentWard}`);
+                const data = await response.json();
+                this.availableBeds = data; // นำรายชื่อเตียงว่างมาใส่ในตัวแปร
+                
+                // ถ้าไม่มีเตียงว่างเลย ให้แจ้งเตือน
+                if (this.availableBeds.length === 0) {
+                    console.warn("ไม่มีเตียงว่างในตึกนี้");
+                }
+            } catch (e) {
+                console.error("Fetch Beds Error:", e);
+                this.availableBeds = [];
+            }
+            this.isLoading = false;
+        },
         async openAdmitForm() {
             this.resetForm();
-            this.form.date = new Date().toISOString().split('T')[0];
-            this.form.time = new Date().toLocaleTimeString('th-TH', { hour12: false, hour: '2-digit', minute: '2-digit' });
             this.form.ward = this.currentWard;
-            
-            // โหลดเตียงว่างของตึกนี้
-            await this.fetchAvailableBeds(this.currentWard);
+            await this.fetchAvailableBeds(); // ดึงข้อมูลเตียงล่าสุดจาก Google Sheet
             this.showAdmitModal = true;
         },
 
