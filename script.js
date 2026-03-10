@@ -265,5 +265,29 @@ function nurseApp() {
                 this.currentForm = this.activeForms[0];
             }
         }
+        // เพิ่มฟังก์ชันนี้เข้าไปใน return { ... } ของ nurseApp()
+        saveAssessmentData() {
+            const form = document.getElementById('assessment-form-v2');
+            const formData = new FormData(form);
+            const payload = {
+                action: 'saveAssessmentInitial', // ต้องไปเพิ่ม case ใน doPost ของ code.gs
+                an: this.selectedPatient.an,
+                hn: this.selectedPatient.hn,
+                data: Object.fromEntries(formData.entries())
+            };
+        
+            this.isLoading = true;
+            fetch(this.API_URL, {
+                method: 'POST',
+                mode: 'no-cors', // ตามรูปแบบเดิมในระบบ
+                body: JSON.stringify(payload)
+            })
+            .then(() => {
+                this.showAlert('สำเร็จ', 'บันทึกข้อมูลแบบประเมินเรียบร้อยแล้ว');
+                this.currentForm = null;
+            })
+            .catch(err => this.showAlert('ข้อผิดพลาด', err.message))
+            .finally(() => this.isLoading = false);
+        }
     };
 }
