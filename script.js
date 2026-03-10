@@ -8,6 +8,26 @@ function nurseApp() {
         viewMode: 'list',
         isEditing: false,
 
+        currentForm: null, // เก็บฟอร์มที่กำลังเปิดใน Chart
+        // รายการฟอร์มหลัก 8 รายการ
+        activeForms: [
+            { id: 'assess_initial', title: '1. แบบประเมินประวัติและสมรรถนะผู้ป่วยแรกรับ', isMain: true },
+            { id: 'patient_class', title: '2. แบบบันทึกการจำแนกประเภทผู้ป่วย', isMain: true },
+            { id: 'fall_risk', title: '3. แบบประเมินความเสี่ยง Morse / MAAS', isMain: true },
+            { id: 'braden_scale', title: '4. แบบประเมินแผลกดทับ (Braden Scale)', isMain: true },
+            { id: 'patient_edu', title: '5. แบบบันทึกการให้คำแนะนำผู้ป่วยระหว่างเข้ารับการรักษาและเมื่อกลับบ้าน', isMain: true },
+            { id: 'focus_list', title: '6. แบบบันทึกรายการปัญหาสุขภาพ (Focus List)', isMain: true },
+            { id: 'progress_note', title: '7. แบบบันทึกความก้าวหน้าทางการพยาบาล Nursing Progress Note', isMain: true },
+            { id: 'discharge_summary', title: '8. แบบบันทึกการพยาบาลผู้ป่วยจำหน่าย', isMain: true }
+        ],
+        // รายการเอกสารเพิ่มเติม
+        extraOptions: [
+            { id: 'stress_assess', title: 'แบบประเมินความเครียด' },
+            { id: 'pre_endo_prep', title: 'แบบเตรียมผู้ป่วยก่อนส่องกล้อง' },
+            { id: 'pre_op_prep', title: 'แบบเตรียมผู้ป่วยก่อนผ่าตัด' },
+            { id: 'home_care_transfer', title: 'แบบบันทึกส่งต่อเพื่อการดูแลต่อเนื่องที่บ้าน' }
+        ],
+
         showMoveModal: false,
         moveBeds: [], 
         moveForm: { targetWard: '', targetBed: '' },
@@ -178,8 +198,11 @@ function nurseApp() {
             } catch (e) { this.isLoading = false; this.showAlert("Error", "เชื่อมต่อฐานข้อมูลไม่ได้"); }
         },
 
-        openNursingChart(an) {
-            window.open(`chart.html?an=${an}`, '_blank'); 
+        openNursingChart(patient) {
+            this.selectedPatient = patient; // ล็อคข้อมูลผู้ป่วยรายนี้ไว้
+            this.currentForm = this.activeForms[0]; // เริ่มที่ฟอร์มแรก
+            this.viewMode = 'chart'; // เปลี่ยนหน้าจอหลักเป็นโหมด Chart
+            window.scrollTo(0, 0);
         },
 
         autoFormatDate(e) {
@@ -224,5 +247,16 @@ function nurseApp() {
             const name = prompt("ระบุชื่อ-นามสกุล แพทย์:");
             if (name) { this.doctors.push(name); this.form.doctor = name; this.postToGAS('addDoctor', { name: name }, "เพิ่มชื่อแพทย์ลงฐานข้อมูลแล้ว"); }
         }
+        selectForm(form) { this.currentForm = form; },
+        addForm(opt) {
+            if (!this.activeForms.find(f => f.id === opt.id)) {
+                this.activeForms.push({ ...opt, isMain: false });
+            }
+            this.currentForm = opt;
+        },
+        removeForm(id) {
+            this.activeForms = this.activeForms.filter(f => f.id !== id);
+            if (this.currentForm.id === id) this.currentForm = this.activeForms[0];
+        },
     };
 }
