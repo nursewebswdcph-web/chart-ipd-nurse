@@ -114,6 +114,7 @@ function nurseApp() {
                 this.availableBeds = [];
             }
         },
+        
 
         updateAge() {
             if (!this.form.dob) return;
@@ -241,9 +242,70 @@ function nurseApp() {
             }
             this.isLoading = false;
         },
-
+               
+        // 1. ช่วยใส่เครื่องหมาย / ให้อัตโนมัติขณะพิมพ์ (เช่น พิมพ์ 10032510 กลายเป็น 10/03/2510)
+        autoFormatDate(e) {
+            let value = e.target.value.replace(/\D/g, ''); // ดึงเฉพาะตัวเลข
+            if (value.length > 8) value = value.slice(0, 8);
+            
+            if (value.length >= 5) {
+                value = value.slice(0, 2) + '/' + value.slice(2, 4) + '/' + value.slice(4);
+            } else if (value.length >= 3) {
+                value = value.slice(0, 2) + '/' + value.slice(2);
+            }
+            this.form.dobInput = value;
+        },
+        
+        // 2. คำนวณอายุเมื่อพิมพ์เสร็จ หรือเลิกโฟกัสช่องกรอก
+        updateAgeFromText() {
+            const input = this.form.dobInput; // ฟอร์แมต วว/ดด/พศ
+            if (!input || input.length < 10) return;
+        
+            const parts = input.split('/');
+            const day = parseInt(parts[0]);
+            const month = parseInt(parts[1]);
+            const yearBE = parseInt(parts[2]); // ปี พ.ศ. ที่พิมพ์มา
+        
+            if (isNaN(day) || isNaN(month) || isNaN(yearBE)) return;
+        
+            // แปลง พ.ศ. เป็น ค.ศ. เพื่อใช้ใน JavaScript Date Object
+            const yearAD = yearBE - 543;
+            const birthDate = new Date(yearAD, month - 1, day);
+            const now = new Date();
+        
+            // ตรวจสอบความถูกต้องของวันที่
+            if (birthDate.toString() === 'Invalid Date') {
+                alert("วันที่ไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง");
+                return;
+            }
+        
+            // คำนวณอายุ
+            let years = now.getFullYear() - birthDate.getFullYear();
+            let months = now.getMonth() - birthDate.getMonth();
+            let days = now.getDate() - birthDate.getDate();
+        
+            if (days < 0) {
+                months--;
+                days += new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+            }
+            if (months < 0) {
+                years--;
+                months += 12;
+            }
+        
+            // อัปเดตการแสดงผล
+            this.form.ageDisplay = `${years} ปี ${months} เดือน ${days} วัน`;
+            
+            // เก็บค่าที่จะส่งไปบันทึกใน Google Sheet (ในรูปแบบ พ.ศ.)
+            this.form.dob = `${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${yearBE}`;
+        },
+        
+        // 3. ปรับฟังก์ชัน Reset Form ให้รองรับฟิลด์ใหม่
         resetForm() {
             this.form = {
+                dobInput: '', // ช่องสำหรับพิมพ์
+                dob: '',      // ค่าที่จะส่งไปบันทึก (พ.ศ.)
+                ageDisplay: '',
                 rowId: '', date: '', time: '', receivedFrom: 'ER', referFrom: '',
                 bed: '', hn: '', an: '', name: '', address: '',
                 dob: '', ageDisplay: '', dept: this.configs.depts[0] || '', 
