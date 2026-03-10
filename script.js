@@ -119,20 +119,22 @@ function nurseApp() {
 
         openNursingChart(patient) {
             this.selectedPatient = patient;
-            // ตั้งค่าฟอร์มเริ่มต้นเป็น "ประเมินแรกรับ"
-            const initialForm = this.activeForms.find(f => f.id === 'assess_initial');
-            this.currentForm = initialForm || this.activeForms[0];
             
-            // ล้างข้อมูลในฟอร์ม HTML เมื่อเปิดใหม่
+            // บังคับให้เลือกฟอร์มแรกรับเสมอเมื่อเปิด Chart
+            const initialForm = this.activeForms.find(f => f.id === 'assess_initial');
+            this.currentForm = initialForm; // ตรวจสอบว่า id ตรงกับใน HTML
+            
+            this.viewMode = 'chart';
+            
+            // เลื่อนขึ้นด้านบนสุด
+            window.scrollTo(0, 0);
+            
+            // ล้างข้อมูลฟอร์มเดิม (ถ้ามี)
             this.$nextTick(() => {
                 const formElement = document.getElementById('assessment-form-v2');
                 if (formElement) formElement.reset();
             });
-            
-            this.viewMode = 'chart';
-            window.scrollTo(0, 0);
-        },
-
+        }
         // --- บันทึกแบบประเมินแรกรับ ---
         async saveAssessmentData() {
             const formElement = document.getElementById('assessment-form-v2');
