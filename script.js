@@ -5,7 +5,7 @@ function nurseApp() {
         isLoading: false,
         realTimeClock: '',
         currentWard: null,
-        viewMode: 'list', // 'list' หรือ 'detail'
+        viewMode: 'list', 
         showSuccess: false,
         successMsg: '',
         
@@ -24,8 +24,8 @@ function nurseApp() {
 
         // Form Object
         form: {
-            dobInput: '', // สำหรับพิมพ์ วว/ดด/พศ
-            dob: '',      // ค่าที่จะบันทึกลง Sheet (พ.ศ.)
+            dobInput: '', 
+            dob: '',      
             ageDisplay: '',
             date: '', 
             time: '', 
@@ -66,7 +66,6 @@ function nurseApp() {
         async loadInitialData() {
             this.isLoading = true;
             try {
-                // ดึงข้อมูลพื้นฐาน (ตึก, แผนก, แพทย์)
                 const res = await fetch(`${this.API_URL}?action=getInitData`);
                 const data = await res.json();
                 this.wards = data.wards || [];
@@ -74,7 +73,6 @@ function nurseApp() {
                 this.doctors = data.doctors || [];
             } catch (e) {
                 console.error("Load Initial Data Failed:", e);
-                // Fallback กรณีเชื่อมต่อไม่ได้
                 this.wards = ['ปาริฉัตร', 'สงฆ์อาพาธ'];
             }
             this.isLoading = false;
@@ -108,60 +106,49 @@ function nurseApp() {
         },
 
         calculateLOS(admitDateStr) {
-                if (!admitDateStr) return 0;
-                try {
-                    const admitDate = new Date(admitDateStr);
-                    const now = new Date();
-                    const diffTime = Math.abs(now - admitDate);
-                    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                    return diffDays === 0 ? 1 : diffDays; // ถ้า Admit วันนี้ให้นับเป็น 1 วัน
-                } catch (e) { return 0; }
-            }
-        }
+            if (!admitDateStr) return 0;
+            try {
+                const admitDate = new Date(admitDateStr);
+                const now = new Date();
+                const diffTime = Math.abs(now - admitDate);
+                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                return diffDays === 0 ? 1 : diffDays;
+            } catch (e) { return 0; }
+        },
 
         // --- 4. Admission & Bed Logic ---
         async openAdmitForm() {
-            // 1. เริ่มแสดงตัวโหลดทันทีที่คลิก
             this.isLoading = true; 
-            
             try {
-                // 2. เคลียร์ค่าฟอร์มเก่า
                 this.resetForm();
                 this.form.ward = this.currentWard;
                 this.form.date = new Date().toISOString().split('T')[0];
                 this.form.time = new Date().toLocaleTimeString('th-TH', { hour12: false, hour: '2-digit', minute: '2-digit' });
-        
-                // 3. ดึงข้อมูลเตียงว่างล่าสุดจาก Server
-                // (เราใส่ isLoading = true ซ้ำใน fetchAvailableBeds ได้เพื่อความชัวร์)
+
                 await this.fetchAvailableBeds(); 
-        
-                // 4. เมื่อข้อมูลมาครบแล้ว จึงเปิด Modal
                 this.showAdmitModal = true;
-                
             } catch (error) {
                 console.error("Error opening form:", error);
-                alert("ไม่สามารถโหลดข้อมูลเตียงได้ กรุณาลองใหม่อีกครั้ง");
+                alert("ไม่สามารถโหลดข้อมูลเตียงได้");
             } finally {
-                // 5. ปิดตัวโหลด (ไม่ว่าจะโหลดสำเร็จหรือพัง)
                 this.isLoading = false; 
             }
         },
 
         async fetchAvailableBeds() {
-            // ฟังก์ชันนี้จะถูกเรียกจาก openAdmitForm
             try {
                 const response = await fetch(`${this.API_URL}?action=getBeds&ward=${this.currentWard}`);
                 const data = await response.json();
                 this.availableBeds = data || [];
             } catch (e) {
                 this.availableBeds = [];
-                throw e; // ส่ง Error กลับไปให้ openAdmitForm จัดการ
+                throw e;
             }
         },
 
-        // --- 5. Date & Age Logic (พ.ศ.) ---
+        // --- 5. Date & Age Logic ---
         autoFormatDate(e) {
-            let v = e.target.value.replace(/\D/g, ''); // เอาเฉพาะตัวเลข
+            let v = e.target.value.replace(/\D/g, '');
             if (v.length > 8) v = v.slice(0, 8);
             if (v.length >= 5) {
                 v = v.slice(0, 2) + '/' + v.slice(2, 4) + '/' + v.slice(4);
@@ -174,15 +161,10 @@ function nurseApp() {
         updateAgeFromText() {
             const input = this.form.dobInput;
             if (!input || input.length < 10) return;
-
             const parts = input.split('/');
             const d = parseInt(parts[0]);
             const m = parseInt(parts[1]);
             const yBE = parseInt(parts[2]);
-
-            if (isNaN(d) || isNaN(m) || isNaN(yBE)) return;
-
-            // คำนวณอายุ (แปลง พ.ศ. -> ค.ศ. สำหรับ JS Date)
             const yAD = yBE - 543;
             const birth = new Date(yAD, m - 1, d);
             const now = new Date();
@@ -195,7 +177,6 @@ function nurseApp() {
             let yrs = now.getFullYear() - birth.getFullYear();
             let mos = now.getMonth() - birth.getMonth();
             let days = now.getDate() - birth.getDate();
-
             if (days < 0) {
                 mos--;
                 days += new Date(now.getFullYear(), now.getMonth(), 0).getDate();
@@ -204,31 +185,30 @@ function nurseApp() {
                 yrs--;
                 mos += 12;
             }
-
             this.form.ageDisplay = `${yrs} ปี ${mos} เดือน ${days} วัน`;
-            this.form.dob = input; // เก็บค่า พ.ศ. (วว/ดด/พศ) ลงตัวแปรที่จะส่งไป Sheet
+            this.form.dob = input;
         },
 
-        // --- 6. Core Actions (Save / Discharge / Move) ---
+        // --- 6. Core Actions ---
         async postToGAS(action, payload, msg) {
             this.isLoading = true;
             try {
+                // สำหรับ POST ใน Google Apps Script แนะนำให้ใช้ URLSearchParams หรือส่งเป็น blob
                 await fetch(this.API_URL, {
                     method: 'POST',
-                    mode: 'no-cors', // ข้อกำหนดของ Google Web App
+                    mode: 'no-cors',
+                    cache: 'no-cache',
                     body: JSON.stringify({ action: action, payload: payload })
                 });
-    
-                // แสดง Success Modal
+
                 this.successMsg = msg;
                 this.showSuccess = true;
-    
-                // หน่วงเวลา 1.5 วินาทีเพื่อให้ Google Sheet อัปเดตข้อมูลเสร็จก่อนจะดึงใหม่
+
                 setTimeout(async () => {
                     await this.fetchPatients();
                     this.isLoading = false;
                 }, 1500);
-    
+
             } catch (e) {
                 alert("Error: " + e.message);
                 this.isLoading = false;
@@ -236,7 +216,6 @@ function nurseApp() {
         },
 
         async submitAdmit() {
-            // ตรวจสอบข้อมูลบังคับ
             if (!this.form.bed || !this.form.hn || !this.form.an) {
                 alert("กรุณากรอกข้อมูล เตียง, HN และ AN ให้ครบถ้วน");
                 return;
@@ -247,25 +226,16 @@ function nurseApp() {
 
         async dischargePatient() {
             if (confirm(`ยืนยันการจำหน่าย (Discharge) คุณ ${this.selectedPatient.name} ?`)) {
-                const payload = { 
-                    an: this.selectedPatient.an, 
-                    bed: this.selectedPatient.bed, 
-                    ward: this.currentWard 
-                };
-                await this.postToGAS('discharge', payload, "จำหน่ายผู้ป่วยและคืนสถานะเตียงเรียบร้อยแล้ว");
+                const payload = { an: this.selectedPatient.an, bed: this.selectedPatient.bed, ward: this.currentWard };
+                await this.postToGAS('discharge', payload, "จำหน่ายสำเร็จ!");
                 this.viewMode = 'list';
             }
         },
 
         async moveBed() {
-            const newBed = prompt(`ย้ายเตียงคุณ ${this.selectedPatient.name}\nเตียงปัจจุบัน: ${this.selectedPatient.bed}\nระบุเลขเตียงใหม่:`);
+            const newBed = prompt(`ย้ายเตียงคุณ ${this.selectedPatient.name}\nเตียงปัจจุบัน: ${this.selectedPatient.bed}\nเลขเตียงใหม่:`);
             if (newBed) {
-                const payload = { 
-                    an: this.selectedPatient.an, 
-                    oldBed: this.selectedPatient.bed, 
-                    newBed: newBed, 
-                    ward: this.currentWard 
-                };
+                const payload = { an: this.selectedPatient.an, oldBed: this.selectedPatient.bed, newBed: newBed, ward: this.currentWard };
                 await this.postToGAS('moveBed', payload, "ย้ายเตียงเรียบร้อยแล้ว");
             }
         },
@@ -281,7 +251,7 @@ function nurseApp() {
                 dobInput: '', dob: '', ageDisplay: '',
                 date: '', time: '', receivedFrom: 'ER', referFrom: '',
                 bed: '', hn: '', an: '', name: '', address: '',
-                dept: this.configs.depts[0] || '', 
+                dept: this.configs.depts ? this.configs.depts[0] : '', 
                 cc: '', pi: '', dx: '', doctor: '', ward: this.currentWard
             };
         },
@@ -289,10 +259,9 @@ function nurseApp() {
         addNewDoctor() {
             const name = prompt("ระบุชื่อ-นามสกุล แพทย์:");
             if (name) {
+                this.postToGAS('addDoctor', { name: name }, "เพิ่มรายชื่อแพทย์แล้ว");
                 this.doctors.push(name);
                 this.form.doctor = name;
-                // ส่งไปบันทึกที่ Sheet Doctors ด้วย (ถ้าต้องการ)
-                this.postToGAS('addDoctor', { name: name }, "เพิ่มรายชื่อแพทย์ลงฐานข้อมูลแล้ว");
             }
         }
     };
