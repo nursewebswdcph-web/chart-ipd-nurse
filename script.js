@@ -119,10 +119,15 @@ function nurseApp() {
 
         openNursingChart(patient) {
             this.selectedPatient = patient;
-            this.currentForm = this.activeForms[0];
+            this.currentForm = this.activeForms.find(f => f.id === 'assess_initial');
+            
+            // ล้างข้อมูลในฟอร์ม HTML (ถ้ามี)
+            const form = document.getElementById('assessment-form-v2');
+            if (form) form.reset();
+            
             this.viewMode = 'chart';
             window.scrollTo(0, 0);
-        },
+        }
 
         async openAdmitForm() {
             this.isLoading = true;
