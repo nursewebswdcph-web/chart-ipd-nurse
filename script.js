@@ -6,6 +6,8 @@ function nurseApp() {
         realTimeClock: '',
         currentWard: null,
         viewMode: 'list', // 'list' หรือ 'detail'
+        showSuccess: false,
+        successMsg: '',
         
         // Data Storage
         wards: [],
@@ -106,15 +108,16 @@ function nurseApp() {
         },
 
         calculateLOS(admitDateStr) {
-            if (!admitDateStr) return 0;
-            try {
-                // ตรวจสอบฟอร์แมตวันที่ (คาดหวัง YYYY-MM-DD จากระบบ)
-                const admitDate = new Date(admitDateStr);
-                const now = new Date();
-                const diffTime = Math.abs(now - admitDate);
-                return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            } catch (e) { return 0; }
-        },
+                if (!admitDateStr) return 0;
+                try {
+                    const admitDate = new Date(admitDateStr);
+                    const now = new Date();
+                    const diffTime = Math.abs(now - admitDate);
+                    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                    return diffDays === 0 ? 1 : diffDays; // ถ้า Admit วันนี้ให้นับเป็น 1 วัน
+                } catch (e) { return 0; }
+            }
+        }
 
         // --- 4. Admission & Bed Logic ---
         async openAdmitForm() {
@@ -207,21 +210,29 @@ function nurseApp() {
         },
 
         // --- 6. Core Actions (Save / Discharge / Move) ---
-        async postToGAS(action, payload, successMsg) {
+        async postToGAS(action, payload, msg) {
             this.isLoading = true;
             try {
                 await fetch(this.API_URL, {
                     method: 'POST',
-                    mode: 'no-cors', // ข้อกำหนดของ GAS
-                    cache: 'no-cache',
+                    mode: 'no-cors', // ข้อกำหนดของ Google Web App
                     body: JSON.stringify({ action: action, payload: payload })
                 });
-                alert(successMsg);
-                await this.fetchPatients(); // รีเฟรชตารางหลังทำงานเสร็จ
+    
+                // แสดง Success Modal
+                this.successMsg = msg;
+                this.showSuccess = true;
+    
+                // หน่วงเวลา 1.5 วินาทีเพื่อให้ Google Sheet อัปเดตข้อมูลเสร็จก่อนจะดึงใหม่
+                setTimeout(async () => {
+                    await this.fetchPatients();
+                    this.isLoading = false;
+                }, 1500);
+    
             } catch (e) {
-                alert("การเชื่อมต่อขัดข้อง: " + e.message);
+                alert("Error: " + e.message);
+                this.isLoading = false;
             }
-            this.isLoading = false;
         },
 
         async submitAdmit() {
