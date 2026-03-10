@@ -20,10 +20,16 @@
 </head>
 <body x-data="nurseApp()" x-init="init()">
 
-    <div x-show="isLoading" class="loader-overlay fixed inset-0 bg-black/50 flex flex-col items-center justify-center text-white" x-cloak>
-        <div class="animate-spin rounded-full h-16 w-16 border-4 border-t-emerald-400 border-white/20 mb-4"></div>
-        <p class="text-lg">กำลังประมวลผล...</p>
+    <div x-show="isLoading" 
+     class="loader-overlay fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex flex-col items-center justify-center text-white" 
+     style="z-index: 99999;" 
+     x-cloak>
+    <div class="relative flex items-center justify-center">
+        <div class="animate-spin rounded-full h-20 w-20 border-4 border-emerald-400 border-t-transparent"></div>
+        <div class="absolute text-2xl">🏥</div>
     </div>
+    <p class="mt-4 text-xl font-bold tracking-wider animate-pulse">กำลังโหลดข้อมูล...</p>
+</div>
 
     <nav class="hospital-gradient text-white shadow-xl sticky top-0 z-[1000] px-4 py-2">
         <div class="container mx-auto flex justify-between items-center">
@@ -79,8 +85,12 @@
                             <p class="text-sm text-gray-500">ตึก: <span x-text="currentWard"></span></p>
                         </div>
                     </div>
-                    <button @click="openAdmitForm()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl transition shadow-md flex items-center gap-2">
-                        <i class="fa-solid fa-user-plus"></i> Admitted ผู้ป่วยใหม่
+                    <button @click="openAdmitForm()" 
+                            :disabled="isLoading"
+                            class="bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 text-white px-5 py-2 rounded-xl transition shadow-md flex items-center gap-2">
+                        <i class="fa-solid fa-user-plus" x-show="!isLoading"></i>
+                        <i class="fa-solid fa-circle-notch animate-spin" x-show="isLoading"></i>
+                        <span x-text="isLoading ? 'กำลังโหลด...' : 'Admitted ผู้ป่วยใหม่'"></span>
                     </button>
                 </div>
 
