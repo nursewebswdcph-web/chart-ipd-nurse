@@ -277,6 +277,24 @@ function nurseApp() {
             if (this.currentForm && this.currentForm.id === id) {
                 this.currentForm = this.activeForms[0];
             }
+        },
+        // ฟังก์ชันคำนวณคะแนน Braden Scale อัตโนมัติ
+        calculateBradenInForm() {
+            let total = 0;
+            const inputs = document.querySelectorAll('.braden-input');
+            inputs.forEach(select => {
+                total += parseInt(select.value) || 0;
+            });
+            
+            const display = document.getElementById('braden-total-display');
+            if (display) {
+                display.innerText = total;
+                // เปลี่ยนสีตามความเสี่ยง
+                if (total <= 12) display.className = 'text-2xl font-black text-red-600 ml-2 animate-bounce';
+                else if (total <= 18) display.className = 'text-2xl font-black text-orange-500 ml-2';
+                else display.className = 'text-2xl font-black text-emerald-600 ml-2';
+            }
         }
+        
     };
 }
