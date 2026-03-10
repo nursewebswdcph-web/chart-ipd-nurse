@@ -9,9 +9,8 @@ function nurseApp() {
         isEditing: false,
 
         selectedPatient: null,
-        currentForm: null, // เก็บฟอร์มที่กำลังเปิดใน Chart
+        currentForm: null, 
         
-        // รายการฟอร์มหลัก 8 รายการ
         activeForms: [
             { id: 'assess_initial', title: '1. แบบประเมินประวัติและสมรรถนะผู้ป่วยแรกรับ', isMain: true },
             { id: 'patient_class', title: '2. แบบบันทึกการจำแนกประเภทผู้ป่วย', isMain: true },
@@ -23,7 +22,6 @@ function nurseApp() {
             { id: 'discharge_summary', title: '8. แบบบันทึกการพยาบาลผู้ป่วยจำหน่าย', isMain: true }
         ],
 
-        // รายการเอกสารเพิ่มเติม
         extraOptions: [
             { id: 'stress_assess', title: 'แบบประเมินความเครียด' },
             { id: 'pre_endo_prep', title: 'แบบเตรียมผู้ป่วยก่อนส่องกล้อง' },
@@ -120,9 +118,9 @@ function nurseApp() {
         },
 
         openNursingChart(patient) {
-            this.selectedPatient = patient; // ล็อคข้อมูลผู้ป่วย
-            this.currentForm = this.activeForms[0]; // เริ่มที่ฟอร์มแรก
-            this.viewMode = 'chart'; // เข้าโหมด Chart ทันที
+            this.selectedPatient = patient;
+            this.currentForm = this.activeForms[0];
+            this.viewMode = 'chart';
             window.scrollTo(0, 0);
         },
 
@@ -161,6 +159,45 @@ function nurseApp() {
             const msg = this.isEditing ? "อัปเดตข้อมูลผู้ป่วยสำเร็จ" : "รับผู้ป่วยใหม่เข้าตึกสำเร็จ";
             await this.postToGAS(action, this.form, msg);
             this.showAdmitModal = false;
+        },
+
+        // --- NEW: ฟังก์ชันบันทึกแบบประเมินแรกรับ ---
+        async saveAssessmentData() {
+            const formElement = document.getElementById('assessment-form-v2');
+            if (!formElement) {
+                this.showAlert('Error', 'ไม่พบฟอร์มข้อมูล');
+                return;
+            }
+
+            const formDataObj = new FormData(formElement);
+            const payload = {
+                an: this.selectedPatient.an,
+                formData: Object.fromEntries(formDataObj.entries())
+            };
+
+            this.isLoading = true;
+            try {
+                // ใช้รูปแบบเดียวกับ postToGAS เพื่อความสม่ำเสมอ
+                await fetch(this.API_URL, { 
+                    method: 'POST', 
+                    mode: 'no-cors', 
+                    body: JSON.stringify({ 
+                        action: 'saveAssessmentInitial', 
+                        an: payload.an,
+                        formData: payload.formData 
+                    }) 
+                });
+                
+                this.successMsg = "บันทึกแบบประเมินแรกรับสำเร็จ";
+                this.showSuccess = true;
+                setTimeout(() => { this.showSuccess = false; }, 3000);
+                // กลับไปหน้าสิทธิการรักษาหรือหน้ารายการ
+                this.viewMode = 'detail';
+            } catch (e) { 
+                this.showAlert("Error", "บันทึกข้อมูลล้มเหลว: " + e.message); 
+            } finally {
+                this.isLoading = false;
+            }
         },
 
         async openMoveModal() {
@@ -264,30 +301,6 @@ function nurseApp() {
             if (this.currentForm && this.currentForm.id === id) {
                 this.currentForm = this.activeForms[0];
             }
-        }
-        // เพิ่มฟังก์ชันนี้เข้าไปใน return { ... } ของ nurseApp()
-        saveAssessmentData() {
-            const form = document.getElementById('assessment-form-v2');
-            const formData = new FormData(form);
-            const payload = {
-                action: 'saveAssessmentInitial', // ต้องไปเพิ่ม case ใน doPost ของ code.gs
-                an: this.selectedPatient.an,
-                hn: this.selectedPatient.hn,
-                data: Object.fromEntries(formData.entries())
-            };
-        
-            this.isLoading = true;
-            fetch(this.API_URL, {
-                method: 'POST',
-                mode: 'no-cors', // ตามรูปแบบเดิมในระบบ
-                body: JSON.stringify(payload)
-            })
-            .then(() => {
-                this.showAlert('สำเร็จ', 'บันทึกข้อมูลแบบประเมินเรียบร้อยแล้ว');
-                this.currentForm = null;
-            })
-            .catch(err => this.showAlert('ข้อผิดพลาด', err.message))
-            .finally(() => this.isLoading = false);
         }
     };
 }
