@@ -117,12 +117,17 @@ function nurseApp() {
 
         updateAge() {
             if (!this.form.dob) return;
-            const birth = new Date(this.form.dob);
+            
+            // 1. แยกส่วนวันที่ (ค.ศ.) จาก Input
+            const [yearAD, month, day] = this.form.dob.split('-').map(Number);
+            const birthDate = new Date(yearAD, month - 1, day);
             const now = new Date();
-            let years = now.getFullYear() - birth.getFullYear();
-            let months = now.getMonth() - birth.getMonth();
-            let days = now.getDate() - birth.getDate();
-
+            
+            // 2. คำนวณอายุ (ปี เดือน วัน)
+            let years = now.getFullYear() - birthDate.getFullYear();
+            let months = now.getMonth() - birthDate.getMonth();
+            let days = now.getDate() - birthDate.getDate();
+        
             if (days < 0) {
                 months--;
                 days += new Date(now.getFullYear(), now.getMonth(), 0).getDate();
@@ -131,7 +136,13 @@ function nurseApp() {
                 years--;
                 months += 12;
             }
+        
+            // 3. แสดงผลอายุ และเก็บค่า ปี พ.ศ. ไว้แสดงผล/บันทึก
+            const yearBE = yearAD + 543;
             this.form.ageDisplay = `${years} ปี ${months} เดือน ${days} วัน`;
+            
+            // สร้างตัวแปรใหม่สำหรับเก็บวันที่ในรูปแบบ พ.ศ. (เช่น 10/03/2510)
+            this.form.dobBE = `${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${yearBE}`;
         },
 
         calculateLOS(admitDateStr) {
@@ -145,8 +156,31 @@ function nurseApp() {
         // --- 4. Core Actions (Save / Edit / Move / Discharge) ---
         
         async submitAdmit() {
-            await this.postToGAS('admitPatient', this.form, "บันทึก Admit สำเร็จ!");
-            this.showAdmitModal = false;
+            this.isLoading = true;
+            try {
+                // เตรียม Payload โดยใช้ค่า dobBE ที่เป็น พ.ศ. แทนค่า dob ปกติ
+                const payloadToSave = { 
+                    ...this.form, 
+                    dob: this.form.dobBE // ส่งค่าที่เป็น พ.ศ. ไปบันทึกที่ Google Sheet
+                };
+        
+                await fetch(this.API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    cache: 'no-cache',
+                    body: JSON.stringify({
+                        action: 'admitPatient',
+                        payload: payloadToSave
+                    })
+                });
+                
+                alert("บันทึกข้อมูล (พ.ศ.) สำเร็จ!");
+                this.showAdmitModal = false;
+                this.fetchPatients(); 
+            } catch (e) {
+                alert("เกิดข้อผิดพลาดในการบันทึก");
+            }
+            this.isLoading = false;
         },
 
         openPatientDetail(p) {
