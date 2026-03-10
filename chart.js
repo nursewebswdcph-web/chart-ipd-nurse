@@ -1,11 +1,13 @@
 function nursingChart() {
     return {
+        // ✅ เปลี่ยนเป็น URL ของคุณ
         API_URL: 'https://script.google.com/macros/s/AKfycbxqaydhsgGZKV8hz28qYUzsTVDl7c-DzgFZD9FDzcWE_uCnwIaJryjqiNQ2ggxOYn49/exec',
+        isLoading: false,
         patient: null,
         viewMode: 'preview', // 'preview' or 'edit'
         currentForm: null,
         
-        // แบบฟอร์มพื้นฐาน 8 รายการ (ลบไม่ได้)
+        // แบบฟอร์มพื้นฐาน 8 รายการ
         activeForms: [
             { id: 'assess_initial', title: '1. แบบประเมินประวัติและสมรรถนะผู้ป่วยแรกรับ', isMain: true },
             { id: 'patient_class', title: '2. แบบบันทึกการจำแนกประเภทผู้ป่วย', isMain: true },
@@ -17,11 +19,12 @@ function nursingChart() {
             { id: 'discharge_summary', title: '8. แบบบันทึกการพยาบาลผู้ป่วยจำหน่าย', isMain: true }
         ],
 
-        // รายการเอกสารเพิ่มเติม (รอพัฒนา)
+        // ✅ รายการเอกสารเพิ่มเติม (อัปเดตใหม่ตามที่ขอ)
         extraOptions: [
-            { id: 'skin_assess', title: 'แบบประเมินสุขภาพผิวหนัง' },
-            { id: 'pain_score', title: 'แบบบันทึกการจัดการความปวด (Pain Score)' },
-            { id: 'fluid_balance', title: 'แบบบันทึกสารน้ำและปัสสาวะ (I/O)' }
+            { id: 'stress_assess', title: 'แบบประเมินความเครียด' },
+            { id: 'pre_endo_prep', title: 'แบบเตรียมผู้ป่วยก่อนส่องกล้อง' },
+            { id: 'pre_op_prep', title: 'แบบเตรียมผู้ป่วยก่อนผ่าตัด' },
+            { id: 'home_care_transfer', title: 'แบบบันทึกส่งต่อเพื่อการดูแลต่อเนื่องที่บ้าน' },
         ],
 
         init() {
@@ -33,21 +36,42 @@ function nursingChart() {
             }
         },
 
+        // ✅ ดึงข้อมูลจริงจาก GAS
         async fetchPatientData(an) {
-            // ดึงข้อมูลพื้นฐานคนไข้จาก GAS (เหมือนหน้าทะเบียน)
+            this.isLoading = true;
             try {
-                const res = await fetch(`${this.API_URL}?action=getPatientByAN&an=${an}`);
-                this.patient = await res.json();
+                // เรียกใช้ action=getPatients และ Filter หาคนไข้จาก AN
+                const res = await fetch(`${this.API_URL}?action=getPatients&ward=all`); // ปรับ ward เป็น all เพื่อค้นหาทั่วถึง
+                const allPatients = await res.json();
+                
+                // ค้นหาข้อมูลผู้ป่วยที่มี AN ตรงกัน
+                const foundPatient = allPatients.find(p => p.an.toString() === an.toString());
+                
+                if (foundPatient) {
+                    this.patient = foundPatient;
+                } else {
+                    alert("ไม่พบข้อมูลผู้ป่วยรายนี้ในระบบ");
+                }
             } catch (e) {
-                console.error("Fetch Patient Error", e);
-                // ข้อมูลตัวอย่างสำหรับ Test UI
-                this.patient = { name: "พระเฉลิม กมลพิศ", hn: "410100282", an: an, bed: "PA507" };
+                console.error("Fetch Data Failed:", e);
+                // ข้อมูลตัวอย่างหากเชื่อมต่อผิดพลาด (เพื่อการทดสอบ UI)
+                this.patient = { 
+                    name: "พระเฉลิม กมลพิศ", 
+                    hn: "410100282", 
+                    an: an, 
+                    bed: "PA507", 
+                    dx: "AFI with sepsis", 
+                    doctor: "นพ.อมร ตามไท" 
+                };
             }
+            this.isLoading = false;
         },
 
         selectForm(form) {
             this.currentForm = form;
-            this.viewMode = 'preview'; // สลับหน้าฟอร์มให้เริ่มที่พรีวิวก่อนเสมอ
+            this.viewMode = 'preview';
+            // เลื่อน Content กลับไปด้านบน
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         },
 
         addForm(opt) {
@@ -55,13 +79,18 @@ function nursingChart() {
             if (!this.activeForms.find(f => f.id === opt.id)) {
                 this.activeForms.push({ ...opt, isMain: false });
                 this.selectForm(opt);
+            } else {
+                // ถ้ามีแล้วให้เลือกฟอร์มนั้นแทน
+                this.selectForm(this.activeForms.find(f => f.id === opt.id));
             }
         },
 
         removeForm(id) {
-            this.activeForms = this.activeForms.filter(f => f.id !== id);
-            if (this.currentForm.id === id) {
-                this.currentForm = this.activeForms[0];
+            if (confirm("ยืนยันการลบรายการเอกสารนี้ออกจากแถบรายการ?")) {
+                this.activeForms = this.activeForms.filter(f => f.id !== id);
+                if (this.currentForm.id === id) {
+                    this.currentForm = this.activeForms[0];
+                }
             }
         }
     };
