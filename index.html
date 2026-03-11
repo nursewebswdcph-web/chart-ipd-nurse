@@ -1737,7 +1737,7 @@
                                                 </tr>
                                                 <tr>
                                                     <td colspan="5" class="border border-black p-1 text-right font-bold pr-4">Total Score</td>
-                                                    <td class="border border-black p-1 font-bold text-base" x-text="document.getElementById('braden-total')?.innerText || '0'"></td>
+                                                    <td class="border border-black p-1 font-bold text-base" x-text="savedAssessment?.Braden_Total || ((parseInt(savedAssessment?.Braden_Sensory) || 0) + (parseInt(savedAssessment?.Braden_Moisture) || 0) + (parseInt(savedAssessment?.Braden_Activity) || 0) + (parseInt(savedAssessment?.Braden_Mobility) || 0) + (parseInt(savedAssessment?.Braden_Nutrition) || 0) + (parseInt(savedAssessment?.Braden_Friction) || 0)) || '0'"></td>
                                                 </tr>
                                             </table>
                                             <div class="w-32 text-[10px] leading-relaxed flex flex-col justify-center gap-1 border border-black p-2">
