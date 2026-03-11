@@ -20,19 +20,18 @@
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         
-        /* 🟢 โหมดหน้าจอพรีวิว */
+        /* 🟢 โหมดหน้าจอพรีวิว (บนเว็บ) */
         .a4-page {
             width: 210mm;
             min-height: 297mm;
-            padding: 10mm 15mm; /* ปรับลด padding ลงเล็กน้อย */
+            padding: 10mm 15mm; 
             margin: 10mm auto;
             background: white;
             box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             font-family: 'Sarabun', sans-serif;
             color: black;
             position: relative;
-            box-sizing: border-box; /* สำคัญ: บังคับให้ขอบอยู่ภายใน 210mm */
-            overflow: hidden; /* ตัดส่วนที่อาจจะล้นออกไป */
+            box-sizing: border-box; 
         }
         
         .checkbox-box {
@@ -47,48 +46,57 @@
             line-height: 1;
         }
 
-        /* 🟢 โหมดสั่งพิมพ์ */
+        /* 🟢 โหมดสั่งพิมพ์ (กด Ctrl+P หรือ พิมพ์เอกสาร) */
         @media print {
-            /* กำหนดขนาดหน้ากระดาษเป็น A4 พอดีและล้างระยะขอบเบราว์เซอร์ */
+            /* 1. ตั้งค่ากระดาษ A4 และลบขอบขาวเริ่มต้นของเบราว์เซอร์ */
             @page {
-                size: A4;
-                margin: 0; 
+                size: A4 portrait;
+                margin: 0mm; 
             }
-            body {
-                -webkit-print-color-adjust: exact;
+            
+            /* 2. สำคัญมาก! ปลดล็อกความสูงและ Scrollbar ของเว็บ เพื่อให้เบราว์เซอร์ดึงหน้า 2-3 ออกมาพิมพ์ได้ */
+            html, body {
+                height: auto !important;
+                overflow: visible !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                background-color: white !important;
+                -webkit-print-color-adjust: exact; /* บังคับให้พิมพ์สีเส้นตารางและพื้นหลังออกมาชัดเจน */
                 print-color-adjust: exact;
             }
+
+            /* 3. ซ่อนทุกอย่างบนเว็บ ยกเว้นเอกสาร A4 */
             body * {
                 visibility: hidden;
             }
             #a4-print-area, #a4-print-area * {
                 visibility: visible;
             }
-            
+
+            /* 4. ดึงเอกสารไปชิดมุมซ้ายบนสุดของกระดาษเสมอ */
             #a4-print-area {
                 position: absolute;
                 left: 0;
                 top: 0;
                 width: 210mm;
-                margin: 0;
-                padding: 0 !important; /* ป้องกันไม่ให้ Padding ซ้อนทับกัน */
-                box-shadow: none;
-                background-color: white;
+                margin: 0 !important;
+                padding: 0 !important;
             }
             
+            /* 5. จัดการขนาดของแต่ละหน้าให้พอดี ไม่ตกขอบ */
             .a4-page {
                 width: 210mm;
-                height: 297mm; /* ใช้ความสูงตายตัวแทน min-height ป้องกันหน้าเกิน */
-                padding: 10mm 15mm; 
+                height: 296mm; /* ลดจาก 297 ลงมา 1mm ป้องกันเนื้อหาล้นจนเกิดหน้าว่างแทรก */
+                padding: 10mm 15mm !important; 
                 margin: 0 !important;
-                box-sizing: border-box;
-                page-break-after: always;
+                box-sizing: border-box !important;
+                page-break-after: always; /* บังคับให้ตัดขึ้นหน้าใหม่เสมอเมื่อจบ 1 หน้า */
                 page-break-inside: avoid;
-                position: relative;
-                box-shadow: none;
-                border: none;
+                border: none !important;
+                box-shadow: none !important;
             }
             
+            /* หน้าสุดท้ายไม่ต้องมีคำสั่งตัดหน้าใหม่ */
             .a4-page:last-child {
                 page-break-after: auto;
             }
