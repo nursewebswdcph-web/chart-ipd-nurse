@@ -83,9 +83,17 @@ function nurseApp() {
             );
         },
         get filteredNurses() {
+            // 1. ป้องกัน Error กรณีโหลดข้อมูลจากชีตไม่สำเร็จ
+            if (!this.nurses || !Array.isArray(this.nurses)) return [];
+            
+            // 2. ถ้าช่องค้นหาว่าง ให้แสดงรายชื่อพยาบาลทั้งหมดเลย
             if (!this.searchNurse) return this.nurses;
-            const term = this.searchNurse.toLowerCase();
-            return this.nurses.filter(n => n && n.name && n.name.toString().toLowerCase().includes(term));
+        
+            // 3. กรองข้อมูลตามตัวอักษรที่พิมพ์
+            const term = this.searchNurse.toString().toLowerCase();
+            return this.nurses.filter(n => 
+                n && n.name && n.name.toString().toLowerCase().includes(term)
+            );
         },
 
         async loadInitialData() {
