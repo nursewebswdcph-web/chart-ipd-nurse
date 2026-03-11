@@ -554,48 +554,13 @@ function nurseApp() {
             return valuesArray.includes(value.toString().trim());
         },
         printAssessment() {
-            const formElement = document.getElementById('assessment-form-v2');
-            if (!formElement) {
-                this.showAlert('Error', 'ไม่พบฟอร์มข้อมูล');
-                return;
-            }
-
-            // 1. ดึงข้อมูลจากฟอร์มที่กำลังกรอกอยู่ ณ ปัจจุบัน
-            const formData = new FormData(formElement);
-            const data = {};
-            formData.forEach((value, key) => {
-                if (!data[key]) {
-                    data[key] = value;
-                    return;
-                }
-                if (!Array.isArray(data[key])) {
-                    data[key] = [data[key]];
-                }
-                data[key].push(value);
-            });
-
-            // 2. แปลงค่า Checkbox กลุ่มเป็น String
-            for (let key in data) {
-                if (Array.isArray(data[key])) {
-                    data[key] = data[key].join(', ');
-                }
-            }
-
-            // 3. อัปเดตข้อมูลลงใน savedAssessment (ซึ่งผูกกับหน้าพรีวิวที่ซ่อนอยู่)
-            this.savedAssessment = { 
-                ...data, 
-                PatientName: this.selectedPatient?.name,
-                HN: this.selectedPatient?.hn,
-                AN: this.selectedPatient?.an,
-                Bed: this.selectedPatient?.bed
-            };
-
-            // 4. สั่งพิมพ์
+            window.scrollTo(0, 0); // เลื่อนไปบนสุดก่อน
+            this.showAssessmentPreview = true;
             this.$nextTick(() => {
                 setTimeout(() => {
                     window.print();
-                }, 500); // หน่วงเวลาให้ Alpine ยัดค่าลง HTML ให้เสร็จก่อน
+                }, 600); // เพิ่มเวลาเป็น 600ms เพื่อให้ข้อมูลในหน้า 2 เรนเดอร์จนครบ
             });
-        },
+        }
     };
 }
