@@ -238,13 +238,30 @@ function nurseApp() {
                                     const el = form.elements[key];
                                     if (!el) return;
                                     
-                                    if (el.length && el[0].type === 'radio') {
-                                        Array.from(el).forEach(r => r.checked = (r.value === data[key]));
-                                    } else if (el.type === 'checkbox') {
-                                        el.checked = (data[key] === 'on' || data[key] === true || data[key] === el.value);
-                                    } else {
-                                        el.value = data[key];
-                                        el.dispatchEvent(new Event('input')); 
+                                    // 🟢 ตรวจสอบว่า el เป็น "กลุ่มของ Input" ที่ใช้ชื่อเดียวกันหรือไม่ (เช่น Radio หรือ Checkbox หลายอัน)
+                                    // (ใช้ el.tagName !== 'SELECT' เพราะ Select ก็มี length เหมือนกันแต่เป็น Input เดี่ยว)
+                                    if (el.length && el.tagName !== 'SELECT') {
+                                        Array.from(el).forEach(inputNode => {
+                                            if (inputNode.type === 'radio') {
+                                                inputNode.checked = (inputNode.value === data[key]);
+                                            } else if (inputNode.type === 'checkbox') {
+                                                // กรณีเป็น Checkbox กลุ่ม ให้แยกคำด้วยลูกน้ำแล้วเช็คว่ามีค่าตรงไหม
+                                                const savedValues = data[key] ? data[key].toString().split(',').map(v => v.trim()) : [];
+                                                inputNode.checked = savedValues.includes(inputNode.value);
+                                            }
+                                        });
+                                    } 
+                                    // 🟢 กรณีเป็น Input เดี่ยวๆ (Text, Textarea, Select, Checkbox เดี่ยว)
+                                    else {
+                                        if (el.type === 'checkbox') {
+                                            el.checked = (data[key] === 'on' || data[key] === true || data[key] === el.value);
+                                        } else {
+                                            el.value = data[key];
+                                            // เช็คให้ชัวร์ว่ามีฟังก์ชัน dispatchEvent ก่อนค่อยสั่งงาน เพื่อป้องกัน Error
+                                            if (typeof el.dispatchEvent === 'function') {
+                                                el.dispatchEvent(new Event('input')); 
+                                            }
+                                        }
                                     }
                                 });
                             }
@@ -526,8 +543,15 @@ function nurseApp() {
         hasVal(key, value) {
             const data = this.savedAssessment?.[key];
             if (!data) return false;
-            if (value === undefined) return !!data; // ถ้าแค่เช็คว่ามีคีย์นี้ไหม
-            return data.toString().includes(value); // เช็คว่าในข้อความมีค่านั้นไหม (รองรับ Checkbox หลายอัน)
+            
+            // กรณีเป็น Checkbox เดี่ยวๆ (เช่น วัยเด็ก, ผู้สูงอายุ)
+            if (value === undefined) return (data !== false && data !== 'off' && data !== ''); 
+            
+            // กรณีมีหลายตัวเลือก แยกค่าด้วยลูกน้ำ และลบช่องว่างหัวท้ายออก
+            const valuesArray = data.toString().split(',').map(v => v.trim());
+            
+            // ตรวจสอบแบบคำต่อคำ (Exact Match) ป้องกันปัญหาคำว่า "มี" ซ้อนใน "ไม่มี"
+            return valuesArray.includes(value.toString().trim());
         }
     };
 }
