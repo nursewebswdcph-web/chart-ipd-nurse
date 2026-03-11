@@ -20,11 +20,13 @@
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
-    /* 🟢 สำหรับการแสดงผลบนหน้าจอพรีวิว */
+    /* =========================
+       Preview บนหน้าจอ
+    ========================= */
     .a4-page {
         width: 210mm;
         min-height: 297mm;
-        padding: 15mm 15mm;
+        padding: 15mm 15mm 25mm 15mm; /* เผื่อ footer */
         margin: 10mm auto;
         background: white;
         box-shadow: 0 10px 25px rgba(0,0,0,0.1);
@@ -33,7 +35,6 @@
         position: relative;
         box-sizing: border-box;
     }
-
     .checkbox-box {
         display: inline-flex;
         align-items: center;
@@ -45,51 +46,72 @@
         font-size: 10px;
         line-height: 1;
     }
-
-    /* 🔴 ส่วนแก้ไขสำคัญสำหรับการพิมพ์ */
+    /* =========================
+       PRINT MODE
+    ========================= */
     @media print {
-
         @page {
             size: A4 portrait;
             margin: 15mm 15mm 20mm 15mm;
         }
-
         html, body {
             height: auto !important;
             overflow: visible !important;
             background: white !important;
+            /* กัน Chrome scale */
+            zoom: 1;
         }
-
         /* ซ่อน UI */
         .no-print {
             display: none !important;
         }
-
         /* พื้นที่พิมพ์ */
         #a4-print-area {
-            display: block !important;
             width: 100% !important;
             margin: 0 !important;
         }
-
-        /* ปรับหน้ากระดาษให้ไหลต่อเนื่อง */
+        /* ปรับหน้ากระดาษให้ต่อเนื่อง */
         .a4-page {
             width: 100% !important;
             min-height: auto !important;
             margin: 0 !important;
-            padding: 0 !important;
+            padding: 0 0 25mm 0 !important;
             box-shadow: none !important;
             page-break-after: auto;
             break-after: auto;
         }
-
-        /* ป้องกัน element สำคัญถูกตัด */
-        table, tr, td, img {
+        /* =========================
+           ตารางแบ่งหน้าได้
+        ========================= */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        thead {
+            display: table-header-group;
+        }
+        tfoot {
+            display: table-footer-group;
+        }
+        tr {
             page-break-inside: avoid;
             break-inside: avoid;
         }
-
-        /* Footer ทุกหน้า */
+        td, th {
+            page-break-inside: avoid;
+        }
+        /* =========================
+           ป้องกัน element ถูกตัด
+        ========================= */
+        img, svg {
+            page-break-inside: avoid;
+        }
+        .section {
+            page-break-inside: avoid;
+        }
+        /* =========================
+           Footer ทุกหน้า
+        ========================= */
         .print-footer {
             position: fixed;
             bottom: 5mm;
@@ -98,6 +120,9 @@
             text-align: center;
             font-size: 11px;
             color: #444;
+            border-top: 1px solid #ccc;
+            padding-top: 3px;
+            background: white;
         }
     }
 </style>
