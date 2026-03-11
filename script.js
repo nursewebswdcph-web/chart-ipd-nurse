@@ -35,7 +35,7 @@ function nurseApp() {
         dialog: { show: false, type: 'alert', title: '', msg: '', input: '', confirmBtnText: 'ตกลง', onConfirm: null },
         wards: [], patients: [], doctors: [], availableBeds: [], configs: { depts: [] },
         showAdmitModal: false,
-        searchHN: '', searchAN: '', searchName: '', searchDoc: '',
+        searchHN: '', searchAN: '', searchName: '', searchDoc: '', searchNurse: '', showNurseList: false,
 
         form: {
             date: '', time: '', ward: '', bed: '', 
@@ -82,6 +82,11 @@ function nurseApp() {
                 (p.doctor || '').toLowerCase().includes(this.searchDoc.toLowerCase())
             );
         },
+        get filteredNurses() {
+            if (!this.searchNurse) return this.nurses;
+            const term = this.searchNurse.toLowerCase();
+            return this.nurses.filter(n => n && n.name && n.name.toString().toLowerCase().includes(term));
+        },
 
         async loadInitialData() {
             this.isLoading = true;
@@ -118,7 +123,17 @@ function nurseApp() {
             window.scrollTo(0, 0);
             this.$nextTick(() => {
                 const formElement = document.getElementById('assessment-form-v2');
-                if (formElement) formElement.reset();
+                if (formElement) {
+                    formElement.reset(); // ล้างฟอร์มก่อน
+                    
+                    // นำข้อมูลลงทะเบียนแรกรับ มาใส่ในฟอร์ม เพื่อให้สามารถแก้ไขได้
+                    if (formElement.elements['AdmitDate']) formElement.elements['AdmitDate'].value = patient.date || '';
+                    if (formElement.elements['AdmitTime']) formElement.elements['AdmitTime'].value = patient.time || '';
+                    if (formElement.elements['AdmittedFrom']) formElement.elements['AdmittedFrom'].value = patient.receivedFrom || '';
+                    if (formElement.elements['Refer']) formElement.elements['Refer'].value = patient.referFrom || '';
+                    if (formElement.elements['ChiefComplaint']) formElement.elements['ChiefComplaint'].value = patient.cc || '';
+                    if (formElement.elements['PresentIllness']) formElement.elements['PresentIllness'].value = patient.pi || '';
+                }
             });
         },
 
