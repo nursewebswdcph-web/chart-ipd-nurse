@@ -83,74 +83,105 @@
             </div>
         </div>
 
-        <div x-show="currentWard && viewMode === 'list'" x-cloak>
-            <div class="bg-white p-5 rounded-[1.5rem] shadow-sm mb-4 border border-slate-200">
-                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div class="flex items-center gap-4">
-                        <div class="p-3 bg-emerald-100 text-emerald-700 rounded-2xl shadow-inner"><i class="fa-solid fa-users-viewfinder text-xl"></i></div>
-                        <div>
-                            <h2 class="text-xl font-black text-slate-800 flex items-center gap-2">ทะเบียนผู้ป่วยใน IPD Registry <span class="bg-slate-100 text-slate-500 text-[9px] px-2 py-0.5 rounded uppercase" x-text="'ตึก '+currentWard"></span></h2>
-                            <p class="text-[11px] text-slate-400 font-medium" x-text="patientSummary.deptStr"></p>
-                        </div>
-                    </div>
-                    <button @click="openAdmitForm()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl shadow-lg shadow-emerald-100 flex items-center gap-2 font-bold transition-all active:scale-95 text-sm">
-                        <i class="fa-solid fa-user-plus"></i><span>Admitted ผู้ป่วยใหม่</span>
-                    </button>
+        <div x-show="currentWard && viewMode === 'list'" x-cloak class="space-y-4">
+    <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <div class="p-3 bg-emerald-100 text-emerald-700 rounded-2xl shadow-inner">
+                    <i class="fa-solid fa-users-viewfinder text-xl"></i>
                 </div>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5 pt-5 border-t border-slate-100">
-                    <input type="text" x-model="searchHN" placeholder="ค้นหา HN..." class="bg-slate-50 border-none rounded-lg text-[13px] px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 outline-none">
-                    <input type="text" x-model="searchAN" placeholder="ค้นหา AN..." class="bg-slate-50 border-none rounded-lg text-[13px] px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 outline-none">
-                    <input type="text" x-model="searchName" placeholder="ชื่อ-นามสกุล..." class="bg-slate-50 border-none rounded-lg text-[13px] px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 outline-none">
-                    <input type="text" x-model="searchDoc" placeholder="แพทย์..." class="bg-slate-50 border-none rounded-lg text-[13px] px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 outline-none">
+                <div>
+                    <h2 class="text-xl font-black text-slate-800 flex items-center gap-2">
+                        ทะเบียนผู้ป่วยใน IPD Registry 
+                        <span class="bg-emerald-600 text-white text-[10px] px-2.5 py-1 rounded-lg uppercase tracking-wider" x-text="'ตึก ' + currentWard"></span>
+                    </h2>
+                    <p class="text-[11px] text-slate-400 font-medium mt-0.5" x-text="patientSummary.deptStr"></p>
                 </div>
             </div>
+            <button @click="openAdmitForm()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 rounded-2xl shadow-lg shadow-emerald-100 flex items-center gap-2 font-bold transition-all active:scale-95 text-sm">
+                <i class="fa-solid fa-user-plus"></i>
+                <span>รับผู้ป่วยใหม่ (Admit)</span>
+            </button>
+        </div>
 
-            <div class="bg-white rounded-[1.5rem] shadow-sm border border-slate-200 overflow-hidden overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead class="bg-slate-50/80 border-b border-slate-100">
-                        <tr class="text-slate-400 text-[10px] uppercase font-bold tracking-widest">
-                            <th class="p-4 text-center w-16">Chart</th>
-                            <th class="p-4 w-20 text-center">เตียง</th>
-                            <th class="p-4">ข้อมูลผู้ป่วย</th>
-                            <th class="p-4">แผนก/แพทย์</th>
-                            <th class="p-4 text-center">Admit/LOS</th>
-                            <th class="p-4 text-right"></th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        <template x-for="p in filteredPatients" :key="p.an">
-                            <tr @click="openPatientDetail(p)" class="hover:bg-slate-50 transition-colors cursor-pointer group">
-                                <td class="p-4 text-center">
-                                    <button @click.stop="openNursingChart(p)" 
-                                            class="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl shadow-lg transition active:scale-95 border-2 border-indigo-100 min-w-[100px]">
-                                        <i class="fa-solid fa-file-medical text-lg text-white"></i>
-                                        <span class="font-bold text-sm tracking-wide">Chart</span>
-                                    </button>
-                                </td>
-                                <td class="p-4 text-center">
-                                    <span class="bg-emerald-100 text-emerald-800 px-4 py-2 rounded-full font-black text-base border border-emerald-200 shadow-sm" x-text="p.bed"></span>
-                                </td>
-                                <td class="p-4">
-                                    <div class="font-black text-slate-800 text-lg leading-tight" x-text="p.name"></div>
-                                    <div class="flex items-center gap-2 text-[12px] text-slate-400 font-mono mt-1" x-text="'HN: '+p.hn+' | AN: '+p.an"></div>
-                                </td>
-                                <td class="p-4">
-                                    <div class="text-[13px] font-bold text-slate-600" x-text="p.dept"></div>
-                                    <div class="text-[11px] text-emerald-600 mt-1 font-bold" x-text="p.doctor"></div>
-                                </td>
-                                <td class="p-4 text-center">
-                                    <div class="text-[11px] text-slate-400 mb-1" x-text="p.date"></div>
-                                    <div class="bg-slate-200 px-3 py-1 rounded-lg inline-block font-black text-slate-700 text-[13px]" x-text="calculateLOS(p.date) + ' วัน'"></div>
-                                </td>
-                                <td class="p-4 text-right pr-6">
-                                    <i class="fa-solid fa-circle-chevron-right text-slate-200 group-hover:text-emerald-500 text-2xl transition-all"></i>
-                                </td>
-                            </tr>
-                        </template>
-                    </tbody>
-                </table>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mt-6 pt-6 border-t border-slate-100">
+            <div class="relative">
+                <i class="fa-solid fa-id-card absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs"></i>
+                <input type="text" x-model="searchHN" placeholder="ค้นหา HN..." class="w-full bg-slate-50 border-none rounded-xl text-[13px] pl-9 pr-4 py-3 focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
+            </div>
+            <div class="relative">
+                <i class="fa-solid fa-fingerprint absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs"></i>
+                <input type="text" x-model="searchAN" placeholder="ค้นหา AN..." class="w-full bg-slate-50 border-none rounded-xl text-[13px] pl-9 pr-4 py-3 focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
+            </div>
+            <div class="relative">
+                <i class="fa-solid fa-user absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs"></i>
+                <input type="text" x-model="searchName" placeholder="ชื่อ-นามสกุล..." class="w-full bg-slate-50 border-none rounded-xl text-[13px] pl-9 pr-4 py-3 focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
+            </div>
+            <div class="relative">
+                <i class="fa-solid fa-user-doctor absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs"></i>
+                <input type="text" x-model="searchDoc" placeholder="แพทย์ผู้ดูแล..." class="w-full bg-slate-50 border-none rounded-xl text-[13px] pl-9 pr-4 py-3 focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
             </div>
         </div>
+    </div>
+
+    <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-slate-50/80 border-b border-slate-100">
+                    <tr class="text-slate-400 text-[10px] uppercase font-bold tracking-widest">
+                        <th class="p-5 text-center w-24">Chart</th>
+                        <th class="p-5 w-24 text-center">เตียง</th>
+                        <th class="p-5">ข้อมูลผู้ป่วย</th>
+                        <th class="p-5">แผนก / แพทย์</th>
+                        <th class="p-5 text-center">Admit / LOS</th>
+                        <th class="p-5 text-right"></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    <template x-for="p in filteredPatients" :key="p.an">
+                        <tr @click="openPatientDetail(p)" class="hover:bg-slate-50/80 transition-all cursor-pointer group">
+                            <td class="p-4 text-center">
+                                <button @click.stop="openNursingChart(p)" 
+                                        class="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl shadow-md transition-all active:scale-95 border-2 border-indigo-100 min-w-[90px]">
+                                    <i class="fa-solid fa-file-medical text-sm"></i>
+                                    <span class="font-bold text-xs tracking-wide">Chart</span>
+                                </button>
+                            </td>
+                            <td class="p-4 text-center">
+                                <span class="bg-emerald-100 text-emerald-800 px-4 py-2 rounded-2xl font-black text-base border border-emerald-200 shadow-sm inline-block min-w-[60px]" x-text="p.bed"></span>
+                            </td>
+                            <td class="p-4">
+                                <div class="font-black text-slate-800 text-lg leading-tight group-hover:text-indigo-600 transition-colors" x-text="p.name"></div>
+                                <div class="flex items-center gap-2 text-[11px] text-slate-400 font-bold mt-1.5">
+                                    <span class="bg-slate-100 px-1.5 py-0.5 rounded text-slate-500" x-text="'HN: ' + p.hn"></span>
+                                    <span class="bg-indigo-50 px-1.5 py-0.5 rounded text-indigo-500" x-text="'AN: ' + p.an"></span>
+                                </div>
+                            </td>
+                            <td class="p-4">
+                                <div class="text-[13px] font-bold text-slate-600" x-text="p.dept"></div>
+                                <div class="text-[11px] text-emerald-600 mt-1 font-bold flex items-center gap-1">
+                                    <i class="fa-solid fa-user-doctor text-[10px]"></i>
+                                    <span x-text="p.doctor"></span>
+                                </div>
+                            </td>
+                            <td class="p-4 text-center">
+                                <div class="text-[11px] text-slate-400 mb-1" x-text="p.date"></div>
+                                <div class="bg-slate-200 px-3 py-1 rounded-lg inline-block font-black text-slate-700 text-[12px]" x-text="calculateLOS(p.date) + ' วัน'"></div>
+                            </td>
+                            <td class="p-4 text-right pr-8">
+                                <i class="fa-solid fa-circle-chevron-right text-slate-200 group-hover:text-indigo-500 group-hover:translate-x-1 text-2xl transition-all"></i>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+        <div x-show="filteredPatients.length === 0" class="p-20 text-center text-slate-300">
+            <i class="fa-solid fa-folder-open text-6xl mb-4 opacity-20"></i>
+            <p class="font-bold">ไม่พบข้อมูลผู้ป่วยที่ค้นหา</p>
+        </div>
+    </div>
+</div>
 
         <div x-show="viewMode === 'chart'" class="fixed inset-0 z-[5000] bg-slate-100 flex flex-col" x-cloak>
             <header class="h-28 bg-white border-b border-slate-200 px-8 flex items-center justify-between shadow-sm shrink-0">
