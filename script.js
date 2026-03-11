@@ -554,14 +554,11 @@ function nurseApp() {
             return valuesArray.includes(value.toString().trim());
         },
         printAssessment() {
+            this.showAssessmentPreview = true;
             this.$nextTick(() => {
-                // บังคับให้หน้าพรีวิวแสดงผลก่อน
-                this.showAssessmentPreview = true;
-                
-                // รอให้ Alpine เรนเดอร์ข้อมูลลงใน HTML สักครู่ (100ms) แล้วค่อยสั่งพิมพ์
                 setTimeout(() => {
                     window.print();
-                }, 300);
+                }, 500); // เพิ่มเวลาเป็น 500ms เพื่อให้แน่ใจว่าค่าในตารางถูกเติมเต็ม
             });
         }
     };
