@@ -34,9 +34,12 @@ function nurseApp() {
         searchHN: '', searchAN: '', searchName: '', searchDoc: '',
 
         form: {
-            dobInput: '', dob: '', ageDisplay: '', date: '', time: '', 
-            receivedFrom: 'ER', referFrom: '', bed: '', hn: '', an: '', 
-            name: '', address: '', dept: '', cc: '', pi: '', dx: '', doctor: '', ward: ''
+            date: '', time: '', ward: '', bed: '', 
+            receivedFrom: 'ER', referFrom: '', 
+            hn: '', an: '', name: '', address: '', 
+            dobInput: '', dob: '', ageDisplay: '', 
+            dept: '', cc: '', pi: '', dx: '', doctor: '', 
+            status: 'Active'
         },
 
         init() {
@@ -186,19 +189,36 @@ function nurseApp() {
         },
 
         async openEditForm() {
+            if (!this.selectedPatient) return;
             this.isLoading = true;
             this.isEditing = true;
+            
             try {
+                // คัดลอกข้อมูลจากคนไข้ที่เลือกมาใส่ฟอร์ม
                 this.form = { ...this.selectedPatient };
-                this.form.dobInput = this.selectedPatient.dob;
+                
+                // จัดการรูปแบบวันเกิดให้แสดงผลในช่องกรอก (ถ้ามีข้อมูล)
+                if (this.selectedPatient.dob) {
+                    const dateObj = new Date(this.selectedPatient.dob);
+                    const d = String(dateObj.getDate()).padStart(2, '0');
+                    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+                    const y = dateObj.getFullYear() + 543;
+                    this.form.dobInput = `${d}/${m}/${y}`;
+                }
+        
+                // โหลดเตียงว่าง และเพิ่มเตียงปัจจุบันของคนไข้เข้าไปในตัวเลือกด้วย
                 const res = await fetch(`${this.API_URL}?action=getBeds&ward=${this.currentWard}`);
                 this.availableBeds = await res.json();
                 if (!this.availableBeds.includes(this.selectedPatient.bed)) {
-                    this.availableBeds.push(this.selectedPatient.bed);
+                    this.availableBeds.unshift(this.selectedPatient.bed);
                 }
+                
                 this.showAdmitModal = true;
-            } catch (e) { this.showAlert("Error", "โหลดข้อมูลล้มเหลว"); }
-            this.isLoading = false;
+            } catch (e) {
+                this.showAlert("Error", "ไม่สามารถโหลดข้อมูลเพื่อแก้ไขได้");
+            } finally {
+                this.isLoading = false;
+            }
         },
 
         async submitAdmit() {
@@ -269,18 +289,33 @@ function nurseApp() {
         updateAgeFromText() {
             const input = this.form.dobInput;
             if (!input || input.length < 10) return;
-            const [d, m, yBE] = input.split('/').map(Number);
-            const yAD = yBE - 543;
-            const birth = new Date(yAD, m - 1, d);
-            const now = new Date();
-            if (birth.toString() === 'Invalid Date') return;
-            let yrs = now.getFullYear() - birth.getFullYear();
-            let mos = now.getMonth() - birth.getMonth();
-            let days = now.getDate() - birth.getDate();
-            if (days < 0) { mos--; days += new Date(now.getFullYear(), now.getMonth(), 0).getDate(); }
-            if (mos < 0) { yrs--; mos += 12; }
-            this.form.ageDisplay = `${yrs} ปี ${mos} เดือน ${days} วัน`;
-            this.form.dob = input;
+        
+            try {
+                const [d, m, yBE] = input.split('/').map(Number);
+                const yAD = yBE - 543; // แปลง พ.ศ. เป็น ค.ศ.
+                const birthDate = new Date(yAD, m - 1, d);
+                const today = new Date();
+        
+                if (isNaN(birthDate.getTime())) throw new Error();
+        
+                let years = today.getFullYear() - birthDate.getFullYear();
+                let months = today.getMonth() - birthDate.getMonth();
+                let days = today.getDate() - birthDate.getDate();
+        
+                if (days < 0) {
+                    months--;
+                    days += new Date(today.getFullYear(), today.getMonth(), 0).getDate();
+                }
+                if (months < 0) {
+                    years--;
+                    months += 12;
+                }
+        
+                this.form.ageDisplay = `${years} ปี ${months} เดือน ${days} วัน`;
+                this.form.dob = `${yAD}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            } catch (e) {
+                this.form.ageDisplay = "รูปแบบวันที่ไม่ถูกต้อง";
+            }
         },
 
         calculateLOS(date) {
@@ -305,7 +340,16 @@ function nurseApp() {
         },
         
         resetForm() {
-            this.form = { dobInput: '', dob: '', ageDisplay: '', date: '', time: '', receivedFrom: 'ER', referFrom: '', bed: '', hn: '', an: '', name: '', address: '', dept: '', cc: '', pi: '', dx: '', doctor: '', ward: this.currentWard };
+            this.form = {
+                date: new Date().toISOString().split('T')[0],
+                time: new Date().toLocaleTimeString('th-TH', { hour12: false, hour: '2-digit', minute: '2-digit' }),
+                ward: this.currentWard,
+                bed: '', receivedFrom: 'ER', referFrom: '',
+                hn: '', an: '', name: '', address: '',
+                dobInput: '', dob: '', ageDisplay: '',
+                dept: '', cc: '', pi: '', dx: '', doctor: '',
+                status: 'Active'
+            };
         },
 
         addNewDoctor() {
