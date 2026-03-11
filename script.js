@@ -157,64 +157,54 @@ function nurseApp() {
             });
         },
 
-        async saveAssessmentData() {
+        async saveAssessmentData(shouldPrint = false) {
             const formElement = document.getElementById('assessment-form-v2');
             if (!formElement) return this.showAlert('Error', 'ไม่พบฟอร์มข้อมูล');
         
-            // โหลดข้อมูลดิบทั้งหมดจากฟอร์ม
             const formData = new FormData(formElement);
             const data = {};
-        
-            // 1. จัดการข้อมูลให้รองรับ Checkbox ที่ติ๊กได้หลายข้อ (Multi-select)
             formData.forEach((value, key) => {
-                if (!data[key]) {
-                    data[key] = value;
-                    return;
-                }
-                // ถ้าเป็น Array อยู่แล้ว ก็ยัดเพิ่ม ถ้าไม่ ให้แปลงเป็น Array ก่อน
-                if (!Array.isArray(data[key])) {
-                    data[key] = [data[key]];
-                }
+                if (!data[key]) { data[key] = value; return; }
+                if (!Array.isArray(data[key])) { data[key] = [data[key]]; }
                 data[key].push(value);
             });
         
-            // 2. แปลง Array เป็น String ด้วยคอมม่า
-            for (let key in data) {
-                if (Array.isArray(data[key])) {
-                    data[key] = data[key].join(', ');
-                }
-            }
-        
-            // 3. เตรียมข้อมูลส่งขึ้นเซิร์ฟเวอร์
-            const payload = {
-                an: this.selectedPatient?.an,
-                hn: this.selectedPatient?.hn,
-                patientName: this.selectedPatient?.name,
-                ward: this.currentWard,
-                formData: data,
-                bradenScore: document.getElementById('braden-total')?.innerText || "0",
-                bradenInterpretation: document.getElementById('braden-result')?.innerText || "ไม่ได้ประเมิน"
-            };
-        
-            // 4. ส่งไป GAS
+            this.isLoading = true;
             try {
-                await this.postToGAS('saveAssessmentInitial', payload, "บันทึกแบบประเมินแรกรับ (FR-IPD-004) สำเร็จ");
+                const payload = { an: this.selectedPatient?.an, formData: data, ward: this.currentWard };
+                const res = await fetch(this.API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'saveAssessmentInitial', payload: payload })
+                });
+                const result = await res.json();
                 
-                // --- สิ่งที่แก้ไขเพิ่มเติม ---
-                // เมื่อบันทึกสำเร็จ ให้เก็บข้อมูลลง savedAssessment และเปิดหน้าพรีวิว
-                this.savedAssessment = { ...data, 
-                    PatientName: this.selectedPatient?.name,
-                    HN: this.selectedPatient?.hn,
-                    AN: this.selectedPatient?.an,
-                    Bed: this.selectedPatient?.bed,
-                    Date: this.selectedPatient?.date,
-                    Time: this.selectedPatient?.time
-                };
-                this.showAssessmentPreview = true; 
-                window.scrollTo(0, 0);
+                if (result.status === 'success') {
+                    this.successMsg = result.message;
+                    this.showSuccess = true;
+                    setTimeout(() => this.showSuccess = false, 3000);
         
+                    // อัปเดตข้อมูลที่จะใช้พิมพ์
+                    this.savedAssessment = { 
+                        ...data, 
+                        PatientName: this.selectedPatient?.name,
+                        HN: this.selectedPatient?.hn,
+                        AN: this.selectedPatient?.an,
+                        Bed: this.selectedPatient?.bed,
+                        Date: this.selectedPatient?.date,
+                        Time: this.selectedPatient?.time 
+                    };
+        
+                    // หากกดปุ่มพิมพ์ ให้ทำงานต่อทันที
+                    if (shouldPrint) {
+                        this.$nextTick(() => {
+                            this.printAssessment();
+                        });
+                    }
+                }
             } catch (error) {
-                this.showAlert('Error', 'เกิดข้อผิดพลาดในการบันทึก: ' + error.message);
+                this.showAlert('Error', 'เกิดข้อผิดพลาด: ' + error.message);
+            } finally {
+                this.isLoading = false;
             }
         },
         async loadAssessmentData(an) {
@@ -554,13 +544,47 @@ function nurseApp() {
             return valuesArray.includes(value.toString().trim());
         },
         printAssessment() {
-            window.scrollTo(0, 0); // เลื่อนไปบนสุดก่อน
-            this.showAssessmentPreview = true;
-            this.$nextTick(() => {
-                setTimeout(() => {
-                    window.print();
-                }, 600); // เพิ่มเวลาเป็น 600ms เพื่อให้ข้อมูลในหน้า 2 เรนเดอร์จนครบ
-            });
-        }
+            // 1. ดึงเนื้อหา HTML จากเทมเพลตที่จัดวางไว้แล้ว
+            const printContent = document.getElementById('a4-print-area-template').innerHTML;
+            const iframe = document.getElementById('print-frame');
+            const pri = iframe.contentWindow;
+        
+            // 2. ดึง CSS จากหน้าหลักไปใส่ใน Iframe เพื่อให้รูปแบบเหมือนกันเป๊ะ
+            const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+                .map(s => s.outerHTML)
+                .join('');
+        
+            // 3. เขียนเนื้อหาลงใน Iframe
+            pri.document.open();
+            pri.document.write(`
+                <!DOCTYPE html>
+                <html>
+                    <head>
+                        <title>IPD Nurse Workbench - Printing</title>
+                        ${styles}
+                        <style>
+                            /* ลบเงาและ Margin สำหรับการพิมพ์จริง */
+                            .a4-page { margin: 0 !important; box-shadow: none !important; width: 100% !important; }
+                            body { background: white !important; margin: 0; padding: 0; }
+                            @page { size: A4 portrait; margin: 15mm 15mm 20mm 15mm; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="a4-page">
+                            ${printContent}
+                        </div>
+                        <script>
+                            // สั่งพิมพ์เมื่อโหลดเนื้อหาและฟอนต์เสร็จ
+                            window.onload = function() {
+                                setTimeout(() => {
+                                    window.print();
+                                }, 500);
+                            };
+                        </script>
+                    </body>
+                </html>
+            `);
+            pri.document.close();
+        },
     };
 }
