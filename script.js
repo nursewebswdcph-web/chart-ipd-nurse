@@ -219,14 +219,24 @@ function nurseApp() {
         },
         loadAssessmentData(an) {
             return new Promise((resolve) => {
+                // 🟢 เพิ่มการดักจับเพื่อป้องกัน Error เวลารันทดสอบแบบ Local
+                if (typeof google === 'undefined' || !google.script) {
+                    console.warn("⚠️ ไม่ได้รันบน Google Apps Script (Local Mode) - ข้ามการโหลดข้อมูลจากฐานข้อมูล");
+                    this.savedAssessment = null;
+                    this.showAssessmentPreview = false;
+                    resolve();
+                    return;
+                }
+        
+                // โค้ดปกติสำหรับดึงข้อมูลเมื่อรันบน Google Apps Script
                 google.script.run
                     .withSuccessHandler((data) => {
                         if (data && Object.keys(data).length > 0) {
-                            // 🟢 มีข้อมูลแล้ว -> เก็บใส่ตัวแปรและเปิดโหมด A4 Preview ทันที
+                            // มีข้อมูลแล้ว -> เก็บใส่ตัวแปรและเปิดโหมด A4 Preview ทันที
                             this.savedAssessment = data;
                             this.showAssessmentPreview = true;
                             
-                            // (Optional) ยัดค่าเดิมกลับเข้าฟอร์มด้วย เผื่อกรณีที่ผู้ใช้กดปุ่ม "แก้ไขข้อมูล"
+                            // ยัดค่าเดิมกลับเข้าฟอร์มด้วย เผื่อกรณีที่ผู้ใช้กดปุ่ม "แก้ไขข้อมูล"
                             setTimeout(() => {
                                 const form = document.getElementById('assessment-form-v2');
                                 if (form) {
@@ -240,7 +250,6 @@ function nurseApp() {
                                             el.checked = (data[key] === 'on' || data[key] === true || data[key] === el.value);
                                         } else {
                                             el.value = data[key];
-                                            // กระตุ้น event input เพื่อให้ Alpine อัปเดตตัวแปรที่ผูกไว้ (x-model)
                                             el.dispatchEvent(new Event('input')); 
                                         }
                                     });
@@ -248,7 +257,7 @@ function nurseApp() {
                             }, 100);
         
                         } else {
-                            // 🔴 ถ้ายังไม่มีข้อมูล -> เปิดเป็นหน้าฟอร์มกรอกว่างๆ 
+                            // ถ้ายังไม่มีข้อมูล -> เปิดเป็นหน้าฟอร์มกรอกว่างๆ 
                             this.savedAssessment = null;
                             this.showAssessmentPreview = false;
                         }
@@ -259,7 +268,7 @@ function nurseApp() {
                         this.showAssessmentPreview = false; // ถ้า Error ก็ให้แสดงฟอร์ม
                         resolve();
                     })
-                    .getAssessmentInitial(an); // เรียกใช้ฟังก์ชันฝั่ง Code.gs
+                    .getAssessmentInitial(an); 
             });
         },
         async openAdmitForm() {
