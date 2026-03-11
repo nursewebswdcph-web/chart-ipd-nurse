@@ -11,8 +11,10 @@ function nurseApp() {
 
         selectedPatient: null,
         currentForm: null, 
+        showAssessmentPreview: false, // ควบคุมการสลับหน้าฟอร์ม/พรีวิว
+        savedAssessment: null,        // เก็บข้อมูลที่พึ่งบันทึกเพื่อแสดงในพรีวิว
         
-        // เพิ่มใน nurseApp() -> return { ... }
+        
         isSidebarCollapsed: false, // สถานะการพับ Sidebar
         
         activeForms: [
@@ -187,13 +189,24 @@ function nurseApp() {
             // 4. ส่งไป GAS
             try {
                 await this.postToGAS('saveAssessmentInitial', payload, "บันทึกแบบประเมินแรกรับ (FR-IPD-004) สำเร็จ");
-                this.viewMode = 'detail';
-                window.scrollTo(0, 0); // เลื่อนกลับขึ้นบนสุด
+                
+                // --- สิ่งที่แก้ไขเพิ่มเติม ---
+                // เมื่อบันทึกสำเร็จ ให้เก็บข้อมูลลง savedAssessment และเปิดหน้าพรีวิว
+                this.savedAssessment = { ...data, 
+                    PatientName: this.selectedPatient?.name,
+                    HN: this.selectedPatient?.hn,
+                    AN: this.selectedPatient?.an,
+                    Bed: this.selectedPatient?.bed,
+                    Date: this.selectedPatient?.date,
+                    Time: this.selectedPatient?.time
+                };
+                this.showAssessmentPreview = true; 
+                window.scrollTo(0, 0);
+        
             } catch (error) {
                 this.showAlert('Error', 'เกิดข้อผิดพลาดในการบันทึก: ' + error.message);
             }
         },
-
         async openAdmitForm() {
             this.isLoading = true;
             this.isEditing = false;
@@ -447,8 +460,12 @@ function nurseApp() {
                 result.innerText = interpretation;
                 display.className = `text-3xl font-black ${colorClass}`;
             }
+        },
+        hasVal(key, value) {
+            const data = this.savedAssessment?.[key];
+            if (!data) return false;
+            if (value === undefined) return !!data; // ถ้าแค่เช็คว่ามีคีย์นี้ไหม
+            return data.toString().includes(value); // เช็คว่าในข้อความมีค่านั้นไหม (รองรับ Checkbox หลายอัน)
         }
-        
-    
     };
 }
