@@ -552,6 +552,17 @@ function nurseApp() {
             
             // ตรวจสอบแบบคำต่อคำ (Exact Match) ป้องกันปัญหาคำว่า "มี" ซ้อนใน "ไม่มี"
             return valuesArray.includes(value.toString().trim());
+        },
+        printAssessment() {
+            this.$nextTick(() => {
+                // บังคับให้หน้าพรีวิวแสดงผลก่อน
+                this.showAssessmentPreview = true;
+                
+                // รอให้ Alpine เรนเดอร์ข้อมูลลงใน HTML สักครู่ (100ms) แล้วค่อยสั่งพิมพ์
+                setTimeout(() => {
+                    window.print();
+                }, 300);
+            });
         }
     };
 }
