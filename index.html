@@ -19,21 +19,21 @@
         .card-shadow { box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        
-        /* 🟢 โหมดหน้าจอพรีวิว (บนเว็บ) */
+    
+        /* 🟢 สำหรับการแสดงผลบนหน้าจอพรีวิว */
         .a4-page {
             width: 210mm;
             min-height: 297mm;
-            padding: 10mm 15mm; 
+            padding: 15mm 15mm;
             margin: 10mm auto;
             background: white;
             box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             font-family: 'Sarabun', sans-serif;
             color: black;
             position: relative;
-            box-sizing: border-box; 
+            box-sizing: border-box; /* สำคัญ: เพื่อไม่ให้ padding ไปเพิ่มความกว้าง */
         }
-        
+    
         .checkbox-box {
             display: inline-flex;
             align-items: center;
@@ -45,60 +45,59 @@
             font-size: 10px;
             line-height: 1;
         }
-
-        /* 🟢 โหมดสั่งพิมพ์ (กด Ctrl+P หรือ พิมพ์เอกสาร) */
+    
+        /* 🔴 ส่วนแก้ไขสำคัญสำหรับการพิมพ์ (PRINT) */
         @media print {
-            /* 1. ตั้งค่ากระดาษ A4 และลบขอบขาวเริ่มต้นของเบราว์เซอร์ */
+            /* บังคับกระดาษ A4 */
             @page {
                 size: A4 portrait;
-                margin: 0mm; 
+                margin: 0 !important;
             }
-            
-            /* 2. สำคัญมาก! ปลดล็อกความสูงและ Scrollbar ของเว็บ เพื่อให้เบราว์เซอร์ดึงหน้า 2-3 ออกมาพิมพ์ได้ */
+    
+            /* ปลดล็อก Container ทั้งหมดที่อาจจะซ่อนหน้า 2 ไว้ */
             html, body {
                 height: auto !important;
                 overflow: visible !important;
                 margin: 0 !important;
                 padding: 0 !important;
-                background-color: white !important;
-                -webkit-print-color-adjust: exact; /* บังคับให้พิมพ์สีเส้นตารางและพื้นหลังออกมาชัดเจน */
-                print-color-adjust: exact;
             }
-
-            /* 3. ซ่อนทุกอย่างบนเว็บ ยกเว้นเอกสาร A4 */
-            body * {
-                visibility: hidden;
+    
+            /* ซ่อน Sidebar และเมนูอื่น */
+            body > *:not(#a4-print-area) {
+                display: none !important;
             }
-            #a4-print-area, #a4-print-area * {
-                visibility: visible;
-            }
-
-            /* 4. ดึงเอกสารไปชิดมุมซ้ายบนสุดของกระดาษเสมอ */
+    
             #a4-print-area {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 210mm;
+                display: block !important;
+                width: 210mm !important;
                 margin: 0 !important;
                 padding: 0 !important;
             }
-            
-            /* 5. จัดการขนาดของแต่ละหน้าให้พอดี ไม่ตกขอบ */
+    
             .a4-page {
-                width: 210mm;
-                height: 296mm; /* ลดจาก 297 ลงมา 1mm ป้องกันเนื้อหาล้นจนเกิดหน้าว่างแทรก */
-                padding: 10mm 15mm !important; 
+                display: block !important;
+                width: 210mm !important;
+                height: 297mm !important; /* กำหนดความสูงมาตรฐาน A4 */
+                padding: 10mm 15mm !important; /* ระยะขอบกระดาษจริง */
                 margin: 0 !important;
-                box-sizing: border-box !important;
-                page-break-after: always; /* บังคับให้ตัดขึ้นหน้าใหม่เสมอเมื่อจบ 1 หน้า */
-                page-break-inside: avoid;
                 border: none !important;
                 box-shadow: none !important;
+                page-break-after: always !important; /* บังคับตัดหน้า */
+                page-break-inside: avoid !important;
+                position: relative !important;
+                box-sizing: border-box !important;
             }
-            
-            /* หน้าสุดท้ายไม่ต้องมีคำสั่งตัดหน้าใหม่ */
+    
             .a4-page:last-child {
-                page-break-after: auto;
+                page-break-after: auto !important;
+            }
+    
+            /* ซ่อน Footer ระบบ และ URL ที่เบราว์เซอร์ชอบใส่มาตอนพิมพ์ */
+            header, footer { display: none !important; }
+
+            /* ซ่อนปุ่มต่างๆ ภายในเอกสารขณะพิมพ์ */
+            button, .no-print {
+                display: none !important;
             }
         }
     </style>
@@ -1225,7 +1224,7 @@
                                 </div>
                             </div>
                 
-                            <div id="a4-print-area" class="bg-white mx-auto shadow-sm" style="width: 210mm; min-height: 297mm; color: black; font-family: 'Sarabun', sans-serif;">
+                            <div id="a4-print-area" class="bg-white mx-auto shadow-sm no-scrollbar">
                                 <div class="a4-page relative">
                                     <div class="flex justify-between items-start text-[11px] font-bold mb-2">
                                         <div class="border border-black px-2 py-1">FR-IPD-004</div>
@@ -1521,7 +1520,7 @@
                                 </div>
                             
                             
-                                <div class="a4-page relative" style="page-break-before: always; margin-top: 20px;">
+                                <div class="a4-page relative">
                                     <div class="flex justify-between items-start text-[11px] font-bold mb-3">
                                         <div class="border border-black px-2 py-1">FR-IPD-004</div>
                                         <div>แก้ไขครั้งที่ 02 1 ม.ค. 2564</div>
