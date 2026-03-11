@@ -217,59 +217,51 @@ function nurseApp() {
                 this.showAlert('Error', 'เกิดข้อผิดพลาดในการบันทึก: ' + error.message);
             }
         },
-        loadAssessmentData(an) {
-            return new Promise((resolve) => {
-                // 🟢 เพิ่มการดักจับเพื่อป้องกัน Error เวลารันทดสอบแบบ Local
-                if (typeof google === 'undefined' || !google.script) {
-                    console.warn("⚠️ ไม่ได้รันบน Google Apps Script (Local Mode) - ข้ามการโหลดข้อมูลจากฐานข้อมูล");
+        async loadAssessmentData(an) {
+            this.isLoading = true; // เปิดสถานะโหลด
+            try {
+                // เรียกใช้ fetch ไปที่ API_URL ของคุณ เหมือนฟังก์ชันอื่นๆ
+                const response = await fetch(`${this.API_URL}?action=getAssessmentInitial&an=${an}`);
+                const data = await response.json();
+        
+                if (data && Object.keys(data).length > 0) {
+                    // 🟢 มีข้อมูลแล้ว -> เก็บใส่ตัวแปรและเปิดโหมด A4 Preview ทันที
+                    this.savedAssessment = data;
+                    this.showAssessmentPreview = true;
+                    
+                    // ยัดค่าเดิมกลับเข้าฟอร์มด้วย เผื่อกรณีที่ผู้ใช้กดปุ่ม "แก้ไขข้อมูล"
+                    this.$nextTick(() => {
+                        setTimeout(() => {
+                            const form = document.getElementById('assessment-form-v2');
+                            if (form) {
+                                Object.keys(data).forEach(key => {
+                                    const el = form.elements[key];
+                                    if (!el) return;
+                                    
+                                    if (el.length && el[0].type === 'radio') {
+                                        Array.from(el).forEach(r => r.checked = (r.value === data[key]));
+                                    } else if (el.type === 'checkbox') {
+                                        el.checked = (data[key] === 'on' || data[key] === true || data[key] === el.value);
+                                    } else {
+                                        el.value = data[key];
+                                        el.dispatchEvent(new Event('input')); 
+                                    }
+                                });
+                            }
+                        }, 100);
+                    });
+                } else {
+                    // 🔴 ถ้ายังไม่มีข้อมูล -> เปิดเป็นหน้าฟอร์มกรอกว่างๆ 
                     this.savedAssessment = null;
                     this.showAssessmentPreview = false;
-                    resolve();
-                    return;
                 }
-        
-                // โค้ดปกติสำหรับดึงข้อมูลเมื่อรันบน Google Apps Script
-                google.script.run
-                    .withSuccessHandler((data) => {
-                        if (data && Object.keys(data).length > 0) {
-                            // มีข้อมูลแล้ว -> เก็บใส่ตัวแปรและเปิดโหมด A4 Preview ทันที
-                            this.savedAssessment = data;
-                            this.showAssessmentPreview = true;
-                            
-                            // ยัดค่าเดิมกลับเข้าฟอร์มด้วย เผื่อกรณีที่ผู้ใช้กดปุ่ม "แก้ไขข้อมูล"
-                            setTimeout(() => {
-                                const form = document.getElementById('assessment-form-v2');
-                                if (form) {
-                                    Object.keys(data).forEach(key => {
-                                        const el = form.elements[key];
-                                        if (!el) return;
-                                        
-                                        if (el.length && el[0].type === 'radio') {
-                                            Array.from(el).forEach(r => r.checked = (r.value === data[key]));
-                                        } else if (el.type === 'checkbox') {
-                                            el.checked = (data[key] === 'on' || data[key] === true || data[key] === el.value);
-                                        } else {
-                                            el.value = data[key];
-                                            el.dispatchEvent(new Event('input')); 
-                                        }
-                                    });
-                                }
-                            }, 100);
-        
-                        } else {
-                            // ถ้ายังไม่มีข้อมูล -> เปิดเป็นหน้าฟอร์มกรอกว่างๆ 
-                            this.savedAssessment = null;
-                            this.showAssessmentPreview = false;
-                        }
-                        resolve();
-                    })
-                    .withFailureHandler((err) => {
-                        console.error("Error loading assessment:", err);
-                        this.showAssessmentPreview = false; // ถ้า Error ก็ให้แสดงฟอร์ม
-                        resolve();
-                    })
-                    .getAssessmentInitial(an); 
-            });
+            } catch (err) {
+                console.error("Error loading assessment:", err);
+                this.savedAssessment = null;
+                this.showAssessmentPreview = false; // ถ้า Error ก็ให้แสดงฟอร์ม
+            } finally {
+                this.isLoading = false; // ปิดสถานะโหลด
+            }
         },
         async openAdmitForm() {
             this.isLoading = true;
