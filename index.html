@@ -1227,6 +1227,13 @@
                                         </div>
                                     </div>
                                 </section>
+                                <div class="flex justify-end gap-4">
+                                    <button type="button" @click="viewMode = 'list'" class="bg-slate-200 text-slate-600 font-bold py-3 px-8 rounded-2xl transition-all">ยกเลิก</button>
+                                    <button type="button" @click="saveAssessmentData(false)" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-10 rounded-2xl shadow-lg transition-all active:scale-95">บันทึกข้อมูล</button>
+                                    <button type="button" @click="saveAssessmentData(true)" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-10 rounded-2xl shadow-lg shadow-emerald-100 transition-all active:scale-95">
+                                        <i class="fa-solid fa-print mr-2"></i> บันทึกและพิมพ์เอกสาร
+                                    </button>
+                                </div>
                             </form>
                         </div>
                         <div x-show="currentForm?.id === 'assess_initial' && showAssessmentPreview" x-cloak class="flex flex-col items-center">
@@ -1249,8 +1256,9 @@
                                 </div>
                             </div>
                 
-                            <div id="a4-print-area"  class="bg-white mx-auto shadow-sm no-scrollbar">
-                                <div class="a4-page relative">
+                            <div id="a4-print-template" style="display: none;" x-cloak>
+                                <div id="a4-print-area" class="bg-white mx-auto shadow-sm no-scrollbar">
+                                    <div class="a4-page relative">
                                     <div class="flex justify-between items-start text-[11px] font-bold mb-2">
                                         <div class="border border-black px-2 py-1">FR-IPD-004</div>
                                         <div>แก้ไขครั้งที่ 02 1 ม.ค. 2564</div>
@@ -1862,6 +1870,7 @@
                                     </div>
                                 </div>
                             </div>
+                          </div>
                         </div>
                 </main>
             </div>
@@ -2014,5 +2023,6 @@
             </div>
         </div>
     </div>
+    <iframe id="print-frame" style="display:none;"></iframe>
     </body>
 </html>
