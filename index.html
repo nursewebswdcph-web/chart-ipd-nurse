@@ -19,17 +19,22 @@
         .card-shadow { box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        
+        /* 🟢 โหมดหน้าจอพรีวิว */
         .a4-page {
             width: 210mm;
             min-height: 297mm;
-            padding: 12mm 15mm;
+            padding: 10mm 15mm; /* ปรับลด padding ลงเล็กน้อย */
             margin: 10mm auto;
             background: white;
             box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             font-family: 'Sarabun', sans-serif;
             color: black;
             position: relative;
+            box-sizing: border-box; /* สำคัญ: บังคับให้ขอบอยู่ภายใน 210mm */
+            overflow: hidden; /* ตัดส่วนที่อาจจะล้นออกไป */
         }
+        
         .checkbox-box {
             display: inline-flex;
             align-items: center;
@@ -41,35 +46,49 @@
             font-size: 10px;
             line-height: 1;
         }
+
+        /* 🟢 โหมดสั่งพิมพ์ */
         @media print {
-            /* ซ่อนทุกอย่างในหน้าเว็บ */
+            /* กำหนดขนาดหน้ากระดาษเป็น A4 พอดีและล้างระยะขอบเบราว์เซอร์ */
+            @page {
+                size: A4;
+                margin: 0; 
+            }
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
             body * {
                 visibility: hidden;
             }
-            /* แสดงเฉพาะพื้นที่เอกสาร A4 และลูกๆ ของมัน */
             #a4-print-area, #a4-print-area * {
                 visibility: visible;
             }
-            /* จัดตำแหน่งเอกสารให้ชิดขอบกระดาษพอดี */
+            
             #a4-print-area {
                 position: absolute;
                 left: 0;
                 top: 0;
                 width: 210mm;
                 margin: 0;
-                padding: 0;
+                padding: 0 !important; /* ป้องกันไม่ให้ Padding ซ้อนทับกัน */
                 box-shadow: none;
                 background-color: white;
             }
-            /* บังคับขึ้นหน้าใหม่เมื่อจบหน้า */
+            
             .a4-page {
                 width: 210mm;
-                min-height: 297mm;
+                height: 297mm; /* ใช้ความสูงตายตัวแทน min-height ป้องกันหน้าเกิน */
+                padding: 10mm 15mm; 
+                margin: 0 !important;
+                box-sizing: border-box;
                 page-break-after: always;
+                page-break-inside: avoid;
                 position: relative;
-                margin-top: 0 !important;
+                box-shadow: none;
+                border: none;
             }
-            /* หน้าสุดท้ายไม่ต้องเว้นหน้าว่าง */
+            
             .a4-page:last-child {
                 page-break-after: auto;
             }
@@ -1198,7 +1217,7 @@
                                 </div>
                             </div>
                 
-                            <div id="a4-print-area" class="bg-white mx-auto shadow-sm" style="width: 210mm; min-height: 297mm; padding: 10mm 15mm; color: black; font-family: 'Sarabun', sans-serif;">
+                            <div id="a4-print-area" class="bg-white mx-auto shadow-sm" style="width: 210mm; min-height: 297mm; color: black; font-family: 'Sarabun', sans-serif;">
                                 <div class="a4-page relative">
                                     <div class="flex justify-between items-start text-[11px] font-bold mb-2">
                                         <div class="border border-black px-2 py-1">FR-IPD-004</div>
@@ -1243,7 +1262,7 @@
                                             <div class="flex-1 border-b border-dotted border-black" x-text="savedAssessment?.PresentIllness"></div>
                                         </div>
                                         <div class="flex mt-1">
-                                            <div class="w-32">อาการแสดงแรกรับ</div>
+                                            <div class="w-24">อาการแสดงแรกรับ</div>
                                             <div class="flex-1 border-b border-dotted border-black" x-text="savedAssessment?.AdmitSymptoms"></div>
                                         </div>
                                         <div class="flex flex-wrap gap-x-4 mt-1">
