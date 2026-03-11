@@ -589,6 +589,14 @@
                                                     </div>
                                                     <input type="text" name="HP_Before_Detail" x-show="health === 'ไม่ดี'" class="w-full border-b border-amber-200 bg-transparent outline-none mt-2">
                                                 </div>
+                                                
+                                                <div>
+                                                    <span class="block text-xs font-bold text-amber-700 mb-2">การเจ็บป่วยครั้งนี้:</span>
+                                                    <div class="flex gap-4">
+                                                        <label><input type="radio" name="HP_Current_Severity" value="รุนแรง"> รุนแรง</label>
+                                                        <label><input type="radio" name="HP_Current_Severity" value="ไม่รุนแรง"> ไม่รุนแรง</label>
+                                                    </div>
+                                                </div>
                                                 <div>
                                                     <span class="block text-xs font-bold text-amber-700 mb-2">การดูแล:</span>
                                                     <div class="grid grid-cols-1 gap-1">
@@ -1292,6 +1300,11 @@
                                                 <div>ก่อนการเจ็บป่วยครั้งนี้ 
                                                     <label><span class="checkbox-box" x-text="hasVal('HP_Before', 'ดี') ? '✓' : ''"></span> ดี</label>
                                                     <label><span class="checkbox-box" x-text="hasVal('HP_Before', 'ไม่ดี') ? '✓' : ''"></span> ไม่ดี (ระบุ) <span class="border-b border-dotted border-black px-10" x-text="savedAssessment?.HP_Before_Detail"></span></label>
+                                                </div>
+                                        
+                                                <div>การเจ็บป่วยครั้งนี้ 
+                                                    <label><span class="checkbox-box" x-text="hasVal('HP_Current_Severity', 'รุนแรง') ? '✓' : ''"></span> รุนแรง</label>
+                                                    <label><span class="checkbox-box" x-text="hasVal('HP_Current_Severity', 'ไม่รุนแรง') ? '✓' : ''"></span> ไม่รุนแรง</label>
                                                 </div>
                                                 <div class="flex gap-2 items-center">
                                                     <span>การดูแล</span>
