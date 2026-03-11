@@ -13,76 +13,94 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        body { font-family: 'Sarabun', sans-serif; background-color: #f1f5f9; color: #1e293b; }
-        [x-cloak] { display: none !important; }
-        .hospital-gradient { background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%); }
-        .card-shadow { box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-    
-        /* 🟢 สำหรับการแสดงผลบนหน้าจอพรีวิว */
+    body { font-family: 'Sarabun', sans-serif; background-color: #f1f5f9; color: #1e293b; }
+    [x-cloak] { display: none !important; }
+    .hospital-gradient { background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%); }
+    .card-shadow { box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+    /* 🟢 สำหรับการแสดงผลบนหน้าจอพรีวิว */
+    .a4-page {
+        width: 210mm;
+        min-height: 297mm;
+        padding: 15mm 15mm;
+        margin: 10mm auto;
+        background: white;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        font-family: 'Sarabun', sans-serif;
+        color: black;
+        position: relative;
+        box-sizing: border-box;
+    }
+
+    .checkbox-box {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 14px;
+        height: 14px;
+        border: 1px solid black;
+        margin-right: 4px;
+        font-size: 10px;
+        line-height: 1;
+    }
+
+    /* 🔴 ส่วนแก้ไขสำคัญสำหรับการพิมพ์ */
+    @media print {
+
+        @page {
+            size: A4 portrait;
+            margin: 15mm 15mm 20mm 15mm;
+        }
+
+        html, body {
+            height: auto !important;
+            overflow: visible !important;
+            background: white !important;
+        }
+
+        /* ซ่อน UI */
+        .no-print {
+            display: none !important;
+        }
+
+        /* พื้นที่พิมพ์ */
+        #a4-print-area {
+            display: block !important;
+            width: 100% !important;
+            margin: 0 !important;
+        }
+
+        /* ปรับหน้ากระดาษให้ไหลต่อเนื่อง */
         .a4-page {
-            width: 210mm;
-            min-height: 297mm;
-            padding: 15mm 15mm;
-            margin: 10mm auto;
-            background: white;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            font-family: 'Sarabun', sans-serif;
-            color: black;
-            position: relative;
-            box-sizing: border-box; /* สำคัญ: เพื่อไม่ให้ padding ไปเพิ่มความกว้าง */
+            width: 100% !important;
+            min-height: auto !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            box-shadow: none !important;
+            page-break-after: auto;
+            break-after: auto;
         }
-    
-        .checkbox-box {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 14px;
-            height: 14px;
-            border: 1px solid black;
-            margin-right: 4px;
-            font-size: 10px;
-            line-height: 1;
+
+        /* ป้องกัน element สำคัญถูกตัด */
+        table, tr, td, img {
+            page-break-inside: avoid;
+            break-inside: avoid;
         }
-    
-        /* 🔴 ส่วนแก้ไขสำคัญสำหรับการพิมพ์ (PRINT) */
-        @media print {
-        
-            @page {
-                size: A4 portrait;
-                margin: 0;
-            }
-        
-            html, body {
-                height: auto !important;
-                overflow: visible !important;
-                background: white !important;
-            }
-        
-            /* ซ่อนเฉพาะส่วน UI */
-            .no-print {
-                display: none !important;
-            }
-        
-            /* แสดงพื้นที่พิมพ์ */
-            #a4-print-area {
-                display: block !important;
-                width: 210mm !important;
-                margin: 0 auto !important;
-            }
-        
-            .a4-page {
-                width: 210mm !important;
-                min-height: 296mm !important;
-                margin: 0 !important;
-                box-shadow: none !important;
-            }
-            .no-print {
-                display: none !important;
-            }
+
+        /* Footer ทุกหน้า */
+        .print-footer {
+            position: fixed;
+            bottom: 5mm;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 11px;
+            color: #444;
         }
-    </style>
+    }
+</style>
 </head>
 <body x-data="nurseApp()" x-init="init()" class="antialiased">
 
@@ -1971,6 +1989,7 @@
             </div>
         </div>
     </div>
+    <div class="print-footer">เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | ระบบบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน</div>
 
 </body>
 </html>
