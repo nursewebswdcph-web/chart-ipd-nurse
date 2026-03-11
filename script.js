@@ -555,10 +555,11 @@ function nurseApp() {
         },
         printAssessment() {
             this.showAssessmentPreview = true;
+            // รอให้ DOM อัปเดต และหน่วงเวลาเล็กน้อยให้การ Render เสร็จสมบูรณ์
             this.$nextTick(() => {
                 setTimeout(() => {
                     window.print();
-                }, 500); // เพิ่มเวลาเป็น 500ms เพื่อให้แน่ใจว่าค่าในตารางถูกเติมเต็ม
+                }, 800); 
             });
         }
     };
