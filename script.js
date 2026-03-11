@@ -554,11 +554,12 @@ function nurseApp() {
             return valuesArray.includes(value.toString().trim());
         },
         printAssessment() {
+            window.scrollTo(0, 0); // เลื่อนไปบนสุดก่อน
             this.showAssessmentPreview = true;
             this.$nextTick(() => {
                 setTimeout(() => {
                     window.print();
-                }, 500); // เพิ่มเวลาเป็น 500ms เพื่อให้แน่ใจว่าค่าในตารางถูกเติมเต็ม
+                }, 600); // เพิ่มเวลาเป็น 600ms เพื่อให้ข้อมูลในหน้า 2 เรนเดอร์จนครบ
             });
         }
     };
