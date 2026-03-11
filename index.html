@@ -48,41 +48,40 @@
     
         /* 🔴 ส่วนแก้ไขสำคัญสำหรับการพิมพ์ (PRINT) */
         @media print {
-            /* 1. ซ่อนทุกอย่างในหน้าเว็บ ยกเว้นพื้นที่เอกสารที่จะพิมพ์ */
-            body > *:not(#a4-print-area) {
-                display: none !important;
+            /* 1. ซ่อนทุกอย่างในหน้าจอ */
+            body * {
+                visibility: hidden !important;
             }
         
-            /* 2. ตั้งค่าพื้นที่พิมพ์ให้เต็มหน้ากระดาษพอดี */
+            /* 2. บังคับให้เฉพาะพื้นที่พิมพ์ และลูกหลานของมัน แสดงผล */
+            #a4-print-area, #a4-print-area * {
+                visibility: visible !important;
+            }
+        
+            /* 3. จัดตำแหน่งพื้นที่พิมพ์ให้ไปเริ่มที่มุมซ้ายบนของกระดาษ */
             #a4-print-area {
-                display: block !important;
                 position: absolute !important;
                 left: 0 !important;
                 top: 0 !important;
                 width: 100% !important;
-                margin: 0 !important;
-                padding: 0 !important;
+                display: block !important;
                 background: white !important;
             }
         
-            /* 3. ลบคำว่า .fixed ออกจากบรรทัดซ่อน เพื่อไม่ให้หน้าว่าง */
-            nav, aside, button, .no-print, .bg-slate-50 {
+            /* 4. ปิดการทำงานของ Tailwind คลาสที่จะทำให้หน้าว่างตอนพิมพ์ */
+            .fixed, .absolute {
+                position: static !important;
+            }
+        
+            /* 5. ซ่อนปุ่มต่างๆ ไม่ให้ติดไปในกระดาษ */
+            .no-print, button, nav, aside {
                 display: none !important;
             }
         
-            /* 4. ปรับแต่งเนื้อหากระดาษ A4 */
-            .a4-page {
-                margin: 0 !important;
-                border: none !important;
-                box-shadow: none !important;
-                width: 100% !important;
-                padding: 10mm !important; /* เว้นระยะขอบกระดาษ */
-            }
-            
-            /* บังคับให้พิมพ์พื้นหลังและสี (Chrome/Edge) */
-            * {
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
+            /* 6. ตั้งค่าขอบกระดาษ */
+            @page {
+                size: auto;
+                margin: 10mm;
             }
         }
     </style>
@@ -1977,28 +1976,20 @@
     <div 
     x-show="showAssessmentPreview" 
     id="a4-print-area" 
-    class="bg-white min-h-screen overflow-auto"
+    class="fixed inset-0 z-[99999] bg-slate-900/60 backdrop-blur-sm overflow-auto"
     x-cloak
 >
-    <div class="bg-slate-100 p-4 border-b no-print flex justify-between items-center sticky top-0 z-50">
-        <h2 class="font-bold text-slate-700">พรีวิวเอกสารก่อนพิมพ์</h2>
-        <div class="flex gap-2">
-            <button @click="window.print()" class="bg-emerald-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-emerald-700">
-                <i class="fa-solid fa-print mr-2"></i> กดพิมพ์เอกสาร
-            </button>
-            <button @click="showAssessmentPreview = false" class="bg-slate-200 text-slate-600 px-6 py-2 rounded-lg font-bold hover:bg-slate-300">
-                ปิดหน้านี้
-            </button>
-        </div>
+    <div class="max-w-[210mm] mx-auto my-4 no-print flex justify-end gap-2 px-4">
+        <button @click="window.print()" class="bg-emerald-600 text-white px-6 py-2 rounded-xl font-bold shadow-lg hover:bg-emerald-700 transition-all">
+            <i class="fa-solid fa-print mr-2"></i> พิมพ์เอกสาร
+        </button>
+        <button @click="showAssessmentPreview = false" class="bg-white text-slate-600 px-6 py-2 rounded-xl font-bold shadow-lg hover:bg-slate-100 transition-all">
+            ปิดหน้าพรีวิว
+        </button>
     </div>
 
-    <div class="py-8 bg-slate-200 min-h-screen">
-        <div class="a4-page mx-auto bg-white shadow-xl">
-             <div class="p-10">
-                  <h1 class="text-center text-xl font-bold mb-6">แบบประเมินประวัติและสมรรถนะผู้ป่วยแรกรับ</h1>
-                  </div>
+    <div class="a4-page mx-auto bg-white mb-10 shadow-2xl p-[20mm]">
         </div>
-    </div>
 </div>
 
 </body>
