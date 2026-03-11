@@ -1072,28 +1072,33 @@
 
         <section class="pt-10 border-t border-slate-100">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
-                <div x-data="{ searchNurse: '', showList: false }" class="relative">
-                    <label class="block text-xs font-black text-slate-400 uppercase mb-2">พยาบาลผู้ประเมิน (Search Name)</label>
-                    <div class="relative group">
-                        <i class="fa-solid fa-user-nurse absolute left-4 top-1/2 -translate-y-1/2 text-indigo-400 transition-all group-focus-within:text-indigo-600"></i>
-                        <input type="text" 
-                               name="Assessor_Name"
-                               x-model="searchNurse" 
-                               @input="showList = true" 
-                               class="w-full pl-12 pr-4 py-4 bg-white border-2 border-slate-100 rounded-2xl focus:border-indigo-500 outline-none font-bold text-indigo-900 shadow-sm"
-                               placeholder="พิมพ์ชื่อพยาบาล...">
+                <div class="relative">
+                        <label class="block text-xs font-black text-slate-400 uppercase mb-2">พยาบาลผู้ประเมิน (Search Name)</label>
+                        <div class="relative group">
+                            <i class="fa-solid fa-user-nurse absolute left-4 top-1/2 -translate-y-1/2 text-indigo-400 transition-all group-focus-within:text-indigo-600"></i>
+                            <input type="text" 
+                                   name="Assessor_Name"
+                                   x-model="searchNurse" 
+                                   @focus="showNurseList = true"
+                                   @input="showNurseList = true"
+                                   autocomplete="off"
+                                   class="w-full pl-12 pr-4 py-4 bg-white border-2 border-slate-100 rounded-2xl focus:border-indigo-500 outline-none font-bold text-indigo-900 shadow-sm"
+                                   placeholder="พิมพ์ชื่อพยาบาล...">
+                        </div>
+                        
+                        <div x-show="showNurseList && filteredNurses.length > 0" 
+                             @click.away="showNurseList = false"
+                             class="absolute bottom-full mb-2 left-0 w-full bg-white border border-slate-100 rounded-2xl shadow-2xl z-[100] max-h-48 overflow-y-auto p-2" x-cloak>
+                            <template x-for="n in filteredNurses" :key="n.name">
+                                <button type="button" 
+                                        @click="searchNurse = n.name; showNurseList = false; document.getElementsByName('Assessor_Pos')[0].value = n.position" 
+                                        class="w-full text-left p-3 hover:bg-indigo-50 rounded-xl text-slate-600 flex flex-col transition-colors">
+                                    <span class="font-bold" x-text="n.name"></span>
+                                    <span class="text-[10px] text-slate-400" x-text="n.position"></span>
+                                </button>
+                            </template>
+                        </div>
                     </div>
-                    <div x-show="showList && nurses.filter(n => n.name.includes(searchNurse)).length > 0" class="absolute bottom-full mb-2 left-0 w-full bg-white border border-slate-100 rounded-2xl shadow-2xl z-[100] max-h-48 overflow-y-auto p-2" x-cloak @click.away="showList = false">
-                        <template x-for="n in nurses.filter(n => n.name.includes(searchNurse))" :key="n.name">
-                            <button type="button" 
-                                    @click="searchNurse = n.name; showList = false; document.getElementsByName('Assessor_Pos')[0].value = n.position" 
-                                    class="w-full text-left p-3 hover:bg-indigo-50 rounded-xl text-slate-600 flex flex-col">
-                                <span class="font-bold" x-text="n.name"></span>
-                                <span class="text-[10px] text-slate-400" x-text="n.position"></span>
-                            </button>
-                        </template>
-                    </div>
-                </div>
                 <div>
                     <label class="block text-xs font-black text-slate-400 uppercase mb-2">ตำแหน่ง</label>
                     <input type="text" name="Assessor_Pos" class="w-full p-4 bg-slate-50 border-2 border-slate-50 rounded-2xl text-slate-500 font-bold outline-none" placeholder="ตำแหน่ง..." readonly>
