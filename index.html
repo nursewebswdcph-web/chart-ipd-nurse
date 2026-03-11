@@ -1052,42 +1052,128 @@
     </main>
 
     <div x-show="showAdmitModal" class="fixed inset-0 z-[10001] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-md" x-cloak>
-        <div class="bg-white w-full max-w-4xl max-h-[92vh] overflow-hidden rounded-[2.5rem] shadow-2xl relative border border-slate-200 flex flex-col">
-            <div class="bg-slate-50 border-b p-6 flex justify-between items-center shrink-0">
-                <div class="flex items-center gap-3">
-                    <div class="bg-emerald-600 text-white w-10 h-10 rounded-xl flex items-center justify-center shadow-lg"><i class="fa-solid fa-file-medical"></i></div>
-                    <h3 class="text-xl font-black text-slate-800" x-text="isEditing ? 'แก้ไขเวชระเบียนผู้ป่วย' : 'แบบฟอร์มรับใหม่ (New Admission)'"></h3>
+    <div class="bg-white w-full max-w-5xl max-h-[92vh] overflow-hidden rounded-[2.5rem] shadow-2xl relative border border-slate-200 flex flex-col">
+        <div class="bg-slate-50 border-b p-6 flex justify-between items-center shrink-0">
+            <div class="flex items-center gap-3">
+                <div class="bg-emerald-600 text-white w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg"><i class="fa-solid fa-file-medical text-xl"></i></div>
+                <div>
+                    <h3 class="text-xl font-black text-slate-800" x-text="isEditing ? 'แก้ไขเวชระเบียนผู้ป่วย' : 'แบบฟอร์มรับผู้ป่วยใหม่ (Admission)'"></h3>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5" x-text="'Ward: ' + currentWard"></p>
                 </div>
-                <button @click="showAdmitModal = false" class="text-slate-300 hover:text-red-500 transition-colors"><i class="fa-solid fa-xmark text-2xl"></i></button>
             </div>
-            <form @submit.prevent="submitAdmit" class="p-8 overflow-y-auto space-y-8 flex-1">
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 bg-slate-50/50 p-6 rounded-2xl border border-slate-100">
-                    <div class="md:col-span-4 font-bold text-emerald-700 text-[11px] uppercase tracking-[0.2em] border-b border-emerald-100 pb-2 mb-2">1. Admission Info</div>
-                    <div><label class="block text-[10px] font-bold text-slate-400 mb-1.5 ml-1">วันที่รับ</label><input type="date" x-model="form.date" required class="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"></div>
-                    <div><label class="block text-[10px] font-bold text-slate-400 mb-1.5 ml-1">เวลารับ</label><input type="time" x-model="form.time" required class="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"></div>
-                    <div><label class="block text-[10px] font-bold text-slate-400 mb-1.5 ml-1">รับจาก</label><select x-model="form.receivedFrom" class="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"><option value="ER">ER</option><option value="OPD">OPD</option><option value="Transfer">Transfer</option></select></div>
-                    <div><label class="block text-[10px] font-bold text-slate-400 mb-1.5 ml-1">เตียงว่าง (ตึก <span x-text="currentWard"></span>)</label>
-                        <select x-model="form.bed" required class="w-full bg-emerald-50 border border-emerald-100 rounded-lg p-2.5 text-sm font-black text-emerald-800 focus:ring-2 focus:ring-emerald-500 outline-none">
-                            <option value="">-- เลือกเตียง --</option>
-                            <template x-for="bed in availableBeds" :key="bed"><option :value="bed" x-text="bed"></option></template>
+            <button @click="showAdmitModal = false" class="text-slate-300 hover:text-red-500 transition-colors"><i class="fa-solid fa-xmark text-2xl"></i></button>
+        </div>
+
+        <form @submit.prevent="submitAdmit" class="p-8 overflow-y-auto space-y-8 flex-1 bg-white">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-50/50 p-6 rounded-3xl border border-slate-100">
+                <div class="md:col-span-4 font-black text-emerald-700 text-[11px] uppercase tracking-[0.2em] border-b border-emerald-100 pb-2 mb-2">1. ข้อมูลการรับรักษา (Admission Info)</div>
+                <div>
+                    <label class="block text-[10px] font-black text-slate-400 mb-1.5 ml-1">วันที่รับ (Date)</label>
+                    <input type="date" x-model="form.date" required class="w-full bg-white border-2 border-slate-100 rounded-xl p-3 text-sm focus:border-emerald-500 outline-none font-bold">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-black text-slate-400 mb-1.5 ml-1">เวลารับ (Time)</label>
+                    <input type="time" x-model="form.time" required class="w-full bg-white border-2 border-slate-100 rounded-xl p-3 text-sm focus:border-emerald-500 outline-none font-bold">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-black text-slate-400 mb-1.5 ml-1">รับจาก (Received From)</label>
+                    <select x-model="form.receivedFrom" class="w-full bg-white border-2 border-slate-100 rounded-xl p-3 text-sm focus:border-emerald-500 outline-none font-bold">
+                        <option value="ER">ER</option>
+                        <option value="OPD">OPD</option>
+                        <option value="LR">ห้องคลอด (LR)</option>
+                        <option value="REFER">รับย้าย (REFER)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-black text-slate-400 mb-1.5 ml-1">รับ REFER จาก (ถ้ามี)</label>
+                    <input type="text" x-model="form.referFrom" placeholder="ชื่อโรงพยาบาล..." class="w-full bg-white border-2 border-slate-100 rounded-xl p-3 text-sm focus:border-emerald-500 outline-none font-bold">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-[10px] font-black text-emerald-500 mb-1.5 ml-1 uppercase">เตียงว่าง (Bed Selection)</label>
+                    <select x-model="form.bed" required class="w-full bg-emerald-50 border-2 border-emerald-200 rounded-xl p-3 text-lg font-black text-emerald-800 focus:border-emerald-500 outline-none">
+                        <option value="">-- เลือกเตียง --</option>
+                        <template x-for="bed in availableBeds" :key="bed">
+                            <option :value="bed" x-text="bed"></option>
+                        </template>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
+                <div class="md:col-span-6 font-black text-blue-700 text-[11px] uppercase tracking-[0.2em] border-b border-blue-100 pb-2 mb-2">2. ข้อมูลทั่วไปและประวัติผู้ป่วย (Identity & History)</div>
+                <div class="md:col-span-2">
+                    <label class="block text-[10px] font-black text-slate-400 mb-1.5 ml-1">HN</label>
+                    <input type="text" x-model="form.hn" required class="w-full bg-slate-50 border-none rounded-xl p-3.5 text-base font-black text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-[10px] font-black text-slate-400 mb-1.5 ml-1">AN</label>
+                    <input type="text" x-model="form.an" required class="w-full bg-slate-50 border-none rounded-xl p-3.5 text-base font-black text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-[10px] font-black text-red-500 mb-1.5 ml-1">วันเกิด (วว/ดด/พศ)</label>
+                    <input type="text" x-model="form.dobInput" @input="autoFormatDate" @blur="updateAgeFromText" placeholder="10/05/2520" class="w-full bg-rose-50 border-2 border-rose-100 rounded-xl p-3.5 text-base font-mono font-black text-rose-700 focus:border-rose-500 outline-none">
+                </div>
+                <div class="md:col-span-4">
+                    <label class="block text-[10px] font-black text-slate-400 mb-1.5 ml-1">ชื่อ-นามสกุล</label>
+                    <input type="text" x-model="form.name" required class="w-full bg-slate-50 border-none rounded-xl p-3.5 text-lg font-black text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-[10px] font-black text-slate-400 mb-1.5 ml-1">อายุ (คำนวณอัตโนมัติ)</label>
+                    <input type="text" x-model="form.ageDisplay" readonly class="w-full bg-slate-100 border-none rounded-xl p-3.5 text-sm text-slate-500 font-bold italic">
+                </div>
+                <div class="md:col-span-6">
+                    <label class="block text-[10px] font-black text-slate-400 mb-1.5 ml-1">ที่อยู่ตามบัตรประชาชน/ปัจจุบัน (Address)</label>
+                    <textarea x-model="form.address" rows="2" class="w-full bg-slate-50 border-none rounded-xl p-3.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-indigo-50/30 p-6 rounded-3xl border border-indigo-50">
+                <div class="md:col-span-2 font-black text-indigo-700 text-[11px] uppercase tracking-[0.2em] border-b border-indigo-100 pb-2 mb-2">3. ข้อมูลทางการแพทย์ (Clinical Data)</div>
+                <div>
+                    <label class="block text-[10px] font-black text-slate-400 mb-1.5 ml-1 uppercase">Department (แผนกที่รับรักษา)</label>
+                    <select x-model="form.dept" required class="w-full bg-white border-2 border-slate-100 rounded-xl p-3 text-sm font-bold focus:border-indigo-500 outline-none">
+                        <option value="">-- เลือกแผนก --</option>
+                        <template x-for="d in configs.depts" :key="d">
+                            <option :value="d" x-text="d"></option>
+                        </template>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-black text-slate-400 mb-1.5 ml-1 uppercase">แพทย์เจ้าของไข้ (Physician)</label>
+                    <div class="flex gap-2">
+                        <select x-model="form.doctor" required class="flex-1 bg-white border-2 border-slate-100 rounded-xl p-3 text-sm font-bold focus:border-indigo-500 outline-none">
+                            <option value="">-- เลือกแพทย์ --</option>
+                            <template x-for="doc in doctors" :key="doc">
+                                <option :value="doc" x-text="doc"></option>
+                            </template>
                         </select>
+                        <button type="button" @click="addNewDoctor()" class="bg-indigo-100 text-indigo-600 w-12 h-12 rounded-xl hover:bg-indigo-200 transition-all"><i class="fa-solid fa-plus"></i></button>
                     </div>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-6 gap-6">
-                    <div class="md:col-span-6 font-bold text-blue-700 text-[11px] uppercase tracking-[0.2em] border-b border-blue-100 pb-2 mb-2">2. Patient Identity & History</div>
-                    <div class="md:col-span-2"><label class="block text-[10px] font-bold text-slate-400 mb-1.5 ml-1">HN</label><input type="text" x-model="form.hn" required class="w-full bg-slate-50 border-none rounded-lg p-3 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none"></div>
-                    <div class="md:col-span-2"><label class="block text-[10px] font-bold text-slate-400 mb-1.5 ml-1">AN</label><input type="text" x-model="form.an" required class="w-full bg-slate-50 border-none rounded-lg p-3 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none"></div>
-                    <div class="md:col-span-2"><label class="block text-[10px] font-bold text-slate-400 mb-1.5 ml-1 text-red-500 font-black">วันเกิด (วว/ดด/พศ)</label><input type="text" x-model="form.dobInput" @input="autoFormatDate" @blur="updateAgeFromText" placeholder="10/03/2510" class="w-full bg-blue-50 border-2 border-blue-100 rounded-lg p-3 text-sm font-mono font-bold text-blue-800 focus:border-blue-500 outline-none"></div>
-                    <div class="md:col-span-4"><label class="block text-[10px] font-bold text-slate-400 mb-1.5 ml-1">ชื่อ-นามสกุล</label><input type="text" x-model="form.name" required class="w-full bg-slate-50 border-none rounded-lg p-3 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none"></div>
-                    <div class="md:col-span-2"><label class="block text-[10px] font-bold text-slate-400 mb-1.5 ml-1">อายุ (คำนวณอัตโนมัติ)</label><input type="text" x-model="form.ageDisplay" readonly class="w-full bg-slate-100 border-none rounded-lg p-3 text-xs text-slate-500 font-bold italic"></div>
+                <div class="md:col-span-2">
+                    <label class="block text-[10px] font-black text-slate-400 mb-1.5 ml-1 uppercase">อาการสำคัญ (Chief Complaint)</label>
+                    <textarea x-model="form.cc" rows="2" class="w-full bg-white border-2 border-slate-100 rounded-xl p-3 text-sm focus:border-indigo-500 outline-none"></textarea>
                 </div>
-                <div class="flex justify-end gap-3 pt-4 shrink-0">
-                    <button type="button" @click="showAdmitModal = false" class="px-8 py-3 rounded-xl border border-slate-300 text-slate-400 font-bold hover:bg-slate-50 transition-all text-sm">ยกเลิก</button>
-                    <button type="submit" class="px-12 py-3 rounded-xl bg-emerald-600 text-white font-black text-sm shadow-xl shadow-emerald-100 hover:bg-emerald-700 transition-all active:scale-95" x-text="isEditing ? 'ยืนยันการแก้ไขข้อมูล' : 'บันทึกAdmission'"></button>
+                <div class="md:col-span-2">
+                    <label class="block text-[10px] font-black text-slate-400 mb-1.5 ml-1 uppercase">ประวัติการเจ็บป่วย (Present Illness)</label>
+                    <textarea x-model="form.pi" rows="2" class="w-full bg-white border-2 border-slate-100 rounded-xl p-3 text-sm focus:border-indigo-500 outline-none"></textarea>
                 </div>
-            </form>
-        </div>
+                <div class="md:col-span-2">
+                    <label class="block text-[10px] font-black text-slate-400 mb-1.5 ml-1 uppercase">การวินิจฉัยโรคเบื้องต้น (Initial Diagnosis)</label>
+                    <input type="text" x-model="form.dx" class="w-full bg-white border-2 border-slate-100 rounded-xl p-3 text-sm font-black text-indigo-800 focus:border-indigo-500 outline-none uppercase">
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-6 shrink-0 border-t border-slate-100">
+                <button type="button" @click="showAdmitModal = false" class="px-8 py-4 rounded-2xl border-2 border-slate-100 text-slate-400 font-bold hover:bg-slate-50 transition-all text-sm">ยกเลิก</button>
+                <button type="submit" class="px-16 py-4 rounded-2xl bg-emerald-600 text-white font-black text-sm shadow-xl shadow-emerald-100 hover:bg-emerald-700 transition-all active:scale-95">
+                    <i class="fa-solid fa-cloud-arrow-up mr-2"></i>
+                    <span x-text="isEditing ? 'บันทึกการแก้ไขข้อมูล' : 'ยืนยันการรับ Admission'"></span>
+                </button>
+            </div>
+        </form>
     </div>
+</div>
 
     <div x-show="showMoveModal" class="fixed inset-0 z-[15000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md" x-cloak>
         <div class="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl overflow-hidden border border-amber-100">
