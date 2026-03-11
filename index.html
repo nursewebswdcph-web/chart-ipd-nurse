@@ -1072,7 +1072,7 @@
 
         <section class="pt-10 border-t border-slate-100">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
-                <div class="relative">
+                <div class="relative w-full" @click.away="showNurseList = false">
                         <label class="block text-xs font-black text-slate-400 uppercase mb-2">พยาบาลผู้ประเมิน (Search Name)</label>
                         <div class="relative group">
                             <i class="fa-solid fa-user-nurse absolute left-4 top-1/2 -translate-y-1/2 text-indigo-400 transition-all group-focus-within:text-indigo-600"></i>
@@ -1080,23 +1080,30 @@
                                    name="Assessor_Name"
                                    x-model="searchNurse" 
                                    @focus="showNurseList = true"
+                                   @click="showNurseList = true"
                                    @input="showNurseList = true"
                                    autocomplete="off"
                                    class="w-full pl-12 pr-4 py-4 bg-white border-2 border-slate-100 rounded-2xl focus:border-indigo-500 outline-none font-bold text-indigo-900 shadow-sm"
-                                   placeholder="พิมพ์ชื่อพยาบาล...">
+                                   placeholder="พิมพ์ค้นหา หรือ พิมพ์ชื่อใหม่ได้เลย...">
                         </div>
                         
-                        <div x-show="showNurseList && filteredNurses.length > 0" 
-                             @click.away="showNurseList = false"
-                             class="absolute bottom-full mb-2 left-0 w-full bg-white border border-slate-100 rounded-2xl shadow-2xl z-[100] max-h-48 overflow-y-auto p-2" x-cloak>
+                        <div x-show="showNurseList" 
+                             x-transition
+                             class="absolute bottom-full mb-2 left-0 w-full bg-white border border-slate-200 rounded-2xl shadow-2xl z-[9999] max-h-60 overflow-y-auto p-2" x-cloak>
+                            
                             <template x-for="n in filteredNurses" :key="n.name">
                                 <button type="button" 
-                                        @click="searchNurse = n.name; showNurseList = false; document.getElementsByName('Assessor_Pos')[0].value = n.position" 
-                                        class="w-full text-left p-3 hover:bg-indigo-50 rounded-xl text-slate-600 flex flex-col transition-colors">
-                                    <span class="font-bold" x-text="n.name"></span>
-                                    <span class="text-[10px] text-slate-400" x-text="n.position"></span>
+                                        @click="searchNurse = n.name; showNurseList = false; document.getElementsByName('Assessor_Pos')[0].value = n.position || 'พยาบาลวิชาชีพ'" 
+                                        class="w-full text-left p-3 hover:bg-indigo-50 rounded-xl text-slate-700 flex flex-col transition-colors border-b border-slate-50 last:border-0">
+                                    <span class="font-bold text-sm" x-text="n.name"></span>
+                                    <span class="text-[10px] text-slate-400" x-text="n.position || 'พยาบาลวิชาชีพ'"></span>
                                 </button>
                             </template>
+                    
+                            <div x-show="filteredNurses.length === 0" class="p-4 text-center text-slate-400 text-xs">
+                                ไม่พบรายชื่อในระบบ<br>
+                                <span class="font-bold text-indigo-500">แต่ระบบจะบันทึกชื่อที่คุณพิมพ์ให้ครับ</span>
+                            </div>
                         </div>
                     </div>
                 <div>
