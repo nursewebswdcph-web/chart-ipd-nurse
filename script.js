@@ -296,7 +296,19 @@ function nurseApp() {
         showAlert(title, msg) { this.dialog = { show: true, type: 'alert', title, msg, confirmBtnText: 'ตกลง' }; },
         showConfirm(title, msg, onConfirm) { this.dialog = { show: true, type: 'confirm', title, msg, confirmBtnText: 'ยืนยัน', onConfirm }; },
         handleDialogConfirm() { if (this.dialog.onConfirm) this.dialog.onConfirm(); this.dialog.show = false; },
-        openPatientDetail(p) { this.selectedPatient = p; this.viewMode = 'detail'; },
+        openPatientDetail(p) {
+            // 1. ตรวจสอบว่าข้อมูลผู้ป่วยถูกส่งมาหรือไม่
+            if (!p) return;
+            
+            // 2. ตั้งค่าผู้ป่วยที่ถูกเลือก
+            this.selectedPatient = p;
+            
+            // 3. เปลี่ยนหน้าจอเป็นหน้า Detail
+            this.viewMode = 'detail';
+            
+            // 4. เลื่อนหน้าจอขึ้นไปบนสุด
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        },
         
         resetForm() {
             this.form = { dobInput: '', dob: '', ageDisplay: '', date: '', time: '', receivedFrom: 'ER', referFrom: '', bed: '', hn: '', an: '', name: '', address: '', dept: '', cc: '', pi: '', dx: '', doctor: '', ward: this.currentWard };
