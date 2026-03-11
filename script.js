@@ -126,23 +126,33 @@ function nurseApp() {
             this.isLoading = false;
         },
 
-        openNursingChart(patient) {
+        async openNursingChart(patient) {
             this.selectedPatient = patient;
             this.currentForm = this.activeForms.find(f => f.id === 'assess_initial');
             this.viewMode = 'chart';
             window.scrollTo(0, 0);
+        
+            // 1. ตรวจสอบว่าเคยมีข้อมูลประเมินของ AN นี้บันทึกไว้หรือไม่
+            await this.loadAssessmentData(patient.an);
+        
+            // 2. จัดการหน้าฟอร์ม
             this.$nextTick(() => {
                 const formElement = document.getElementById('assessment-form-v2');
                 if (formElement) {
-                    formElement.reset(); // ล้างฟอร์มก่อน
                     
-                    // นำข้อมูลลงทะเบียนแรกรับ มาใส่ในฟอร์ม เพื่อให้สามารถแก้ไขได้
-                    if (formElement.elements['AdmitDate']) formElement.elements['AdmitDate'].value = patient.date || '';
-                    if (formElement.elements['AdmitTime']) formElement.elements['AdmitTime'].value = patient.time || '';
-                    if (formElement.elements['AdmittedFrom']) formElement.elements['AdmittedFrom'].value = patient.receivedFrom || '';
-                    if (formElement.elements['Refer']) formElement.elements['Refer'].value = patient.referFrom || '';
-                    if (formElement.elements['ChiefComplaint']) formElement.elements['ChiefComplaint'].value = patient.cc || '';
-                    if (formElement.elements['PresentIllness']) formElement.elements['PresentIllness'].value = patient.pi || '';
+                    // หากยังไม่มีข้อมูลถูกบันทึกไว้ (เป็นการประเมินใหม่) ให้ทำตามลอจิกเดิมของคุณ
+                    if (!this.savedAssessment) {
+                        formElement.reset(); // ล้างฟอร์มก่อน
+                        
+                        // นำข้อมูลลงทะเบียนแรกรับ มาใส่ในฟอร์ม เพื่อให้สามารถแก้ไขได้
+                        if (formElement.elements['AdmitDate']) formElement.elements['AdmitDate'].value = patient.date || '';
+                        if (formElement.elements['AdmitTime']) formElement.elements['AdmitTime'].value = patient.time || '';
+                        if (formElement.elements['AdmittedFrom']) formElement.elements['AdmittedFrom'].value = patient.receivedFrom || '';
+                        if (formElement.elements['Refer']) formElement.elements['Refer'].value = patient.referFrom || '';
+                        if (formElement.elements['ChiefComplaint']) formElement.elements['ChiefComplaint'].value = patient.cc || '';
+                        if (formElement.elements['PresentIllness']) formElement.elements['PresentIllness'].value = patient.pi || '';
+                    }
+                    // *หมายเหตุ: หาก this.savedAssessment มีข้อมูล ฟังก์ชัน loadAssessmentData จะเป็นตัวจัดการยัดข้อมูลเก่าใส่ฟอร์มให้เอง
                 }
             });
         },
@@ -206,6 +216,51 @@ function nurseApp() {
             } catch (error) {
                 this.showAlert('Error', 'เกิดข้อผิดพลาดในการบันทึก: ' + error.message);
             }
+        },
+        loadAssessmentData(an) {
+            return new Promise((resolve) => {
+                google.script.run
+                    .withSuccessHandler((data) => {
+                        if (data && Object.keys(data).length > 0) {
+                            // 🟢 มีข้อมูลแล้ว -> เก็บใส่ตัวแปรและเปิดโหมด A4 Preview ทันที
+                            this.savedAssessment = data;
+                            this.showAssessmentPreview = true;
+                            
+                            // (Optional) ยัดค่าเดิมกลับเข้าฟอร์มด้วย เผื่อกรณีที่ผู้ใช้กดปุ่ม "แก้ไขข้อมูล"
+                            setTimeout(() => {
+                                const form = document.getElementById('assessment-form-v2');
+                                if (form) {
+                                    Object.keys(data).forEach(key => {
+                                        const el = form.elements[key];
+                                        if (!el) return;
+                                        
+                                        if (el.length && el[0].type === 'radio') {
+                                            Array.from(el).forEach(r => r.checked = (r.value === data[key]));
+                                        } else if (el.type === 'checkbox') {
+                                            el.checked = (data[key] === 'on' || data[key] === true || data[key] === el.value);
+                                        } else {
+                                            el.value = data[key];
+                                            // กระตุ้น event input เพื่อให้ Alpine อัปเดตตัวแปรที่ผูกไว้ (x-model)
+                                            el.dispatchEvent(new Event('input')); 
+                                        }
+                                    });
+                                }
+                            }, 100);
+        
+                        } else {
+                            // 🔴 ถ้ายังไม่มีข้อมูล -> เปิดเป็นหน้าฟอร์มกรอกว่างๆ 
+                            this.savedAssessment = null;
+                            this.showAssessmentPreview = false;
+                        }
+                        resolve();
+                    })
+                    .withFailureHandler((err) => {
+                        console.error("Error loading assessment:", err);
+                        this.showAssessmentPreview = false; // ถ้า Error ก็ให้แสดงฟอร์ม
+                        resolve();
+                    })
+                    .getAssessmentInitial(an); // เรียกใช้ฟังก์ชันฝั่ง Code.gs
+            });
         },
         async openAdmitForm() {
             this.isLoading = true;
@@ -390,7 +445,13 @@ function nurseApp() {
             if (name) { this.doctors.push(name); this.form.doctor = name; }
         },
 
-        selectForm(form) { this.currentForm = form; },
+        async selectForm(form) {
+            this.currentForm = form;
+            if (form.id === 'assess_initial') {
+                // โหลดข้อมูลเพื่อเช็คว่าเคยประเมินหรือยัง
+                await this.loadAssessmentData(this.selectedPatient.an);
+            }
+        },
         
         addForm(opt) {
             if (!this.activeForms.find(f => f.id === opt.id)) {
