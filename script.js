@@ -117,15 +117,59 @@ function nurseApp() {
         async saveAssessmentData() {
             const formElement = document.getElementById('assessment-form-v2');
             if (!formElement) return this.showAlert('Error', 'ไม่พบฟอร์มข้อมูล');
-            const formDataObj = new FormData(formElement);
+        
+            const formData = new FormData(formElement);
+            const data = {};
+        
+            // 1. จัดการข้อมูลจาก FormData ให้รองรับ Checkbox ที่มีหลายค่า (Multi-select)
+            formData.forEach((value, key) => {
+                // ถ้ามี key นี้อยู่แล้ว (เช่นติ๊ก Checkbox หลายอัน) ให้รวมเป็น Array
+                if (!data[key]) {
+                    data[key] = value;
+                    return;
+                }
+                if (!Array.isArray(data[key])) {
+                    data[key] = [data[key]];
+                }
+                data[key].push(value);
+            });
+        
+            // 2. แปลง Array เป็น String (คั่นด้วยคอมม่า) เพื่อให้บันทึกลง Spreadsheet ได้สวยงาม
+            for (let key in data) {
+                if (Array.isArray(data[key])) {
+                    data[key] = data[key].join(', ');
+                }
+            }
+        
+            // 3. เตรียม Payload พร้อมข้อมูลเสริม (เช่น คะแนน Braden ที่คำนวณจากหน้าจอ)
             const payload = {
-                an: this.selectedPatient.an,
-                hn: this.selectedPatient.hn,
-                formData: Object.fromEntries(formDataObj.entries())
+                an: this.selectedPatient?.an,
+                hn: this.selectedPatient?.hn,
+                patientName: this.selectedPatient?.name,
+                ward: this.currentWard,
+                formData: data,
+                // ดึงคะแนนรวม Braden และผลการประเมินจาก UI มาเก็บไว้ด้วย
+                bradenScore: document.getElementById('braden-total')?.innerText || "0",
+                bradenInterpretation: document.getElementById('braden-result')?.innerText || "ไม่ได้ประเมิน"
             };
-            await this.postToGAS('saveAssessmentInitial', payload, "บันทึกแบบประเมินแรกรับสำเร็จ");
-            this.viewMode = 'detail';
-        },
+        
+            // 4. ส่งข้อมูลไปยัง Google Apps Script
+            try {
+                await this.postToGAS('saveAssessmentInitial', payload, "บันทึกแบบประเมินแรกรับ (FR-IPD-004) สำเร็จ");
+                
+                // กลับไปยังหน้าหลักหรือหน้ารายละเอียด
+                this.viewMode = 'detail';
+                
+                // ล้างฟอร์มหลังจากบันทึกเสร็จ
+                formElement.reset();
+                if(document.getElementById('braden-total')) {
+                    document.getElementById('braden-total').innerText = '0';
+                    document.getElementById('braden-result').innerText = '';
+                }
+            } catch (error) {
+                this.showAlert('Error', 'เกิดข้อผิดพลาดในการบันทึก: ' + error.message);
+            }
+        }
 
         async openAdmitForm() {
             this.isLoading = true;
