@@ -48,33 +48,33 @@
     
         /* 🔴 ส่วนแก้ไขสำคัญสำหรับการพิมพ์ (PRINT) */
         @media print {
-        /* ซ่อนองค์ประกอบอื่นๆ ทั้งหมด */
-        body > *:not(#printSection) {
-            display: none !important;
+            /* ซ่อนทุกอย่างยกเว้นพื้นที่พิมพ์ */
+            body > *:not(#a4-print-area) {
+                display: none !important;
+            }
+        
+            /* บังคับให้พื้นที่พิมพ์แสดงผล แม้จะมีคลาส fixed */
+            #a4-print-area {
+                display: block !important;
+                position: static !important; /* เปลี่ยนจาก fixed เป็น static เพื่อให้จัดหน้ากระดาษง่ายขึ้น */
+                width: 100% !important;
+                height: auto !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: visible !important;
+            }
+        
+            /* ซ่อนปุ่มหรือส่วนที่ไม่ต้องการตอนพิมพ์ (ลบ .fixed ออกจากบรรทัดนี้) */
+            nav, aside, button, .no-print, .bg-slate-50 {
+                display: none !important;
+            }
+            
+            .a4-page {
+                margin: 0 auto !important;
+                box-shadow: none !important;
+                border: none !important;
+            }
         }
-
-        /* ตั้งค่าหน้ากระดาษและแสดงส่วนที่จะพิมพ์ */
-        #printSection {
-            display: block !important;
-            position: relative !important; /* เปลี่ยนจาก fixed เป็น relative เพื่อให้เลื่อนตามหน้ากระดาษได้ */
-            visibility: visible !important;
-            width: 100% !important;
-            height: auto !important;
-            overflow: visible !important;
-            padding: 0 !important;
-            margin: 0 !important;
-        }
-
-        #printSection * {
-            visibility: visible !important;
-        }
-
-        /* ลบเงาและขอบส่วนเกินตอนพิมพ์ */
-        .shadow-2xl, .rounded-3xl {
-            box-shadow: none !important;
-            border: 1px solid #eee !important;
-        }
-    }
     </style>
 </head>
 <body x-data="nurseApp()" x-init="init()" class="antialiased">
