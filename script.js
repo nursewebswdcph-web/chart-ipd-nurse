@@ -7,6 +7,7 @@ function nurseApp() {
         currentWard: null,
         viewMode: 'list', 
         isEditing: false,
+        nurses: [],
 
         selectedPatient: null,
         currentForm: null, 
@@ -90,6 +91,7 @@ function nurseApp() {
                 this.wards = data.wards || [];
                 this.configs.depts = data.depts || [];
                 this.doctors = data.doctors || [];
+                this.nurses = data.nurses || [];
             } catch (e) { console.error("Initialization error", e); }
             this.isLoading = false;
         },
