@@ -169,7 +169,7 @@ function nurseApp() {
             } catch (error) {
                 this.showAlert('Error', 'เกิดข้อผิดพลาดในการบันทึก: ' + error.message);
             }
-        }
+        },
 
         async openAdmitForm() {
             this.isLoading = true;
@@ -339,6 +339,46 @@ function nurseApp() {
                 else display.className = 'text-2xl font-black text-emerald-600 ml-2';
             }
         },
+         // ฟังก์ชันสำหรับคำนวณคะแนน Braden Scale และแปลผลอัตโนมัติ
+        calculateBradenScore() {
+            const params = ['Sensory', 'Moisture', 'Activity', 'Mobility', 'Nutrition', 'Friction'];
+            let total = 0;
+            
+            params.forEach(p => {
+                const selected = document.querySelector(`input[name="Braden_${p}"]:checked`);
+                if (selected) total += parseInt(selected.value);
+            });
+        
+            const display = document.getElementById('braden-total');
+            const result = document.getElementById('braden-result');
+            
+            if (display) {
+                display.innerText = total;
+                // แปลผลตามเกณฑ์
+                let interpretation = "";
+                let colorClass = "";
+                
+                if (total === 0) {
+                    interpretation = "";
+                } else if (total <= 9) {
+                    interpretation = "Very high risk";
+                    colorClass = "text-red-600";
+                } else if (total <= 12) {
+                    interpretation = "High risk";
+                    colorClass = "text-orange-600";
+                } else if (total <= 14) {
+                    interpretation = "Moderate risk";
+                    colorClass = "text-amber-600";
+                } else {
+                    interpretation = "Low risk";
+                    colorClass = "text-emerald-600";
+                }
+                
+                result.innerText = interpretation;
+                display.className = `text-3xl font-black ${colorClass}`;
+            }
+        }
+        
     
     };
 }
