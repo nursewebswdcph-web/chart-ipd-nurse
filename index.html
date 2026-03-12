@@ -1440,20 +1440,6 @@
                                                     <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Elim_Stoma', 'มี') ? '✓' : ''"></span>มี</label>
                                                 </div>
                                             </div>
-                        
-                                            <div class="mt-2">
-                                                <div class="font-bold mb-1">5) การพักผ่อนนอนหลับ</div>
-                                                <div class="flex items-center">
-                                                    <span class="mr-2">นอน:</span> <span class="border-b border-dotted border-black inline-block w-10 text-center mr-2" x-text="savedAssessment?.Sleep_Hours"></span> ชั่วโมงต่อวัน
-                                                    <label class="inline-flex items-center ml-2 mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sleep_Adequacy', 'เพียงพอ') ? '✓' : ''"></span>เพียงพอ</label>
-                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sleep_Adequacy', 'ไม่เพียงพอ') ? '✓' : ''"></span>ไม่เพียงพอ</label>
-                                                </div>
-                                                <div class="flex items-center mt-1">
-                                                    <span class="mr-2">ปัญหาการนอน:</span>
-                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sleep_Problem', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
-                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sleep_Problem', 'มี') ? '✓' : ''"></span>มีระบุ... <span class="border-b border-dotted border-black inline-block min-w-[80px]" x-text="savedAssessment?.Sleep_Problem_Detail"></span></label>
-                                                </div>
-                                            </div>
                                         </div>
                         
                                         <div class="mt-3 text-[11px] leading-tight">
@@ -1496,6 +1482,20 @@
                                                 </template>
                                             </table>
                                         </div>
+                                        
+                                        <div class="mt-3 text-[11px] leading-tight">
+                                                <div class="font-bold mb-1">5) การพักผ่อนนอนหลับ</div>
+                                                <div class="flex items-center">
+                                                    <span class="mr-2">นอน:</span> <span class="border-b border-dotted border-black inline-block w-10 text-center mr-2" x-text="savedAssessment?.Sleep_Hours"></span> ชั่วโมงต่อวัน
+                                                    <label class="inline-flex items-center ml-2 mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sleep_Adequacy', 'เพียงพอ') ? '✓' : ''"></span>เพียงพอ</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sleep_Adequacy', 'ไม่เพียงพอ') ? '✓' : ''"></span>ไม่เพียงพอ</label>
+                                                </div>
+                                                <div class="flex items-center mt-1">
+                                                    <span class="mr-2">ปัญหาการนอน:</span>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sleep_Problem', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sleep_Problem', 'มี') ? '✓' : ''"></span>มีระบุ... <span class="border-b border-dotted border-black inline-block min-w-[80px]" x-text="savedAssessment?.Sleep_Problem_Detail"></span></label>
+                                                </div>
+                                            </div>
                         
                                         <div class="mt-3 text-[11px] leading-tight">
                                             <div class="font-bold mb-1">6) การรับรู้และประสาทสัมผัส</div>
