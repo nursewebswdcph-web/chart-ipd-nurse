@@ -790,18 +790,21 @@ function nurseApp() {
         get classTimeline() {
             if (!this.selectedPatient || !this.selectedPatient.date) return [];
 
-            const admitDate = new Date(this.selectedPatient.date);
+            // แก้ปัญหา Date Offset โดยการแยกตัวเลข ปี-เดือน-วัน ออกมาสร้าง Date เอง
+            const dateParts = this.selectedPatient.date.split('-');
+            const admitDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
             admitDate.setHours(0, 0, 0, 0);
 
-            // คำนวณว่าตั้งแต่วันแรกรับจนถึงวันนี้ (หรือวันล่าสุดที่มีการประเมิน) มีกี่วัน
+            // คำนวณจำนวนวันทั้งหมด (นับจากวันแรกรับถึงปัจจุบัน)
             const today = new Date();
-            const lastEval = this.classHistory.length > 0 
-                ? new Date(Math.max(...this.classHistory.map(h => new Date(h.evalDate))))
-                : today;
+            today.setHours(0, 0, 0, 0);
             
-            const diffTime = Math.abs(lastEval - admitDate);
-            const totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-            const totalPages = Math.ceil(totalDays / 5); // หน้าละ 5 วัน
+            const diffTime = Math.abs(today - admitDate);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            
+            // กำหนดว่าอย่างน้อยต้องแสดง 5 วัน (1 หน้า)
+            const totalDaysToShow = Math.max(diffDays, 5);
+            const totalPages = Math.ceil(totalDaysToShow / 5);
 
             const pages = [];
             const shifts = ['ดึก', 'เช้า', 'บ่าย'];
@@ -814,8 +817,6 @@ function nurseApp() {
                     currentDate.setDate(admitDate.getDate() + currentIdx);
                     
                     const dateKey = currentDate.toISOString().split('T')[0];
-                    
-                    // สร้าง Slot เวร ด-ช-บ สำหรับวันนี้
                     const dayData = {
                         date: dateKey,
                         formattedDate: this.formatThaiDateShort(dateKey),
@@ -823,14 +824,13 @@ function nurseApp() {
                     };
 
                     shifts.forEach(s => {
-                        // ค้นหาว่าใน classHistory มีข้อมูลของ วันนี้+เวรนี้ ไหม
                         const record = this.classHistory.find(h => {
+                            // แปลงวันที่จากฐานข้อมูลให้เป็นรูปแบบ YYYY-MM-DD เพื่อเทียบกัน
                             const hDate = new Date(h.evalDate).toISOString().split('T')[0];
                             return hDate === dateKey && h.shift === s;
                         });
-                        dayData.slots[s] = record || null; // ถ้าไม่มีให้เป็น null (ช่องว่าง)
+                        dayData.slots[s] = record || null;
                     });
-                    
                     dayInPage.push(dayData);
                 }
                 pages.push(dayInPage);
@@ -904,11 +904,8 @@ function nurseApp() {
         // ฟังก์ชันตัดคำนำหน้าและนามสกุล (เอาเฉพาะชื่อจริง)
         formatShortName(fullName) {
             if (!fullName) return '';
-            let name = fullName.trim();
-            // 1. ลบคำนำหน้าชื่อที่พบบ่อย (ใช้ Regex เพื่อความแม่นยำ)
-            name = name.replace(/^(นาย|นางสาว|นาง|น\.ส\.|นพ\.|พญ\.|พว\.|ทพ\.|ทญ\.)/g, '');
-            // 2. แยกด้วยช่องว่างแล้วเอาเฉพาะคำแรก (ชื่อจริง)
-            return name.trim().split(' ')[0];
+            let name = fullName.replace(/^(นาย|นางสาว|นาง|น\.ส\.|นพ\.|พญ\.|พว\.|ทพ\.|ทญ\.)/g, '').trim();
+            return name.split(' ')[0]; // เอาเฉพาะชื่อจริงตัวแรก
         },
 
         // 🟢 ฟังก์ชันสั่งพิมพ์ของฟอร์มจำแนกผู้ป่วย (อัปเดตแก้ปัญหาหน้าว่าง)
