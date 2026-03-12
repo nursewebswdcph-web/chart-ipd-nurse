@@ -560,44 +560,38 @@ function nurseApp() {
                         <title>IPD Nurse Workbench - Printing</title>
                         ${styles}
                               <style>
-                                /* ตั้งค่าหน้ากระดาษ A4 และลดขอบกระดาษลงเหลือ 1cm */
-                                @page { size: A4 portrait; margin: 10mm; } 
-                                body { background: white !important; margin: 0; padding: 0; -webkit-print-color-adjust: exact; }
-                                
-                                /* โครงสร้างหน้า A4 */
-                                .a4-page { 
-                                    width: 100% !important; 
-                                    box-shadow: none !important; 
-                                    margin: 0 !important; 
-                                    position: relative;
-                                    page-break-after: always; 
-                                    overflow: hidden;
-                                    
-                                    /* 🔴 บังคับลดระยะห่างบรรทัดภาพรวมของทั้งหน้า 1 และ 2 */
-                                    line-height: 1.15 !important; 
-                                }
-                                .a4-page:last-child {
-                                    page-break-after: auto; 
-                                }
+                            /* ตั้งค่าหน้ากระดาษ A4 ปรับขอบ บน-ล่าง 5mm, ซ้าย-ขวา 8mm */
+                            @page { size: A4 portrait; margin: 5mm 8mm; } 
+                            body { background: white !important; margin: 0; padding: 0; -webkit-print-color-adjust: exact; }
                             
-                                /* 🔴 บังคับลดช่องว่าง Margin / Padding ต่างๆ ลงครึ่งหนึ่งเฉพาะตอนพิมพ์ */
-                                .a4-page .mt-1 { margin-top: 2px !important; }
-                                .a4-page .mt-2 { margin-top: 4px !important; }
-                                .a4-page .mt-3 { margin-top: 6px !important; }
-                                .a4-page .mt-4 { margin-top: 8px !important; }
-                                
-                                .a4-page .mb-1 { margin-bottom: 2px !important; }
-                                .a4-page .mb-2 { margin-bottom: 4px !important; }
-                                
-                                .a4-page .gap-y-1 { row-gap: 2px !important; }
-                                .a4-page .gap-y-2 { row-gap: 4px !important; }
-                                
-                                /* บีบตารางให้แคบลง */
-                                .a4-page table td { 
-                                    padding-top: 1px !important; 
-                                    padding-bottom: 1px !important; 
-                                }
-                            </style>
+                            .a4-page { 
+                                width: 100% !important; 
+                                box-shadow: none !important; 
+                                margin: 0 !important; 
+                                position: relative;
+                                page-break-after: always; 
+                                overflow: hidden;
+                                line-height: 1 !important; 
+                            }
+                            .a4-page:last-child {
+                                page-break-after: auto; 
+                            }
+                        
+                            /* บังคับลดช่องว่างเฉพาะตอนพิมพ์ */
+                            .a4-page .mt-1 { margin-top: 2px !important; }
+                            .a4-page .mt-2 { margin-top: 4px !important; }
+                            .a4-page .mt-3 { margin-top: 6px !important; }
+                            .a4-page .mt-4 { margin-top: 8px !important; }
+                            .a4-page .mb-1 { margin-bottom: 2px !important; }
+                            .a4-page .mb-2 { margin-bottom: 4px !important; }
+                            .a4-page .gap-y-1 { row-gap: 2px !important; }
+                            
+                            /* บีบตารางให้แคบลง */
+                            .a4-page table td { 
+                                padding-top: 0px !important; 
+                                padding-bottom: 0px !important; 
+                            }
+                        </style>
                     </head>
                     <body>
                         <div class="a4-page">
