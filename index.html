@@ -2092,11 +2092,11 @@
                                         <div class="a4-page relative bg-white shadow-xl mx-auto rounded-lg p-6 max-w-[210mm] text-black">
                                             
                                             <div class="text-center font-bold text-[15px] leading-relaxed mb-4">
-                                                แบบบันทึกการจำแนกผู้ป่วย หอผู้ป่วย<span x-text="currentWard"></span><br>
+                                                แบบบันทึกการจำแนกผู้ป่วย หอผู้ป่วย <span x-text="currentWard"></span><br>
                                                 กลุ่มการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
                                             </div>
                                 
-                                            <div class="flex justify-between text-[12px] font-bold mb-3">
+                                            <div class="text-center text-[12px] font-bold mb-3">
                                                 <div>วันที่รับใหม่ <span class="border-b border-dotted border-black inline-block min-w-[140px] text-center" x-text="formatThaiDate(selectedPatient?.date)"></span></div>
                                                 <div>วันที่จำหน่าย <span class="border-b border-dotted border-black inline-block min-w-[140px] text-center" x-text="classHistory.length > 0 ? formatThaiDate(classHistory[classHistory.length-1].evalDate) : ''"></span></div>
                                             </div>
@@ -2180,11 +2180,12 @@
                                             <div class="mt-4 text-[11px] text-black font-medium leading-relaxed">
                                                 เกณฑ์การจำแนก นับรวมตั้งแต่ข้อ 1 ถึง ข้อ 8<br>
                                                 ประเภทที่ 1  ผู้ป่วยพักฟื้นดูแลตัวเองได้     (8 คะแนน)<br>
-                                                ประเภทที่ 2  ผู้ป่วยเจ็บป่วยเล็กน้อย       (9-14 คะแนน)<br>
+                                                ประเภทที่ 2  ผู้ป่วยเจ็บป่วยเล็กน้อย        (9-14 คะแนน)<br>
                                                 ประเภทที่ 3  ผู้ป่วยเจ็บป่วยปานกลาง      (15-20 คะแนน)<br>
                                                 ประเภทที่ 4  ผู้ป่วยหนัก                (21-26 คะแนน)<br>
-                                                ประเภทที่ 5 ผู้ป่วยหนักมาก/วิกฤติ         (27-32 คะแนน)
+                                                ประเภทที่ 5 ผู้ป่วยหนักมาก/วิกฤติ          (27-32 คะแนน)
                                             </div>
+                                
                                         </div>
                                     </template>
                                 </div>
