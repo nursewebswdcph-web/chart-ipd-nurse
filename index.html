@@ -1248,7 +1248,7 @@
                         
                                         <div class="text-[11px] leading-tight mb-3">
                                             <div class="flex flex-wrap gap-x-4">
-                                                <div>วันที่ <span class="border-b border-dotted border-black inline-block min-w-[80px] text-center" x-text="savedAssessment?.AdmitDate"></span></div>
+                                                <div>วันที่ <span class="border-b border-dotted border-black inline-block min-w-[80px] text-center" x-text="formatThaiDate(savedAssessment?.Date || savedAssessment?.AdmitDate)"></span></div>
                                                 <div>เวลา <span class="border-b border-dotted border-black inline-block min-w-[50px] text-center" x-text="savedAssessment?.AdmitTime"></span> น.</div>
                                                 <div>รับจาก <span class="border-b border-dotted border-black inline-block min-w-[100px] text-center" x-text="savedAssessment?.AdmittedFrom"></span></div>
                                                 <div>รับ REFER จาก <span class="border-b border-dotted border-black inline-block min-w-[100px] text-center" x-text="savedAssessment?.Refer"></span></div>
