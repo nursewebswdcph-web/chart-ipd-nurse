@@ -559,10 +559,9 @@ function nurseApp() {
                     <head>
                         <title>IPD Nurse Workbench - Printing</title>
                         ${styles}
-                        // ในส่วนของ pri.document.write(...)
-                            <style>
-                                /* ตั้งค่าหน้ากระดาษ A4 และลดขอบกระดาษลงเหลือ 8mm */
-                                @page { size: A4 portrait; margin: 8mm; } 
+                              <style>
+                                /* ตั้งค่าหน้ากระดาษ A4 และลดขอบกระดาษลงเหลือ 1cm */
+                                @page { size: A4 portrait; margin: 10mm; } 
                                 body { background: white !important; margin: 0; padding: 0; -webkit-print-color-adjust: exact; }
                                 
                                 /* โครงสร้างหน้า A4 */
