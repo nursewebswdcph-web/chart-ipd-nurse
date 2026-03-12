@@ -750,9 +750,10 @@ function nurseApp() {
             };
             this.showClassModal = true;
         },
-        // 🟢 ฟังก์ชันสำหรับเปลี่ยนหน้าตาราง
+        // 🟢 แก้ไขฟังก์ชันเปลี่ยนหน้าตาราง (อ้างอิง Timeline ใหม่)
         nextPage() {
-            if (this.currentPageIndex < this.chunkedClassHistory.length - 1) {
+            // เปลี่ยนจาก chunkedClassHistory เป็น classTimeline
+            if (this.currentPageIndex < this.classTimeline.length - 1) {
                 this.currentPageIndex++;
             }
         },
@@ -785,23 +786,56 @@ function nurseApp() {
             } catch (e) { console.error("Grouping error:", e); }
             return groups;
         },
-        // 🟢 เพิ่ม Getter นี้เพื่อให้หน้าเว็บและหน้าพิมพ์ทำงานได้
-        get chunkedClassHistory() {
-            // ตรวจสอบว่ามีข้อมูลหรือไม่ ถ้าไม่มีให้คืนค่าอาเรย์ว่างชั้นเดียวไว้ก่อน ป้องกัน UI พัง
-            if (!this.classHistory || this.classHistory.length === 0) return [[]];
+        // 🟢 Getter ใหม่: สร้างตารางแบบ Matrix ล็อกวันและเวร (5 วันต่อหน้า = 15 ช่องเวร)
+        get classTimeline() {
+            if (!this.selectedPatient || !this.selectedPatient.date) return [];
 
-            try {
-                // เรียงจากเก่าไปใหม่สำหรับลงตาราง
-                const sorted = [...this.classHistory].sort((a, b) => new Date(a.evalDate) - new Date(b.evalDate));
-                const chunks = [];
-                for (let i = 0; i < sorted.length; i += 15) {
-                    chunks.push(sorted.slice(i, i + 15));
+            const admitDate = new Date(this.selectedPatient.date);
+            admitDate.setHours(0, 0, 0, 0);
+
+            // คำนวณว่าตั้งแต่วันแรกรับจนถึงวันนี้ (หรือวันล่าสุดที่มีการประเมิน) มีกี่วัน
+            const today = new Date();
+            const lastEval = this.classHistory.length > 0 
+                ? new Date(Math.max(...this.classHistory.map(h => new Date(h.evalDate))))
+                : today;
+            
+            const diffTime = Math.abs(lastEval - admitDate);
+            const totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            const totalPages = Math.ceil(totalDays / 5); // หน้าละ 5 วัน
+
+            const pages = [];
+            const shifts = ['ดึก', 'เช้า', 'บ่าย'];
+
+            for (let p = 0; p < totalPages; p++) {
+                const dayInPage = [];
+                for (let d = 0; d < 5; d++) {
+                    const currentIdx = (p * 5) + d;
+                    const currentDate = new Date(admitDate);
+                    currentDate.setDate(admitDate.getDate() + currentIdx);
+                    
+                    const dateKey = currentDate.toISOString().split('T')[0];
+                    
+                    // สร้าง Slot เวร ด-ช-บ สำหรับวันนี้
+                    const dayData = {
+                        date: dateKey,
+                        formattedDate: this.formatThaiDateShort(dateKey),
+                        slots: {}
+                    };
+
+                    shifts.forEach(s => {
+                        // ค้นหาว่าใน classHistory มีข้อมูลของ วันนี้+เวรนี้ ไหม
+                        const record = this.classHistory.find(h => {
+                            const hDate = new Date(h.evalDate).toISOString().split('T')[0];
+                            return hDate === dateKey && h.shift === s;
+                        });
+                        dayData.slots[s] = record || null; // ถ้าไม่มีให้เป็น null (ช่องว่าง)
+                    });
+                    
+                    dayInPage.push(dayData);
                 }
-                return chunks;
-            } catch (e) {
-                console.error("Chunking error:", e);
-                return [[]];
+                pages.push(dayInPage);
             }
+            return pages;
         },
 
         // เปิด Popup ประเมินรอบใหม่ และเคลียร์ค่า
@@ -866,6 +900,15 @@ function nurseApp() {
             const date = new Date(dateStr);
             if (isNaN(date.getTime())) return dateStr;
             return `${date.getDate()} ${months[date.getMonth()]} ${(date.getFullYear() + 543).toString().slice(-2)}`;
+        },
+        // ฟังก์ชันตัดคำนำหน้าและนามสกุล (เอาเฉพาะชื่อจริง)
+        formatShortName(fullName) {
+            if (!fullName) return '';
+            let name = fullName.trim();
+            // 1. ลบคำนำหน้าชื่อที่พบบ่อย (ใช้ Regex เพื่อความแม่นยำ)
+            name = name.replace(/^(นาย|นางสาว|นาง|น\.ส\.|นพ\.|พญ\.|พว\.|ทพ\.|ทญ\.)/g, '');
+            // 2. แยกด้วยช่องว่างแล้วเอาเฉพาะคำแรก (ชื่อจริง)
+            return name.trim().split(' ')[0];
         },
 
         // 🟢 ฟังก์ชันสั่งพิมพ์ของฟอร์มจำแนกผู้ป่วย (อัปเดตแก้ปัญหาหน้าว่าง)
