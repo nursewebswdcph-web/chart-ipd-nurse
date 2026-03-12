@@ -560,7 +560,7 @@ function nurseApp() {
                         <title>IPD Nurse Workbench - Printing</title>
                         ${styles}
                         <style>
-                            /* ตั้งค่าหน้ากระดาษ A4 ปรับขอบ บน-ล่าง 10mm, ซ้าย-ขวา 10mm */
+                            /* ตั้งค่าหน้ากระดาษ A4 ปรับขอบ บน-ล่าง 5mm, ซ้าย-ขวา 8mm */
                             @page { size: A4 portrait; margin: 15mm 10mm; } 
                             body { background: white !important; margin: 0; padding: 0; -webkit-print-color-adjust: exact; }
                             
@@ -571,15 +571,15 @@ function nurseApp() {
                                 position: relative;
                                 page-break-after: always; 
                                 overflow: hidden;
-                                line-height: 1.5 !important; 
-                                /* 🔴 เพิ่ม padding ด้านล่าง เพื่อไม่ให้เนื้อหาถูก Footer บัง */
-                                padding-bottom: 25px !important; 
+                                line-height: 1.15 !important; 
+                                /* 🔴 ปรับ Padding ด้านล่างให้มากขึ้น (ประมาณ 75px) เพื่อไม่ให้เนื้อหาถูกกรอบผู้ป่วยบัง */
+                                padding-bottom: 75px !important; 
                             }
                             .a4-page:last-child {
                                 page-break-after: auto; 
                             }
 
-                            /* 🔴 CSS สำหรับ Global Footer ให้โผล่ทุกหน้า */
+                            /* CSS สำหรับ Global Footer ให้โผล่ขอบล่างทุกหน้า */
                             .print-global-footer {
                                 position: fixed;
                                 bottom: 0;
@@ -587,12 +587,27 @@ function nurseApp() {
                                 width: 100%;
                                 text-align: center;
                                 font-size: 9px;
-                                color: #6b7280; /* text-gray-500 */
-                                border-top: 1px solid #9ca3af; /* border-gray-400 */
+                                color: #6b7280; 
+                                border-top: 1px solid #9ca3af; 
                                 padding-top: 4px;
                                 padding-bottom: 4px;
                                 background-color: white;
                                 z-index: 1000;
+                            }
+
+                            /* 🔴 CSS สำหรับกรอบข้อมูลผู้ป่วย (Fixed ล่างขวา เหนือ Footer) */
+                            .print-patient-info {
+                                position: fixed;
+                                bottom: 22px; /* ยกขึ้นมาให้อยู่เหนือ Footer */
+                                right: 15px; /* ชิดขวา */
+                                width: 260px; /* ความกว้างของกรอบ */
+                                border: 1px solid #000; /* กรอบสี่เหลี่ยมสีดำ */
+                                border-radius: 4px;
+                                padding: 6px 8px;
+                                font-size: 10px;
+                                background-color: white;
+                                z-index: 1000;
+                                line-height: 1.4;
                             }
 
                             /* บังคับลดช่องว่างเฉพาะตอนพิมพ์ */
@@ -612,6 +627,13 @@ function nurseApp() {
                         </style>
                     </head>
                     <body>
+                        
+                        <div class="print-patient-info">
+                            <div>${this.selectedPatient?.name || '-'} &nbsp;&nbsp;<b>อายุ:</b> ${this.selectedPatient?.ageDisplay || '-'}</div>
+                            <div><b>HN:</b> ${this.selectedPatient?.hn || '-'} &nbsp;&nbsp;<b>AN:</b> ${this.selectedPatient?.an || '-'}</div>
+                            <div><b>แพทย์:</b> ${this.selectedPatient?.doctor || '-'} &nbsp;&nbsp;<b>ตึก:</b> ${this.currentWard || '-'} &nbsp;&nbsp;<b>เตียง:</b> ${this.selectedPatient?.bed || '-'}</div>
+                        </div>
+
                         <div class="print-global-footer">
                             เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | ระบบบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
                         </div>
