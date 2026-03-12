@@ -804,31 +804,41 @@ function nurseApp() {
             return `${date.getDate()} ${months[date.getMonth()]} ${(date.getFullYear() + 543).toString().slice(-2)}`;
         },
 
-        // ฟังก์ชันสั่งพิมพ์ของฟอร์มจำแนกผู้ป่วย
+        // 🟢 ฟังก์ชันสั่งพิมพ์ของฟอร์มจำแนกผู้ป่วย (อัปเดตแก้ปัญหาหน้าว่าง)
         printClassification() {
             window.scrollTo(0, 0);
             
-            // ใช้ $nextTick เพื่อรอให้ Alpine.js วาดตารางและข้อมูลลง DOM ให้เสร็จ 100% ก่อนดึงไปพิมพ์
+            // รอให้ Alpine.js เรนเดอร์ DOM เสร็จสมบูรณ์
             this.$nextTick(() => {
                 const printArea = document.getElementById('patient-class-print-area');
                 if (!printArea) {
                     return this.showAlert('แจ้งเตือน', 'ไม่พบพื้นที่สำหรับพิมพ์เอกสาร');
                 }
                 
-                const printContent = printArea.innerHTML;
+                // 1. โคลน DOM เพื่อนำมาปรับแต่งก่อนพิมพ์ โดยไม่กระทบหน้าเว็บจริง
+                const cloneDOM = printArea.cloneNode(true);
                 
+                // 2. ลบแท็ก <template> ทิ้งทั้งหมด! (หัวใจสำคัญ: ป้องกันตารางพังเวลาลง Iframe)
+                const templates = cloneDOM.querySelectorAll('template');
+                templates.forEach(t => t.remove());
+                
+                // 3. ดึง HTML ที่โครงสร้างสะอาดแล้วมาเก็บไว้
+                const printContent = cloneDOM.innerHTML;
+                
+                // 4. สร้าง Iframe ใหม่ทุกครั้ง ป้องกันอาการค้างหรือหน้าขาว
                 let iframe = document.getElementById('print-frame');
-                if (!iframe) {
-                    iframe = document.createElement('iframe');
-                    iframe.id = 'print-frame';
-                    iframe.style.display = 'none';
-                    document.body.appendChild(iframe);
+                if (iframe) {
+                    iframe.remove(); 
                 }
+                iframe = document.createElement('iframe');
+                iframe.id = 'print-frame';
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
                 
                 const pri = iframe.contentWindow;
                 const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]')).map(s => s.outerHTML).join('');
 
-                // ป้องกันปัญหาตัวแปรว่างแล้วทำให้บราวเซอร์หยุดทำงาน
+                // ดึงข้อมูลคนไข้
                 const pName = this.selectedPatient?.name || '-';
                 const pAge = this.selectedPatient?.ageDisplay || '-';
                 const pHn = this.selectedPatient?.hn || '-';
@@ -851,40 +861,39 @@ function nurseApp() {
                                     background: white !important; 
                                     margin: 0; 
                                     padding: 0; 
-                                    -webkit-print-color-adjust: exact; 
-                                    color: black !important; /* บังคับให้ตัวอักษรเป็นสีดำ */
+                                    color: black !important; 
+                                    -webkit-print-color-adjust: exact !important; 
+                                    print-color-adjust: exact !important;
                                 }
                                 
-                                /* บังคับให้แสดงผลโครงสร้างหน้า */
                                 .a4-page { 
                                     width: 100% !important; 
                                     margin: 0 auto !important; 
                                     position: relative;
                                     page-break-after: always; 
-                                    overflow: hidden;
+                                    overflow: visible !important;
                                     padding-bottom: 75px !important; 
                                     display: block !important; 
-                                    opacity: 1 !important;
                                 }
                                 .a4-page:last-child { page-break-after: auto; }
                                 
-                                /* ตั้งค่าตาราง */
+                                /* บังคับสไตล์ตาราง */
                                 table { width: 100%; border-collapse: collapse; margin-top: 10px; }
                                 th, td { border: 1px solid black !important; padding: 4px !important; font-size: 11px; color: black !important; }
 
-                                /* ส่วน Footer ท้ายกระดาษ */
+                                /* Footer ท้ายกระดาษ */
                                 .print-global-footer {
                                     position: fixed; bottom: 0; left: 0; width: 100%; text-align: center;
                                     font-size: 9px; color: #475569 !important; border-top: 1px solid #9ca3af; 
                                     padding-top: 4px; padding-bottom: 4px; background-color: white; z-index: 1000;
                                 }
                                 
-                                /* ส่วนกรอบข้อมูลผู้ป่วย */
+                                /* กรอบข้อมูลผู้ป่วย */
                                 .print-patient-info {
                                     position: fixed; bottom: 22px; right: 15px; width: 260px;
                                     border: 1px solid #000 !important; border-radius: 4px; padding: 6px 8px;
                                     font-size: 10px; background-color: white !important; z-index: 1000; 
-                                    line-height: 1.4; color: black !important; display: block !important;
+                                    line-height: 1.4; color: black !important;
                                 }
                             </style>
                         </head>
@@ -902,7 +911,6 @@ function nurseApp() {
                             ${printContent}
                             
                             <script>
-                                // หน่วงเวลาเพิ่มเป็น 800ms ให้ระบบจัดหน้า CSS ให้เสร็จสมบูรณ์ก่อนเด้งหน้าจอพิมพ์
                                 window.onload = function() { 
                                     setTimeout(() => { 
                                         window.print(); 
