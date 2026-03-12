@@ -807,67 +807,113 @@ function nurseApp() {
         // ฟังก์ชันสั่งพิมพ์ของฟอร์มจำแนกผู้ป่วย
         printClassification() {
             window.scrollTo(0, 0);
-            const printContent = document.getElementById('patient-class-print-area').innerHTML;
-            const iframe = document.getElementById('print-frame');
-            const pri = iframe.contentWindow;
-            const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]')).map(s => s.outerHTML).join('');
-        
-            pri.document.open();
-            pri.document.write(`
-                <!DOCTYPE html>
-                <html>
-                    <head>
-                        <title>พิมพ์การจำแนกประเภทผู้ป่วย</title>
-                        ${styles}
-                        <style>
-                            @page { size: A4 portrait; margin: 15mm 10mm; } 
-                            body { background: white !important; margin: 0; padding: 0; -webkit-print-color-adjust: exact; }
-                            
-                            .a4-page { 
-                                width: 100% !important; 
-                                margin: 0 !important; 
-                                position: relative;
-                                page-break-after: always; 
-                                overflow: hidden;
-                                padding-bottom: 75px !important; 
-                            }
-                            .a4-page:last-child { page-break-after: auto; }
-                            
-                            /* ปรับแต่งตารางสำหรับพิมพ์ */
-                            table { width: 100%; border-collapse: collapse; }
-                            th, td { border: 1px solid black !important; padding: 2px 4px !important; font-size: 11px; }
+            
+            // ใช้ $nextTick เพื่อรอให้ Alpine.js วาดตารางและข้อมูลลง DOM ให้เสร็จ 100% ก่อนดึงไปพิมพ์
+            this.$nextTick(() => {
+                const printArea = document.getElementById('patient-class-print-area');
+                if (!printArea) {
+                    return this.showAlert('แจ้งเตือน', 'ไม่พบพื้นที่สำหรับพิมพ์เอกสาร');
+                }
+                
+                const printContent = printArea.innerHTML;
+                
+                let iframe = document.getElementById('print-frame');
+                if (!iframe) {
+                    iframe = document.createElement('iframe');
+                    iframe.id = 'print-frame';
+                    iframe.style.display = 'none';
+                    document.body.appendChild(iframe);
+                }
+                
+                const pri = iframe.contentWindow;
+                const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]')).map(s => s.outerHTML).join('');
 
-                            .print-global-footer {
-                                position: fixed; bottom: 0; left: 0; width: 100%; text-align: center;
-                                font-size: 9px; color: #6b7280; border-top: 1px solid #9ca3af; 
-                                padding-top: 4px; padding-bottom: 4px; background-color: white; z-index: 1000;
-                            }
-                            .print-patient-info {
-                                position: fixed; bottom: 22px; right: 15px; width: 260px;
-                                border: 1px solid #000; border-radius: 4px; padding: 6px 8px;
-                                font-size: 10px; background-color: white; z-index: 1000; line-height: 1.4;
-                            }
-                        </style>
-                    </head>
-                    <body>
-                        <div class="print-patient-info">
-                            <div><b>ชื่อ-สกุล:</b> ${this.selectedPatient?.name || '-'} &nbsp;&nbsp;<b>อายุ:</b> ${this.selectedPatient?.ageDisplay || '-'}</div>
-                            <div><b>HN:</b> ${this.selectedPatient?.hn || '-'} &nbsp;&nbsp;<b>AN:</b> ${this.selectedPatient?.an || '-'}</div>
-                            <div><b>แพทย์:</b> ${this.selectedPatient?.doctor || '-'} &nbsp;&nbsp;<b>ตึก:</b> ${this.currentWard || '-'} &nbsp;&nbsp;<b>เตียง:</b> ${this.selectedPatient?.bed || '-'}</div>
-                        </div>
-                        <div class="print-global-footer">
-                            เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | ระบบบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
-                        </div>
+                // ป้องกันปัญหาตัวแปรว่างแล้วทำให้บราวเซอร์หยุดทำงาน
+                const pName = this.selectedPatient?.name || '-';
+                const pAge = this.selectedPatient?.ageDisplay || '-';
+                const pHn = this.selectedPatient?.hn || '-';
+                const pAn = this.selectedPatient?.an || '-';
+                const pDoc = this.selectedPatient?.doctor || '-';
+                const pWard = this.currentWard || '-';
+                const pBed = this.selectedPatient?.bed || '-';
 
-                        ${printContent}
-                        
-                        <script>
-                            window.onload = function() { setTimeout(() => { window.print(); }, 600); };
-                        </script>
-                    </body>
-                </html>
-            `);
-            pri.document.close();
+                pri.document.open();
+                pri.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                        <head>
+                            <title>พิมพ์การจำแนกประเภทผู้ป่วย</title>
+                            ${styles}
+                            <style>
+                                /* ตั้งค่าหน้ากระดาษ */
+                                @page { size: A4 portrait; margin: 10mm 8mm; } 
+                                body { 
+                                    background: white !important; 
+                                    margin: 0; 
+                                    padding: 0; 
+                                    -webkit-print-color-adjust: exact; 
+                                    color: black !important; /* บังคับให้ตัวอักษรเป็นสีดำ */
+                                }
+                                
+                                /* บังคับให้แสดงผลโครงสร้างหน้า */
+                                .a4-page { 
+                                    width: 100% !important; 
+                                    margin: 0 auto !important; 
+                                    position: relative;
+                                    page-break-after: always; 
+                                    overflow: hidden;
+                                    padding-bottom: 75px !important; 
+                                    display: block !important; 
+                                    opacity: 1 !important;
+                                }
+                                .a4-page:last-child { page-break-after: auto; }
+                                
+                                /* ตั้งค่าตาราง */
+                                table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                                th, td { border: 1px solid black !important; padding: 4px !important; font-size: 11px; color: black !important; }
+
+                                /* ส่วน Footer ท้ายกระดาษ */
+                                .print-global-footer {
+                                    position: fixed; bottom: 0; left: 0; width: 100%; text-align: center;
+                                    font-size: 9px; color: #475569 !important; border-top: 1px solid #9ca3af; 
+                                    padding-top: 4px; padding-bottom: 4px; background-color: white; z-index: 1000;
+                                }
+                                
+                                /* ส่วนกรอบข้อมูลผู้ป่วย */
+                                .print-patient-info {
+                                    position: fixed; bottom: 22px; right: 15px; width: 260px;
+                                    border: 1px solid #000 !important; border-radius: 4px; padding: 6px 8px;
+                                    font-size: 10px; background-color: white !important; z-index: 1000; 
+                                    line-height: 1.4; color: black !important; display: block !important;
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="print-patient-info">
+                                <div><b>ชื่อ-สกุล:</b> ${pName} &nbsp;&nbsp;<b>อายุ:</b> ${pAge}</div>
+                                <div><b>HN:</b> ${pHn} &nbsp;&nbsp;<b>AN:</b> ${pAn}</div>
+                                <div><b>แพทย์:</b> ${pDoc} &nbsp;&nbsp;<b>ตึก:</b> ${pWard} &nbsp;&nbsp;<b>เตียง:</b> ${pBed}</div>
+                            </div>
+                            
+                            <div class="print-global-footer">
+                                เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | ระบบบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
+                            </div>
+
+                            ${printContent}
+                            
+                            <script>
+                                // หน่วงเวลาเพิ่มเป็น 800ms ให้ระบบจัดหน้า CSS ให้เสร็จสมบูรณ์ก่อนเด้งหน้าจอพิมพ์
+                                window.onload = function() { 
+                                    setTimeout(() => { 
+                                        window.print(); 
+                                    }, 800); 
+                                };
+                            </script>
+                        </body>
+                    </html>
+                `);
+                pri.document.close();
+            });
         },
     };
 }
