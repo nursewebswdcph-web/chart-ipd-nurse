@@ -1875,10 +1875,14 @@
                                             </div>
                                             <div class="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                                                 <template x-for="item in items">
-                                                    <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm relative overflow-hidden">
+                                                    <div @click="editClassItem(item)" title="คลิกเพื่อแก้ไขข้อมูล" class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm relative overflow-hidden cursor-pointer hover:ring-2 hover:ring-indigo-400 hover:shadow-md transition-all group">
+                                                        <div class="absolute top-2 right-2 text-indigo-300 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                                            <i class="fa-solid fa-pen text-xs"></i>
+                                                        </div>
+                                                    
                                                         <div class="absolute top-0 left-0 w-1 h-full" :class="item.shift === 'เช้า' ? 'bg-amber-400' : (item.shift === 'บ่าย' ? 'bg-orange-500' : 'bg-indigo-900')"></div>
                                                         
-                                                        <div class="flex justify-between items-start pl-3 gap-2">
+                                                        <div class="flex justify-between items-start pl-3 gap-2 relative z-0">
                                                             
                                                             <div class="min-w-0 flex-1">
                                                                 <div class="text-sm font-black text-slate-800 mb-1" x-text="'เวร' + item.shift"></div>
