@@ -1862,119 +1862,117 @@
                                     </div>
                                 </div>
                         
-                                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-6 relative">
+                                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-6 relative overflow-hidden">
                                     <div class="flex flex-wrap justify-between items-center mb-4 gap-4">
-                                        <h3 class="text-lg font-bold text-slate-800"><i class="fa-solid fa-table-list text-indigo-500 mr-2"></i> ประวัติการประเมินรายเวร</h3>
+                                        <h3 class="text-lg font-bold text-slate-800">
+                                            <i class="fa-solid fa-table-list text-indigo-500 mr-2"></i> ประวัติการประเมินรายเวร 
+                                        </h3>
                                         
-                                        <div class="flex items-center gap-3" x-show="chunkedClassHistory.length > 0">
-                                            <button type="button" @click="prevPage()" :disabled="currentPageIndex === 0" class="px-3 py-1.5 bg-slate-100 hover:bg-indigo-100 text-slate-600 hover:text-indigo-700 disabled:opacity-40 disabled:hover:bg-slate-100 disabled:hover:text-slate-600 rounded-lg text-sm font-bold transition-colors">
+                                        <div class="flex items-center gap-3" x-show="classTimeline.length > 0">
+                                            <button type="button" 
+                                                @click="currentPageIndex = Math.max(0, currentPageIndex - 1)" 
+                                                :disabled="currentPageIndex === 0" 
+                                                class="px-3 py-1.5 bg-slate-100 hover:bg-indigo-100 text-slate-600 hover:text-indigo-700 disabled:opacity-40 rounded-lg text-sm font-bold transition-colors">
                                                 <i class="fa-solid fa-chevron-left mr-1"></i> ก่อนหน้า
                                             </button>
                                             <span class="text-sm font-bold text-slate-600 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
-                                                หน้า <span x-text="currentPageIndex + 1"></span> / <span x-text="chunkedClassHistory.length"></span>
+                                                หน้า <span x-text="currentPageIndex + 1"></span> / <span x-text="classTimeline.length"></span>
                                             </span>
-                                            <button type="button" @click="nextPage()" :disabled="currentPageIndex >= chunkedClassHistory.length - 1" class="px-3 py-1.5 bg-slate-100 hover:bg-indigo-100 text-slate-600 hover:text-indigo-700 disabled:opacity-40 disabled:hover:bg-slate-100 disabled:hover:text-slate-600 rounded-lg text-sm font-bold transition-colors">
+                                            <button type="button" 
+                                                @click="currentPageIndex = Math.min(classTimeline.length - 1, currentPageIndex + 1)" 
+                                                :disabled="currentPageIndex >= classTimeline.length - 1" 
+                                                class="px-3 py-1.5 bg-slate-100 hover:bg-indigo-100 text-slate-600 hover:text-indigo-700 disabled:opacity-40 rounded-lg text-sm font-bold transition-colors">
                                                 ถัดไป <i class="fa-solid fa-chevron-right ml-1"></i>
                                             </button>
                                         </div>
                                     </div>
-                        
+                                
                                     <div class="overflow-x-auto custom-scrollbar pb-2">
-                                        <table class="w-full min-w-[800px] border-collapse border border-slate-300 text-center text-[12px]">
+                                        <table class="w-full min-w-[900px] border-collapse border border-slate-300 text-center text-[11px]" style="table-layout: fixed;">
                                             <thead>
                                                 <tr class="bg-slate-100">
-                                                    <th class="border border-slate-300 text-left px-3 py-2 w-[220px] font-bold text-slate-700">ว/ด/ป</th>
-                                                    <template x-for="item in (chunkedClassHistory[currentPageIndex] || [])">
-                                                        <th class="border border-slate-300 px-1 py-2 font-semibold text-slate-700" x-text="formatThaiDateShort(item.evalDate)"></th>
-                                                    </template>
-                                                    <template x-for="i in (15 - (chunkedClassHistory[currentPageIndex]?.length || 0))">
-                                                        <th class="border border-slate-300 px-1 py-2 bg-slate-50/50"></th>
+                                                    <th class="border border-slate-300 text-left px-3 py-2 w-[180px] font-bold text-slate-700">ว/ด/ป</th>
+                                                    <template x-for="day in (classTimeline[currentPageIndex] || [])">
+                                                        <th colspan="3" class="border border-slate-300 font-bold bg-indigo-50 text-indigo-900 py-2" x-text="day.formattedDate"></th>
                                                     </template>
                                                 </tr>
-                                                <tr class="bg-slate-100">
-                                                    <th class="border border-slate-300 text-left px-3 py-2 font-bold text-slate-700">เวร</th>
-                                                    <template x-for="item in (chunkedClassHistory[currentPageIndex] || [])">
-                                                        <th class="border border-slate-300 px-1 py-2 font-black text-indigo-700 text-sm" x-text="item.shift.substring(0,1)"></th>
-                                                    </template>
-                                                    <template x-for="i in (15 - (chunkedClassHistory[currentPageIndex]?.length || 0))">
-                                                        <th class="border border-slate-300 px-1 py-2 bg-slate-50/50"></th>
+                                                <tr class="bg-slate-50">
+                                                    <th class="border border-slate-300 text-left px-3 py-1 font-bold text-slate-500">เวร</th>
+                                                    <template x-for="i in 5">
+                                                        <template x-for="s in ['ด','ช','บ']">
+                                                            <th class="border border-slate-300 w-[48px] py-1 font-black text-slate-400" x-text="s"></th>
+                                                        </template>
                                                     </template>
                                                 </tr>
-                                                <tr><th colspan="16" class="border border-slate-300 text-left px-3 py-2 bg-indigo-50/50 font-bold text-indigo-900">สภาวะสุขภาพ</th></tr>
+                                                <tr><th colspan="16" class="border border-slate-300 text-left px-3 py-1.5 bg-indigo-50/30 font-bold text-indigo-900 text-[10px] uppercase tracking-wider">สภาวะสุขภาพ</th></tr>
                                             </thead>
                                             <tbody>
                                                 <template x-for="(question, qIndex) in [
-                                                    '1. สัญญาณชีพ', '2. อาการและอาการแสดงทางระบบประสาท', '3. การได้รับการตรวจรักษา/ผ่าตัดหรือหัตถการ', '4. พฤติกรรมที่ผิดปกติ อารมณ์ จิตสังคม',
-                                                    'ความต้องการการดูแลขั้นต่ำ',
-                                                    '5. ความสามารถในการปฏิบัติกิจวัตรประจำวัน', '6. ความต้องการด้านจิตใจและอารมณ์ของผู้ป่วย', '7. ความต้องการยา/การรักษาทำหัตถการ/ฟื้นฟู', '8. ความต้องการการบรรเทาอาการรบกวน'
+                                                    '1. สัญญาณชีพ', '2. อาการและอาการแสดงทางระบบประสาท', '3. การได้รับการตรวจรักษา/ผ่าตัดหรือหัตถการ', '4. พฤติกรรมที่ผิดปกติอารมณ์ จิตสังคม',
+                                                    'SEPARATOR',
+                                                    '5. ความสามารถในการปฏิบัติกิจวัตรประจำวัน', '6. ความต้องการด้านจิตใจและอารมณ์', '7. ความต้องการยา/การรักษาทำหัตถการ/ฟื้นฟู', '8. ความต้องการการบรรเทาอาการรบกวน'
                                                 ]">
                                                     <tr class="hover:bg-slate-50/50 transition-colors">
-                                                        <template x-if="question === 'ความต้องการการดูแลขั้นต่ำ'">
-                                                            <th colspan="16" class="border border-slate-300 text-left px-3 py-2 bg-emerald-50/50 font-bold text-emerald-900" x-text="question"></th>
+                                                        <template x-if="question === 'SEPARATOR'">
+                                                            <th colspan="16" class="border border-slate-300 text-left px-3 py-1.5 bg-emerald-50/30 font-bold text-emerald-900 text-[10px] uppercase tracking-wider">ความต้องการการดูแลขั้นต่ำ</th>
                                                         </template>
                                                         
-                                                        <template x-if="question !== 'ความต้องการการดูแลขั้นต่ำ'">
-                                                            <td class="border border-slate-300 text-left px-3 py-1.5 text-slate-600 font-medium" x-text="question"></td>
+                                                        <template x-if="question !== 'SEPARATOR'">
+                                                            <td class="border border-slate-300 text-left px-3 py-1.5 text-slate-600 font-medium truncate" x-text="question"></td>
                                                         </template>
                                                         
-                                                        <template x-if="question !== 'ความต้องการการดูแลขั้นต่ำ'">
-                                                            <template x-for="item in (chunkedClassHistory[currentPageIndex] || [])">
-                                                                <td class="border border-slate-300 px-1 py-1.5 font-bold text-slate-800" x-text="item.scores[qIndex > 4 ? qIndex-1 : qIndex]"></td>
-                                                            </template>
-                                                        </template>
-                                                        
-                                                        <template x-if="question !== 'ความต้องการการดูแลขั้นต่ำ'">
-                                                            <template x-for="i in (15 - (chunkedClassHistory[currentPageIndex]?.length || 0))">
-                                                                <td class="border border-slate-300 bg-slate-50/30"></td>
+                                                        <template x-if="question !== 'SEPARATOR'">
+                                                            <template x-for="day in (classTimeline[currentPageIndex] || [])">
+                                                                <template x-for="shiftName in ['ดึก', 'เช้า', 'บ่าย']">
+                                                                    <td class="border border-slate-300 font-bold text-slate-800">
+                                                                        <span x-text="day.slots[shiftName] ? day.slots[shiftName].scores[qIndex > 4 ? qIndex-1 : qIndex] : ''"></span>
+                                                                    </td>
+                                                                </template>
                                                             </template>
                                                         </template>
                                                     </tr>
                                                 </template>
-                        
-                                                <tr class="bg-amber-50">
-                                                    <td class="border border-slate-300 text-left px-3 py-2 font-black text-amber-900">รวมคะแนน</td>
-                                                    <template x-for="item in (chunkedClassHistory[currentPageIndex] || [])">
-                                                        <td class="border border-slate-300 font-black text-indigo-700 text-sm" x-text="item.total"></td>
+                                
+                                                <tr class="bg-amber-50/50 font-black">
+                                                    <td class="border border-slate-300 text-left px-3 py-2 text-amber-900">รวมคะแนน (ประเภท)</td>
+                                                    <template x-for="day in (classTimeline[currentPageIndex] || [])">
+                                                        <template x-for="shiftName in ['ดึก', 'เช้า', 'บ่าย']">
+                                                            <td class="border border-slate-300">
+                                                                <div class="text-indigo-700" x-text="day.slots[shiftName] ? day.slots[shiftName].total : ''"></div>
+                                                                <div class="text-[9px] text-orange-600" x-text="day.slots[shiftName] ? '('+day.slots[shiftName].category+')' : ''"></div>
+                                                            </td>
+                                                        </template>
                                                     </template>
-                                                    <template x-for="i in (15 - (chunkedClassHistory[currentPageIndex]?.length || 0))"><td class="border border-slate-300 bg-slate-50/30"></td></template>
                                                 </tr>
-                                                <tr class="bg-orange-50">
-                                                    <td class="border border-slate-300 text-left px-3 py-2 font-black text-orange-900">ประเภทผู้ป่วย</td>
-                                                    <template x-for="item in (chunkedClassHistory[currentPageIndex] || [])">
-                                                        <td class="border border-slate-300 font-black text-orange-700" x-text="item.category"></td>
-                                                    </template>
-                                                    <template x-for="i in (15 - (chunkedClassHistory[currentPageIndex]?.length || 0))"><td class="border border-slate-300 bg-slate-50/30"></td></template>
-                                                </tr>
-                                                <tr>
-                                                    <td class="border border-slate-300 text-left px-3 py-2 font-bold text-slate-700">ผู้ประเมิน</td>
-                                                    <template x-for="item in (chunkedClassHistory[currentPageIndex] || [])">
-                                                        <td class="border border-slate-300 text-[9px] text-slate-500 px-0.5 truncate max-w-[45px]" :title="item.assessor" x-text="item.assessor"></td>
-                                                    </template>
-                                                    <template x-for="i in (15 - (chunkedClassHistory[currentPageIndex]?.length || 0))"><td class="border border-slate-300 bg-slate-50/30"></td></template>
-                                                </tr>
-                                                
+                                
                                                 <tr class="bg-slate-50">
-                                                    <td class="border border-slate-300 text-right px-3 py-2 font-bold text-slate-400 text-[10px]"><i class="fa-solid fa-arrow-turn-up mr-1"></i> จัดการข้อมูล</td>
-                                                    <template x-for="item in (chunkedClassHistory[currentPageIndex] || [])">
-                                                        <td class="border border-slate-300 px-1 py-1.5">
-                                                            <button type="button" @click="editClassItem(item)" title="แก้ไขข้อมูลนี้" class="bg-white border border-indigo-200 text-indigo-500 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 rounded w-full py-1 transition-colors">
-                                                                <i class="fa-solid fa-pen text-[10px]"></i>
-                                                            </button>
-                                                        </td>
+                                                    <td class="border border-slate-300 text-right px-3 py-2 font-bold text-slate-400 text-[9px]">
+                                                        <i class="fa-solid fa-arrow-turn-up mr-1"></i> แก้ไขข้อมูล
+                                                    </td>
+                                                    <template x-for="day in (classTimeline[currentPageIndex] || [])">
+                                                        <template x-for="shiftName in ['ดึก', 'เช้า', 'บ่าย']">
+                                                            <td class="border border-slate-300 p-1">
+                                                                <template x-if="day.slots[shiftName]">
+                                                                    <button type="button" @click="editClassItem(day.slots[shiftName])" class="w-full bg-white border border-indigo-200 text-indigo-500 hover:bg-indigo-600 hover:text-white rounded py-0.5 transition-colors">
+                                                                        <i class="fa-solid fa-pen text-[9px]"></i>
+                                                                    </button>
+                                                                </template>
+                                                            </td>
+                                                        </template>
                                                     </template>
-                                                    <template x-for="i in (15 - (chunkedClassHistory[currentPageIndex]?.length || 0))"><td class="border border-slate-300 bg-slate-50/30"></td></template>
                                                 </tr>
                                             </tbody>
                                         </table>
                                     </div>
                                     
-                                    <div x-show="chunkedClassHistory.length === 0" class="absolute inset-0 z-10 bg-white/90 backdrop-blur-sm flex items-center justify-center rounded-2xl">
+                                    <div x-show="!selectedPatient?.date" class="absolute inset-0 z-10 bg-white/90 backdrop-blur-sm flex items-center justify-center rounded-2xl">
                                         <div class="text-center">
-                                            <div class="text-slate-300 mb-3"><i class="fa-solid fa-clipboard-list text-5xl"></i></div>
-                                            <div class="text-base font-bold text-slate-500">ยังไม่มีประวัติการประเมินรายเวร</div>
-                                            <div class="text-xs text-slate-400 mt-1">กดปุ่ม "เพิ่มรายการประเมิน" ด้านบนเพื่อเริ่มต้น</div>
+                                            <div class="text-slate-300 mb-3"><i class="fa-solid fa-calendar-xmark text-5xl"></i></div>
+                                            <div class="text-base font-bold text-slate-500">ไม่พบวันที่รับใหม่ของคนไข้</div>
+                                            <div class="text-xs text-slate-400 mt-1">กรุณาตรวจสอบข้อมูลการ Admit</div>
                                         </div>
                                     </div>
+                                    
                                 </div>
                         
                                 <div x-show="showClassModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" x-cloak>
@@ -2087,40 +2085,36 @@
                                 </div>
                         
                                 <div id="patient-class-print-area" class="mt-8 space-y-6">
-                                    <template x-for="(chunk, pageIndex) in chunkedClassHistory" :key="pageIndex">
-                                        <div class="a4-page relative bg-white shadow-xl mx-auto rounded-lg p-6 max-w-[210mm]">
+                                    <template x-for="(page, pageIndex) in classTimeline" :key="pageIndex">
+                                        <div class="a4-page relative bg-white shadow-xl mx-auto rounded-lg p-6 max-w-[210mm] text-black">
                                             
-                                            <div class="text-center font-bold text-[14px] leading-relaxed mb-4">
+                                            <div class="text-center font-bold text-[15px] leading-relaxed mb-4">
                                                 แบบบันทึกการจำแนกผู้ป่วย หอผู้ป่วย<span x-text="currentWard"></span><br>
                                                 กลุ่มการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
                                             </div>
-                        
-                                            <div class="flex justify-between text-[12px] font-bold mb-2">
-                                                <div>รับใหม่ <span class="border-b border-dotted border-black inline-block min-w-[120px] text-center" x-text="formatThaiDate(selectedPatient?.date)"></span></div>
-                                                <div>จำหน่าย <span class="border-b border-dotted border-black inline-block min-w-[120px] text-center" x-text="classHistory.length > 0 ? formatThaiDate(classHistory[classHistory.length-1].evalDate) : ''"></span></div>
+                                
+                                            <div class="flex justify-between text-[12px] font-bold mb-3">
+                                                <div>วันที่รับใหม่ <span class="border-b border-dotted border-black inline-block min-w-[140px] text-center" x-text="formatThaiDate(selectedPatient?.date)"></span></div>
+                                                <div>วันที่จำหน่าย <span class="border-b border-dotted border-black inline-block min-w-[140px] text-center" x-text="classHistory.length > 0 ? formatThaiDate(classHistory[classHistory.length-1].evalDate) : ''"></span></div>
                                             </div>
-                        
-                                            <table class="w-full border-collapse border border-black text-center text-[11px] leading-tight">
+                                
+                                            <table class="w-full border-collapse border border-black text-center text-[11px] leading-tight" style="table-layout: fixed;">
                                                 <thead>
                                                     <tr class="bg-gray-100">
-                                                        <th class="border border-black text-left px-2 py-1 w-1/3">ว/ด/ป</th>
-                                                        <template x-for="item in chunk">
-                                                            <th class="border border-black font-normal" x-text="formatThaiDateShort(item.evalDate)"></th>
-                                                        </template>
-                                                        <template x-for="i in (15 - chunk.length)">
-                                                            <th class="border border-black"></th>
+                                                        <th class="border border-black text-left px-2 py-1.5 w-[180px]">ว/ด/ป (หน้า <span x-text="pageIndex + 1"></span>)</th>
+                                                        <template x-for="day in page">
+                                                            <th colspan="3" class="border border-black font-bold py-1" x-text="day.formattedDate"></th>
                                                         </template>
                                                     </tr>
                                                     <tr class="bg-gray-100">
                                                         <th class="border border-black text-left px-2 py-1">เวร</th>
-                                                        <template x-for="item in chunk">
-                                                            <th class="border border-black" x-text="item.shift.substring(0,1)"></th>
-                                                        </template>
-                                                        <template x-for="i in (15 - chunk.length)">
-                                                            <th class="border border-black"></th>
+                                                        <template x-for="i in 5">
+                                                            <th class="border border-black w-[42px] font-bold">ด</th>
+                                                            <th class="border border-black w-[42px] font-bold">ช</th>
+                                                            <th class="border border-black w-[42px] font-bold">บ</th>
                                                         </template>
                                                     </tr>
-                                                    <tr><th colspan="16" class="border border-black text-left px-2 py-1 bg-gray-50">สภาวะสุขภาพ</th></tr>
+                                                    <tr><th colspan="16" class="border border-black text-left px-2 py-1.5 bg-gray-50 font-bold">สภาวะสุขภาพ</th></tr>
                                                 </thead>
                                                 <tbody>
                                                     <template x-for="(question, qIndex) in [
@@ -2130,51 +2124,64 @@
                                                     ]">
                                                         <tr>
                                                             <template x-if="question === 'ความต้องการการดูแลขั้นต่ำ'">
-                                                                <th colspan="16" class="border border-black text-left px-2 py-1 bg-gray-50" x-text="question"></th>
+                                                                <th colspan="16" class="border border-black text-left px-2 py-1.5 bg-gray-50 font-bold" x-text="question"></th>
                                                             </template>
                                                             
                                                             <template x-if="question !== 'ความต้องการการดูแลขั้นต่ำ'">
-                                                                <td class="border border-black text-left px-2 py-1" x-text="question"></td>
+                                                                <td class="border border-black text-left px-2 py-1.5" x-text="question"></td>
                                                             </template>
                                                             
                                                             <template x-if="question !== 'ความต้องการการดูแลขั้นต่ำ'">
-                                                                <template x-for="item in chunk">
-                                                                    <td class="border border-black" x-text="item.scores[qIndex > 4 ? qIndex-1 : qIndex]"></td>
-                                                                </template>
-                                                            </template>
-                                                            
-                                                            <template x-if="question !== 'ความต้องการการดูแลขั้นต่ำ'">
-                                                                <template x-for="i in (15 - chunk.length)">
-                                                                    <td class="border border-black"></td>
+                                                                <template x-for="day in page">
+                                                                    <template x-for="shiftName in ['ดึก', 'เช้า', 'บ่าย']">
+                                                                        <td class="border border-black font-bold">
+                                                                            <span x-text="day.slots[shiftName] ? day.slots[shiftName].scores[qIndex > 4 ? qIndex-1 : qIndex] : ''"></span>
+                                                                        </td>
+                                                                    </template>
                                                                 </template>
                                                             </template>
                                                         </tr>
                                                     </template>
-                        
-                                                    <tr class="font-bold bg-orange-50">
-                                                        <td class="border border-black text-left px-2 py-1">รวมคะแนน</td>
-                                                        <template x-for="item in chunk"><td class="border border-black text-indigo-700" x-text="item.total"></td></template>
-                                                        <template x-for="i in (15 - chunk.length)"><td class="border border-black"></td></template>
-                                                    </tr>
-                                                    <tr class="font-bold">
-                                                        <td class="border border-black text-left px-2 py-1">ประเภทผู้ป่วย</td>
-                                                        <template x-for="item in chunk"><td class="border border-black text-orange-600" x-text="item.category"></td></template>
-                                                        <template x-for="i in (15 - chunk.length)"><td class="border border-black"></td></template>
-                                                    </tr>
-                                                    <tr>
-                                                        <td class="border border-black text-left px-2 py-1 h-8">ผู้ประเมิน</td>
-                                                        <template x-for="item in chunk">
-                                                            <td class="border border-black text-[9px] overflow-hidden whitespace-nowrap max-w-[40px]" x-text="item.assessor"></td>
+                                
+                                                    <tr class="font-bold bg-gray-50">
+                                                        <td class="border border-black text-left px-2 py-2">รวมคะแนน</td>
+                                                        <template x-for="day in page">
+                                                            <template x-for="shiftName in ['ดึก', 'เช้า', 'บ่าย']">
+                                                                <td class="border border-black text-blue-800" x-text="day.slots[shiftName] ? day.slots[shiftName].total : ''"></td>
+                                                            </template>
                                                         </template>
-                                                        <template x-for="i in (15 - chunk.length)"><td class="border border-black"></td></template>
+                                                    </tr>
+                                
+                                                    <tr class="font-bold">
+                                                        <td class="border border-black text-left px-2 py-2">ประเภทผู้ป่วย</td>
+                                                        <template x-for="day in page">
+                                                            <template x-for="shiftName in ['ดึก', 'เช้า', 'บ่าย']">
+                                                                <td class="border border-black text-red-700" x-text="day.slots[shiftName] ? day.slots[shiftName].category : ''"></td>
+                                                            </template>
+                                                        </template>
+                                                    </tr>
+                                
+                                                    <tr>
+                                                        <td class="border border-black text-left px-2 py-1 h-10">ผู้ประเมิน</td>
+                                                        <template x-for="day in page">
+                                                            <template x-for="shiftName in ['ดึก', 'เช้า', 'บ่าย']">
+                                                                <td class="border border-black text-[9px] align-bottom pb-1 leading-none">
+                                                                    <span x-text="day.slots[shiftName] ? day.slots[shiftName].assessor : ''"></span>
+                                                                </td>
+                                                            </template>
+                                                        </template>
                                                     </tr>
                                                 </tbody>
                                             </table>
                                             
-                                            <div class="mt-2 text-[10px] text-gray-600">
-                                                * ประเภทที่ 1 (8-11), ประเภทที่ 2 (12-16), ประเภทที่ 3 (17-21), ประเภทที่ 4 (22-26), ประเภทที่ 5 (27-32)
+                                            <div class="mt-4 text-[11px] text-black font-medium leading-relaxed">
+                                                เกณฑ์การจำแนก นับรวมตั้งแต่ข้อ 1 ถึง ข้อ 8<br>
+                                                ประเภทที่ 1  ผู้ป่วยพักฟื้นดูแลตัวเองได้     (8 คะแนน)<br>
+                                                ประเภทที่ 2  ผู้ป่วยเจ็บป่วยเล็กน้อย       (9-14 คะแนน)<br>
+                                                ประเภทที่ 3  ผู้ป่วยเจ็บป่วยปานกลาง      (15-20 คะแนน)<br>
+                                                ประเภทที่ 4  ผู้ป่วยหนัก                (21-26 คะแนน)<br>
+                                                ประเภทที่ 5 ผู้ป่วยหนักมาก/วิกฤติ         (27-32 คะแนน)
                                             </div>
-                        
                                         </div>
                                     </template>
                                 </div>
