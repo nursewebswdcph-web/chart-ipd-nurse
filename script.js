@@ -561,7 +561,7 @@ function nurseApp() {
                         ${styles}
                         <style>
                             /* ตั้งค่าหน้ากระดาษ A4 ปรับขอบ บน-ล่าง 10mm, ซ้าย-ขวา 10mm */
-                            @page { size: A4 portrait; margin: 10mm 10mm; } 
+                            @page { size: A4 portrait; margin: 15mm 10mm; } 
                             body { background: white !important; margin: 0; padding: 0; -webkit-print-color-adjust: exact; }
                             
                             .a4-page { 
@@ -571,7 +571,7 @@ function nurseApp() {
                                 position: relative;
                                 page-break-after: always; 
                                 overflow: hidden;
-                                line-height: 1.15 !important; 
+                                line-height: 1.5 !important; 
                                 /* 🔴 เพิ่ม padding ด้านล่าง เพื่อไม่ให้เนื้อหาถูก Footer บัง */
                                 padding-bottom: 25px !important; 
                             }
