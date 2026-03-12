@@ -2120,61 +2120,61 @@
                                                     <tr><th colspan="16" class="border border-black text-left px-2 py-1.5 bg-gray-50 font-bold">สภาวะสุขภาพ</th></tr>
                                                 </thead>
                                                 <tbody>
-                                                    <template x-for="(question, qIndex) in [
-                                                        '1. สัญญาณชีพ', '2. อาการและอาการแสดงทางระบบประสาท', '3. การได้รับการตรวจรักษา/ผ่าตัดหรือหัตถการ', '4. พฤติกรรมที่ผิดปกติ อารมณ์ จิตสังคม',
-                                                        'ความต้องการการดูแลขั้นต่ำ',
-                                                        '5. ความสามารถในการปฏิบัติกิจวัตรประจำวัน', '6. ความต้องการด้านจิตใจและอารมณ์ของผู้ป่วย', '7. ความต้องการยา/การรักษาทำหัตถการ/ฟื้นฟู', '8. ความต้องการการบรรเทาอาการรบกวน'
-                                                    ]">
-                                                        <tr>
-                                                            <template x-if="question === 'ความต้องการการดูแลขั้นต่ำ'">
-                                                                <th colspan="16" class="border border-black text-left px-2 py-1.5 bg-gray-50 font-bold" x-text="question"></th>
-                                                            </template>
-                                                            
-                                                            <template x-if="question !== 'ความต้องการการดูแลขั้นต่ำ'">
-                                                                <td class="border border-black text-left px-2 py-1.5" x-text="question"></td>
-                                                            </template>
-                                                            
-                                                            <template x-if="question !== 'ความต้องการการดูแลขั้นต่ำ'">
-                                                                <template x-for="day in page">
-                                                                    <template x-for="shiftName in ['ดึก', 'เช้า', 'บ่าย']">
-                                                                        <td class="border border-black font-bold">
-                                                                            <span x-text="day.slots[shiftName] ? day.slots[shiftName].scores[qIndex > 4 ? qIndex-1 : qIndex] : ''"></span>
-                                                                        </td>
-                                                                    </template>
+                                                <template x-for="(question, qIndex) in [
+                                                    '1. สัญญาณชีพ', '2. อาการและอาการแสดงทางระบบประสาท', '3. การได้รับการตรวจรักษา/ผ่าตัดหรือหัตถการ', '4. พฤติกรรมที่ผิดปกติ อารมณ์ จิตสังคม',
+                                                    'ความต้องการการดูแลขั้นต่ำ',
+                                                    '5. ความสามารถในการปฏิบัติกิจวัตรประจำวัน', '6. ความต้องการด้านจิตใจและอารมณ์ของผู้ป่วย', '7. ความต้องการยา/การรักษาทำหัตถการ/ฟื้นฟู', '8. ความต้องการการบรรเทาอาการรบกวน'
+                                                ]">
+                                                    <tr>
+                                                        <template x-if="question === 'ความต้องการการดูแลขั้นต่ำ'">
+                                                            <th colspan="16" class="border border-black text-left px-2 py-1.5 bg-gray-50 font-bold" x-text="question"></th>
+                                                        </template>
+                                                        
+                                                        <template x-if="question !== 'ความต้องการการดูแลขั้นต่ำ'">
+                                                            <td class="border border-black text-left px-2 py-1.5" x-text="question"></td>
+                                                        </template>
+                                                        
+                                                        <template x-if="question !== 'ความต้องการการดูแลขั้นต่ำ'">
+                                                            <template x-for="day in page">
+                                                                <template x-for="shiftName in ['ดึก', 'เช้า', 'บ่าย']">
+                                                                    <td class="border border-black font-bold">
+                                                                        <span x-text="day.slots[shiftName] ? day.slots[shiftName].scores[qIndex > 4 ? qIndex-1 : qIndex] : ''"></span>
+                                                                    </td>
                                                                 </template>
                                                             </template>
-                                                        </tr>
+                                                        </template>
+                                                    </tr>
+                                                </template>
+                                            
+                                                <tr class="font-bold bg-gray-50">
+                                                    <td class="border border-black text-left px-2 py-2">รวมคะแนน</td>
+                                                    <template x-for="day in page">
+                                                        <template x-for="shiftName in ['ดึก', 'เช้า', 'บ่าย']">
+                                                            <td class="border border-black text-blue-800" x-text="day.slots[shiftName] ? day.slots[shiftName].total : ''"></td>
+                                                        </template>
                                                     </template>
-                                
-                                                    <tr class="font-bold bg-gray-50">
-                                                        <td class="border border-black text-left px-2 py-2">รวมคะแนน</td>
-                                                        <template x-for="day in page">
-                                                            <template x-for="shiftName in ['ดึก', 'เช้า', 'บ่าย']">
-                                                                <td class="border border-black text-blue-800" x-text="day.slots[shiftName] ? day.slots[shiftName].total : ''"></td>
-                                                            </template>
+                                                </tr>
+                                            
+                                                <tr class="font-bold">
+                                                    <td class="border border-black text-left px-2 py-2">ประเภทผู้ป่วย</td>
+                                                    <template x-for="day in page">
+                                                        <template x-for="shiftName in ['ดึก', 'เช้า', 'บ่าย']">
+                                                            <td class="border border-black text-red-700" x-text="day.slots[shiftName] ? day.slots[shiftName].category : ''"></td>
                                                         </template>
-                                                    </tr>
-                                
-                                                    <tr class="font-bold">
-                                                        <td class="border border-black text-left px-2 py-2">ประเภทผู้ป่วย</td>
-                                                        <template x-for="day in page">
-                                                            <template x-for="shiftName in ['ดึก', 'เช้า', 'บ่าย']">
-                                                                <td class="border border-black text-red-700" x-text="day.slots[shiftName] ? day.slots[shiftName].category : ''"></td>
-                                                            </template>
+                                                    </template>
+                                                </tr>
+                                            
+                                                <tr>
+                                                    <td class="border border-black text-left px-2 py-1 h-8">ผู้ประเมิน</td>
+                                                    <template x-for="day in page">
+                                                        <template x-for="shiftName in ['ดึก', 'เช้า', 'บ่าย']">
+                                                            <td class="border border-black text-[10px] align-middle">
+                                                                <span x-text="day.slots[shiftName] ? formatShortName(day.slots[shiftName].assessor) : ''"></span>
+                                                            </td>
                                                         </template>
-                                                    </tr>
-                                
-                                                    <tr>
-                                                        <td class="border border-black text-left px-2 py-1 h-8">ผู้ประเมิน</td>
-                                                        <template x-for="day in page">
-                                                            <template x-for="shiftName in ['ดึก', 'เช้า', 'บ่าย']">
-                                                                <td class="border border-black text-[10px] align-middle">
-                                                                    <span x-text="day.slots[shiftName] ? formatShortName(day.slots[shiftName].assessor) : ''"></span>
-                                                                </td>
-                                                            </template>
-                                                        </template>
-                                                    </tr>
-                                                </tbody>
+                                                    </template>
+                                                </tr>
+                                            </tbody>
                                             </table>
                                             
                                             <div class="mt-4 text-[11px] text-black font-medium leading-relaxed">
