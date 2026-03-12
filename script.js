@@ -27,6 +27,13 @@ function nurseApp() {
             { id: 'progress_note', title: '7. แบบบันทึกความก้าวหน้าทางการพยาบาล Nursing Progress Note', icon: 'fa-notes-medical', isMain: true },
             { id: 'discharge_summary', title: '8. แบบบันทึกการพยาบาลผู้ป่วยจำหน่าย', icon: 'fa-door-open', isMain: true }
         ],
+        classForm: {
+            evalDate: new Date().toISOString().split('T')[0],
+            shift: 'เช้า',
+            scores: [1, 1, 1, 1, 1, 1, 1, 1], // เก็บค่าเริ่มต้น 1 คะแนนทั้ง 8 ข้อ
+            assessor: ''
+        },
+        classHistory: [], // เก็บประวัติการประเมินเพื่อใช้พิมพ์
 
         extraOptions: [],
         showMoveModal: false,
@@ -453,8 +460,10 @@ function nurseApp() {
         async selectForm(form) {
             this.currentForm = form;
             if (form.id === 'assess_initial') {
-                // โหลดข้อมูลเพื่อเช็คว่าเคยประเมินหรือยัง
                 await this.loadAssessmentData(this.selectedPatient.an);
+            }
+            else if (form.id === 'patient_class') {
+                await this.loadClassifications(this.selectedPatient.an);
             }
         },
         
@@ -661,6 +670,145 @@ function nurseApp() {
                                     window.print();
                                 }, 600);
                             };
+                        </script>
+                    </body>
+                </html>
+            `);
+            pri.document.close();
+        },
+        // ฟังก์ชันคำนวณคะแนนและประเภทอัตโนมัติ
+        calcClassification() {
+            let total = this.classForm.scores.reduce((a, b) => a + parseInt(b || 0), 0);
+            let category = 1;
+            // เกณฑ์การแปลผล (ปรับแก้ช่วงคะแนนได้ตามมาตรฐานของโรงพยาบาล)
+            if (total >= 27) category = 5;
+            else if (total >= 22) category = 4;
+            else if (total >= 17) category = 3;
+            else if (total >= 12) category = 2;
+            else category = 1;
+            
+            return { total, category };
+        },
+
+        // โหลดข้อมูลประวัติทั้งหมดของ AN
+        async loadClassifications(an) {
+            this.isLoading = true;
+            try {
+                const res = await fetch(`${this.API_URL}?action=getClassifications&an=${an}`);
+                this.classHistory = await res.json();
+            } catch (e) {
+                console.error(e);
+                this.classHistory = [];
+            }
+            this.isLoading = false;
+        },
+
+        // บันทึกข้อมูล 1 เวร
+        async saveClassForm() {
+            const { total, category } = this.calcClassification();
+            if (!this.classForm.assessor) return this.showAlert('แจ้งเตือน', 'กรุณาระบุชื่อผู้ประเมิน');
+
+            const payload = {
+                an: this.selectedPatient.an,
+                hn: this.selectedPatient.hn,
+                ward: this.currentWard,
+                evalDate: this.classForm.evalDate,
+                shift: this.classForm.shift,
+                scores: this.classForm.scores,
+                total: total,
+                category: category,
+                assessor: this.classForm.assessor
+            };
+
+            this.isLoading = true;
+            try {
+                const res = await fetch(this.API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'saveClassification', payload: payload })
+                });
+                this.successMsg = 'บันทึกข้อมูลประเมินรายเวรเรียบร้อยแล้ว';
+                this.showSuccess = true;
+                setTimeout(() => this.showSuccess = false, 3000);
+                
+                // โหลดประวัติใหม่มาแสดงทันที
+                await this.loadClassifications(this.selectedPatient.an);
+            } catch (error) {
+                this.showAlert('Error', 'เกิดข้อผิดพลาด: ' + error.message);
+            } finally {
+                this.isLoading = false;
+            }
+        },
+
+        // วันที่แบบย่อสำหรับใส่หัวตาราง
+        formatThaiDateShort(dateStr) {
+            if (!dateStr) return '';
+            const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+            const date = new Date(dateStr);
+            if (isNaN(date.getTime())) return dateStr;
+            return `${date.getDate()} ${months[date.getMonth()]} ${(date.getFullYear() + 543).toString().slice(-2)}`;
+        },
+
+        // ฟังก์ชันสั่งพิมพ์ของฟอร์มจำแนกผู้ป่วย
+        printClassification() {
+            window.scrollTo(0, 0);
+            const printContent = document.getElementById('patient-class-print-area').innerHTML;
+            const iframe = document.getElementById('print-frame');
+            const pri = iframe.contentWindow;
+            const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]')).map(s => s.outerHTML).join('');
+        
+            pri.document.open();
+            pri.document.write(`
+                <!DOCTYPE html>
+                <html>
+                    <head>
+                        <title>พิมพ์การจำแนกประเภทผู้ป่วย</title>
+                        ${styles}
+                        <style>
+                            @page { size: A4 portrait; margin: 15mm 10mm; } 
+                            body { background: white !important; margin: 0; padding: 0; -webkit-print-color-adjust: exact; }
+                            
+                            .a4-page { 
+                                width: 100% !important; 
+                                margin: 0 !important; 
+                                position: relative;
+                                page-break-after: always; 
+                                overflow: hidden;
+                                padding-bottom: 75px !important; 
+                            }
+                            .a4-page:last-child { page-break-after: auto; }
+                            
+                            /* ปรับแต่งตารางสำหรับพิมพ์ */
+                            table { width: 100%; border-collapse: collapse; }
+                            th, td { border: 1px solid black !important; padding: 2px 4px !important; font-size: 11px; }
+
+                            .print-global-footer {
+                                position: fixed; bottom: 0; left: 0; width: 100%; text-align: center;
+                                font-size: 9px; color: #6b7280; border-top: 1px solid #9ca3af; 
+                                padding-top: 4px; padding-bottom: 4px; background-color: white; z-index: 1000;
+                            }
+                            .print-patient-info {
+                                position: fixed; bottom: 22px; right: 15px; width: 260px;
+                                border: 1px solid #000; border-radius: 4px; padding: 6px 8px;
+                                font-size: 10px; background-color: white; z-index: 1000; line-height: 1.4;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="print-patient-info">
+                            <div><b>ชื่อ-สกุล:</b> ${this.selectedPatient?.name || '-'} &nbsp;&nbsp;<b>อายุ:</b> ${this.selectedPatient?.ageDisplay || '-'}</div>
+                            <div><b>HN:</b> ${this.selectedPatient?.hn || '-'} &nbsp;&nbsp;<b>AN:</b> ${this.selectedPatient?.an || '-'}</div>
+                            <div><b>แพทย์:</b> ${this.selectedPatient?.doctor || '-'} &nbsp;&nbsp;<b>ตึก:</b> ${this.currentWard || '-'} &nbsp;&nbsp;<b>เตียง:</b> ${this.selectedPatient?.bed || '-'}</div>
+                        </div>
+                        <div class="print-global-footer">
+                            เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | ระบบบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
+                        </div>
+
+                        ${printContent}
+                        
+                        <script>
+                            window.onload = function() { setTimeout(() => { window.print(); }, 600); };
                         </script>
                     </body>
                 </html>
