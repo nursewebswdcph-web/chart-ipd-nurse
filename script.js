@@ -711,19 +711,6 @@ function nurseApp() {
             }
             this.isLoading = false;
         },
-        // จัดกลุ่มประวัติการประเมินตามวันที่
-        get groupedClassHistory() {
-            const groups = {};
-            // เรียงลำดับจากวันที่ล่าสุด (Descending) ลงไปเก่าสุด
-            const sortedHistory = [...this.classHistory].sort((a, b) => new Date(b.evalDate) - new Date(a.evalDate));
-            
-            sortedHistory.forEach(item => {
-                const date = this.formatThaiDateShort(item.evalDate);
-                if (!groups[date]) groups[date] = [];
-                groups[date].push(item);
-            });
-            return groups;
-        },
         editClassItem(item) {
             // ดึงข้อมูลจากประวัติ กลับมาใส่ในฟอร์มเพื่อแก้ไข
             let d = new Date(item.evalDate);
@@ -755,6 +742,35 @@ function nurseApp() {
             const term = (this.classForm.assessor || '').toString().toLowerCase();
             if (!term) return this.nurses;
             return this.nurses.filter(n => n && n.name && n.name.toString().toLowerCase().includes(term));
+        },
+        // จัดกลุ่มประวัติการประเมินตามวันที่
+        get groupedClassHistory() {
+            const groups = {};
+            // เรียงลำดับจากวันที่ล่าสุด (Descending) ลงไปเก่าสุด
+            const sortedHistory = [...this.classHistory].sort((a, b) => new Date(b.evalDate) - new Date(a.evalDate));
+            
+            sortedHistory.forEach(item => {
+                const date = this.formatThaiDateShort(item.evalDate);
+                if (!groups[date]) groups[date] = [];
+                groups[date].push(item);
+            });
+            return groups;
+        },
+        // 🟢 เพิ่ม Getter นี้เพื่อให้หน้าเว็บและหน้าพิมพ์ทำงานได้
+        get chunkedClassHistory() {
+            if (!this.classHistory || this.classHistory.length === 0) {
+                return [[]]; // ส่งค่ากลับเป็นอาเรย์ว่างชั้นเดียว เพื่อป้องกันหน้าเว็บพัง
+            }
+
+            // 1. เรียงข้อมูลตามวันที่จากเก่าไปใหม่ เพื่อให้ลงตารางตามลำดับเวลา
+            const sorted = [...this.classHistory].sort((a, b) => new Date(a.evalDate) - new Date(b.evalDate));
+            
+            // 2. แบ่งข้อมูลออกเป็นชุด ชุดละ 15 รายการ (สำหรับ 1 หน้า A4)
+            const chunks = [];
+            for (let i = 0; i < sorted.length; i += 15) {
+                chunks.push(sorted.slice(i, i + 15));
+            }
+            return chunks;
         },
 
         // เปิด Popup ประเมินรอบใหม่ และเคลียร์ค่า
