@@ -682,12 +682,13 @@ function nurseApp() {
         calcClassification() {
             let total = this.classForm.scores.reduce((a, b) => a + parseInt(b || 0), 0);
             let category = 1;
-            // เกณฑ์การแปลผล (ปรับแก้ช่วงคะแนนได้ตามมาตรฐานของโรงพยาบาล)
+            
+            // เกณฑ์ใหม่: 1=8, 2=9-14, 3=15-20, 4=21-26, 5=27-32
             if (total >= 27) category = 5;
-            else if (total >= 22) category = 4;
-            else if (total >= 17) category = 3;
-            else if (total >= 12) category = 2;
-            else category = 1;
+            else if (total >= 21) category = 4;
+            else if (total >= 15) category = 3;
+            else if (total >= 9) category = 2;
+            else category = 1; 
             
             return { total, category };
         },
@@ -707,12 +708,28 @@ function nurseApp() {
         // จัดกลุ่มประวัติการประเมินตามวันที่
         get groupedClassHistory() {
             const groups = {};
-            this.classHistory.forEach(item => {
+            // เรียงลำดับจากวันที่ล่าสุด (Descending) ลงไปเก่าสุด
+            const sortedHistory = [...this.classHistory].sort((a, b) => new Date(b.evalDate) - new Date(a.evalDate));
+            
+            sortedHistory.forEach(item => {
                 const date = this.formatThaiDateShort(item.evalDate);
                 if (!groups[date]) groups[date] = [];
                 groups[date].push(item);
             });
             return groups;
+        },
+        editClassItem(item) {
+            // ดึงข้อมูลจากประวัติ กลับมาใส่ในฟอร์มเพื่อแก้ไข
+            let d = new Date(item.evalDate);
+            let dateStr = !isNaN(d.getTime()) ? d.toISOString().split('T')[0] : '';
+            
+            this.classForm = {
+                evalDate: dateStr,
+                shift: item.shift,
+                scores: [...item.scores],
+                assessor: item.assessor
+            };
+            this.showClassModal = true;
         },
 
         // กรองรายชื่อพยาบาลสำหรับฟอร์มจำแนก
