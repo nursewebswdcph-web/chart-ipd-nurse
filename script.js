@@ -540,6 +540,21 @@ function nurseApp() {
             // ตรวจสอบแบบคำต่อคำ (Exact Match) ป้องกันปัญหาคำว่า "มี" ซ้อนใน "ไม่มี"
             return valuesArray.includes(value.toString().trim());
         },
+        // ฟังก์ชันแปลงวันที่ yyyy-mm-dd เป็นแบบไทย
+        formatThaiDate(dateStr) {
+            if (!dateStr) return '..................';
+            const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+            const date = new Date(dateStr);
+            
+            // ตรวจสอบว่าเป็นรูปแบบวันที่ที่ถูกต้องหรือไม่
+            if (isNaN(date.getTime())) return dateStr; 
+            
+            const d = date.getDate();
+            const m = months[date.getMonth()];
+            const y = date.getFullYear() + 543; // แปลง ค.ศ. เป็น พ.ศ.
+            
+            return `${d} ${m} ${y}`;
+        },
         printAssessment() {
             // 1. ดึงเนื้อหา HTML จากเทมเพลตที่จัดวางไว้แล้ว
             const printContent = document.getElementById('a4-print-area').innerHTML;
