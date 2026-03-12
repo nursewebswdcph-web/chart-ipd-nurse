@@ -30,10 +30,12 @@ function nurseApp() {
         classForm: {
             evalDate: new Date().toISOString().split('T')[0],
             shift: 'เช้า',
-            scores: [1, 1, 1, 1, 1, 1, 1, 1], // เก็บค่าเริ่มต้น 1 คะแนนทั้ง 8 ข้อ
+            scores: [0, 0, 0, 0, 0, 0, 0, 0], // ค่าเริ่มต้นเป็น 0 (ยังไม่ประเมิน)
             assessor: ''
         },
-        classHistory: [], // เก็บประวัติการประเมินเพื่อใช้พิมพ์
+        classHistory: [],
+        showClassModal: false, // ควบคุมการเปิด/ปิด Popup ประเมินรอบใหม่
+        showClassNurseList: false, // ควบคุม Dropdown ค้นหาชื่อพยาบาล
 
         extraOptions: [],
         showMoveModal: false,
@@ -702,12 +704,47 @@ function nurseApp() {
             }
             this.isLoading = false;
         },
+        // จัดกลุ่มประวัติการประเมินตามวันที่
+        get groupedClassHistory() {
+            const groups = {};
+            this.classHistory.forEach(item => {
+                const date = this.formatThaiDateShort(item.evalDate);
+                if (!groups[date]) groups[date] = [];
+                groups[date].push(item);
+            });
+            return groups;
+        },
+
+        // กรองรายชื่อพยาบาลสำหรับฟอร์มจำแนก
+        get classFilteredNurses() {
+            if (!this.nurses || !Array.isArray(this.nurses)) return [];
+            const term = (this.classForm.assessor || '').toString().toLowerCase();
+            if (!term) return this.nurses;
+            return this.nurses.filter(n => n && n.name && n.name.toString().toLowerCase().includes(term));
+        },
+
+        // เปิด Popup ประเมินรอบใหม่ และเคลียร์ค่า
+        openClassModal() {
+            this.classForm = {
+                evalDate: new Date().toISOString().split('T')[0],
+                shift: 'เช้า',
+                scores: [0, 0, 0, 0, 0, 0, 0, 0],
+                assessor: ''
+            };
+            this.showClassModal = true;
+        },
 
         // บันทึกข้อมูล 1 เวร
         async saveClassForm() {
-            const { total, category } = this.calcClassification();
-            if (!this.classForm.assessor) return this.showAlert('แจ้งเตือน', 'กรุณาระบุชื่อผู้ประเมิน');
+            // เช็คว่าประเมินครบ 8 ข้อหรือไม่ (ถ้ามีข้อไหนเป็น 0 ถือว่ายังไม่ประเมิน)
+            if (this.classForm.scores.includes(0)) {
+                return this.showAlert('แจ้งเตือน', 'กรุณาประเมินให้ครบทั้ง 8 ข้อ');
+            }
+            if (!this.classForm.assessor) {
+                return this.showAlert('แจ้งเตือน', 'กรุณาระบุชื่อพยาบาลผู้ประเมิน');
+            }
 
+            const { total, category } = this.calcClassification();
             const payload = {
                 an: this.selectedPatient.an,
                 hn: this.selectedPatient.hn,
@@ -732,7 +769,7 @@ function nurseApp() {
                 this.showSuccess = true;
                 setTimeout(() => this.showSuccess = false, 3000);
                 
-                // โหลดประวัติใหม่มาแสดงทันที
+                this.showClassModal = false; // ปิด Popup หลังบันทึกสำเร็จ
                 await this.loadClassifications(this.selectedPatient.an);
             } catch (error) {
                 this.showAlert('Error', 'เกิดข้อผิดพลาด: ' + error.message);
