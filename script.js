@@ -561,7 +561,7 @@ function nurseApp() {
                         ${styles}
                         <style>
                             /* ตั้งค่าหน้ากระดาษ A4 ปรับขอบ บน-ล่าง 5mm, ซ้าย-ขวา 8mm */
-                            @page { size: A4 portrait; margin: 15mm 10mm; } 
+                            @page { size: A4 portrait; margin: 10mm 10mm; } 
                             body { background: white !important; margin: 0; padding: 0; -webkit-print-color-adjust: exact; }
                             
                             .a4-page { 
@@ -635,7 +635,7 @@ function nurseApp() {
                         </div>
 
                         <div class="print-global-footer">
-                            เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | ระบบบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
+                            เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | โปรแกรมบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
                         </div>
 
                         ${printContent}
