@@ -217,7 +217,6 @@ function nurseApp() {
                 if (data && Object.keys(data).length > 0) {
                     // 🟢 มีข้อมูลแล้ว -> เก็บใส่ตัวแปรและเปิดโหมด A4 Preview ทันที
                     this.savedAssessment = data;
-                    this.showAssessmentPreview = true;
                     
                     // ยัดค่าเดิมกลับเข้าฟอร์มด้วย เผื่อกรณีที่ผู้ใช้กดปุ่ม "แก้ไขข้อมูล"
                     this.$nextTick(() => {
@@ -260,12 +259,10 @@ function nurseApp() {
                 } else {
                     // 🔴 ถ้ายังไม่มีข้อมูล -> เปิดเป็นหน้าฟอร์มกรอกว่างๆ 
                     this.savedAssessment = null;
-                    this.showAssessmentPreview = false;
                 }
             } catch (err) {
                 console.error("Error loading assessment:", err);
                 this.savedAssessment = null;
-                this.showAssessmentPreview = false; // ถ้า Error ก็ให้แสดงฟอร์ม
             } finally {
                 this.isLoading = false; // ปิดสถานะโหลด
             }
@@ -545,7 +542,7 @@ function nurseApp() {
         },
         printAssessment() {
             // 1. ดึงเนื้อหา HTML จากเทมเพลตที่จัดวางไว้แล้ว
-            const printContent = document.getElementById('a4-print-area-template').innerHTML;
+            const printContent = document.getElementById('a4-print-area').innerHTML;
             const iframe = document.getElementById('print-frame');
             const pri = iframe.contentWindow;
         
