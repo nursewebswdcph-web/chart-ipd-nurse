@@ -34,6 +34,7 @@ function nurseApp() {
             assessor: ''
         },
         classHistory: [],
+        currentPageIndex: 0,
         showClassModal: false, // ควบคุมการเปิด/ปิด Popup ประเมินรอบใหม่
         showClassNurseList: false, // ควบคุม Dropdown ค้นหาชื่อพยาบาล
 
@@ -459,14 +460,19 @@ function nurseApp() {
             if (name) { this.doctors.push(name); this.form.doctor = name; }
         },
 
+        // ฟังก์ชันเมื่อผู้ใช้กดเลือกฟอร์มเมนูด้านซ้าย
         async selectForm(form) {
-            this.currentForm = form;
+            // 🟢 โหลดข้อมูลให้เสร็จสมบูรณ์ "ก่อน" สั่งเปลี่ยนหน้า UI 
             if (form.id === 'assess_initial') {
                 await this.loadAssessmentData(this.selectedPatient.an);
             }
             else if (form.id === 'patient_class') {
                 await this.loadClassifications(this.selectedPatient.an);
+                this.currentPageIndex = 0; // กลับมาหน้าแรกเสมอเมื่อเข้าฟอร์ม
             }
+            
+            // สั่งเปิดหน้า UI หลังจากข้อมูลทั้งหมดพร้อมแล้ว
+            this.currentForm = form; 
         },
         
         addForm(opt) {
@@ -730,6 +736,17 @@ function nurseApp() {
                 assessor: item.assessor
             };
             this.showClassModal = true;
+        },
+        // 🟢 ฟังก์ชันสำหรับเปลี่ยนหน้าตาราง
+        nextPage() {
+            if (this.currentPageIndex < this.chunkedClassHistory.length - 1) {
+                this.currentPageIndex++;
+            }
+        },
+        prevPage() {
+            if (this.currentPageIndex > 0) {
+                this.currentPageIndex--;
+            }
         },
 
         // กรองรายชื่อพยาบาลสำหรับฟอร์มจำแนก
