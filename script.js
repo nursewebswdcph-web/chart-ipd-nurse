@@ -560,11 +560,23 @@ function nurseApp() {
                         <title>IPD Nurse Workbench - Printing</title>
                         ${styles}
                         <style>
-                            /* ลบเงาและ Margin สำหรับการพิมพ์จริง */
-                            .a4-page { margin: 0 !important; box-shadow: none !important; width: 100% !important; }
-                            body { background: white !important; margin: 0; padding: 0; }
-                            @page { size: A4 portrait; margin: 15mm 15mm 20mm 15mm; }
-                        </style>
+                            <style>
+                                /* ตั้งค่าหน้ากระดาษและบังคับตัดหน้า (Page Break) */
+                                @page { size: A4 portrait; margin: 10mm; } /* ปรับ Margin เล็กลงเพื่อให้มีพื้นที่แนวตั้งเพิ่มขึ้น */
+                                body { background: white !important; margin: 0; padding: 0; -webkit-print-color-adjust: exact; }
+                                
+                                .a4-page { 
+                                    width: 100% !important; 
+                                    box-shadow: none !important; 
+                                    margin: 0 !important; 
+                                    position: relative;
+                                    page-break-after: always; /* บังคับตัดหน้าเสมอเมื่อจบ Div นี้ */
+                                    overflow: hidden; /* ซ่อนส่วนที่เกินป้องกันล้น */
+                                }
+                                .a4-page:last-child {
+                                    page-break-after: auto; /* ยกเว้นหน้าสุดท้ายไม่ต้องตัดหน้าต่อ */
+                                }
+                            </style>
                     </head>
                     <body>
                         <div class="a4-page">
