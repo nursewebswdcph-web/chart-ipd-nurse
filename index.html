@@ -1520,16 +1520,8 @@
                                                 <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_Movement_Other') ? '✓' : ''"></span>อื่นๆ...... <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.Cogn_Movement_Other"></span></label>
                                             </div>
                                         </div>
-                                    </div>
-                        
-                        
-                                    <div class="a4-page relative">
-                                        <div class="text-right text-[8px] font-bold mb-2">
-                                            FR-IPD-004<br>แก้ไขครั้งที่ 02 1 ม.ค. 2564</div>
-                                    
-                                        <div class="grid grid-cols-2 gap-x-6 text-[11px] leading-tight">
-                                            <div>
-                                                <div class="font-bold mb-1">7) การรับรู้ตนเองและอัตมโนทัศน์: การเจ็บป่วยมีผลกระทบต่อ</div>
+                                        <div class="mt-3 text-[11px] leading-tight">
+                                        <div class="font-bold mb-1">7) การรับรู้ตนเองและอัตมโนทัศน์: การเจ็บป่วยมีผลกระทบต่อ</div>
                                                 <div class="flex items-center mt-1">
                                                     <span class="w-28">ภาพลักษณ์:</span>
                                                     <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Self_Image', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
@@ -1548,34 +1540,14 @@
                                                     <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Self_Care', 'ไม่แน่ใจ') ? '✓' : ''"></span>ไม่แน่ใจ</label>
                                                     <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Self_Care', 'มี') ? '✓' : ''"></span>มี: <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.Self_Care_Detail"></span></label>
                                                 </div>
-                                    
-                                                <div class="font-bold mb-1 mt-2">9) บทบาทและสัมพันธภาพ:</div>
-                                                <div>การเจ็บป่วยครั้งนี้กระทบต่อบทบาท</div>
-                                                <div class="flex flex-wrap mt-1 gap-y-1">
-                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Role_Impact', 'ครอบครัว') ? '✓' : ''"></span>ครอบครัว</label>
-                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Role_Impact', 'อาชีพ') ? '✓' : ''"></span>อาชีพ</label>
-                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Role_Impact', 'การศึกษา') ? '✓' : ''"></span>การศึกษา</label>
-                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Role_Impact', 'สัมพันธภาพในครอบครัวและผู้อื่น') ? '✓' : ''"></span>สัมพันธภาพในครอบครัวและผู้อื่น</label>
-                                                </div>
-                                    
-                                                <div class="font-bold mb-1 mt-2">10) เพศและการเจริญพันธุ์</div>
-                                                <div class="flex items-center mt-1">
-                                                    <span class="w-20">ประจำเดือน:</span>
-                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sex_Menstrual', 'ปกติ') ? '✓' : ''"></span>ปกติ</label>
-                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sex_Menstrual', 'ไม่ปกติ') ? '✓' : ''"></span>ไม่ปกติ.. <span class="border-b border-dotted border-black inline-block min-w-[80px]" x-text="savedAssessment?.Sex_Menstrual_Detail"></span></label>
-                                                </div>
-                                                <div class="flex items-center mt-1">
-                                                    <span class="w-20">เต้านม:</span>
-                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sex_Breast', 'ปกติ') ? '✓' : ''"></span>ปกติ</label>
-                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sex_Breast', 'ไม่ปกติ') ? '✓' : ''"></span>ไม่ปกติ.. <span class="border-b border-dotted border-black inline-block min-w-[80px]" x-text="savedAssessment?.Sex_Breast_Detail"></span></label>
-                                                </div>
-                                                <div class="flex items-center mt-1">
-                                                    <span class="w-24">อวัยวะสืบพันธุ์:</span>
-                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sex_Genital', 'ปกติ') ? '✓' : ''"></span>ปกติ</label>
-                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sex_Genital', 'ไม่ปกติ') ? '✓' : ''"></span>ไม่ปกติ.. <span class="border-b border-dotted border-black inline-block min-w-[80px]" x-text="savedAssessment?.Sex_Genital_Detail"></span></label>
-                                                </div>
                                             </div>
+                                    </div>
+                        
+                                    <div class="a4-page relative">
+                                        <div class="text-right text-[8px] font-bold mb-2">
+                                            FR-IPD-004<br>แก้ไขครั้งที่ 02 1 ม.ค. 2564</div>
                                     
+                                        <div class="grid grid-cols-2 gap-x-6 text-[11px] leading-tight">
                                             <div>
                                                 <div class="font-bold mb-1">8) การเผชิญความเครียด / การปรับตัว</div>
                                                 <div class="flex flex-wrap items-center mt-1">
@@ -1608,6 +1580,34 @@
                                                     <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Resolve', 'แยกตัวเอง') ? '✓' : ''"></span>แยกตัวเอง</label>
                                                     <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Resolve', 'ใช้ยา') ? '✓' : ''"></span>ใช้ยา</label>
                                                     <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Resolve_Other') ? '✓' : ''"></span>อื่นๆ <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.Stress_Resolve_Other"></span></label>
+                                                </div>
+                                            </div>
+                                            <div>
+                                    
+                                                <div class="font-bold mb-1 mt-2">9) บทบาทและสัมพันธภาพ:</div>
+                                                <div>การเจ็บป่วยครั้งนี้กระทบต่อบทบาท</div>
+                                                <div class="flex flex-wrap mt-1 gap-y-1">
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Role_Impact', 'ครอบครัว') ? '✓' : ''"></span>ครอบครัว</label>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Role_Impact', 'อาชีพ') ? '✓' : ''"></span>อาชีพ</label>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Role_Impact', 'การศึกษา') ? '✓' : ''"></span>การศึกษา</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Role_Impact', 'สัมพันธภาพในครอบครัวและผู้อื่น') ? '✓' : ''"></span>สัมพันธภาพในครอบครัวและผู้อื่น</label>
+                                                </div>
+                                    
+                                                <div class="font-bold mb-1 mt-2">10) เพศและการเจริญพันธุ์</div>
+                                                <div class="flex items-center mt-1">
+                                                    <span class="w-20">ประจำเดือน:</span>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sex_Menstrual', 'ปกติ') ? '✓' : ''"></span>ปกติ</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sex_Menstrual', 'ไม่ปกติ') ? '✓' : ''"></span>ไม่ปกติ.. <span class="border-b border-dotted border-black inline-block min-w-[80px]" x-text="savedAssessment?.Sex_Menstrual_Detail"></span></label>
+                                                </div>
+                                                <div class="flex items-center mt-1">
+                                                    <span class="w-20">เต้านม:</span>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sex_Breast', 'ปกติ') ? '✓' : ''"></span>ปกติ</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sex_Breast', 'ไม่ปกติ') ? '✓' : ''"></span>ไม่ปกติ.. <span class="border-b border-dotted border-black inline-block min-w-[80px]" x-text="savedAssessment?.Sex_Breast_Detail"></span></label>
+                                                </div>
+                                                <div class="flex items-center mt-1">
+                                                    <span class="w-24">อวัยวะสืบพันธุ์:</span>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sex_Genital', 'ปกติ') ? '✓' : ''"></span>ปกติ</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sex_Genital', 'ไม่ปกติ') ? '✓' : ''"></span>ไม่ปกติ.. <span class="border-b border-dotted border-black inline-block min-w-[80px]" x-text="savedAssessment?.Sex_Genital_Detail"></span></label>
                                                 </div>
                                             </div>
                                         </div>
