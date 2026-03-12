@@ -559,9 +559,9 @@ function nurseApp() {
                     <head>
                         <title>IPD Nurse Workbench - Printing</title>
                         ${styles}
-                              <style>
-                            /* ตั้งค่าหน้ากระดาษ A4 ปรับขอบ บน-ล่าง 5mm, ซ้าย-ขวา 8mm */
-                            @page { size: A4 portrait; margin: 5mm 8mm; } 
+                        <style>
+                            /* ตั้งค่าหน้ากระดาษ A4 ปรับขอบ บน-ล่าง 10mm, ซ้าย-ขวา 10mm */
+                            @page { size: A4 portrait; margin: 10mm 10mm; } 
                             body { background: white !important; margin: 0; padding: 0; -webkit-print-color-adjust: exact; }
                             
                             .a4-page { 
@@ -571,12 +571,30 @@ function nurseApp() {
                                 position: relative;
                                 page-break-after: always; 
                                 overflow: hidden;
-                                line-height: 1 !important; 
+                                line-height: 1.15 !important; 
+                                /* 🔴 เพิ่ม padding ด้านล่าง เพื่อไม่ให้เนื้อหาถูก Footer บัง */
+                                padding-bottom: 25px !important; 
                             }
                             .a4-page:last-child {
                                 page-break-after: auto; 
                             }
-                        
+
+                            /* 🔴 CSS สำหรับ Global Footer ให้โผล่ทุกหน้า */
+                            .print-global-footer {
+                                position: fixed;
+                                bottom: 0;
+                                left: 0;
+                                width: 100%;
+                                text-align: center;
+                                font-size: 9px;
+                                color: #6b7280; /* text-gray-500 */
+                                border-top: 1px solid #9ca3af; /* border-gray-400 */
+                                padding-top: 4px;
+                                padding-bottom: 4px;
+                                background-color: white;
+                                z-index: 1000;
+                            }
+
                             /* บังคับลดช่องว่างเฉพาะตอนพิมพ์ */
                             .a4-page .mt-1 { margin-top: 2px !important; }
                             .a4-page .mt-2 { margin-top: 4px !important; }
@@ -594,15 +612,17 @@ function nurseApp() {
                         </style>
                     </head>
                     <body>
-                        <div class="a4-page">
-                            ${printContent}
+                        <div class="print-global-footer">
+                            เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | ระบบบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
                         </div>
+
+                        ${printContent}
+                        
                         <script>
-                            // สั่งพิมพ์เมื่อโหลดเนื้อหาและฟอนต์เสร็จ
                             window.onload = function() {
                                 setTimeout(() => {
                                     window.print();
-                                }, 500);
+                                }, 600);
                             };
                         </script>
                     </body>
