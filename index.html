@@ -1947,15 +1947,18 @@
                                 
                                                 <tr class="bg-slate-50">
                                                     <td class="border border-slate-300 text-right px-3 py-2 font-bold text-slate-400 text-[9px]">
-                                                        <i class="fa-solid fa-arrow-turn-up mr-1"></i> แก้ไขข้อมูล
+                                                        <i class="fa-solid fa-arrow-turn-up mr-1"></i> ผู้ประเมิน
                                                     </td>
                                                     <template x-for="day in (classTimeline[currentPageIndex] || [])">
                                                         <template x-for="shiftName in ['ดึก', 'เช้า', 'บ่าย']">
                                                             <td class="border border-slate-300 p-1">
                                                                 <template x-if="day.slots[shiftName]">
-                                                                    <button type="button" @click="editClassItem(day.slots[shiftName])" class="w-full bg-white border border-indigo-200 text-indigo-500 hover:bg-indigo-600 hover:text-white rounded py-0.5 transition-colors">
-                                                                        <i class="fa-solid fa-pen text-[9px]"></i>
-                                                                    </button>
+                                                                    <div class="flex flex-col items-center">
+                                                                        <span class="text-[9px] text-indigo-600 font-bold mb-1" x-text="formatShortName(day.slots[shiftName].assessor)"></span>
+                                                                        <button type="button" @click="editClassItem(day.slots[shiftName])" class="w-full bg-white border border-indigo-200 text-indigo-500 hover:bg-indigo-600 hover:text-white rounded py-0.5 transition-colors">
+                                                                            <i class="fa-solid fa-pen text-[9px]"></i>
+                                                                        </button>
+                                                                    </div>
                                                                 </template>
                                                             </td>
                                                         </template>
@@ -2162,11 +2165,11 @@
                                                     </tr>
                                 
                                                     <tr>
-                                                        <td class="border border-black text-left px-2 py-1 h-10">ผู้ประเมิน</td>
+                                                        <td class="border border-black text-left px-2 py-1 h-8">ผู้ประเมิน</td>
                                                         <template x-for="day in page">
                                                             <template x-for="shiftName in ['ดึก', 'เช้า', 'บ่าย']">
-                                                                <td class="border border-black text-[9px] align-bottom pb-1 leading-none">
-                                                                    <span x-text="day.slots[shiftName] ? day.slots[shiftName].assessor : ''"></span>
+                                                                <td class="border border-black text-[10px] align-middle">
+                                                                    <span x-text="day.slots[shiftName] ? formatShortName(day.slots[shiftName].assessor) : ''"></span>
                                                                 </td>
                                                             </template>
                                                         </template>
