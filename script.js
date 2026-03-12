@@ -738,12 +738,8 @@ function nurseApp() {
             this.isLoading = false;
         },
         editClassItem(item) {
-            // ดึงข้อมูลจากประวัติ กลับมาใส่ในฟอร์มเพื่อแก้ไข
-            let d = new Date(item.evalDate);
-            let dateStr = !isNaN(d.getTime()) ? d.toISOString().split('T')[0] : '';
-            
             this.classForm = {
-                evalDate: dateStr,
+                evalDate: item.evalDate.includes('T') ? item.evalDate.split('T')[0] : item.evalDate,
                 shift: item.shift,
                 scores: [...item.scores],
                 assessor: item.assessor
@@ -786,47 +782,52 @@ function nurseApp() {
             } catch (e) { console.error("Grouping error:", e); }
             return groups;
         },
-        // 🟢 Getter ใหม่: สร้างตารางแบบ Matrix ล็อกวันและเวร (5 วันต่อหน้า = 15 ช่องเวร)
+        getLocalYYYYMMDD(date) {
+            const d = new Date(date);
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        },
         get classTimeline() {
             if (!this.selectedPatient || !this.selectedPatient.date) return [];
 
-            // แก้ปัญหา Date Offset โดยการแยกตัวเลข ปี-เดือน-วัน ออกมาสร้าง Date เอง
-            const dateParts = this.selectedPatient.date.split('-');
-            const admitDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+            // 1. สร้าง admitDate จากตัวเลขตรงๆ ไม่ผ่าน String ป้องกัน Timezone Shift
+            const [y, m, d] = this.selectedPatient.date.split('-').map(Number);
+            const admitDate = new Date(y, m - 1, d);
             admitDate.setHours(0, 0, 0, 0);
 
-            // คำนวณจำนวนวันทั้งหมด (นับจากวันแรกรับถึงปัจจุบัน)
+            // 2. คำนวณจำนวนหน้า (หน้าละ 5 วัน)
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            
             const diffTime = Math.abs(today - admitDate);
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-            
-            // กำหนดว่าอย่างน้อยต้องแสดง 5 วัน (1 หน้า)
-            const totalDaysToShow = Math.max(diffDays, 5);
-            const totalPages = Math.ceil(totalDaysToShow / 5);
+            const totalPages = Math.ceil(Math.max(diffDays, 5) / 5);
 
             const pages = [];
             const shifts = ['ดึก', 'เช้า', 'บ่าย'];
 
             for (let p = 0; p < totalPages; p++) {
                 const dayInPage = [];
-                for (let d = 0; d < 5; d++) {
-                    const currentIdx = (p * 5) + d;
+                for (let i = 0; i < 5; i++) {
+                    const currentIdx = (p * 5) + i;
                     const currentDate = new Date(admitDate);
                     currentDate.setDate(admitDate.getDate() + currentIdx);
                     
-                    const dateKey = currentDate.toISOString().split('T')[0];
+                    // สร้าง Key แบบ YYYY-MM-DD (Local Time)
+                    const dateKey = this.getLocalYYYYMMDD(currentDate);
+                    
                     const dayData = {
                         date: dateKey,
                         formattedDate: this.formatThaiDateShort(dateKey),
                         slots: {}
                     };
 
+                    // 🟢 ปรับปรุงการดึงข้อมูลย้อนหลัง: เทียบ Date Key แบบ String ตรงๆ
                     shifts.forEach(s => {
                         const record = this.classHistory.find(h => {
-                            // แปลงวันที่จากฐานข้อมูลให้เป็นรูปแบบ YYYY-MM-DD เพื่อเทียบกัน
-                            const hDate = new Date(h.evalDate).toISOString().split('T')[0];
+                            // เทียบวันที่แบบตัดเอาแค่ YYYY-MM-DD ไม่เอา Timezone
+                            const hDate = h.evalDate.includes('T') ? h.evalDate.split('T')[0] : h.evalDate;
                             return hDate === dateKey && h.shift === s;
                         });
                         dayData.slots[s] = record || null;
@@ -841,7 +842,7 @@ function nurseApp() {
         // เปิด Popup ประเมินรอบใหม่ และเคลียร์ค่า
         openClassModal() {
             this.classForm = {
-                evalDate: new Date().toISOString().split('T')[0],
+                evalDate: this.getLocalYYYYMMDD(new Date()), // ใช้วันที่ปัจจุบันแบบ Local
                 shift: 'เช้า',
                 scores: [0, 0, 0, 0, 0, 0, 0, 0],
                 assessor: ''
