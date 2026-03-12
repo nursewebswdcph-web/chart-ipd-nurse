@@ -453,13 +453,11 @@ function nurseApp() {
             if (name) { this.doctors.push(name); this.form.doctor = name; }
         },
 
-        selectForm(form) {
+        async selectForm(form) {
             this.currentForm = form;
-            this.showAssessmentPreview = false; // บังคับให้แสดงหน้ากรอกข้อมูล (Input) ก่อนเสมอ
-            
-            // ถ้าเป็นแบบประเมินแรกรับ ให้ไปดึงข้อมูลเก่ามาโชว์ (ถ้ามี)
             if (form.id === 'assess_initial') {
-                this.fetchAssessmentInitial();
+                // โหลดข้อมูลเพื่อเช็คว่าเคยประเมินหรือยัง
+                await this.loadAssessmentData(this.selectedPatient.an);
             }
         },
         
