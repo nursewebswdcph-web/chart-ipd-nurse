@@ -1236,641 +1236,622 @@
                                 </div>
                             </form>
                         </div>
-                        <div x-show="currentForm?.id === 'assess_initial' && showAssessmentPreview" x-cloak class="flex flex-col items-center">
-                            
-                            <div class="w-full max-w-[210mm] flex justify-between items-center mb-6 bg-white p-4 rounded-2xl shadow-sm border border-slate-200 no-print sticky top-0 z-50">
-                                <div class="flex items-center gap-3">
-                                    <div class="bg-emerald-100 text-emerald-600 p-2 rounded-lg"><i class="fa-solid fa-circle-check text-xl"></i></div>
-                                    <div>
-                                        <h3 class="font-black text-slate-800">บันทึกข้อมูลเรียบร้อยแล้ว</h3>
-                                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Document Preview</p>
-                                    </div>
-                                </div>
-                                <div class="flex gap-3">
-                                    <button @click="showAssessmentPreview = false" class="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-all flex items-center gap-2 text-sm">
-                                        <i class="fa-solid fa-pen-to-square"></i> แก้ไขข้อมูล
-                                    </button>
-                                    <button @click="printAssessment()" class="px-6 py-2.5 bg-slate-800 text-white rounded-xl ...">
-                                        <i class="fa-solid fa-print mr-2"></i>พิมพ์เอกสาร
-                                    </button>
-                                </div>
-                            </div>
-                
-                            <div id="a4-print-template" style="display: none;" x-cloak>
+                        <div x-show="currentForm?.id === 'assess_initial'" x-cloak class="flex flex-col items-center">              
+                            <div id="a4-print-template" class="w-full">
                                 <div id="a4-print-area" class="bg-white mx-auto shadow-sm no-scrollbar">
                                     <div class="a4-page relative">
-                                    <div class="flex justify-between items-start text-[11px] font-bold mb-2">
-                                        <div class="border border-black px-2 py-1">FR-IPD-004</div>
-                                        <div>แก้ไขครั้งที่ 02 1 ม.ค. 2564</div>
-                                    </div>
-                                    <div class="text-center font-bold text-[14px] mb-4 leading-snug">
-                                        แบบประเมินประวัติและประเมินสมรรถนะผู้ป่วย งานผู้ป่วยใน<br>โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
-                                    </div>
-                            
-                                    <div class="text-[11px] leading-relaxed mb-3">
-                                        <div class="flex flex-wrap gap-x-4">
-                                            <div>วันที่ <span class="border-b border-dotted border-black inline-block min-w-[80px] text-center" x-text="savedAssessment?.AdmitDate"></span></div>
-                                            <div>เวลา <span class="border-b border-dotted border-black inline-block min-w-[50px] text-center" x-text="savedAssessment?.AdmitTime"></span> น.</div>
-                                            <div>รับจาก <span class="border-b border-dotted border-black inline-block min-w-[100px] text-center" x-text="savedAssessment?.AdmittedFrom"></span></div>
-                                            <div>รับ REFER จาก <span class="border-b border-dotted border-black inline-block min-w-[100px] text-center" x-text="savedAssessment?.Refer"></span></div>
+                                        <div class="flex justify-between items-start text-[11px] font-bold mb-2">
+                                            <div class="border border-black px-2 py-1">FR-IPD-004</div>
+                                            <div>แก้ไขครั้งที่ 02 1 ม.ค. 2564</div>
                                         </div>
-                                        <div class="flex flex-wrap gap-x-4 mt-1">
-                                            <div>ผู้ให้ข้อมูล 
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('InfoSource', 'ผู้ป่วย') ? '✓' : ''"></span>ผู้ป่วย</label>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('InfoSource', 'ผู้นำส่ง') || hasVal('InfoSource', 'ผู้นำส่ง/ญาติ') ? '✓' : ''"></span>ผู้นำส่ง</label>
-                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('InfoSource', 'ญาติ') || hasVal('InfoSource', 'ผู้นำส่ง/ญาติ') ? '✓' : ''"></span>ญาติ</label>
+                                        <div class="text-center font-bold text-[14px] mb-4 leading-snug">
+                                            แบบประเมินประวัติและประเมินสมรรถนะผู้ป่วย งานผู้ป่วยใน<br>โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
+                                        </div>
+                        
+                                        <div class="text-[11px] leading-relaxed mb-3">
+                                            <div class="flex flex-wrap gap-x-4">
+                                                <div>วันที่ <span class="border-b border-dotted border-black inline-block min-w-[80px] text-center" x-text="savedAssessment?.AdmitDate"></span></div>
+                                                <div>เวลา <span class="border-b border-dotted border-black inline-block min-w-[50px] text-center" x-text="savedAssessment?.AdmitTime"></span> น.</div>
+                                                <div>รับจาก <span class="border-b border-dotted border-black inline-block min-w-[100px] text-center" x-text="savedAssessment?.AdmittedFrom"></span></div>
+                                                <div>รับ REFER จาก <span class="border-b border-dotted border-black inline-block min-w-[100px] text-center" x-text="savedAssessment?.Refer"></span></div>
                                             </div>
-                                            <div>มาโดย 
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('ArriveBy', 'เดินมา') ? '✓' : ''"></span>เดินมา</label>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('ArriveBy', 'รถนั่ง') ? '✓' : ''"></span>รถนั่ง</label>
-                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('ArriveBy', 'เปลนอน') ? '✓' : ''"></span>เปลนอน</label>
+                                            <div class="flex flex-wrap gap-x-4 mt-1">
+                                                <div>ผู้ให้ข้อมูล 
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('InfoSource', 'ผู้ป่วย') ? '✓' : ''"></span>ผู้ป่วย</label>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('InfoSource', 'ผู้นำส่ง') || hasVal('InfoSource', 'ผู้นำส่ง/ญาติ') ? '✓' : ''"></span>ผู้นำส่ง</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('InfoSource', 'ญาติ') || hasVal('InfoSource', 'ผู้นำส่ง/ญาติ') ? '✓' : ''"></span>ญาติ</label>
+                                                </div>
+                                                <div>มาโดย 
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('ArriveBy', 'เดินมา') ? '✓' : ''"></span>เดินมา</label>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('ArriveBy', 'รถนั่ง') ? '✓' : ''"></span>รถนั่ง</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('ArriveBy', 'เปลนอน') ? '✓' : ''"></span>เปลนอน</label>
+                                                </div>
+                                            </div>
+                                            <div class="flex flex-wrap gap-x-4 mt-1">
+                                                <div class="flex-1">ผู้ดูแลหลักชื่อ <span class="border-b border-dotted border-black inline-block min-w-[150px] w-[60%] text-center" x-text="savedAssessment?.MainCaregiver_Name"></span></div>
+                                                <div class="flex-1">ความสัมพันธ์กับผู้ป่วย <span class="border-b border-dotted border-black inline-block min-w-[150px] w-[60%] text-center" x-text="savedAssessment?.MainCaregiver_Rel === 'อื่นๆ' ? savedAssessment?.MainCaregiver_Rel_Other : savedAssessment?.MainCaregiver_Rel"></span></div>
                                             </div>
                                         </div>
-                                        <div class="flex flex-wrap gap-x-4 mt-1">
-                                            <div class="flex-1">ผู้ดูแลหลักชื่อ <span class="border-b border-dotted border-black inline-block min-w-[150px] w-[60%] text-center" x-text="savedAssessment?.MainCaregiver_Name"></span></div>
-                                            <div class="flex-1">ความสัมพันธ์กับผู้ป่วย <span class="border-b border-dotted border-black inline-block min-w-[150px] w-[60%] text-center" x-text="savedAssessment?.MainCaregiver_Rel === 'อื่นๆ' ? savedAssessment?.MainCaregiver_Rel_Other : savedAssessment?.MainCaregiver_Rel"></span></div>
+                        
+                                        <div class="text-[11px] leading-relaxed mb-3">
+                                            <div class="flex mt-1">
+                                                <div class="w-24">อาการสำคัญ</div>
+                                                <div class="flex-1 border-b border-dotted border-black" x-text="savedAssessment?.ChiefComplaint"></div>
+                                            </div>
+                                            <div class="flex mt-1">
+                                                <div class="w-24">ประวัติการเจ็บป่วย</div>
+                                                <div class="flex-1 border-b border-dotted border-black" x-text="savedAssessment?.PresentIllness"></div>
+                                            </div>
+                                            <div class="flex mt-1">
+                                                <div class="w-24">อาการแสดงแรกรับ</div>
+                                                <div class="flex-1 border-b border-dotted border-black" x-text="savedAssessment?.AdmitSymptoms"></div>
+                                            </div>
+                                            <div class="flex flex-wrap gap-x-4 mt-1">
+                                                <div>สัญญาณชีพแรกรับ BT <span class="border-b border-dotted border-black inline-block min-w-[40px] text-center" x-text="savedAssessment?.Admit_BT"></span> (°C)</div>
+                                                <div>PR <span class="border-b border-dotted border-black inline-block min-w-[40px] text-center" x-text="savedAssessment?.Admit_PR"></span> (/min)</div>
+                                                <div>RR <span class="border-b border-dotted border-black inline-block min-w-[40px] text-center" x-text="savedAssessment?.Admit_RR"></span> (/min)</div>
+                                                <div>BP <span class="border-b border-dotted border-black inline-block min-w-[60px] text-center" x-text="savedAssessment?.Admit_BP"></span> (mmHg)</div>
+                                            </div>
                                         </div>
-                                    </div>
-                            
-                                    <div class="text-[11px] leading-relaxed mb-3">
-                                        <div class="flex mt-1">
-                                            <div class="w-24">อาการสำคัญ</div>
-                                            <div class="flex-1 border-b border-dotted border-black" x-text="savedAssessment?.ChiefComplaint"></div>
-                                        </div>
-                                        <div class="flex mt-1">
-                                            <div class="w-24">ประวัติการเจ็บป่วย</div>
-                                            <div class="flex-1 border-b border-dotted border-black" x-text="savedAssessment?.PresentIllness"></div>
-                                        </div>
-                                        <div class="flex mt-1">
-                                            <div class="w-24">อาการแสดงแรกรับ</div>
-                                            <div class="flex-1 border-b border-dotted border-black" x-text="savedAssessment?.AdmitSymptoms"></div>
-                                        </div>
-                                        <div class="flex flex-wrap gap-x-4 mt-1">
-                                            <div>สัญญาณชีพแรกรับ BT <span class="border-b border-dotted border-black inline-block min-w-[40px] text-center" x-text="savedAssessment?.Admit_BT"></span> (°C)</div>
-                                            <div>PR <span class="border-b border-dotted border-black inline-block min-w-[40px] text-center" x-text="savedAssessment?.Admit_PR"></span> (/min)</div>
-                                            <div>RR <span class="border-b border-dotted border-black inline-block min-w-[40px] text-center" x-text="savedAssessment?.Admit_RR"></span> (/min)</div>
-                                            <div>BP <span class="border-b border-dotted border-black inline-block min-w-[60px] text-center" x-text="savedAssessment?.Admit_BP"></span> (mmHg)</div>
-                                        </div>
-                                    </div>
-                            
-                                    <div class="text-[11px] leading-relaxed mb-4">
-                                        <div class="flex">
-                                            <div class="w-24 font-bold">โรคประจำตัว:</div>
-                                            <div class="flex-1 flex flex-wrap gap-x-3">
-                                                <label class="inline-flex items-center mr-2"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="(!hasVal('Hx_HT') && !hasVal('Hx_Heart') && !hasVal('Hx_Liver') && !hasVal('Hx_Kidney') && !hasVal('Hx_DM') && !hasVal('Hx_Asthma') && !hasVal('Hx_Epilepsy') && !hasVal('Hx_TB') && !hasVal('Hx_Cancer') && !hasVal('Hx_Other_Check')) ? '✓' : ''"></span>ไม่มี</label>
-                                                <label class="inline-flex items-center mr-2"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1"></span>ไม่ทราบ</label>
-                                                <label class="inline-flex items-center mr-2"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1"></span>ไม่เคยตรวจ</label>
-                                                <div class="w-full flex flex-wrap gap-x-3 mt-1">
-                                                    <span>ได้แก่</span>
-                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Hx_HT') ? '✓' : ''"></span>ความดันโลหิตสูง</label>
-                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Hx_Heart') ? '✓' : ''"></span>โรคหัวใจ</label>
-                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Hx_Liver') ? '✓' : ''"></span>โรคตับ</label>
-                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Hx_Kidney') ? '✓' : ''"></span>โรคไต</label>
-                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Hx_DM') ? '✓' : ''"></span>เบาหวาน</label>
-                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Hx_Asthma') ? '✓' : ''"></span>หอบหืด</label>
-                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Hx_Epilepsy') ? '✓' : ''"></span>ลมชัก</label>
-                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Hx_TB') ? '✓' : ''"></span>วัณโรค</label>
-                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Hx_Cancer') ? '✓' : ''"></span>มะเร็ง.. <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.Hx_Cancer_Detail"></span></label>
-                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Hx_Other_Check') ? '✓' : ''"></span>อื่นๆ:. <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.Hx_Other"></span></label>
+                        
+                                        <div class="text-[11px] leading-relaxed mb-4">
+                                            <div class="flex">
+                                                <div class="w-24 font-bold">โรคประจำตัว:</div>
+                                                <div class="flex-1 flex flex-wrap gap-x-3">
+                                                    <label class="inline-flex items-center mr-2"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="(!hasVal('Hx_HT') && !hasVal('Hx_Heart') && !hasVal('Hx_Liver') && !hasVal('Hx_Kidney') && !hasVal('Hx_DM') && !hasVal('Hx_Asthma') && !hasVal('Hx_Epilepsy') && !hasVal('Hx_TB') && !hasVal('Hx_Cancer') && !hasVal('Hx_Other_Check')) ? '✓' : ''"></span>ไม่มี</label>
+                                                    <label class="inline-flex items-center mr-2"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1"></span>ไม่ทราบ</label>
+                                                    <label class="inline-flex items-center mr-2"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1"></span>ไม่เคยตรวจ</label>
+                                                    <div class="w-full flex flex-wrap gap-x-3 mt-1">
+                                                        <span>ได้แก่</span>
+                                                        <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Hx_HT') ? '✓' : ''"></span>ความดันโลหิตสูง</label>
+                                                        <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Hx_Heart') ? '✓' : ''"></span>โรคหัวใจ</label>
+                                                        <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Hx_Liver') ? '✓' : ''"></span>โรคตับ</label>
+                                                        <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Hx_Kidney') ? '✓' : ''"></span>โรคไต</label>
+                                                        <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Hx_DM') ? '✓' : ''"></span>เบาหวาน</label>
+                                                        <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Hx_Asthma') ? '✓' : ''"></span>หอบหืด</label>
+                                                        <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Hx_Epilepsy') ? '✓' : ''"></span>ลมชัก</label>
+                                                        <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Hx_TB') ? '✓' : ''"></span>วัณโรค</label>
+                                                        <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Hx_Cancer') ? '✓' : ''"></span>มะเร็ง.. <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.Hx_Cancer_Detail"></span></label>
+                                                        <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Hx_Other_Check') ? '✓' : ''"></span>อื่นๆ:. <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.Hx_Other"></span></label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="flex mt-1">
+                                                <div class="w-28 font-bold">การแพ้ยา/สารต่าง ๆ:</div>
+                                                <div>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Allergy_Status', 'ไม่เคย') ? '✓' : ''"></span>ไม่เคย</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Allergy_Status', 'เคย') ? '✓' : ''"></span>เคย (ระบุ). <span class="border-b border-dotted border-black inline-block min-w-[200px]" x-text="savedAssessment?.Allergy_Detail"></span></label>
+                                                </div>
+                                            </div>
+                                            <div class="flex mt-1">
+                                                <div class="w-32 font-bold">การรักษาตัวในโรงพยาบาล:</div>
+                                                <div>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('AdmitHx_Status', 'ไม่เคย') ? '✓' : ''"></span>ไม่เคย</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('AdmitHx_Status', 'เคย') ? '✓' : ''"></span>เคย ด้วยโรค....... <span class="border-b border-dotted border-black inline-block min-w-[150px] text-center" x-text="savedAssessment?.AdmitHx_Disease"></span> เมื่อ <span class="border-b border-dotted border-black inline-block min-w-[80px] text-center" x-text="savedAssessment?.AdmitHx_When"></span></label>
+                                                </div>
+                                            </div>
+                                            <div class="flex mt-1">
+                                                <div class="w-20 font-bold">การผ่าตัด:</div>
+                                                <div>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sx_Status', 'ไม่เคย') ? '✓' : ''"></span>ไม่เคย</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sx_Status', 'เคย') ? '✓' : ''"></span>เคย ผ่าตัด...... <span class="border-b border-dotted border-black inline-block min-w-[150px] text-center" x-text="savedAssessment?.Sx_Detail"></span> เมื่อ <span class="border-b border-dotted border-black inline-block min-w-[80px] text-center" x-text="savedAssessment?.Sx_When"></span></label>
+                                                </div>
+                                            </div>
+                                            <div class="flex mt-1">
+                                                <div class="w-36 font-bold">ประวัติการเจ็บป่วยในครอบครัว:</div>
+                                                <div>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('FamilyHx_Status', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('FamilyHx_Status', 'มี') ? '✓' : ''"></span>มี (ระบุ).. <span class="border-b border-dotted border-black inline-block min-w-[200px]" x-text="savedAssessment?.FamilyHx_Detail"></span></label>
+                                                </div>
+                                            </div>
+                                            <div class="flex mt-1">
+                                                <div class="w-20 font-bold">สิ่งเสพติด:</div>
+                                                <div class="flex-1">
+                                                    <div class="flex items-center">
+                                                        <span class="w-10">สุรา</span>
+                                                        <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Substance_Alcohol', 'ไม่ดื่ม') ? '✓' : ''"></span>ไม่ดื่ม</label>
+                                                        <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Substance_Alcohol', 'ดื่มนานๆครั้ง') ? '✓' : ''"></span>ดื่มนานๆครั้ง</label>
+                                                        <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Substance_Alcohol', 'ดื่มเป็นประจำ') ? '✓' : ''"></span>ดื่มเป็นประจำ ปริมาณ <span class="border-b border-dotted border-black inline-block min-w-[40px] text-center" x-text="savedAssessment?.Substance_Alcohol_Vol"></span> ต่อวัน</label>
+                                                    </div>
+                                                    <div class="flex items-center mt-1">
+                                                        <span class="w-10">บุหรี่</span>
+                                                        <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Substance_Smoke', 'ไม่สูบ') ? '✓' : ''"></span>ไม่สูบ</label>
+                                                        <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Substance_Smoke', 'สูบนานๆครั้ง') ? '✓' : ''"></span>สูบนานๆครั้ง</label>
+                                                        <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Substance_Smoke', 'สูบเป็นประจำ') ? '✓' : ''"></span>สูบเป็นประจำ ปริมาณ <span class="border-b border-dotted border-black inline-block min-w-[40px] text-center" x-text="savedAssessment?.Substance_Smoke_Vol"></span> ต่อวัน</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="flex mt-1">
+                                                <div class="w-24 font-bold">ยาที่ใช้ประจำ:</div>
+                                                <div>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Meds_Status', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Meds_Status', 'มี') ? '✓' : ''"></span>มี (ระบุ). <span class="border-b border-dotted border-black inline-block min-w-[300px]" x-text="savedAssessment?.Meds_Detail"></span></label>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="flex mt-1">
-                                            <div class="w-28 font-bold">การแพ้ยา/สารต่าง ๆ:</div>
+                        
+                                        <div class="grid grid-cols-2 gap-x-6 text-[11px] leading-snug">
                                             <div>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Allergy_Status', 'ไม่เคย') ? '✓' : ''"></span>ไม่เคย</label>
-                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Allergy_Status', 'เคย') ? '✓' : ''"></span>เคย (ระบุ). <span class="border-b border-dotted border-black inline-block min-w-[200px]" x-text="savedAssessment?.Allergy_Detail"></span></label>
+                                                <div class="font-bold mb-1">1) การรับรู้เกี่ยวกับสุขภาพและการดูแล</div>
+                                                <div class="flex flex-wrap items-center">
+                                                    <span class="mr-2">ก่อนการเจ็บป่วยครั้งนี้:</span>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('HP_Before', 'ดี') ? '✓' : ''"></span>ดี</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('HP_Before', 'ไม่ดี') ? '✓' : ''"></span>ไม่ดี: <span class="border-b border-dotted border-black inline-block min-w-[80px]" x-text="savedAssessment?.HP_Before_Detail"></span></label>
+                                                </div>
+                                                <div class="flex flex-wrap items-center mt-1">
+                                                    <span class="mr-2">เจ็บป่วยครั้งนี้:</span>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('HP_Current_Severity', 'รุนแรง') ? '✓' : ''"></span>รุนแรง</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('HP_Current_Severity', 'ไม่รุนแรง') ? '✓' : ''"></span>ไม่รุนแรง</label>
+                                                </div>
+                                                <div class="flex flex-wrap items-center mt-1">
+                                                    <span class="mr-2">การดูแล:</span>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('HP_Care', 'ไปรพ./คลินิก') ? '✓' : ''"></span>ไปรพ./คลินิก</label>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('HP_Care', 'ซื้อยารับประทาน') ? '✓' : ''"></span>ซื้อยารับประทาน</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('HP_Care', 'อื่นๆ') ? '✓' : ''"></span>อื่นๆ: <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.HP_Care_Other"></span></label>
+                                                </div>
+                                                <div class="flex flex-wrap items-center mt-1">
+                                                    <span class="mr-2">ความคาดหวังในการรักษา:</span>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Expectation', 'หาย') ? '✓' : ''"></span>หาย</label>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Expectation', 'ไม่แน่ใจ') ? '✓' : ''"></span>ไม่แน่ใจ</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Expectation', 'ไม่หาย') ? '✓' : ''"></span>ไม่หาย</label>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div class="flex mt-1">
-                                            <div class="w-32 font-bold">การรักษาตัวในโรงพยาบาล:</div>
+                        
                                             <div>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('AdmitHx_Status', 'ไม่เคย') ? '✓' : ''"></span>ไม่เคย</label>
-                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('AdmitHx_Status', 'เคย') ? '✓' : ''"></span>เคย ด้วยโรค....... <span class="border-b border-dotted border-black inline-block min-w-[150px] text-center" x-text="savedAssessment?.AdmitHx_Disease"></span> เมื่อ <span class="border-b border-dotted border-black inline-block min-w-[80px] text-center" x-text="savedAssessment?.AdmitHx_When"></span></label>
-                                            </div>
-                                        </div>
-                                        <div class="flex mt-1">
-                                            <div class="w-20 font-bold">การผ่าตัด:</div>
-                                            <div>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sx_Status', 'ไม่เคย') ? '✓' : ''"></span>ไม่เคย</label>
-                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sx_Status', 'เคย') ? '✓' : ''"></span>เคย ผ่าตัด...... <span class="border-b border-dotted border-black inline-block min-w-[150px] text-center" x-text="savedAssessment?.Sx_Detail"></span> เมื่อ <span class="border-b border-dotted border-black inline-block min-w-[80px] text-center" x-text="savedAssessment?.Sx_When"></span></label>
-                                            </div>
-                                        </div>
-                                        <div class="flex mt-1">
-                                            <div class="w-36 font-bold">ประวัติการเจ็บป่วยในครอบครัว:</div>
-                                            <div>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('FamilyHx_Status', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
-                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('FamilyHx_Status', 'มี') ? '✓' : ''"></span>มี (ระบุ).. <span class="border-b border-dotted border-black inline-block min-w-[200px]" x-text="savedAssessment?.FamilyHx_Detail"></span></label>
-                                            </div>
-                                        </div>
-                                        <div class="flex mt-1">
-                                            <div class="w-20 font-bold">สิ่งเสพติด:</div>
-                                            <div class="flex-1">
-                                                <div class="flex items-center">
-                                                    <span class="w-10">สุรา</span>
-                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Substance_Alcohol', 'ไม่ดื่ม') ? '✓' : ''"></span>ไม่ดื่ม</label>
-                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Substance_Alcohol', 'ดื่มนานๆครั้ง') ? '✓' : ''"></span>ดื่มนานๆครั้ง</label>
-                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Substance_Alcohol', 'ดื่มเป็นประจำ') ? '✓' : ''"></span>ดื่มเป็นประจำ ปริมาณ <span class="border-b border-dotted border-black inline-block min-w-[40px] text-center" x-text="savedAssessment?.Substance_Alcohol_Vol"></span> ต่อวัน</label>
+                                                <div class="font-bold mb-1">2) โภชนาการและการเผาผลาญ</div>
+                                                <div>
+                                                    รับประทานอาหาร <span class="border-b border-dotted border-black inline-block min-w-[30px] text-center" x-text="savedAssessment?.Nutri_Meals"></span> มื้อ/วัน
+                                                </div>
+                                                <div class="flex flex-wrap mt-1 gap-y-1">
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Nutri_Type', 'อาหารธรรมดา') ? '✓' : ''"></span>อาหารธรรมดา</label>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Nutri_Type', 'อาหารอ่อน') ? '✓' : ''"></span>อาหารอ่อน</label>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Nutri_Type', 'อาหารทางสายยาง') ? '✓' : ''"></span>อาหารทางสายยาง</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Nutri_Type', 'อาหารเฉพาะโรค') ? '✓' : ''"></span>อาหารเฉพาะโรค... <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.Nutri_Type_Detail"></span></label>
                                                 </div>
                                                 <div class="flex items-center mt-1">
-                                                    <span class="w-10">บุหรี่</span>
-                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Substance_Smoke', 'ไม่สูบ') ? '✓' : ''"></span>ไม่สูบ</label>
-                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Substance_Smoke', 'สูบนานๆครั้ง') ? '✓' : ''"></span>สูบนานๆครั้ง</label>
-                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Substance_Smoke', 'สูบเป็นประจำ') ? '✓' : ''"></span>สูบเป็นประจำ ปริมาณ <span class="border-b border-dotted border-black inline-block min-w-[40px] text-center" x-text="savedAssessment?.Substance_Smoke_Vol"></span> ต่อวัน</label>
+                                                    <span class="mr-2">ปัญหาในการรับประทานอาหาร:</span>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Nutri_Problem_Status', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Nutri_Problem_Status', 'มี') ? '✓' : ''"></span>มี... <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.Nutri_Problem_Detail"></span></label>
+                                                </div>
+                                                <div class="flex items-center mt-1">
+                                                    <span class="mr-2">ผิวหนัง:</span>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Skin_Status', 'ปกติ') ? '✓' : ''"></span>ปกติ</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Skin_Status', 'ไม่ปกติ') ? '✓' : ''"></span>ไม่ปกติ: <span class="border-b border-dotted border-black inline-block min-w-[80px]" x-text="savedAssessment?.Skin_Detail"></span></label>
+                                                </div>
+                                            </div>
+                        
+                                            <div class="mt-2">
+                                                <div class="font-bold mb-1">3) การขับถ่าย</div>
+                                                <div class="flex items-center">
+                                                    <span class="mr-2 w-14">ปัสสาวะ</span> <span class="border-b border-dotted border-black inline-block w-10 text-center mr-2" x-text="savedAssessment?.Elim_Urine_Freq"></span> ครั้ง/วัน
+                                                    <label class="inline-flex items-center ml-2 mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Elim_Urine_Status', 'ปกติ') ? '✓' : ''"></span>ปกติ</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Elim_Urine_Status', 'ไม่ปกติ') ? '✓' : ''"></span>ไม่ปกติ: <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.Elim_Urine_Detail"></span></label>
+                                                </div>
+                                                <div class="flex items-center mt-1">
+                                                    <span class="mr-2 w-14">อุจจาระ</span> <span class="border-b border-dotted border-black inline-block w-10 text-center mr-2" x-text="savedAssessment?.Elim_Bowel_Freq"></span> ครั้ง/วัน
+                                                    <label class="inline-flex items-center ml-2 mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Elim_Bowel_Status', 'ปกติ') ? '✓' : ''"></span>ปกติ</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Elim_Bowel_Status', 'ไม่ปกติ') ? '✓' : ''"></span>ไม่ปกติ: <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.Elim_Bowel_Detail"></span></label>
+                                                </div>
+                                                <div class="flex items-center mt-1">
+                                                    <span class="mr-2">การขับถ่ายทางหน้าท้อง:</span>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Elim_Stoma', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Elim_Stoma', 'มี') ? '✓' : ''"></span>มี</label>
+                                                </div>
+                                            </div>
+                        
+                                            <div class="mt-2">
+                                                <div class="font-bold mb-1">5) การพักผ่อนนอนหลับ</div>
+                                                <div class="flex items-center">
+                                                    <span class="mr-2">นอน:</span> <span class="border-b border-dotted border-black inline-block w-10 text-center mr-2" x-text="savedAssessment?.Sleep_Hours"></span> ชั่วโมงต่อวัน
+                                                    <label class="inline-flex items-center ml-2 mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sleep_Adequacy', 'เพียงพอ') ? '✓' : ''"></span>เพียงพอ</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sleep_Adequacy', 'ไม่เพียงพอ') ? '✓' : ''"></span>ไม่เพียงพอ</label>
+                                                </div>
+                                                <div class="flex items-center mt-1">
+                                                    <span class="mr-2">ปัญหาการนอน:</span>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sleep_Problem', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sleep_Problem', 'มี') ? '✓' : ''"></span>มีระบุ... <span class="border-b border-dotted border-black inline-block min-w-[80px]" x-text="savedAssessment?.Sleep_Problem_Detail"></span></label>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="flex mt-1">
-                                            <div class="w-24 font-bold">ยาที่ใช้ประจำ:</div>
-                                            <div>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Meds_Status', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
-                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Meds_Status', 'มี') ? '✓' : ''"></span>มี (ระบุ). <span class="border-b border-dotted border-black inline-block min-w-[300px]" x-text="savedAssessment?.Meds_Detail"></span></label>
-                                            </div>
-                                        </div>
-                                    </div>
-                            
-                                    <div class="grid grid-cols-2 gap-x-6 text-[11px] leading-snug">
-                                        <div>
-                                            <div class="font-bold mb-1">1) การรับรู้เกี่ยวกับสุขภาพและการดูแล</div>
-                                            <div class="flex flex-wrap items-center">
-                                                <span class="mr-2">ก่อนการเจ็บป่วยครั้งนี้:</span>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('HP_Before', 'ดี') ? '✓' : ''"></span>ดี</label>
-                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('HP_Before', 'ไม่ดี') ? '✓' : ''"></span>ไม่ดี: <span class="border-b border-dotted border-black inline-block min-w-[80px]" x-text="savedAssessment?.HP_Before_Detail"></span></label>
-                                            </div>
-                                            <div class="flex flex-wrap items-center mt-1">
-                                                <span class="mr-2">เจ็บป่วยครั้งนี้:</span>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('HP_Current_Severity', 'รุนแรง') ? '✓' : ''"></span>รุนแรง</label>
-                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('HP_Current_Severity', 'ไม่รุนแรง') ? '✓' : ''"></span>ไม่รุนแรง</label>
-                                            </div>
-                                            <div class="flex flex-wrap items-center mt-1">
-                                                <span class="mr-2">การดูแล:</span>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('HP_Care', 'ไปรพ./คลินิก') ? '✓' : ''"></span>ไปรพ./คลินิก</label>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('HP_Care', 'ซื้อยารับประทาน') ? '✓' : ''"></span>ซื้อยารับประทาน</label>
-                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('HP_Care', 'อื่นๆ') ? '✓' : ''"></span>อื่นๆ: <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.HP_Care_Other"></span></label>
-                                            </div>
-                                            <div class="flex flex-wrap items-center mt-1">
-                                                <span class="mr-2">ความคาดหวังในการรักษา:</span>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Expectation', 'หาย') ? '✓' : ''"></span>หาย</label>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Expectation', 'ไม่แน่ใจ') ? '✓' : ''"></span>ไม่แน่ใจ</label>
-                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Expectation', 'ไม่หาย') ? '✓' : ''"></span>ไม่หาย</label>
-                                            </div>
-                                        </div>
-                            
-                                        <div>
-                                            <div class="font-bold mb-1">2) โภชนาการและการเผาผลาญ</div>
-                                            <div>
-                                                รับประทานอาหาร <span class="border-b border-dotted border-black inline-block min-w-[30px] text-center" x-text="savedAssessment?.Nutri_Meals"></span> มื้อ/วัน
-                                            </div>
-                                            <div class="flex flex-wrap mt-1 gap-y-1">
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Nutri_Type', 'อาหารธรรมดา') ? '✓' : ''"></span>อาหารธรรมดา</label>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Nutri_Type', 'อาหารอ่อน') ? '✓' : ''"></span>อาหารอ่อน</label>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Nutri_Type', 'อาหารทางสายยาง') ? '✓' : ''"></span>อาหารทางสายยาง</label>
-                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Nutri_Type', 'อาหารเฉพาะโรค') ? '✓' : ''"></span>อาหารเฉพาะโรค... <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.Nutri_Type_Detail"></span></label>
-                                            </div>
-                                            <div class="flex items-center mt-1">
-                                                <span class="mr-2">ปัญหาในการรับประทานอาหาร:</span>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Nutri_Problem_Status', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
-                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Nutri_Problem_Status', 'มี') ? '✓' : ''"></span>มี... <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.Nutri_Problem_Detail"></span></label>
-                                            </div>
-                                            <div class="flex items-center mt-1">
-                                                <span class="mr-2">ผิวหนัง:</span>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Skin_Status', 'ปกติ') ? '✓' : ''"></span>ปกติ</label>
-                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Skin_Status', 'ไม่ปกติ') ? '✓' : ''"></span>ไม่ปกติ: <span class="border-b border-dotted border-black inline-block min-w-[80px]" x-text="savedAssessment?.Skin_Detail"></span></label>
-                                            </div>
-                                        </div>
-                            
-                                        <div class="mt-2">
-                                            <div class="font-bold mb-1">3) การขับถ่าย</div>
-                                            <div class="flex items-center">
-                                                <span class="mr-2 w-14">ปัสสาวะ</span> <span class="border-b border-dotted border-black inline-block w-10 text-center mr-2" x-text="savedAssessment?.Elim_Urine_Freq"></span> ครั้ง/วัน
-                                                <label class="inline-flex items-center ml-2 mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Elim_Urine_Status', 'ปกติ') ? '✓' : ''"></span>ปกติ</label>
-                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Elim_Urine_Status', 'ไม่ปกติ') ? '✓' : ''"></span>ไม่ปกติ: <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.Elim_Urine_Detail"></span></label>
-                                            </div>
-                                            <div class="flex items-center mt-1">
-                                                <span class="mr-2 w-14">อุจจาระ</span> <span class="border-b border-dotted border-black inline-block w-10 text-center mr-2" x-text="savedAssessment?.Elim_Bowel_Freq"></span> ครั้ง/วัน
-                                                <label class="inline-flex items-center ml-2 mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Elim_Bowel_Status', 'ปกติ') ? '✓' : ''"></span>ปกติ</label>
-                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Elim_Bowel_Status', 'ไม่ปกติ') ? '✓' : ''"></span>ไม่ปกติ: <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.Elim_Bowel_Detail"></span></label>
-                                            </div>
-                                            <div class="flex items-center mt-1">
-                                                <span class="mr-2">การขับถ่ายทางหน้าท้อง:</span>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Elim_Stoma', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
-                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Elim_Stoma', 'มี') ? '✓' : ''"></span>มี</label>
-                                            </div>
-                                        </div>
-                            
-                                        <div class="mt-2">
-                                            <div class="font-bold mb-1">5) การพักผ่อนนอนหลับ</div>
-                                            <div class="flex items-center">
-                                                <span class="mr-2">นอน:</span> <span class="border-b border-dotted border-black inline-block w-10 text-center mr-2" x-text="savedAssessment?.Sleep_Hours"></span> ชั่วโมงต่อวัน
-                                                <label class="inline-flex items-center ml-2 mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sleep_Adequacy', 'เพียงพอ') ? '✓' : ''"></span>เพียงพอ</label>
-                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sleep_Adequacy', 'ไม่เพียงพอ') ? '✓' : ''"></span>ไม่เพียงพอ</label>
-                                            </div>
-                                            <div class="flex items-center mt-1">
-                                                <span class="mr-2">ปัญหาการนอน:</span>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sleep_Problem', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
-                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sleep_Problem', 'มี') ? '✓' : ''"></span>มีระบุ... <span class="border-b border-dotted border-black inline-block min-w-[80px]" x-text="savedAssessment?.Sleep_Problem_Detail"></span></label>
-                                            </div>
-                                        </div>
-                                    </div>
-                            
-                                    <div class="mt-3 text-[11px] leading-snug">
-                                        <div class="font-bold mb-1">4) กิจวัตรประจำวัน</div>
-                                        <table class="w-full border-collapse border border-black text-center text-[10px]">
-                                            <tr>
-                                                <td rowspan="2" class="border border-black p-1 text-left font-bold w-[30%]">กิจกรรม</td>
-                                                <td colspan="4" class="border border-black p-1 font-bold">ก่อนการเจ็บป่วย ( )</td>
-                                                <td colspan="4" class="border border-black p-1 font-bold">ขณะเจ็บป่วย ( )</td>
-                                            </tr>
-                                            <tr>
-                                                <td class="border border-black p-1">ทำได้เอง</td>
-                                                <td class="border border-black p-1">บางส่วน</td>
-                                                <td class="border border-black p-1">ไม่ได้เลย</td>
-                                                <td class="border border-black p-1">ใช้อุปกรณ์</td>
-                                                <td class="border border-black p-1">ทำได้เอง</td>
-                                                <td class="border border-black p-1">บางส่วน</td>
-                                                <td class="border border-black p-1">ไม่ได้เลย</td>
-                                                <td class="border border-black p-1">ใช้อุปกรณ์</td>
-                                            </tr>
-                                            <template x-for="act in [
-                                                {id: 'Eat', label: '1.การรับประทานอาหาร'},
-                                                {id: 'Oral', label: '2.การทำความสะอาดปาก/ฟัน'},
-                                                {id: 'Dress', label: '3.การแต่งตัว'},
-                                                {id: 'Walk', label: '4.การเดิน'},
-                                                {id: 'Toilet', label: '5.การขับถ่าย'},
-                                                {id: 'Bath', label: '6.การอาบน้ำ'}
-                                            ]">
+                        
+                                        <div class="mt-3 text-[11px] leading-snug">
+                                            <div class="font-bold mb-1">4) กิจวัตรประจำวัน</div>
+                                            <table class="w-full border-collapse border border-black text-center text-[10px]">
                                                 <tr>
-                                                    <td class="border border-black p-1 text-left pl-2" x-text="act.label"></td>
-                                                    <td class="border border-black p-1"><span x-text="hasVal('ADL_Before_'+act.id, 'ทำได้เอง') ? '✓' : ''"></span></td>
-                                                    <td class="border border-black p-1"><span x-text="hasVal('ADL_Before_'+act.id, 'บางส่วน') ? '✓' : ''"></span></td>
-                                                    <td class="border border-black p-1"><span x-text="hasVal('ADL_Before_'+act.id, 'ไม่ได้เลย') ? '✓' : ''"></span></td>
-                                                    <td class="border border-black p-1"><span x-text="hasVal('ADL_Before_'+act.id, 'ใช้อุปกรณ์') ? '✓' : ''"></span></td>
-                                                    <td class="border border-black p-1"><span x-text="hasVal('ADL_Current_'+act.id, 'ทำได้เอง') ? '✓' : ''"></span></td>
-                                                    <td class="border border-black p-1"><span x-text="hasVal('ADL_Current_'+act.id, 'บางส่วน') ? '✓' : ''"></span></td>
-                                                    <td class="border border-black p-1"><span x-text="hasVal('ADL_Current_'+act.id, 'ไม่ได้เลย') ? '✓' : ''"></span></td>
-                                                    <td class="border border-black p-1"><span x-text="hasVal('ADL_Current_'+act.id, 'ใช้อุปกรณ์') ? '✓' : ''"></span></td>
+                                                    <td rowspan="2" class="border border-black p-1 text-left font-bold w-[30%]">กิจกรรม</td>
+                                                    <td colspan="4" class="border border-black p-1 font-bold">ก่อนการเจ็บป่วย ( )</td>
+                                                    <td colspan="4" class="border border-black p-1 font-bold">ขณะเจ็บป่วย ( )</td>
                                                 </tr>
-                                            </template>
-                                        </table>
-                                    </div>
-                            
-                                    <div class="mt-3 text-[11px] leading-snug">
-                                        <div class="font-bold mb-1">6) การรับรู้และประสาทสัมผัส</div>
-                                        <div class="flex flex-wrap items-center mt-1">
-                                            <span class="mr-2 w-24">ระดับความรู้สึก:</span>
-                                            <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_LOC', 'รู้สึกตัวดี') ? '✓' : ''"></span>รู้สึกตัวดี</label>
-                                            <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_LOC', 'สับสน') ? '✓' : ''"></span>สับสน</label>
-                                            <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_LOC', 'ซึม') ? '✓' : ''"></span>ซึม</label>
-                                            <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_LOC', 'ไม่รู้สึกตัว') ? '✓' : ''"></span>ไม่รู้สึกตัว</label>
-                                        </div>
-                                        <div class="flex flex-wrap items-center mt-1">
-                                            <span class="mr-2 w-24">การมองเห็น:</span>
-                                            <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_Vision', 'ปกติ') ? '✓' : ''"></span>ปกติ</label>
-                                            <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_Vision', 'สายตาสั้น') ? '✓' : ''"></span>สายตาสั้น</label>
-                                            <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_Vision', 'สายตายาว') ? '✓' : ''"></span>สายตายาว</label>
-                                            <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_Vision', 'ใช้แว่นตา') ? '✓' : ''"></span>ใช้แว่นตา</label>
-                                            <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_Vision_Other') ? '✓' : ''"></span>อื่นๆ: <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.Cogn_Vision_Other"></span></label>
-                                        </div>
-                                        <div class="flex flex-wrap items-center mt-1">
-                                            <span class="mr-2 w-24">การพูด:</span>
-                                            <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_Speech', 'ปกติ') ? '✓' : ''"></span>ปกติ</label>
-                                            <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_Speech', 'มีปัญหา') ? '✓' : ''"></span>มีปัญหา: <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.Cogn_Speech_Detail"></span></label>
-                                            <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_Speech', 'ใช้ภาษาต่างประเทศ') ? '✓' : ''"></span>ใช้ภาษาต่างประเทศ.. <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.Cogn_Speech_Foreign"></span></label>
-                                        </div>
-                                        <div class="flex flex-wrap items-center mt-1">
-                                            <span class="mr-2 w-24">การเคลื่อนไหว:</span>
-                                            <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_Movement', 'ปกติ') ? '✓' : ''"></span>ปกติ</label>
-                                            <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_Movement', 'ข้อติดแข็ง') ? '✓' : ''"></span>ข้อติดแข็ง</label>
-                                            <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_Movement', 'อัมพาต') ? '✓' : ''"></span>อัมพาต</label>
-                                            <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_Movement', 'ข้ออักเสบ') ? '✓' : ''"></span>ข้ออักเสบ</label>
-                                            <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_Movement', 'กระดูกหัก') ? '✓' : ''"></span>กระดูกหัก</label>
-                                            <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_Movement_Other') ? '✓' : ''"></span>อื่นๆ...... <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.Cogn_Movement_Other"></span></label>
-                                        </div>
-                                    </div>
-                                    <div class="absolute bottom-0 left-0 w-full text-center text-[10px] text-gray-500 border-t border-gray-400 pt-1 pb-2">
-                                        เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | ระบบบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
-                                    </div>
-                                </div>
-                            
-                            
-                                <div class="a4-page relative">
-                                    <div class="flex justify-between items-start text-[11px] font-bold mb-3">
-                                        <div class="border border-black px-2 py-1">FR-IPD-004</div>
-                                        <div>แก้ไขครั้งที่ 02 1 ม.ค. 2564</div>
-                                    </div>
-                            
-                                    <div class="grid grid-cols-2 gap-x-6 text-[11px] leading-snug">
-                                        <div>
-                                            <div class="font-bold mb-1">7) การรับรู้ตนเองและอัตมโนทัศน์: การเจ็บป่วยมีผลกระทบต่อ</div>
-                                            <div class="flex items-center mt-1">
-                                                <span class="w-28">ภาพลักษณ์:</span>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Self_Image', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Self_Image', 'ไม่แน่ใจ') ? '✓' : ''"></span>ไม่แน่ใจ</label>
-                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Self_Image', 'มี') ? '✓' : ''"></span>มี: <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.Self_Image_Detail"></span></label>
-                                            </div>
-                                            <div class="flex items-center mt-1">
-                                                <span class="w-28">อารมณ์และจิตใจ:</span>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Self_Mood', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Self_Mood', 'ไม่แน่ใจ') ? '✓' : ''"></span>ไม่แน่ใจ</label>
-                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Self_Mood', 'มี') ? '✓' : ''"></span>มี: <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.Self_Mood_Detail"></span></label>
-                                            </div>
-                                            <div class="flex items-center mt-1">
-                                                <span class="w-36">ความสามารถดูแลตนเอง:</span>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Self_Care', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Self_Care', 'ไม่แน่ใจ') ? '✓' : ''"></span>ไม่แน่ใจ</label>
-                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Self_Care', 'มี') ? '✓' : ''"></span>มี: <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.Self_Care_Detail"></span></label>
-                                            </div>
-                            
-                                            <div class="font-bold mb-1 mt-4">9) บทบาทและสัมพันธภาพ:</div>
-                                            <div>การเจ็บป่วยครั้งนี้กระทบต่อบทบาท</div>
-                                            <div class="flex flex-wrap mt-1 gap-y-2">
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Role_Impact', 'ครอบครัว') ? '✓' : ''"></span>ครอบครัว</label>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Role_Impact', 'อาชีพ') ? '✓' : ''"></span>อาชีพ</label>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Role_Impact', 'การศึกษา') ? '✓' : ''"></span>การศึกษา</label>
-                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Role_Impact', 'สัมพันธภาพในครอบครัวและผู้อื่น') ? '✓' : ''"></span>สัมพันธภาพในครอบครัวและผู้อื่น</label>
-                                            </div>
-                            
-                                            <div class="font-bold mb-1 mt-4">10) เพศและการเจริญพันธุ์</div>
-                                            <div class="flex items-center mt-1">
-                                                <span class="w-20">ประจำเดือน:</span>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sex_Menstrual', 'ปกติ') ? '✓' : ''"></span>ปกติ</label>
-                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sex_Menstrual', 'ไม่ปกติ') ? '✓' : ''"></span>ไม่ปกติ.. <span class="border-b border-dotted border-black inline-block min-w-[80px]" x-text="savedAssessment?.Sex_Menstrual_Detail"></span></label>
-                                            </div>
-                                            <div class="flex items-center mt-1">
-                                                <span class="w-20">เต้านม:</span>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sex_Breast', 'ปกติ') ? '✓' : ''"></span>ปกติ</label>
-                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sex_Breast', 'ไม่ปกติ') ? '✓' : ''"></span>ไม่ปกติ.. <span class="border-b border-dotted border-black inline-block min-w-[80px]" x-text="savedAssessment?.Sex_Breast_Detail"></span></label>
-                                            </div>
-                                            <div class="flex items-center mt-1">
-                                                <span class="w-24">อวัยวะสืบพันธุ์:</span>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sex_Genital', 'ปกติ') ? '✓' : ''"></span>ปกติ</label>
-                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sex_Genital', 'ไม่ปกติ') ? '✓' : ''"></span>ไม่ปกติ.. <span class="border-b border-dotted border-black inline-block min-w-[80px]" x-text="savedAssessment?.Sex_Genital_Detail"></span></label>
-                                            </div>
-                                        </div>
-                            
-                                        <div>
-                                            <div class="font-bold mb-1">8) การเผชิญความเครียด / การปรับตัว</div>
-                                            <div class="flex flex-wrap items-center mt-1">
-                                                <span class="mr-2">สิ่งที่ทำให้ไม่สบายใจ:</span>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Status', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
-                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Status', 'มี') ? '✓' : ''"></span>มี</label>
-                                            </div>
-                                            <div class="flex flex-wrap mt-1 gap-y-2 ml-4">
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Detail', 'กลัวไม่หาย') ? '✓' : ''"></span>กลัวไม่หาย</label>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Detail', 'ค่ารักษาพยาบาล') ? '✓' : ''"></span>ค่ารักษาพยาบาล</label>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Detail', 'ขาดงาน/รายได้') ? '✓' : ''"></span>ขาดงาน/รายได้</label>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Detail', 'ครอบครัว') ? '✓' : ''"></span>ครอบครัว</label>
-                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Other') ? '✓' : ''"></span>อื่นๆ <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.Stress_Other"></span></label>
-                                            </div>
-                            
-                                            <div class="mt-3">การแสดงออก:</div>
-                                            <div class="flex flex-wrap mt-1 gap-y-2">
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Express', 'สีหน้าเรียบเฉย') ? '✓' : ''"></span>สีหน้าเรียบเฉย</label>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Express', 'วิตกกังวล') ? '✓' : ''"></span>วิตกกังวล</label>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Express', 'กลัว') ? '✓' : ''"></span>กลัว</label>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Express', 'ซึมเศร้า') ? '✓' : ''"></span>ซึมเศร้า</label>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Express', 'เอะอะโวยวาย') ? '✓' : ''"></span>เอะอะโวยวาย</label>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Express', 'หงุดหงิด') ? '✓' : ''"></span>หงุดหงิด</label>
-                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Express_Other') ? '✓' : ''"></span>อื่น <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.Stress_Express_Other"></span></label>
-                                            </div>
-                            
-                                            <div class="mt-3">วิธีแก้ไขความไม่สบายใจ:</div>
-                                            <div class="flex flex-wrap mt-1 gap-y-2">
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Resolve', 'ปรึกษาผู้อื่น') ? '✓' : ''"></span>ปรึกษาผู้อื่น</label>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Resolve', 'แยกตัวเอง') ? '✓' : ''"></span>แยกตัวเอง</label>
-                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Resolve', 'ใช้ยา') ? '✓' : ''"></span>ใช้ยา</label>
-                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Resolve_Other') ? '✓' : ''"></span>อื่นๆ <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.Stress_Resolve_Other"></span></label>
-                                            </div>
-                                        </div>
-                                    </div>
-                            
-                                    <div class="mt-4 text-[11px] leading-snug">
-                                        <div class="font-bold mb-1">11) คุณค่าและความเชื่อ</div>
-                                        <div class="flex items-center mt-1">
-                                            <span class="mr-2">การเจ็บป่วยครั้งนี้เชื่อว่า:</span>
-                                            <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Belief_Cause', 'การปฏิบัติตัวไม่ถูกต้อง') ? '✓' : ''"></span>การปฏิบัติตัวไม่ถูกต้อง</label>
-                                            <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Belief_Cause', 'เคราะห์กรรม') ? '✓' : ''"></span>เคราะห์กรรม</label>
-                                            <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Belief_Cause', 'ตามวัย') ? '✓' : ''"></span>ตามวัย</label>
-                                            <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Belief_Cause_Other') ? '✓' : ''"></span>อื่นๆ... <span class="border-b border-dotted border-black inline-block min-w-[100px]" x-text="savedAssessment?.Belief_Cause_Other"></span></label>
-                                        </div>
-                                        <div class="flex items-center mt-1">
-                                            <span class="mr-2">ต้องการปฏิบัติศาสนกิจ:</span>
-                                            <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Belief_Practice', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
-                                            <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Belief_Practice', 'ต้องการ') ? '✓' : ''"></span>ต้องการ: <span class="border-b border-dotted border-black inline-block min-w-[150px]" x-text="savedAssessment?.Belief_Practice_Detail"></span></label>
-                                        </div>
-                                        <div class="flex items-center mt-1">
-                                            <span class="mr-2">สิ่งยึดเหนี่ยวทางจิตใจ:</span>
-                                            <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Belief_Anchor', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
-                                            <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Belief_Anchor', 'มี') ? '✓' : ''"></span>มี... <span class="border-b border-dotted border-black inline-block min-w-[150px]" x-text="savedAssessment?.Belief_Anchor_Detail"></span></label>
-                                        </div>
-                                    </div>
-                            
-                                    <div class="mt-4 text-[11px] leading-snug">
-                                        <div class="font-bold mb-1">12) การมีส่วนร่วมของผู้ป่วยและญาติในการรักษาพยาบาล</div>
-                                        <div class="mt-1">
-                                            <label class="inline-flex items-center mr-4"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Involve_Status', 'ไม่ต้องการ') ? '✓' : ''"></span>ไม่ต้องการ</label>
-                                            <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Involve_Status', 'ต้องการ') ? '✓' : ''"></span>ต้องการ:</label>
-                                            
-                                            <div class="ml-6 mt-1 flex flex-col gap-y-1">
-                                                <div>
-                                                    <label class="inline-flex items-center mr-4"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Involve_Detail', 'ทราบข้อมูลเรื่องโรคและแนวทางรักษาพยาบาล') ? '✓' : ''"></span>ทราบข้อมูลเรื่องโรคและแนวทางรักษาพยาบาล</label>
-                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Involve_Detail', 'เรียนรู้ทักษะดูแลตนเอง/ผู้ป่วย') ? '✓' : ''"></span>เรียนรู้ทักษะดูแลตนเอง/ผู้ป่วย</label>
-                                                </div>
-                                                <div>
-                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Involve_Detail', 'ร่วมกับทีมสุขภาพในการดูแลผู้ป่วยระหว่างอยู่ในโรงพยาบาล') ? '✓' : ''"></span>ร่วมกับทีมสุขภาพในการดูแลผู้ป่วยระหว่างอยู่ในโรงพยาบาล</label>
-                                                </div>
-                                                <div>
-                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Involve_Other') ? '✓' : ''"></span>อื่นๆ......... <span class="border-b border-dotted border-black inline-block min-w-[200px]" x-text="savedAssessment?.Involve_Other"></span></label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                            
-                                    <div class="mt-4 text-[11px] leading-snug">
-                                        <div class="font-bold mb-1">13. PAIN MANAGEMENT</div>
-                                        <div class="flex items-center mt-1">
-                                            <span class="mr-3">Pain:</span>
-                                            <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Pain_Status', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
-                                            <label class="inline-flex items-center mr-2"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Pain_Status', 'มี') ? '✓' : ''"></span>มี บริเวณที่ปวด..</label>
-                                            <span class="border-b border-dotted border-black inline-block min-w-[80px] mr-2" x-text="savedAssessment?.Pain_Location"></span>
-                                            <span class="mr-2">สาเหตุ..</span><span class="border-b border-dotted border-black inline-block min-w-[80px]" x-text="savedAssessment?.Pain_Cause"></span>
-                                            <span class="mr-3 ml-4">ลักษณะ:</span>
-                                            <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Pain_Type', 'ครั้งคราว') ? '✓' : ''"></span>ครั้งคราว</label>
-                                            <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Pain_Type', 'ตลอดเวลา') ? '✓' : ''"></span>ตลอดเวลา</label>
-                                        </div>
-                                        
-                                        <div class="mt-3">
-                                            <span class="font-bold mr-4">Pain Scale</span>
-                                            <div class="inline-flex flex-wrap gap-x-2">
-                                                <template x-for="i in [0,1,2,3,4,5,6,7,8,9,10]" :key="i">
-                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Pain_Scale_Score', i.toString()) ? '✓' : ''"></span><span x-text="i"></span></label>
+                                                <tr>
+                                                    <td class="border border-black p-1">ทำได้เอง</td>
+                                                    <td class="border border-black p-1">บางส่วน</td>
+                                                    <td class="border border-black p-1">ไม่ได้เลย</td>
+                                                    <td class="border border-black p-1">ใช้อุปกรณ์</td>
+                                                    <td class="border border-black p-1">ทำได้เอง</td>
+                                                    <td class="border border-black p-1">บางส่วน</td>
+                                                    <td class="border border-black p-1">ไม่ได้เลย</td>
+                                                    <td class="border border-black p-1">ใช้อุปกรณ์</td>
+                                                </tr>
+                                                <template x-for="act in [
+                                                    {id: 'Eat', label: '1.การรับประทานอาหาร'},
+                                                    {id: 'Oral', label: '2.การทำความสะอาดปาก/ฟัน'},
+                                                    {id: 'Dress', label: '3.การแต่งตัว'},
+                                                    {id: 'Walk', label: '4.การเดิน'},
+                                                    {id: 'Toilet', label: '5.การขับถ่าย'},
+                                                    {id: 'Bath', label: '6.การอาบน้ำ'}
+                                                ]">
+                                                    <tr>
+                                                        <td class="border border-black p-1 text-left pl-2" x-text="act.label"></td>
+                                                        <td class="border border-black p-1"><span x-text="hasVal('ADL_Before_'+act.id, 'ทำได้เอง') ? '✓' : ''"></span></td>
+                                                        <td class="border border-black p-1"><span x-text="hasVal('ADL_Before_'+act.id, 'บางส่วน') ? '✓' : ''"></span></td>
+                                                        <td class="border border-black p-1"><span x-text="hasVal('ADL_Before_'+act.id, 'ไม่ได้เลย') ? '✓' : ''"></span></td>
+                                                        <td class="border border-black p-1"><span x-text="hasVal('ADL_Before_'+act.id, 'ใช้อุปกรณ์') ? '✓' : ''"></span></td>
+                                                        <td class="border border-black p-1"><span x-text="hasVal('ADL_Current_'+act.id, 'ทำได้เอง') ? '✓' : ''"></span></td>
+                                                        <td class="border border-black p-1"><span x-text="hasVal('ADL_Current_'+act.id, 'บางส่วน') ? '✓' : ''"></span></td>
+                                                        <td class="border border-black p-1"><span x-text="hasVal('ADL_Current_'+act.id, 'ไม่ได้เลย') ? '✓' : ''"></span></td>
+                                                        <td class="border border-black p-1"><span x-text="hasVal('ADL_Current_'+act.id, 'ใช้อุปกรณ์') ? '✓' : ''"></span></td>
+                                                    </tr>
                                                 </template>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="mt-2 mb-3 text-center">
-                                            <img src="https://cdn.sanity.io/images/eztzxh9q/production/ec037ff9aab42a37492f1b108eedd929ad435b91-2448x1224.jpg?w=3840&q=75&fit=clip&auto=format" class="h-[120px] max-w-[90%] object-contain mx-auto" alt="Pain Assessment Scale">
-                                        </div>
-                            
-                                        <div class="flex flex-wrap gap-y-2 items-center">
-                                            <span class="mr-4">การปวดกระทบต่อ:</span>
-                                            <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Pain_Impact', 'การกิน') ? '✓' : ''"></span>การกิน</label>
-                                            <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Pain_Impact', 'การนอน') ? '✓' : ''"></span>การนอน</label>
-                                            <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Pain_Impact', 'การทำกิจกรรม') ? '✓' : ''"></span>การทำกิจกรรม</label>
-                                            <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Pain_Impact', 'อารมณ์/สังคม') ? '✓' : ''"></span>อารมณ์/สังคม</label>
-                                            <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Pain_Impact', 'การขับถ่าย') ? '✓' : ''"></span>การขับถ่าย</label>
-                                            <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Pain_Impact', 'เพศสัมพันธุ์') ? '✓' : ''"></span>เพศสัมพันธุ์</label>
-                                        </div>
-                                        
-                                        <div class="mt-2 flex flex-wrap gap-y-2 items-center">
-                                            <span class="mr-4">สิ่งที่บรรเทาปวด:</span>
-                                            <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Pain_Relief', 'Cold compress') ? '✓' : ''"></span>Cold compress</label>
-                                            <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Pain_Relief', 'Hot compress') ? '✓' : ''"></span>Hot compress</label>
-                                            <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Pain_Relief', 'Massage') ? '✓' : ''"></span>Massage</label>
-                                            <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Pain_Relief', 'Relaxation') ? '✓' : ''"></span>Relaxation</label>
-                                            <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Pain_Relief', 'Reposition') ? '✓' : ''"></span>Reposition</label>
-                                            <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Pain_Relief', 'Rest/Sleep') ? '✓' : ''"></span>Rest/Sleep</label>
-                                            <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Pain_Relief', 'Medication') ? '✓' : ''"></span>Medication</label>
-                                        </div>
-                                    </div>
-                            
-                                    <div class="mt-4 text-[11px] leading-snug">
-                                        <div class="font-bold mb-1">14. Braden Scale (Predicting Pressure Sore Risk)</div>
-                                        <div class="flex gap-4">
-                                            <table class="flex-1 border-collapse border border-black text-center text-[10px]">
-                                                <tr>
-                                                    <td class="border border-black p-1 font-bold">Parameter</td>
-                                                    <td class="border border-black p-1 font-bold">1</td>
-                                                    <td class="border border-black p-1 font-bold">2</td>
-                                                    <td class="border border-black p-1 font-bold">3</td>
-                                                    <td class="border border-black p-1 font-bold">4</td>
-                                                    <td class="border border-black p-1 font-bold">Score</td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="border border-black p-1 text-left">การรับรู้/ความรู้สึก</td>
-                                                    <td class="border border-black p-1">ความจำกัดทั้งหมด</td>
-                                                    <td class="border border-black p-1">ความจำกัดมาก</td>
-                                                    <td class="border border-black p-1">มีความจำกัดเล็กน้อย</td>
-                                                    <td class="border border-black p-1">ไม่บกพร่อง</td>
-                                                    <td class="border border-black p-1" x-text="savedAssessment?.Braden_Sensory"></td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="border border-black p-1 text-left">ความเปียกชื้น</td>
-                                                    <td class="border border-black p-1">เปียกชื้นตลอดเวลา</td>
-                                                    <td class="border border-black p-1">เปียกชื้นมาก</td>
-                                                    <td class="border border-black p-1">เปียกชื้นเป็นบางครั้ง</td>
-                                                    <td class="border border-black p-1">เปียกชื้นน้อยมาก</td>
-                                                    <td class="border border-black p-1" x-text="savedAssessment?.Braden_Moisture"></td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="border border-black p-1 text-left">กิจกรรม</td>
-                                                    <td class="border border-black p-1">นอนอยู่กับที่ตลอดเวลา</td>
-                                                    <td class="border border-black p-1">เดินไม่ได้ ต้องใช้รถเข็น</td>
-                                                    <td class="border border-black p-1">เดินได้เป็นบางครั้ง</td>
-                                                    <td class="border border-black p-1">เดินได้ปกติ</td>
-                                                    <td class="border border-black p-1" x-text="savedAssessment?.Braden_Activity"></td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="border border-black p-1 text-left">การเคลื่อนไหว</td>
-                                                    <td class="border border-black p-1">เคลื่อนไหวเองไม่ได้</td>
-                                                    <td class="border border-black p-1">เคลื่อนไหวเองได้น้อย<br>ต้องมีผู้ช่วยเหลือ</td>
-                                                    <td class="border border-black p-1">เคลื่อนไหวเองได้บ้าง</td>
-                                                    <td class="border border-black p-1">เคลื่อนไหวได้ปกติ</td>
-                                                    <td class="border border-black p-1" x-text="savedAssessment?.Braden_Mobility"></td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="border border-black p-1 text-left">โภชนาการ</td>
-                                                    <td class="border border-black p-1">ไม่เพียงพอ</td>
-                                                    <td class="border border-black p-1">อาจไม่เพียงพอเกือบทุกมื้อ</td>
-                                                    <td class="border border-black p-1">เพียงพอ</td>
-                                                    <td class="border border-black p-1">ดีเยี่ยม</td>
-                                                    <td class="border border-black p-1" x-text="savedAssessment?.Braden_Nutrition"></td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="border border-black p-1 text-left">การเสียดสีและการเสียดทาน</td>
-                                                    <td class="border border-black p-1">มีปัญหา</td>
-                                                    <td class="border border-black p-1">เสี่ยงต่อการเกิดปัญหา</td>
-                                                    <td class="border border-black p-1">ไม่มีปัญหา</td>
-                                                    <td class="border border-black p-1 bg-gray-100"></td>
-                                                    <td class="border border-black p-1" x-text="savedAssessment?.Braden_Friction"></td>
-                                                </tr>
-                                                <tr>
-                                                    <td colspan="5" class="border border-black p-1 text-right font-bold pr-4">Total Score</td>
-                                                    <td class="border border-black p-1 font-bold text-base" x-text="savedAssessment?.Braden_Total || ((parseInt(savedAssessment?.Braden_Sensory) || 0) + (parseInt(savedAssessment?.Braden_Moisture) || 0) + (parseInt(savedAssessment?.Braden_Activity) || 0) + (parseInt(savedAssessment?.Braden_Mobility) || 0) + (parseInt(savedAssessment?.Braden_Nutrition) || 0) + (parseInt(savedAssessment?.Braden_Friction) || 0)) || '0'"></td>
-                                                </tr>
                                             </table>
-                                            <div class="w-32 text-[10px] leading-relaxed flex flex-col justify-center gap-1 border border-black p-2">
-                                                <div>≤9 Very high risk</div>
-                                                <div>10-12 High risk</div>
-                                                <div>13-14 Moderate risk</div>
-                                                <div>15-18 Low risk</div>
+                                        </div>
+                        
+                                        <div class="mt-3 text-[11px] leading-snug">
+                                            <div class="font-bold mb-1">6) การรับรู้และประสาทสัมผัส</div>
+                                            <div class="flex flex-wrap items-center mt-1">
+                                                <span class="mr-2 w-24">ระดับความรู้สึก:</span>
+                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_LOC', 'รู้สึกตัวดี') ? '✓' : ''"></span>รู้สึกตัวดี</label>
+                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_LOC', 'สับสน') ? '✓' : ''"></span>สับสน</label>
+                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_LOC', 'ซึม') ? '✓' : ''"></span>ซึม</label>
+                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_LOC', 'ไม่รู้สึกตัว') ? '✓' : ''"></span>ไม่รู้สึกตัว</label>
                                             </div>
+                                            <div class="flex flex-wrap items-center mt-1">
+                                                <span class="mr-2 w-24">การมองเห็น:</span>
+                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_Vision', 'ปกติ') ? '✓' : ''"></span>ปกติ</label>
+                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_Vision', 'สายตาสั้น') ? '✓' : ''"></span>สายตาสั้น</label>
+                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_Vision', 'สายตายาว') ? '✓' : ''"></span>สายตายาว</label>
+                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_Vision', 'ใช้แว่นตา') ? '✓' : ''"></span>ใช้แว่นตา</label>
+                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_Vision_Other') ? '✓' : ''"></span>อื่นๆ: <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.Cogn_Vision_Other"></span></label>
+                                            </div>
+                                            <div class="flex flex-wrap items-center mt-1">
+                                                <span class="mr-2 w-24">การพูด:</span>
+                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_Speech', 'ปกติ') ? '✓' : ''"></span>ปกติ</label>
+                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_Speech', 'มีปัญหา') ? '✓' : ''"></span>มีปัญหา: <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.Cogn_Speech_Detail"></span></label>
+                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_Speech', 'ใช้ภาษาต่างประเทศ') ? '✓' : ''"></span>ใช้ภาษาต่างประเทศ.. <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.Cogn_Speech_Foreign"></span></label>
+                                            </div>
+                                            <div class="flex flex-wrap items-center mt-1">
+                                                <span class="mr-2 w-24">การเคลื่อนไหว:</span>
+                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_Movement', 'ปกติ') ? '✓' : ''"></span>ปกติ</label>
+                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_Movement', 'ข้อติดแข็ง') ? '✓' : ''"></span>ข้อติดแข็ง</label>
+                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_Movement', 'อัมพาต') ? '✓' : ''"></span>อัมพาต</label>
+                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_Movement', 'ข้ออักเสบ') ? '✓' : ''"></span>ข้ออักเสบ</label>
+                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_Movement', 'กระดูกหัก') ? '✓' : ''"></span>กระดูกหัก</label>
+                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Cogn_Movement_Other') ? '✓' : ''"></span>อื่นๆ...... <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.Cogn_Movement_Other"></span></label>
+                                            </div>
+                                        </div>
+                                        <div class="absolute bottom-0 left-0 w-full text-center text-[10px] text-gray-500 border-t border-gray-400 pt-1 pb-2">
+                                            เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | ระบบบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
                                         </div>
                                     </div>
-                            
-                                    <div class="mt-4 text-[11px] leading-snug">
-                                        <div class="font-bold mb-1">15. Fall risk assessment</div>
-                                        <div class="flex flex-wrap items-center mt-1">
-                                            <label class="inline-flex items-center mr-8"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Fall_Age_Child') ? '✓' : ''"></span>วัยเด็ก</label>
-                                            <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Fall_Age_Elder') ? '✓' : ''"></span>ผู้สูงอายุมากกว่า 65 ปี</label>
+                        
+                        
+                                    <div class="a4-page relative">
+                                        <div class="flex justify-between items-start text-[11px] font-bold mb-3">
+                                            <div class="border border-black px-2 py-1">FR-IPD-004</div>
+                                            <div>แก้ไขครั้งที่ 02 1 ม.ค. 2564</div>
                                         </div>
-                                        <div class="grid grid-cols-2 mt-2 gap-x-12 gap-y-2">
-                                            <div class="flex justify-between border-b border-gray-200 pb-1">
-                                                <span>สภาวะทางสมอง/ทางจิตผิดปกติ</span>
-                                                <div>
-                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Fall_Brain', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
-                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Fall_Brain', 'มี') ? '✓' : ''"></span>มี</label>
+                        
+                                        <div class="grid grid-cols-2 gap-x-6 text-[11px] leading-snug">
+                                            <div>
+                                                <div class="font-bold mb-1">7) การรับรู้ตนเองและอัตมโนทัศน์: การเจ็บป่วยมีผลกระทบต่อ</div>
+                                                <div class="flex items-center mt-1">
+                                                    <span class="w-28">ภาพลักษณ์:</span>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Self_Image', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Self_Image', 'ไม่แน่ใจ') ? '✓' : ''"></span>ไม่แน่ใจ</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Self_Image', 'มี') ? '✓' : ''"></span>มี: <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.Self_Image_Detail"></span></label>
+                                                </div>
+                                                <div class="flex items-center mt-1">
+                                                    <span class="w-28">อารมณ์และจิตใจ:</span>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Self_Mood', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Self_Mood', 'ไม่แน่ใจ') ? '✓' : ''"></span>ไม่แน่ใจ</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Self_Mood', 'มี') ? '✓' : ''"></span>มี: <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.Self_Mood_Detail"></span></label>
+                                                </div>
+                                                <div class="flex items-center mt-1">
+                                                    <span class="w-36">ความสามารถดูแลตนเอง:</span>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Self_Care', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Self_Care', 'ไม่แน่ใจ') ? '✓' : ''"></span>ไม่แน่ใจ</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Self_Care', 'มี') ? '✓' : ''"></span>มี: <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.Self_Care_Detail"></span></label>
+                                                </div>
+                        
+                                                <div class="font-bold mb-1 mt-4">9) บทบาทและสัมพันธภาพ:</div>
+                                                <div>การเจ็บป่วยครั้งนี้กระทบต่อบทบาท</div>
+                                                <div class="flex flex-wrap mt-1 gap-y-2">
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Role_Impact', 'ครอบครัว') ? '✓' : ''"></span>ครอบครัว</label>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Role_Impact', 'อาชีพ') ? '✓' : ''"></span>อาชีพ</label>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Role_Impact', 'การศึกษา') ? '✓' : ''"></span>การศึกษา</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Role_Impact', 'สัมพันธภาพในครอบครัวและผู้อื่น') ? '✓' : ''"></span>สัมพันธภาพในครอบครัวและผู้อื่น</label>
+                                                </div>
+                        
+                                                <div class="font-bold mb-1 mt-4">10) เพศและการเจริญพันธุ์</div>
+                                                <div class="flex items-center mt-1">
+                                                    <span class="w-20">ประจำเดือน:</span>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sex_Menstrual', 'ปกติ') ? '✓' : ''"></span>ปกติ</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sex_Menstrual', 'ไม่ปกติ') ? '✓' : ''"></span>ไม่ปกติ.. <span class="border-b border-dotted border-black inline-block min-w-[80px]" x-text="savedAssessment?.Sex_Menstrual_Detail"></span></label>
+                                                </div>
+                                                <div class="flex items-center mt-1">
+                                                    <span class="w-20">เต้านม:</span>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sex_Breast', 'ปกติ') ? '✓' : ''"></span>ปกติ</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sex_Breast', 'ไม่ปกติ') ? '✓' : ''"></span>ไม่ปกติ.. <span class="border-b border-dotted border-black inline-block min-w-[80px]" x-text="savedAssessment?.Sex_Breast_Detail"></span></label>
+                                                </div>
+                                                <div class="flex items-center mt-1">
+                                                    <span class="w-24">อวัยวะสืบพันธุ์:</span>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sex_Genital', 'ปกติ') ? '✓' : ''"></span>ปกติ</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Sex_Genital', 'ไม่ปกติ') ? '✓' : ''"></span>ไม่ปกติ.. <span class="border-b border-dotted border-black inline-block min-w-[80px]" x-text="savedAssessment?.Sex_Genital_Detail"></span></label>
                                                 </div>
                                             </div>
-                                            <div class="flex justify-between border-b border-gray-200 pb-1">
-                                                <span>มีปัญหาในการเดิน/ทรงตัว</span>
-                                                <div>
-                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Fall_Gait', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
-                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Fall_Gait', 'มี') ? '✓' : ''"></span>มี</label>
+                        
+                                            <div>
+                                                <div class="font-bold mb-1">8) การเผชิญความเครียด / การปรับตัว</div>
+                                                <div class="flex flex-wrap items-center mt-1">
+                                                    <span class="mr-2">สิ่งที่ทำให้ไม่สบายใจ:</span>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Status', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Status', 'มี') ? '✓' : ''"></span>มี</label>
+                                                </div>
+                                                <div class="flex flex-wrap mt-1 gap-y-2 ml-4">
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Detail', 'กลัวไม่หาย') ? '✓' : ''"></span>กลัวไม่หาย</label>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Detail', 'ค่ารักษาพยาบาล') ? '✓' : ''"></span>ค่ารักษาพยาบาล</label>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Detail', 'ขาดงาน/รายได้') ? '✓' : ''"></span>ขาดงาน/รายได้</label>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Detail', 'ครอบครัว') ? '✓' : ''"></span>ครอบครัว</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Other') ? '✓' : ''"></span>อื่นๆ <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.Stress_Other"></span></label>
+                                                </div>
+                        
+                                                <div class="mt-3">การแสดงออก:</div>
+                                                <div class="flex flex-wrap mt-1 gap-y-2">
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Express', 'สีหน้าเรียบเฉย') ? '✓' : ''"></span>สีหน้าเรียบเฉย</label>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Express', 'วิตกกังวล') ? '✓' : ''"></span>วิตกกังวล</label>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Express', 'กลัว') ? '✓' : ''"></span>กลัว</label>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Express', 'ซึมเศร้า') ? '✓' : ''"></span>ซึมเศร้า</label>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Express', 'เอะอะโวยวาย') ? '✓' : ''"></span>เอะอะโวยวาย</label>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Express', 'หงุดหงิด') ? '✓' : ''"></span>หงุดหงิด</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Express_Other') ? '✓' : ''"></span>อื่น <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.Stress_Express_Other"></span></label>
+                                                </div>
+                        
+                                                <div class="mt-3">วิธีแก้ไขความไม่สบายใจ:</div>
+                                                <div class="flex flex-wrap mt-1 gap-y-2">
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Resolve', 'ปรึกษาผู้อื่น') ? '✓' : ''"></span>ปรึกษาผู้อื่น</label>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Resolve', 'แยกตัวเอง') ? '✓' : ''"></span>แยกตัวเอง</label>
+                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Resolve', 'ใช้ยา') ? '✓' : ''"></span>ใช้ยา</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Stress_Resolve_Other') ? '✓' : ''"></span>อื่นๆ <span class="border-b border-dotted border-black inline-block min-w-[60px]" x-text="savedAssessment?.Stress_Resolve_Other"></span></label>
                                                 </div>
                                             </div>
-                                            <div class="flex justify-between border-b border-gray-200 pb-1">
-                                                <span>มีปัญหาในการมองเห็น</span>
-                                                <div>
-                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Fall_Vision', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
-                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Fall_Vision', 'มี') ? '✓' : ''"></span>มี</label>
+                                        </div>
+                        
+                                        <div class="mt-4 text-[11px] leading-snug">
+                                            <div class="font-bold mb-1">11) คุณค่าและความเชื่อ</div>
+                                            <div class="flex items-center mt-1">
+                                                <span class="mr-2">การเจ็บป่วยครั้งนี้เชื่อว่า:</span>
+                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Belief_Cause', 'การปฏิบัติตัวไม่ถูกต้อง') ? '✓' : ''"></span>การปฏิบัติตัวไม่ถูกต้อง</label>
+                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Belief_Cause', 'เคราะห์กรรม') ? '✓' : ''"></span>เคราะห์กรรม</label>
+                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Belief_Cause', 'ตามวัย') ? '✓' : ''"></span>ตามวัย</label>
+                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Belief_Cause_Other') ? '✓' : ''"></span>อื่นๆ... <span class="border-b border-dotted border-black inline-block min-w-[100px]" x-text="savedAssessment?.Belief_Cause_Other"></span></label>
+                                            </div>
+                                            <div class="flex items-center mt-1">
+                                                <span class="mr-2">ต้องการปฏิบัติศาสนกิจ:</span>
+                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Belief_Practice', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
+                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Belief_Practice', 'ต้องการ') ? '✓' : ''"></span>ต้องการ: <span class="border-b border-dotted border-black inline-block min-w-[150px]" x-text="savedAssessment?.Belief_Practice_Detail"></span></label>
+                                            </div>
+                                            <div class="flex items-center mt-1">
+                                                <span class="mr-2">สิ่งยึดเหนี่ยวทางจิตใจ:</span>
+                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Belief_Anchor', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
+                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Belief_Anchor', 'มี') ? '✓' : ''"></span>มี... <span class="border-b border-dotted border-black inline-block min-w-[150px]" x-text="savedAssessment?.Belief_Anchor_Detail"></span></label>
+                                            </div>
+                                        </div>
+                        
+                                        <div class="mt-4 text-[11px] leading-snug">
+                                            <div class="font-bold mb-1">12) การมีส่วนร่วมของผู้ป่วยและญาติในการรักษาพยาบาล</div>
+                                            <div class="mt-1">
+                                                <label class="inline-flex items-center mr-4"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Involve_Status', 'ไม่ต้องการ') ? '✓' : ''"></span>ไม่ต้องการ</label>
+                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Involve_Status', 'ต้องการ') ? '✓' : ''"></span>ต้องการ:</label>
+                                                
+                                                <div class="ml-6 mt-1 flex flex-col gap-y-1">
+                                                    <div>
+                                                        <label class="inline-flex items-center mr-4"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Involve_Detail', 'ทราบข้อมูลเรื่องโรคและแนวทางรักษาพยาบาล') ? '✓' : ''"></span>ทราบข้อมูลเรื่องโรคและแนวทางรักษาพยาบาล</label>
+                                                        <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Involve_Detail', 'เรียนรู้ทักษะดูแลตนเอง/ผู้ป่วย') ? '✓' : ''"></span>เรียนรู้ทักษะดูแลตนเอง/ผู้ป่วย</label>
+                                                    </div>
+                                                    <div>
+                                                        <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Involve_Detail', 'ร่วมกับทีมสุขภาพในการดูแลผู้ป่วยระหว่างอยู่ในโรงพยาบาล') ? '✓' : ''"></span>ร่วมกับทีมสุขภาพในการดูแลผู้ป่วยระหว่างอยู่ในโรงพยาบาล</label>
+                                                    </div>
+                                                    <div>
+                                                        <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Involve_Other') ? '✓' : ''"></span>อื่นๆ......... <span class="border-b border-dotted border-black inline-block min-w-[200px]" x-text="savedAssessment?.Involve_Other"></span></label>
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div class="flex justify-between border-b border-gray-200 pb-1">
-                                                <span>ใช้ยานอนหลับ / Psychotropics / Sedative</span>
-                                                <div>
-                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Fall_Meds', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
-                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Fall_Meds', 'มี') ? '✓' : ''"></span>มี</label>
-                                                </div>
+                                        </div>
+                        
+                                        <div class="mt-4 text-[11px] leading-snug">
+                                            <div class="font-bold mb-1">13. PAIN MANAGEMENT</div>
+                                            <div class="flex items-center mt-1">
+                                                <span class="mr-3">Pain:</span>
+                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Pain_Status', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
+                                                <label class="inline-flex items-center mr-2"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Pain_Status', 'มี') ? '✓' : ''"></span>มี บริเวณที่ปวด..</label>
+                                                <span class="border-b border-dotted border-black inline-block min-w-[80px] mr-2" x-text="savedAssessment?.Pain_Location"></span>
+                                                <span class="mr-2">สาเหตุ..</span><span class="border-b border-dotted border-black inline-block min-w-[80px]" x-text="savedAssessment?.Pain_Cause"></span>
+                                                <span class="mr-3 ml-4">ลักษณะ:</span>
+                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Pain_Type', 'ครั้งคราว') ? '✓' : ''"></span>ครั้งคราว</label>
+                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Pain_Type', 'ตลอดเวลา') ? '✓' : ''"></span>ตลอดเวลา</label>
                                             </div>
-                                            <div class="flex justify-between border-b border-gray-200 pb-1">
-                                                <span>มีประวัติการพลัดตกหกล้ม</span>
-                                                <div>
-                                                    <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Fall_Hx', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
-                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Fall_Hx', 'มี') ? '✓' : ''"></span>มี</label>
+                                            
+                                            <div class="mt-3">
+                                                <span class="font-bold mr-4">Pain Scale</span>
+                                                <div class="inline-flex flex-wrap gap-x-2">
+                                                    <template x-for="i in [0,1,2,3,4,5,6,7,8,9,10]" :key="i">
+                                                        <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Pain_Scale_Score', i.toString()) ? '✓' : ''"></span><span x-text="i"></span></label>
+                                                    </template>
                                                 </div>
                                             </div>
                                             
-                                            <div class="flex items-center mt-3 font-bold col-span-2">
-                                                <span class="mr-6">จำเป็นต้องได้รับการป้องกัน</span>
-                                                <label class="inline-flex items-center mr-6"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Fall_Prevent', 'จำเป็น') ? '✓' : ''"></span>จำเป็น</label>
-                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Fall_Prevent', 'ไม่จำเป็น') ? '✓' : ''"></span>ไม่จำเป็น</label>
+                                            <div class="mt-2 mb-3 text-center">
+                                                <img src="https://cdn.sanity.io/images/eztzxh9q/production/ec037ff9aab42a37492f1b108eedd929ad435b91-2448x1224.jpg?w=3840&q=75&fit=clip&auto=format" class="h-[120px] max-w-[90%] object-contain mx-auto" alt="Pain Assessment Scale">
+                                            </div>
+                        
+                                            <div class="flex flex-wrap gap-y-2 items-center">
+                                                <span class="mr-4">การปวดกระทบต่อ:</span>
+                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Pain_Impact', 'การกิน') ? '✓' : ''"></span>การกิน</label>
+                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Pain_Impact', 'การนอน') ? '✓' : ''"></span>การนอน</label>
+                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Pain_Impact', 'การทำกิจกรรม') ? '✓' : ''"></span>การทำกิจกรรม</label>
+                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Pain_Impact', 'อารมณ์/สังคม') ? '✓' : ''"></span>อารมณ์/สังคม</label>
+                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Pain_Impact', 'การขับถ่าย') ? '✓' : ''"></span>การขับถ่าย</label>
+                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Pain_Impact', 'เพศสัมพันธุ์') ? '✓' : ''"></span>เพศสัมพันธุ์</label>
+                                            </div>
+                                            
+                                            <div class="mt-2 flex flex-wrap gap-y-2 items-center">
+                                                <span class="mr-4">สิ่งที่บรรเทาปวด:</span>
+                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Pain_Relief', 'Cold compress') ? '✓' : ''"></span>Cold compress</label>
+                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Pain_Relief', 'Hot compress') ? '✓' : ''"></span>Hot compress</label>
+                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Pain_Relief', 'Massage') ? '✓' : ''"></span>Massage</label>
+                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Pain_Relief', 'Relaxation') ? '✓' : ''"></span>Relaxation</label>
+                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Pain_Relief', 'Reposition') ? '✓' : ''"></span>Reposition</label>
+                                                <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Pain_Relief', 'Rest/Sleep') ? '✓' : ''"></span>Rest/Sleep</label>
+                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Pain_Relief', 'Medication') ? '✓' : ''"></span>Medication</label>
                                             </div>
                                         </div>
-                                    </div>
-                            
-                                    <div class="flex justify-end mt-12 text-[11px] text-center pb-10">
-                                        <div>
-                                            <div class="mt-2">พยาบาลผู้ประเมิน <span x-text="savedAssessment?.Assessor_Name || '..............................................'"></span></div>
-                                            <div class="mt-2">ตำแหน่ง <span x-text="savedAssessment?.Assessor_Pos || '..............................................'"></span></div>
+                        
+                                        <div class="mt-4 text-[11px] leading-snug">
+                                            <div class="font-bold mb-1">14. Braden Scale (Predicting Pressure Sore Risk)</div>
+                                            <div class="flex gap-4">
+                                                <table class="flex-1 border-collapse border border-black text-center text-[10px]">
+                                                    <tr>
+                                                        <td class="border border-black p-1 font-bold">Parameter</td>
+                                                        <td class="border border-black p-1 font-bold">1</td>
+                                                        <td class="border border-black p-1 font-bold">2</td>
+                                                        <td class="border border-black p-1 font-bold">3</td>
+                                                        <td class="border border-black p-1 font-bold">4</td>
+                                                        <td class="border border-black p-1 font-bold">Score</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="border border-black p-1 text-left">การรับรู้/ความรู้สึก</td>
+                                                        <td class="border border-black p-1">ความจำกัดทั้งหมด</td>
+                                                        <td class="border border-black p-1">ความจำกัดมาก</td>
+                                                        <td class="border border-black p-1">มีความจำกัดเล็กน้อย</td>
+                                                        <td class="border border-black p-1">ไม่บกพร่อง</td>
+                                                        <td class="border border-black p-1" x-text="savedAssessment?.Braden_Sensory"></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="border border-black p-1 text-left">ความเปียกชื้น</td>
+                                                        <td class="border border-black p-1">เปียกชื้นตลอดเวลา</td>
+                                                        <td class="border border-black p-1">เปียกชื้นมาก</td>
+                                                        <td class="border border-black p-1">เปียกชื้นเป็นบางครั้ง</td>
+                                                        <td class="border border-black p-1">เปียกชื้นน้อยมาก</td>
+                                                        <td class="border border-black p-1" x-text="savedAssessment?.Braden_Moisture"></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="border border-black p-1 text-left">กิจกรรม</td>
+                                                        <td class="border border-black p-1">นอนอยู่กับที่ตลอดเวลา</td>
+                                                        <td class="border border-black p-1">เดินไม่ได้ ต้องใช้รถเข็น</td>
+                                                        <td class="border border-black p-1">เดินได้เป็นบางครั้ง</td>
+                                                        <td class="border border-black p-1">เดินได้ปกติ</td>
+                                                        <td class="border border-black p-1" x-text="savedAssessment?.Braden_Activity"></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="border border-black p-1 text-left">การเคลื่อนไหว</td>
+                                                        <td class="border border-black p-1">เคลื่อนไหวเองไม่ได้</td>
+                                                        <td class="border border-black p-1">เคลื่อนไหวเองได้น้อย<br>ต้องมีผู้ช่วยเหลือ</td>
+                                                        <td class="border border-black p-1">เคลื่อนไหวเองได้บ้าง</td>
+                                                        <td class="border border-black p-1">เคลื่อนไหวได้ปกติ</td>
+                                                        <td class="border border-black p-1" x-text="savedAssessment?.Braden_Mobility"></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="border border-black p-1 text-left">โภชนาการ</td>
+                                                        <td class="border border-black p-1">ไม่เพียงพอ</td>
+                                                        <td class="border border-black p-1">อาจไม่เพียงพอเกือบทุกมื้อ</td>
+                                                        <td class="border border-black p-1">เพียงพอ</td>
+                                                        <td class="border border-black p-1">ดีเยี่ยม</td>
+                                                        <td class="border border-black p-1" x-text="savedAssessment?.Braden_Nutrition"></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="border border-black p-1 text-left">การเสียดสีและการเสียดทาน</td>
+                                                        <td class="border border-black p-1">มีปัญหา</td>
+                                                        <td class="border border-black p-1">เสี่ยงต่อการเกิดปัญหา</td>
+                                                        <td class="border border-black p-1">ไม่มีปัญหา</td>
+                                                        <td class="border border-black p-1 bg-gray-100"></td>
+                                                        <td class="border border-black p-1" x-text="savedAssessment?.Braden_Friction"></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td colspan="5" class="border border-black p-1 text-right font-bold pr-4">Total Score</td>
+                                                        <td class="border border-black p-1 font-bold text-base" x-text="savedAssessment?.Braden_Total || ((parseInt(savedAssessment?.Braden_Sensory) || 0) + (parseInt(savedAssessment?.Braden_Moisture) || 0) + (parseInt(savedAssessment?.Braden_Activity) || 0) + (parseInt(savedAssessment?.Braden_Mobility) || 0) + (parseInt(savedAssessment?.Braden_Nutrition) || 0) + (parseInt(savedAssessment?.Braden_Friction) || 0)) || '0'"></td>
+                                                    </tr>
+                                                </table>
+                                                <div class="w-32 text-[10px] leading-relaxed flex flex-col justify-center gap-1 border border-black p-2">
+                                                    <div>≤9 Very high risk</div>
+                                                    <div>10-12 High risk</div>
+                                                    <div>13-14 Moderate risk</div>
+                                                    <div>15-18 Low risk</div>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="absolute bottom-0 left-0 w-full text-center text-[10px] text-gray-500 border-t border-gray-400 pt-1 pb-2">
-                                        เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | ระบบบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
+                        
+                                        <div class="mt-4 text-[11px] leading-snug">
+                                            <div class="font-bold mb-1">15. Fall risk assessment</div>
+                                            <div class="flex flex-wrap items-center mt-1">
+                                                <label class="inline-flex items-center mr-8"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Fall_Age_Child') ? '✓' : ''"></span>วัยเด็ก</label>
+                                                <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Fall_Age_Elder') ? '✓' : ''"></span>ผู้สูงอายุมากกว่า 65 ปี</label>
+                                            </div>
+                                            <div class="grid grid-cols-2 mt-2 gap-x-12 gap-y-2">
+                                                <div class="flex justify-between border-b border-gray-200 pb-1">
+                                                    <span>สภาวะทางสมอง/ทางจิตผิดปกติ</span>
+                                                    <div>
+                                                        <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Fall_Brain', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
+                                                        <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Fall_Brain', 'มี') ? '✓' : ''"></span>มี</label>
+                                                    </div>
+                                                </div>
+                                                <div class="flex justify-between border-b border-gray-200 pb-1">
+                                                    <span>มีปัญหาในการเดิน/ทรงตัว</span>
+                                                    <div>
+                                                        <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Fall_Gait', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
+                                                        <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Fall_Gait', 'มี') ? '✓' : ''"></span>มี</label>
+                                                    </div>
+                                                </div>
+                                                <div class="flex justify-between border-b border-gray-200 pb-1">
+                                                    <span>มีปัญหาในการมองเห็น</span>
+                                                    <div>
+                                                        <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Fall_Vision', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
+                                                        <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Fall_Vision', 'มี') ? '✓' : ''"></span>มี</label>
+                                                    </div>
+                                                </div>
+                                                <div class="flex justify-between border-b border-gray-200 pb-1">
+                                                    <span>ใช้ยานอนหลับ / Psychotropics / Sedative</span>
+                                                    <div>
+                                                        <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Fall_Meds', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
+                                                        <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Fall_Meds', 'มี') ? '✓' : ''"></span>มี</label>
+                                                    </div>
+                                                </div>
+                                                <div class="flex justify-between border-b border-gray-200 pb-1">
+                                                    <span>มีประวัติการพลัดตกหกล้ม</span>
+                                                    <div>
+                                                        <label class="inline-flex items-center mr-3"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Fall_Hx', 'ไม่มี') ? '✓' : ''"></span>ไม่มี</label>
+                                                        <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Fall_Hx', 'มี') ? '✓' : ''"></span>มี</label>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="flex items-center mt-3 font-bold col-span-2">
+                                                    <span class="mr-6">จำเป็นต้องได้รับการป้องกัน</span>
+                                                    <label class="inline-flex items-center mr-6"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Fall_Prevent', 'จำเป็น') ? '✓' : ''"></span>จำเป็น</label>
+                                                    <label class="inline-flex items-center"><span class="inline-block w-3 h-3 border border-black text-center leading-none text-[10px] mr-1" x-text="hasVal('Fall_Prevent', 'ไม่จำเป็น') ? '✓' : ''"></span>ไม่จำเป็น</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                        
+                                        <div class="flex justify-end mt-12 text-[11px] text-center pb-10">
+                                            <div>
+                                                <div class="mt-2">พยาบาลผู้ประเมิน <span x-text="savedAssessment?.Assessor_Name || '..............................................'"></span></div>
+                                                <div class="mt-2">ตำแหน่ง <span x-text="savedAssessment?.Assessor_Pos || '..............................................'"></span></div>
+                                            </div>
+                                        </div>
+                                        <div class="absolute bottom-0 left-0 w-full text-center text-[10px] text-gray-500 border-t border-gray-400 pt-1 pb-2">
+                                            เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | ระบบบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                          </div>
                         </div>
                 </main>
             </div>
