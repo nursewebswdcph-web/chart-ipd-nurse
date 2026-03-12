@@ -1855,59 +1855,127 @@
                                 </div>
                                 <div class="flex gap-2">
                                     <button type="button" @click="viewMode = 'detail'" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2 px-5 rounded-xl transition-all text-sm">กลับหน้ารวม</button>
+                                    <button type="button" @click="openClassModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition-all active:scale-95 text-sm flex items-center">
+                                        <i class="fa-solid fa-plus mr-2"></i> เพิ่มรายการประเมิน
+                                    </button>
                                     <button type="button" @click="printClassification()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-6 rounded-xl shadow-md transition-all text-sm"><i class="fa-solid fa-print mr-1.5"></i> พิมพ์เอกสาร</button>
                                 </div>
                             </div>
                     
-                            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                                <div class="flex justify-between items-center mb-6">
-                                    <h3 class="text-lg font-bold text-slate-800"><i class="fa-solid fa-clock-rotate-left text-indigo-500 mr-2"></i> ประวัติการประเมินรายเวร</h3>
-                                    <button type="button" @click="openClassModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition-all active:scale-95 text-sm flex items-center">
-                                        <i class="fa-solid fa-plus mr-2"></i> เพิ่มรายการประเมิน
-                                    </button>
-                                </div>
-                    
-                                <div class="space-y-6">
-                                    <template x-for="(items, date) in groupedClassHistory" :key="date">
-                                        <div class="border border-slate-200 rounded-xl overflow-hidden">
-                                            <div class="bg-slate-50 border-b border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 flex items-center">
-                                                <i class="fa-regular fa-calendar text-slate-400 mr-2"></i> วันที่: <span x-text="date" class="ml-1 text-indigo-700"></span>
-                                            </div>
-                                            <div class="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                                                <template x-for="item in items">
-                                                    <div @click="editClassItem(item)" title="คลิกเพื่อแก้ไขข้อมูล" class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm relative overflow-hidden cursor-pointer hover:ring-2 hover:ring-indigo-400 hover:shadow-md transition-all group">
-                                                        <div class="absolute top-2 right-2 text-indigo-300 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                                                            <i class="fa-solid fa-pen text-xs"></i>
-                                                        </div>
-                                                    
-                                                        <div class="absolute top-0 left-0 w-1 h-full" :class="item.shift === 'เช้า' ? 'bg-amber-400' : (item.shift === 'บ่าย' ? 'bg-orange-500' : 'bg-indigo-900')"></div>
-                                                        
-                                                        <div class="flex justify-between items-start pl-3 gap-2 relative z-0">
-                                                            
-                                                            <div class="min-w-0 flex-1">
-                                                                <div class="text-sm font-black text-slate-800 mb-1" x-text="'เวร' + item.shift"></div>
-                                                                <div class="text-[11px] text-slate-500 font-medium whitespace-nowrap overflow-hidden text-ellipsis" 
-                                                                     x-text="item.assessor" 
-                                                                     :title="item.assessor"> </div>
-                                                            </div>
-                                                            
-                                                            <div class="text-right shrink-0">
-                                                                <div class="text-2xl font-black text-indigo-600 leading-none mb-1" x-text="item.total"></div>
-                                                                <div class="text-[10px] font-bold text-white bg-indigo-500 px-2 py-0.5 rounded-md whitespace-nowrap" x-text="'ประเภท ' + item.category"></div>
-                                                            </div>
-                                                            
-                                                        </div>
-                                                    </div>
-                                                </template>
-                                            </div>
-                                        </div>
-                                    </template>
+                            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-6 relative">
+                                <div class="flex flex-wrap justify-between items-center mb-4 gap-4">
+                                    <h3 class="text-lg font-bold text-slate-800"><i class="fa-solid fa-table-list text-indigo-500 mr-2"></i> ประวัติการประเมินรายเวร</h3>
                                     
-                                    <div x-show="Object.keys(groupedClassHistory).length === 0" class="text-center py-10 bg-slate-50 rounded-xl border border-dashed border-slate-300">
-                                        <div class="text-slate-400 mb-2"><i class="fa-solid fa-clipboard-list text-4xl"></i></div>
-                                        <div class="text-sm font-bold text-slate-500">ยังไม่มีประวัติการประเมิน</div>
+                                    <div class="flex items-center gap-3" x-show="chunkedClassHistory.length > 0 && chunkedClassHistory[0].length > 0">
+                                        <button type="button" @click="prevPage()" :disabled="currentPageIndex === 0" class="px-3 py-1.5 bg-slate-100 hover:bg-indigo-100 text-slate-600 hover:text-indigo-700 disabled:opacity-40 disabled:hover:bg-slate-100 disabled:hover:text-slate-600 rounded-lg text-sm font-bold transition-colors">
+                                            <i class="fa-solid fa-chevron-left mr-1"></i> ก่อนหน้า
+                                        </button>
+                                        <span class="text-sm font-bold text-slate-600 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+                                            หน้า <span x-text="currentPageIndex + 1"></span> / <span x-text="chunkedClassHistory.length"></span>
+                                        </span>
+                                        <button type="button" @click="nextPage()" :disabled="currentPageIndex === chunkedClassHistory.length - 1" class="px-3 py-1.5 bg-slate-100 hover:bg-indigo-100 text-slate-600 hover:text-indigo-700 disabled:opacity-40 disabled:hover:bg-slate-100 disabled:hover:text-slate-600 rounded-lg text-sm font-bold transition-colors">
+                                            ถัดไป <i class="fa-solid fa-chevron-right ml-1"></i>
+                                        </button>
                                     </div>
                                 </div>
+                    
+                                <div class="overflow-x-auto custom-scrollbar pb-2">
+                                    <table class="w-full min-w-[800px] border-collapse border border-slate-300 text-center text-[12px]">
+                                        <thead>
+                                            <tr class="bg-slate-100">
+                                                <th class="border border-slate-300 text-left px-3 py-2 w-[220px] font-bold text-slate-700">ว/ด/ป</th>
+                                                <template x-for="item in chunkedClassHistory[currentPageIndex]">
+                                                    <th class="border border-slate-300 px-1 py-2 font-semibold text-slate-700" x-text="formatThaiDateShort(item.evalDate)"></th>
+                                                </template>
+                                                <template x-for="i in (15 - (chunkedClassHistory[currentPageIndex]?.length || 0))">
+                                                    <th class="border border-slate-300 px-1 py-2 bg-slate-50/50"></th>
+                                                </template>
+                                            </tr>
+                                            <tr class="bg-slate-100">
+                                                <th class="border border-slate-300 text-left px-3 py-2 font-bold text-slate-700">เวร</th>
+                                                <template x-for="item in chunkedClassHistory[currentPageIndex]">
+                                                    <th class="border border-slate-300 px-1 py-2 font-black text-indigo-700 text-sm" x-text="item.shift.substring(0,1)"></th>
+                                                </template>
+                                                <template x-for="i in (15 - (chunkedClassHistory[currentPageIndex]?.length || 0))">
+                                                    <th class="border border-slate-300 px-1 py-2 bg-slate-50/50"></th>
+                                                </template>
+                                            </tr>
+                                            <tr><th colspan="16" class="border border-slate-300 text-left px-3 py-2 bg-indigo-50/50 font-bold text-indigo-900">สภาวะสุขภาพ</th></tr>
+                                        </thead>
+                                        <tbody>
+                                            <template x-for="(question, qIndex) in [
+                                                '1. สัญญาณชีพ', '2. อาการและอาการแสดงทางระบบประสาท', '3. การได้รับการตรวจรักษา/ผ่าตัดหรือหัตถการ', '4. พฤติกรรมที่ผิดปกติ อารมณ์ จิตสังคม',
+                                                'ความต้องการการดูแลขั้นต่ำ',
+                                                '5. ความสามารถในการปฏิบัติกิจวัตรประจำวัน', '6. ความต้องการด้านจิตใจและอารมณ์ของผู้ป่วย', '7. ความต้องการยา/การรักษาทำหัตถการ/ฟื้นฟู', '8. ความต้องการการบรรเทาอาการรบกวน'
+                                            ]">
+                                                <tr class="hover:bg-slate-50/50 transition-colors">
+                                                    <template x-if="question === 'ความต้องการการดูแลขั้นต่ำ'">
+                                                        <th colspan="16" class="border border-slate-300 text-left px-3 py-2 bg-emerald-50/50 font-bold text-emerald-900" x-text="question"></th>
+                                                    </template>
+                                                    
+                                                    <template x-if="question !== 'ความต้องการการดูแลขั้นต่ำ'">
+                                                        <td class="border border-slate-300 text-left px-3 py-1.5 text-slate-600 font-medium" x-text="question"></td>
+                                                    </template>
+                                                    
+                                                    <template x-if="question !== 'ความต้องการการดูแลขั้นต่ำ'">
+                                                        <template x-for="item in chunkedClassHistory[currentPageIndex]">
+                                                            <td class="border border-slate-300 px-1 py-1.5 font-bold text-slate-800" x-text="item.scores[qIndex > 4 ? qIndex-1 : qIndex]"></td>
+                                                        </template>
+                                                    </template>
+                                                    
+                                                    <template x-if="question !== 'ความต้องการการดูแลขั้นต่ำ'">
+                                                        <template x-for="i in (15 - (chunkedClassHistory[currentPageIndex]?.length || 0))">
+                                                            <td class="border border-slate-300 bg-slate-50/30"></td>
+                                                        </template>
+                                                    </template>
+                                                </tr>
+                                            </template>
+                    
+                                            <tr class="bg-amber-50">
+                                                <td class="border border-slate-300 text-left px-3 py-2 font-black text-amber-900">รวมคะแนน</td>
+                                                <template x-for="item in chunkedClassHistory[currentPageIndex]">
+                                                    <td class="border border-slate-300 font-black text-indigo-700 text-sm" x-text="item.total"></td>
+                                                </template>
+                                                <template x-for="i in (15 - (chunkedClassHistory[currentPageIndex]?.length || 0))"><td class="border border-slate-300 bg-slate-50/30"></td></template>
+                                            </tr>
+                                            <tr class="bg-orange-50">
+                                                <td class="border border-slate-300 text-left px-3 py-2 font-black text-orange-900">ประเภทผู้ป่วย</td>
+                                                <template x-for="item in chunkedClassHistory[currentPageIndex]">
+                                                    <td class="border border-slate-300 font-black text-orange-700" x-text="item.category"></td>
+                                                </template>
+                                                <template x-for="i in (15 - (chunkedClassHistory[currentPageIndex]?.length || 0))"><td class="border border-slate-300 bg-slate-50/30"></td></template>
+                                            </tr>
+                                            <tr>
+                                                <td class="border border-slate-300 text-left px-3 py-2 font-bold text-slate-700">ผู้ประเมิน</td>
+                                                <template x-for="item in chunkedClassHistory[currentPageIndex]">
+                                                    <td class="border border-slate-300 text-[9px] text-slate-500 px-0.5 truncate max-w-[45px]" :title="item.assessor" x-text="item.assessor"></td>
+                                                </template>
+                                                <template x-for="i in (15 - (chunkedClassHistory[currentPageIndex]?.length || 0))"><td class="border border-slate-300 bg-slate-50/30"></td></template>
+                                            </tr>
+                                            
+                                            <tr class="bg-slate-50">
+                                                <td class="border border-slate-300 text-right px-3 py-2 font-bold text-slate-400 text-[10px]"><i class="fa-solid fa-arrow-turn-up mr-1"></i> จัดการข้อมูล</td>
+                                                <template x-for="item in chunkedClassHistory[currentPageIndex]">
+                                                    <td class="border border-slate-300 px-1 py-1.5">
+                                                        <button type="button" @click="editClassItem(item)" title="แก้ไขข้อมูลนี้" class="bg-white border border-indigo-200 text-indigo-500 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 rounded w-full py-1 transition-colors">
+                                                            <i class="fa-solid fa-pen text-[10px]"></i>
+                                                        </button>
+                                                    </td>
+                                                </template>
+                                                <template x-for="i in (15 - (chunkedClassHistory[currentPageIndex]?.length || 0))"><td class="border border-slate-300 bg-slate-50/30"></td></template>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <div x-show="chunkedClassHistory.length === 0 || chunkedClassHistory[0].length === 0" class="absolute inset-0 z-10 bg-white/90 backdrop-blur-sm flex items-center justify-center rounded-2xl">
+                                    <div class="text-center">
+                                        <div class="text-slate-300 mb-3"><i class="fa-solid fa-clipboard-list text-5xl"></i></div>
+                                        <div class="text-base font-bold text-slate-500">ยังไม่มีประวัติการประเมินรายเวร</div>
+                                        <div class="text-xs text-slate-400 mt-1">กดปุ่ม "เพิ่มรายการประเมิน" ด้านบนเพื่อเริ่มต้น</div>
+                                    </div>
+                                </div>
+                                
                             </div>
                     
                             <div x-show="showClassModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" x-cloak>
