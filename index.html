@@ -451,15 +451,21 @@
                     <div class="max-w-5xl mx-auto">
                 
                         <div x-show="currentForm?.id === 'assess_initial' && !showAssessmentPreview" class="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl border border-slate-100">
-                            <div class="flex justify-between items-center border-b-2 border-slate-100 pb-6 mb-8 sticky top-0 bg-white z-10">
+                            <div class="flex justify-between items-center border-b border-slate-200 pb-3 mb-5 sticky top-0 bg-white z-10 pt-2">
                                 <div>
-                                    <h2 class="text-2xl font-black text-indigo-900 leading-tight">แบบประเมินประวัติและสมรรถนะผู้ป่วย งานผู้ป่วยใน (FR-IPD-004)</h2>
-                                    <p class="text-xs text-slate-400 font-bold mt-1 tracking-widest uppercase">Sawang Daen Din Crown Prince Hospital</p>
+                                    <h2 class="text-xl font-black text-indigo-900 leading-tight">แบบประเมินประวัติและสมรรถนะผู้ป่วย งานผู้ป่วยใน (FR-IPD-004)</h2>
+                                    <p class="text-[11px] text-slate-500 font-bold mt-0.5 tracking-wider uppercase">โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน</p>
                                 </div>
-                                <div class="flex gap-3">
-                                    <button type="button" @click="viewMode = 'detail'" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 px-8 rounded-2xl transition-all">ยกเลิก</button>
-                                    <button type="button" @click="saveAssessmentData()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-10 rounded-2xl shadow-lg transition-all active:scale-95">บันทึกข้อมูล</button>
-                                    <button type="button" @click="printAssessment()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-10 rounded-2xl shadow-lg shadow-emerald-100 transition-all active:scale-95"><i class="fa-solid fa-print mr-2"></i> พิมพ์เอกสาร</button>
+                                <div class="flex gap-2">
+                                    <button type="button" @click="viewMode = 'detail'" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2 px-5 rounded-xl transition-all text-sm">
+                                        ยกเลิก
+                                    </button>
+                                    <button type="button" @click="saveAssessmentData()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-xl shadow-md transition-all active:scale-95 text-sm">
+                                        บันทึกข้อมูล
+                                    </button>
+                                    <button type="button" @click="printAssessment()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-6 rounded-xl shadow-md shadow-emerald-100 transition-all active:scale-95 text-sm">
+                                        <i class="fa-solid fa-print mr-1.5"></i> พิมพ์เอกสาร
+                                    </button>
                                 </div>
                             </div>
                 
@@ -1676,8 +1682,10 @@
                                                 </div>
                                             </div>
                                             
-                                            <div class="mt-2 mb-2 text-center">
-                                                <img src="https://cdn.sanity.io/images/eztzxh9q/production/ec037ff9aab42a37492f1b108eedd929ad435b91-2448x1224.jpg?w=3840&q=75&fit=clip&auto=format" class="h-[90px] max-w-[90%] object-contain mx-auto" alt="Pain Assessment Scale">
+                                            <div class="mt-2 mb-3 text-center flex justify-center w-full">
+                                                <img src="https://cdn.sanity.io/images/eztzxh9q/production/ec037ff9aab42a37492f1b108eedd929ad435b91-2448x1224.jpg?w=3840&q=75&fit=clip&auto=format" 
+                                                     class="h-[180px] max-w-[95%] object-contain mx-auto" 
+                                                     alt="Pain Assessment Scale">
                                             </div>
                                     
                                             <div class="flex flex-wrap gap-y-1 items-center">
