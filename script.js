@@ -137,34 +137,52 @@ function nurseApp() {
         },
 
         async openNursingChart(patient) {
+            this.isLoading = true;
             this.selectedPatient = patient;
+            
+            // 1. ล้างข้อมูลเก่าของคนไข้คนก่อนหน้าทิ้งทันที ป้องกันข้อมูลค้าง
+            this.savedAssessment = null;
+            this.classHistory = []; 
+            this.currentPageIndex = 0;
+            
+            // 2. ตั้งค่าหน้าเริ่มต้นและเปลี่ยนโหมดการแสดงผล
             this.currentForm = this.activeForms.find(f => f.id === 'assess_initial');
             this.viewMode = 'chart';
             window.scrollTo(0, 0);
-        
-            // 1. ตรวจสอบว่าเคยมีข้อมูลประเมินของ AN นี้บันทึกไว้หรือไม่
-            await this.loadAssessmentData(patient.an);
-        
-            // 2. จัดการหน้าฟอร์ม
-            this.$nextTick(() => {
-                const formElement = document.getElementById('assessment-form-v2');
-                if (formElement) {
-                    
-                    // หากยังไม่มีข้อมูลถูกบันทึกไว้ (เป็นการประเมินใหม่) ให้ทำตามลอจิกเดิมของคุณ
-                    if (!this.savedAssessment) {
-                        formElement.reset(); // ล้างฟอร์มก่อน
+
+            try {
+                // 3. โหลดข้อมูล Form 1 และ Form 2 มารอไว้พร้อมกัน (ใช้ Promise.all เพื่อความเร็ว)
+                await Promise.all([
+                    this.loadAssessmentData(patient.an),
+                    this.loadClassifications(patient.an)
+                ]);
+                
+                // 4. จัดการ UI ฟอร์มแรกรับหลังจากข้อมูลมาแล้ว
+                this.$nextTick(() => {
+                    const formElement = document.getElementById('assessment-form-v2');
+                    if (formElement && !this.savedAssessment) {
+                        formElement.reset(); // ล้างช่องกรอกถ้าเป็นคนไข้ใหม่ที่ยังไม่เคยประเมิน
                         
-                        // นำข้อมูลลงทะเบียนแรกรับ มาใส่ในฟอร์ม เพื่อให้สามารถแก้ไขได้
-                        if (formElement.elements['AdmitDate']) formElement.elements['AdmitDate'].value = patient.date || '';
-                        if (formElement.elements['AdmitTime']) formElement.elements['AdmitTime'].value = patient.time || '';
-                        if (formElement.elements['AdmittedFrom']) formElement.elements['AdmittedFrom'].value = patient.receivedFrom || '';
-                        if (formElement.elements['Refer']) formElement.elements['Refer'].value = patient.referFrom || '';
-                        if (formElement.elements['ChiefComplaint']) formElement.elements['ChiefComplaint'].value = patient.cc || '';
-                        if (formElement.elements['PresentIllness']) formElement.elements['PresentIllness'].value = patient.pi || '';
+                        // นำข้อมูลจากการ Admit มาใส่ในช่องพื้นฐาน
+                        const fields = {
+                            'AdmitDate': patient.date,
+                            'AdmitTime': patient.time,
+                            'AdmittedFrom': patient.receivedFrom,
+                            'Refer': patient.referFrom,
+                            'ChiefComplaint': patient.cc,
+                            'PresentIllness': patient.pi
+                        };
+                        
+                        Object.entries(fields).forEach(([id, val]) => {
+                            if (formElement.elements[id]) formElement.elements[id].value = val || '';
+                        });
                     }
-                    // *หมายเหตุ: หาก this.savedAssessment มีข้อมูล ฟังก์ชัน loadAssessmentData จะเป็นตัวจัดการยัดข้อมูลเก่าใส่ฟอร์มให้เอง
-                }
-            });
+                });
+            } catch (e) {
+                console.error("Error loading patient chart:", e);
+            } finally {
+                this.isLoading = false;
+            }
         },
 
         async saveAssessmentData(shouldPrint = false) {
@@ -462,17 +480,25 @@ function nurseApp() {
 
         // ฟังก์ชันเมื่อผู้ใช้กดเลือกฟอร์มเมนูด้านซ้าย
         async selectForm(form) {
-            // 🟢 โหลดข้อมูลให้เสร็จสมบูรณ์ "ก่อน" สั่งเปลี่ยนหน้า UI 
-            if (form.id === 'assess_initial') {
-                await this.loadAssessmentData(this.selectedPatient.an);
-            }
-            else if (form.id === 'patient_class') {
-                await this.loadClassifications(this.selectedPatient.an);
-                this.currentPageIndex = 0; // กลับมาหน้าแรกเสมอเมื่อเข้าฟอร์ม
-            }
+            // ป้องกันการกดซ้ำที่ฟอร์มเดิม
+            if (this.currentForm?.id === form.id) return;
             
-            // สั่งเปิดหน้า UI หลังจากข้อมูลทั้งหมดพร้อมแล้ว
-            this.currentForm = form; 
+            this.isLoading = true;
+            this.currentForm = form;
+            this.currentPageIndex = 0; // กลับไปหน้า 1 ของตารางเสมอเมื่อสลับฟอร์ม
+
+            try {
+                // ดึงข้อมูลล่าสุดตามฟอร์มที่เลือก
+                if (form.id === 'assess_initial') {
+                    await this.loadAssessmentData(this.selectedPatient.an);
+                } else if (form.id === 'patient_class') {
+                    await this.loadClassifications(this.selectedPatient.an);
+                }
+            } catch (e) {
+                console.error("Error switching form:", e);
+            } finally {
+                this.isLoading = false;
+            }
         },
         
         addForm(opt) {
@@ -745,32 +771,37 @@ function nurseApp() {
         },
         // จัดกลุ่มประวัติการประเมินตามวันที่
         get groupedClassHistory() {
-            const groups = {};
-            // เรียงลำดับจากวันที่ล่าสุด (Descending) ลงไปเก่าสุด
-            const sortedHistory = [...this.classHistory].sort((a, b) => new Date(b.evalDate) - new Date(a.evalDate));
+            if (!this.classHistory || this.classHistory.length === 0) return {};
             
-            sortedHistory.forEach(item => {
-                const date = this.formatThaiDateShort(item.evalDate);
-                if (!groups[date]) groups[date] = [];
-                groups[date].push(item);
-            });
+            const groups = {};
+            try {
+                // เรียงจากใหม่ไปเก่าสำหรับหน้าเว็บ
+                const sorted = [...this.classHistory].sort((a, b) => new Date(b.evalDate) - new Date(a.evalDate));
+                sorted.forEach(item => {
+                    const date = this.formatThaiDateShort(item.evalDate);
+                    if (!groups[date]) groups[date] = [];
+                    groups[date].push(item);
+                });
+            } catch (e) { console.error("Grouping error:", e); }
             return groups;
         },
         // 🟢 เพิ่ม Getter นี้เพื่อให้หน้าเว็บและหน้าพิมพ์ทำงานได้
         get chunkedClassHistory() {
-            if (!this.classHistory || this.classHistory.length === 0) {
-                return [[]]; // ส่งค่ากลับเป็นอาเรย์ว่างชั้นเดียว เพื่อป้องกันหน้าเว็บพัง
-            }
+            // ตรวจสอบว่ามีข้อมูลหรือไม่ ถ้าไม่มีให้คืนค่าอาเรย์ว่างชั้นเดียวไว้ก่อน ป้องกัน UI พัง
+            if (!this.classHistory || this.classHistory.length === 0) return [[]];
 
-            // 1. เรียงข้อมูลตามวันที่จากเก่าไปใหม่ เพื่อให้ลงตารางตามลำดับเวลา
-            const sorted = [...this.classHistory].sort((a, b) => new Date(a.evalDate) - new Date(b.evalDate));
-            
-            // 2. แบ่งข้อมูลออกเป็นชุด ชุดละ 15 รายการ (สำหรับ 1 หน้า A4)
-            const chunks = [];
-            for (let i = 0; i < sorted.length; i += 15) {
-                chunks.push(sorted.slice(i, i + 15));
+            try {
+                // เรียงจากเก่าไปใหม่สำหรับลงตาราง
+                const sorted = [...this.classHistory].sort((a, b) => new Date(a.evalDate) - new Date(b.evalDate));
+                const chunks = [];
+                for (let i = 0; i < sorted.length; i += 15) {
+                    chunks.push(sorted.slice(i, i + 15));
+                }
+                return chunks;
+            } catch (e) {
+                console.error("Chunking error:", e);
+                return [[]];
             }
-            return chunks;
         },
 
         // เปิด Popup ประเมินรอบใหม่ และเคลียร์ค่า
