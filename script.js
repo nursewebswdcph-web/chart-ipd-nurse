@@ -560,23 +560,30 @@ function nurseApp() {
                         <title>IPD Nurse Workbench - Printing</title>
                         ${styles}
                         <style>
-                            <style>
-                                /* ตั้งค่าหน้ากระดาษและบังคับตัดหน้า (Page Break) */
-                                @page { size: A4 portrait; margin: 10mm; } /* ปรับ Margin เล็กลงเพื่อให้มีพื้นที่แนวตั้งเพิ่มขึ้น */
-                                body { background: white !important; margin: 0; padding: 0; -webkit-print-color-adjust: exact; }
-                                
-                                .a4-page { 
-                                    width: 100% !important; 
-                                    box-shadow: none !important; 
-                                    margin: 0 !important; 
-                                    position: relative;
-                                    page-break-after: always; /* บังคับตัดหน้าเสมอเมื่อจบ Div นี้ */
-                                    overflow: hidden; /* ซ่อนส่วนที่เกินป้องกันล้น */
-                                }
-                                .a4-page:last-child {
-                                    page-break-after: auto; /* ยกเว้นหน้าสุดท้ายไม่ต้องตัดหน้าต่อ */
-                                }
-                            </style>
+                            /* ตั้งค่าหน้ากระดาษ ลดขอบบน-ล่างให้เหลือ 8mm */
+                            @page { size: A4 portrait; margin: 8mm 10mm; } 
+                            body { 
+                                background: white !important; 
+                                margin: 0; 
+                                padding: 0; 
+                                -webkit-print-color-adjust: exact; 
+                            }
+                            .a4-page { 
+                                width: 100% !important; 
+                                box-shadow: none !important; 
+                                margin: 0 !important; 
+                                position: relative;
+                                page-break-after: always;
+                                overflow: hidden;
+                                /* บังคับระยะห่างระหว่างบรรทัดให้แคบลงทั่วทั้งหน้า */
+                                line-height: 1.15 !important; 
+                            }
+                            .a4-page:last-child {
+                                page-break-after: auto;
+                            }
+                            /* บีบช่องว่างในตารางให้บางที่สุด */
+                            td { padding-top: 1px !important; padding-bottom: 1px !important; }
+                        </style>
                     </head>
                     <body>
                         <div class="a4-page">
