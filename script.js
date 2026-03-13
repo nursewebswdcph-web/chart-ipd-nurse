@@ -1227,7 +1227,7 @@ function nurseApp() {
                 const dKey = day.date;
                 ['ดึก', 'เช้า', 'บ่าย'].forEach(s => {
                     const data = this.fallGridData[dKey]?.[s];
-                    // บันทึกเฉพาะเวรที่มีการกรอก Morse ครบ หรือมี MAAS
+                    // เช็คว่ามีการกรอกข้อมูลหรือไม่
                     if (data && (data.scores.some(v => v !== '') || data.maas !== '')) {
                         recordsToSave.push({
                             an: this.selectedPatient.an,
@@ -1235,8 +1235,12 @@ function nurseApp() {
                             ward: this.currentWard,
                             evalDate: dKey,
                             shift: s,
-                            m1: data.scores[0], m2: data.scores[1], m3: data.scores[2],
-                            m4: data.scores[3], m5: data.scores[4], m6: data.scores[5],
+                            m1: data.scores[0] || 0, 
+                            m2: data.scores[1] || 0, 
+                            m3: data.scores[2] || 0,
+                            m4: data.scores[3] || 0, 
+                            m5: data.scores[4] || 0, 
+                            m6: data.scores[5] || 0,
                             morseTotal: this.calcMorseTotal(data.scores) || 0,
                             maasScore: data.maas || 0,
                             assessor: data.assessor || ''
@@ -1244,29 +1248,39 @@ function nurseApp() {
                     }
                 });
             });
-
+        
             if (recordsToSave.length === 0) {
                 return this.showAlert('แจ้งเตือน', 'กรุณากรอกข้อมูลอย่างน้อย 1 เวรเพื่อบันทึก');
             }
-
+        
             this.isLoading = true;
             try {
+                // แนะนำให้ส่งข้อมูลทีละ Record เพื่อความชัวร์ หรือปรับ API ให้รับ Array (แต่เบื้องต้นแก้ให้ส่งผ่านก่อน)
                 for (const payload of recordsToSave) {
-                    await fetch(this.API_URL, {
+                    const response = await fetch(this.API_URL, {
                         method: 'POST',
-                        mode: 'no-cors',
-                        body: JSON.stringify({ action: 'saveFallRisk', payload })
+                        // ห้ามใส่ mode: 'no-cors'
+                        body: JSON.stringify({ action: 'saveFallRisk', payload: payload })
                     });
+                    
+                    // ตรวจสอบผลลัพธ์ (Google Script จะส่งเป็น Redirect/CORS มา ต้องระวังการอ่าน JSON)
+                    // หากบันทึกแล้วนิ่ง ให้เช็คใน Sheet ว่าข้อมูลเข้าหรือไม่
                 }
+                
                 this.successMsg = 'บันทึกข้อมูลพลัดตกหกล้มเรียบร้อยแล้ว';
                 this.showSuccess = true;
                 setTimeout(() => this.showSuccess = false, 3000);
+                
+                // โหลดข้อมูลใหม่มาแสดงในตาราง
                 await this.loadFallRisk(this.selectedPatient.an);
+                
             } catch (e) {
+                console.error('Save Error:', e);
                 this.showAlert('Error', 'บันทึกไม่สำเร็จ: ' + e.message);
+            } finally {
+                this.isLoading = false;
             }
-            this.isLoading = false;
-        },
+        }
 
         // ฟังก์ชันสั่งพิมพ์ Morse/MAAS
         printFallRisk() {
