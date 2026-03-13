@@ -783,7 +783,21 @@ function nurseApp() {
             return groups;
         },
         getLocalYYYYMMDD(date) {
-            const d = (typeof date === 'string') ? new Date(date) : date;
+            if (!date) return '';
+            let d;
+            if (typeof date === 'string') {
+                // ถ้ามาเป็น ISO String (มีตัว T) หรือวันที่ธรรมดา
+                d = new Date(date);
+                // กรณีเป็นวันที่จาก Sheet ที่ไม่มีเวลาติดมา (เช่น 2026-03-10) 
+                // ให้สร้าง Date แบบระบุเวลาเป็นเที่ยงวัน เพื่อป้องกันการปัดวันถอยหลัง
+                if (!date.includes('T')) {
+                    const [y, m, day] = date.split('-').map(Number);
+                    d = new Date(y, m - 1, day, 12, 0, 0);
+                }
+            } else {
+                d = date;
+            }
+            
             const y = d.getFullYear();
             const m = String(d.getMonth() + 1).padStart(2, '0');
             const day = String(d.getDate()).padStart(2, '0');
@@ -826,9 +840,8 @@ function nurseApp() {
                     // 🟢 ค้นหาข้อมูลย้อนหลังโดยเทียบ Date String ตรงๆ
                     shifts.forEach(s => {
                         const record = this.classHistory.find(h => {
-                            const hDate = (h.evalDate && h.evalDate.includes('T')) 
-                                          ? h.evalDate.split('T')[0] 
-                                          : h.evalDate;
+                            // แปลงวันที่จากฐานข้อมูล (h.evalDate) ให้เป็น YYYY-MM-DD แบบไทยก่อนเทียบ
+                            const hDate = this.getLocalYYYYMMDD(h.evalDate);
                             return hDate === dateKey && h.shift === s;
                         });
                         dayData.slots[s] = record || null;
@@ -843,7 +856,8 @@ function nurseApp() {
         // เปิด Popup ประเมินรอบใหม่ และเคลียร์ค่า
         openClassModal() {
             this.classForm = {
-                evalDate: this.getLocalYYYYMMDD(new Date()), // ใช้วันที่ปัจจุบันแบบ Local
+                // เปลี่ยนมาใช้ Helper ของเราแทนเพื่อให้ได้วันที่ไทยจริงๆ
+                evalDate: this.getLocalYYYYMMDD(new Date()), 
                 shift: 'เช้า',
                 scores: [0, 0, 0, 0, 0, 0, 0, 0],
                 assessor: ''
