@@ -783,30 +783,30 @@ function nurseApp() {
             return groups;
         },
         getLocalYYYYMMDD(date) {
-            const d = new Date(date);
+            const d = (typeof date === 'string') ? new Date(date) : date;
             const y = d.getFullYear();
             const m = String(d.getMonth() + 1).padStart(2, '0');
             const day = String(d.getDate()).padStart(2, '0');
-            return `${y}-${m}-${d}`;
+            return `${y}-${m}-${day}`;
         },
         get classTimeline() {
             if (!this.selectedPatient || !this.selectedPatient.date) return [];
-
-            // 1. สร้าง admitDate จากตัวเลขตรงๆ ไม่ผ่าน String ป้องกัน Timezone Shift
+        
+            // 1. แยกวันที่ Admit ออกมาเป็นตัวเลขเพื่อสร้าง Date แบบท้องถิ่น (Local Time)
             const [y, m, d] = this.selectedPatient.date.split('-').map(Number);
             const admitDate = new Date(y, m - 1, d);
             admitDate.setHours(0, 0, 0, 0);
-
-            // 2. คำนวณจำนวนหน้า (หน้าละ 5 วัน)
+        
+            // 2. คำนวณจำนวนวัน (อย่างน้อย 5 วัน)
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             const diffTime = Math.abs(today - admitDate);
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
             const totalPages = Math.ceil(Math.max(diffDays, 5) / 5);
-
+        
             const pages = [];
             const shifts = ['ดึก', 'เช้า', 'บ่าย'];
-
+        
             for (let p = 0; p < totalPages; p++) {
                 const dayInPage = [];
                 for (let i = 0; i < 5; i++) {
@@ -814,7 +814,7 @@ function nurseApp() {
                     const currentDate = new Date(admitDate);
                     currentDate.setDate(admitDate.getDate() + currentIdx);
                     
-                    // สร้าง Key แบบ YYYY-MM-DD (Local Time)
+                    // 🟢 เปลี่ยนมาใช้ getLocalYYYYMMDD แทน toISOString
                     const dateKey = this.getLocalYYYYMMDD(currentDate);
                     
                     const dayData = {
@@ -822,12 +822,13 @@ function nurseApp() {
                         formattedDate: this.formatThaiDateShort(dateKey),
                         slots: {}
                     };
-
-                    // 🟢 ปรับปรุงการดึงข้อมูลย้อนหลัง: เทียบ Date Key แบบ String ตรงๆ
+        
+                    // 🟢 ค้นหาข้อมูลย้อนหลังโดยเทียบ Date String ตรงๆ
                     shifts.forEach(s => {
                         const record = this.classHistory.find(h => {
-                            // เทียบวันที่แบบตัดเอาแค่ YYYY-MM-DD ไม่เอา Timezone
-                            const hDate = h.evalDate.includes('T') ? h.evalDate.split('T')[0] : h.evalDate;
+                            const hDate = (h.evalDate && h.evalDate.includes('T')) 
+                                          ? h.evalDate.split('T')[0] 
+                                          : h.evalDate;
                             return hDate === dateKey && h.shift === s;
                         });
                         dayData.slots[s] = record || null;
@@ -861,11 +862,14 @@ function nurseApp() {
             }
 
             const { total, category } = this.calcClassification();
+            const finalDate = (this.classForm.evalDate.includes('T')) 
+                      ? this.classForm.evalDate.split('T')[0] 
+                      : this.classForm.evalDate;
             const payload = {
                 an: this.selectedPatient.an,
                 hn: this.selectedPatient.hn,
                 ward: this.currentWard,
-                evalDate: this.classForm.evalDate,
+                evalDate: finalDate, // ส่งวันที่แบบสะอาดไป
                 shift: this.classForm.shift,
                 scores: this.classForm.scores,
                 total: total,
