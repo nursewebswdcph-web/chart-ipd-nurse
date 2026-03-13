@@ -1895,7 +1895,7 @@
                                             <thead>
                                                 <tr class="bg-slate-100">
                                                     <th class="border border-slate-300 w-[180px] p-2">ว/ด/ป</th>
-                                                    <template x-for="day in classTimeline[currentPageIndex]">
+                                                    <template x-for="day in (classTimeline[currentPageIndex] || [])">
                                                         <th colspan="3" class="border border-slate-300 bg-white py-2 text-indigo-700 font-bold" x-text="day.formattedDate"></th>
                                                     </template>
                                                 </tr>
@@ -1910,16 +1910,16 @@
                                             </thead>
                                             <tbody>
                                                 <template x-for="(question, qIndex) in [
-                                                     '1. สัญญาณชีพ', '2. อาการและอาการแสดงทางระบบประสาท', '3. การได้รับการตรวจรักษา/ผ่าตัดหรือหัตถการ', '4. พฤติกรรมที่ผิดปกติอารมณ์ จิตสังคม',
+                                                    '1. สัญญาณชีพ', '2. อาการและอาการแสดงทางระบบประสาท', '3. การได้รับการตรวจรักษา/ผ่าตัดหรือหัตถการ', '4. พฤติกรรมที่ผิดปกติอารมณ์ จิตสังคม',
                                                     'SEPARATOR',
                                                     '5. ความสามารถในการปฏิบัติกิจวัตรประจำวัน', '6. ความต้องการด้านจิตใจและอารมณ์', '7. ความต้องการยา/การรักษาทำหัตถการ/ฟื้นฟู', '8. ความต้องการการบรรเทาอาการรบกวน'
                                                 ]">
-                                                    <tr>
+                                                    <tr class="hover:bg-slate-50/50">
                                                         <template x-if="question === 'SEPARATOR'">
                                                             <td colspan="16" class="bg-slate-100 px-3 py-1 font-bold text-left text-slate-500">ความต้องการการดูแลขั้นต่ำ</td>
                                                         </template>
                                                         <template x-if="question !== 'SEPARATOR'">
-                                                            <td class="border border-slate-300 px-3 py-1.5 text-left font-medium truncate" x-text="question"></td>
+                                                            <td class="border border-slate-300 px-3 py-1.5 text-left font-medium" x-text="question"></td>
                                                         </template>
                                                         
                                                         <template x-if="question !== 'SEPARATOR'">
@@ -1927,12 +1927,8 @@
                                                                 <template x-for="s in ['ดึก','เช้า','บ่าย']">
                                                                     <td class="border border-slate-300 p-0">
                                                                         <input type="number" min="1" max="4"
-                                                                            class="w-full h-10 text-center font-bold focus:bg-yellow-50 outline-none border-none bg-transparent text-sm"
-                                                                            x-model.number="
-                                                                                (gridData[day.date] = gridData[day.date] || {}, 
-                                                                                 gridData[day.date][s] = gridData[day.date][s] || { scores: [null,null,null,null,null,null,null,null], assessor: '' },
-                                                                                 gridData[day.date][s].scores[qIndex > 4 ? qIndex-1 : qIndex])
-                                                                            "
+                                                                            class="w-full h-10 text-center font-bold focus:bg-yellow-50 outline-none border-none bg-transparent"
+                                                                            x-model.number="getGridCell(day.date, s).scores[qIndex > 4 ? qIndex-1 : qIndex]"
                                                                             placeholder="">
                                                                     </td>
                                                                 </template>
@@ -1952,13 +1948,16 @@
                                                         </template>
                                                     </template>
                                                 </tr>
+                                    
                                                 <tr class="bg-slate-50">
-                                                    <td class="border border-slate-300 px-3 py-1 text-left text-slate-400 font-bold">ผู้ประเมิน</td>
-                                                    <template x-for="day in (classTimeline[currentPageIndex] || [])">
+                                                    <td class="border border-slate-300 px-3 py-1 text-left text-slate-400 font-bold text-[9px]">ผู้ประเมิน</td>
+                                                    <template x-for="day in classTimeline[currentPageIndex]">
                                                         <template x-for="s in ['ดึก','เช้า','บ่าย']">
                                                             <td class="border border-slate-300 p-0">
-                                                                <input type="text"class="w-full h-8 text-[9px] text-center outline-none bg-transparent"
-                                                                    x-model="gridData[day.date]?.[s].assessor"placeholder="ชื่อพยาบาล">
+                                                                <input type="text" 
+                                                                    class="w-full h-8 text-[9px] text-center outline-none bg-transparent"
+                                                                    x-model="getGridCell(day.date, s).assessor"
+                                                                    placeholder="ชื่อ...">
                                                             </td>
                                                         </template>
                                                     </template>
