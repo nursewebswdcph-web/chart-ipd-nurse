@@ -1293,22 +1293,18 @@ function nurseApp() {
             window.scrollTo(0, 0);
             this.$nextTick(() => {
                 const printArea = document.getElementById('fall-risk-print-area');
-                if (!printArea) return this.showAlert('แจ้งเตือน', 'ไม่พบพื้นที่สำหรับพิมพ์เอกสาร');
-                
+                if (!printArea) return this.showAlert('แจ้งเตือน', 'ไม่พบพื้นที่สำหรับพิมพ์เอกสาร');           
                 const cloneDOM = printArea.cloneNode(true);
                 cloneDOM.querySelectorAll('template').forEach(t => t.remove());
-                const printContent = cloneDOM.innerHTML;
-                
+                const printContent = cloneDOM.innerHTML;                
                 let iframe = document.getElementById('print-frame');
                 if (iframe) iframe.remove(); 
                 iframe = document.createElement('iframe');
                 iframe.id = 'print-frame';
                 iframe.style.display = 'none';
-                document.body.appendChild(iframe);
-                
+                document.body.appendChild(iframe);                
                 const pri = iframe.contentWindow;
                 const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]')).map(s => s.outerHTML).join('');
-
                 pri.document.open();
                 pri.document.write(`
                     <!DOCTYPE html>
@@ -1318,38 +1314,28 @@ function nurseApp() {
                             ${styles}
                             <style>
                                 @page {size: A4 portrait; margin: 8mm 8mm 5mm 8mm;}
-                                body { font-size: 11px; color: black !important; }
-                                /* 2. แก้ปัญหาหน้าว่าง: จัดการการตัดหน้า */
-                                .a4-page {
-                                    page-break-after: always; /* หน้าปกติให้ตัดหน้า */
-                                    page-break-inside: avoid;
-                                    box-sizing: border-box;
-                                }
-                            
-                                /* หน้าสุดท้ายไม่ต้องตัดหน้า (ตัวช่วยสำคัญที่แก้หน้าว่าง) */
-                                .a4-page:last-child {
-                                    page-break-after: avoid !important;
-                                    margin-bottom: 0 !important;
-                                }
-                            
-                                /* 3. จัดการตาราง (ตามของเดิมแต่เพิ่มความชัวร์) */
+                                body { font-size: 11px; color: black !important; }                             
+
+                                /* บังคับตารางให้ขนาดคงที่ */
                                 table { 
                                     width: 100%; 
-                                    table-layout: fixed; 
+                                    table-layout: fixed; /* สำคัญ: บังคับคอลัมน์ไม่ให้ขยาย */
                                     border-collapse: collapse; 
-                                    margin-bottom: 5px; /* ลดช่องว่างระหว่างตาราง */
-                                }
-                                
+                                    word-break: break-word; /* ตัดคำถ้าเนื้อหาเกิน */
+                                }                               
+
                                 th, td { 
                                     border: 1px solid black !important; 
                                     padding: 2px !important; 
-                                }
-                            
-                                .w-label { width: 200px; }
-                                .w-guide { width: 85px; }
-                                .w-shift { width: 24px; }
-                                
-                                .bg-gray { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exac
+                                    overflow: hidden; /* ซ่อนเนื้อหาที่เกิน */
+                                }                       
+
+                                /* กำหนดความกว้างเฉพาะคอลัมน์ */
+                                .w-label { width: 200px; }       /* คอลัมน์รายการประเมิน */
+                                .w-guide { width: 85px; }        /* คอลัมน์เกณฑ์คะแนน */
+                                .w-shift { width: 24px; }        /* คอลัมน์เวร (ด/ช/บ) */                               
+
+                                .bg-gray { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
                                 .text-center { text-center: center; }
                                 /* กรอบข้อมูลผู้ป่วย */
                                 .print-patient-info {
@@ -1358,7 +1344,7 @@ function nurseApp() {
                                     font-size: 10px; background-color: white !important; z-index: 1000; 
                                     line-height: 1.4; color: black !important;
                                 }
-                                .print-global-footer {
+                                .print-global-footer 
                                 position: fixed; /* ล็อกตำแหน่ง */
                                 bottom: 0;      /* ชิดด้านล่าง */
                                 left: 0;
@@ -1389,11 +1375,11 @@ function nurseApp() {
                                     <b>เตียง:</b> ${this.selectedPatient?.bed || '-'}
                                 </div>
                             </div>                
-                            ${printContent}                
+
+                            ${printContent}            
                             <div class="print-global-footer">
                                 เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | โปรแกรมบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
-                            </div>
-                
+                            </div>               
                             <script>
                                 window.onload = function() {
                                     setTimeout(() => { window.print(); }, 800);
@@ -1404,6 +1390,6 @@ function nurseApp() {
                 `);
                 pri.document.close();
             });
-        },
+        }, 
     };
 }
