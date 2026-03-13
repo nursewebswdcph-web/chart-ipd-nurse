@@ -1365,9 +1365,19 @@ function nurseApp() {
                         </head>
                         <body>
                             <div class="print-patient-info">
-                                <div><b>ชื่อ-สกุล:</b> ${pName} &nbsp;&nbsp;<b>อายุ:</b> ${pAge}</div>
-                                <div><b>HN:</b> ${pHn} &nbsp;&nbsp;<b>AN:</b> ${pAn}</div>
-                                <div><b>แพทย์:</b> ${pDoc} &nbsp;&nbsp;<b>ตึก:</b> ${pWard} &nbsp;&nbsp;<b>เตียง:</b> ${pBed}</div>
+                                <div>
+                                    <b>ชื่อ-สกุล:</b> ${this.selectedPatient?.name || '-'} &nbsp;&nbsp;
+                                    <b>อายุ:</b> ${this.selectedPatient?.ageDisplay || '-'}
+                                </div>
+                                <div>
+                                    <b>HN:</b> ${this.selectedPatient?.hn || '-'} &nbsp;&nbsp;
+                                    <b>AN:</b> ${this.selectedPatient?.an || '-'}
+                                </div>
+                                <div>
+                                    <b>แพทย์:</b> ${this.selectedPatient?.doctor || '-'} &nbsp;&nbsp;
+                                    <b>ตึก:</b> ${this.currentWard || '-'} &nbsp;&nbsp;
+                                    <b>เตียง:</b> ${this.selectedPatient?.bed || '-'}
+                                </div>
                             </div>                
                             ${printContent}                
                             <div class="print-global-footer">
