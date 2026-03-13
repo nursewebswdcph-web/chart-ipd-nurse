@@ -1319,27 +1319,37 @@ function nurseApp() {
                             <style>
                                 @page {size: A4 portrait; margin: 8mm 8mm 5mm 8mm;}
                                 body { font-size: 11px; color: black !important; }
-                                
-                                /* บังคับตารางให้ขนาดคงที่ */
+                                /* 2. แก้ปัญหาหน้าว่าง: จัดการการตัดหน้า */
+                                .a4-page {
+                                    page-break-after: always; /* หน้าปกติให้ตัดหน้า */
+                                    page-break-inside: avoid;
+                                    box-sizing: border-box;
+                                }
+                            
+                                /* หน้าสุดท้ายไม่ต้องตัดหน้า (ตัวช่วยสำคัญที่แก้หน้าว่าง) */
+                                .a4-page:last-child {
+                                    page-break-after: avoid !important;
+                                    margin-bottom: 0 !important;
+                                }
+                            
+                                /* 3. จัดการตาราง (ตามของเดิมแต่เพิ่มความชัวร์) */
                                 table { 
                                     width: 100%; 
-                                    table-layout: fixed; /* สำคัญ: บังคับคอลัมน์ไม่ให้ขยาย */
+                                    table-layout: fixed; 
                                     border-collapse: collapse; 
-                                    word-break: break-word; /* ตัดคำถ้าเนื้อหาเกิน */
+                                    margin-bottom: 5px; /* ลดช่องว่างระหว่างตาราง */
                                 }
                                 
                                 th, td { 
                                     border: 1px solid black !important; 
                                     padding: 2px !important; 
-                                    overflow: hidden; /* ซ่อนเนื้อหาที่เกิน */
                                 }
-                        
-                                /* กำหนดความกว้างเฉพาะคอลัมน์ */
-                                .w-label { width: 200px; }       /* คอลัมน์รายการประเมิน */
-                                .w-guide { width: 85px; }        /* คอลัมน์เกณฑ์คะแนน */
-                                .w-shift { width: 24px; }        /* คอลัมน์เวร (ด/ช/บ) */
+                            
+                                .w-label { width: 200px; }
+                                .w-guide { width: 85px; }
+                                .w-shift { width: 24px; }
                                 
-                                .bg-gray { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
+                                .bg-gray { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exac
                                 .text-center { text-center: center; }
                                 /* กรอบข้อมูลผู้ป่วย */
                                 .print-patient-info {
