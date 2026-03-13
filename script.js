@@ -13,8 +13,9 @@ function nurseApp() {
         currentForm: null, 
         showAssessmentPreview: false, // ควบคุมการสลับหน้าฟอร์ม/พรีวิว
         savedAssessment: null,        // เก็บข้อมูลที่พึ่งบันทึกเพื่อแสดงในพรีวิว
-        
-        
+
+        fallRiskData: {},
+                
         isSidebarCollapsed: false, // สถานะการพับ Sidebar
         
         activeForms: [
@@ -1165,6 +1166,40 @@ function nurseApp() {
                 console.error('Error:', err);
                 alert('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้');
             });
+        },
+        // ฟังก์ชันดึงข้อมูล (เรียกใช้ตอนเลือกคนไข้)
+        loadFallRisk(an) {
+            fetch(`${this.API_URL}?action=getFallRisks&an=${an}`)
+            .then(res => res.json())
+            .then(data => {
+                this.fallRiskData = {};
+                data.forEach(item => {
+                    if (!this.fallRiskData[item.evalDate]) this.fallRiskData[item.evalDate] = {};
+                    this.fallRiskData[item.evalDate][item.shift] = item;
+                });
+            });
+        },
+        
+        // ฟังก์ชันเตรียมช่องข้อมูล
+        getFallRiskCell(date, shift) {
+            if (!this.fallRiskData[date]) this.fallRiskData[date] = {};
+            if (!this.fallRiskData[date][shift]) {
+                this.fallRiskData[date][shift] = {
+                    morse: [0,0,0,0,0,0],
+                    maasScore: 0,
+                    assessor: ''
+                };
+            }
+            return this.fallRiskData[date][shift];
+        },
+        
+        // คำนวณ Morse
+        calcMorse(scores) {
+            const total = scores.reduce((a, b) => Number(a) + Number(b), 0);
+            let risk = 'No Risk';
+            if (total >= 51) risk = 'High';
+            else if (total >= 25) risk = 'Low';
+            return { total, risk };
         },
     };
 }
