@@ -808,7 +808,7 @@ function nurseApp() {
                 };
             }
             return this.gridData[dateStr][shift];
-        }
+        },
         // ฟังก์ชันช่วยคำนวณคะแนนในตาราง
         calcScores(scores) {
             if (!scores || !Array.isArray(scores)) return { total: '', category: '' };
