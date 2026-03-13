@@ -756,8 +756,9 @@ function nurseApp() {
                 const dKey = day.date;
                 ['ดึก', 'เช้า', 'บ่าย'].forEach(s => {
                     const data = this.gridData[dKey]?.[s];
-                    // เงื่อนไข: ต้องกรอกครบ 8 ข้อ และมีชื่อผู้ประเมิน ถึงจะยอมให้บันทึกเวรนั้น
-                    if (data && data.scores.every(v => v !== null && v !== '')) {
+                    
+                    // เงื่อนไขบันทึก: ต้องกรอกครบ 8 ข้อในเวรนั้นๆ
+                    if (data && data.scores && data.scores.every(v => v !== null && v !== '')) {
                         const { total, category } = this.calcScores(data.scores);
                         recordsToSave.push({
                             an: this.selectedPatient.an,
@@ -768,19 +769,19 @@ function nurseApp() {
                             scores: data.scores,
                             total: total,
                             category: category,
-                            assessor: data.assessor || ''
+                            assessor: data.assessor || this.searchNurse || ''
                         });
                     }
                 });
             });
 
             if (recordsToSave.length === 0) {
-                return this.showAlert('แจ้งเตือน', 'กรุณากรอกคะแนนให้ครบ 8 ข้อ ในเวรที่ต้องการบันทึก');
+                return this.showAlert('แจ้งเตือน', 'กรุณากรอกคะแนนให้ครบ 8 ข้อ ในอย่างน้อย 1 เวรเพื่อบันทึก');
             }
 
             this.isLoading = true;
             try {
-                // ส่งบันทึก (ยิงทีละรายการเพื่อให้ API เดิมรองรับได้)
+                // บันทึกทีละ Record เพื่อให้รองรับกับ API เดิม
                 for (const payload of recordsToSave) {
                     await fetch(this.API_URL, {
                         method: 'POST',
@@ -788,7 +789,7 @@ function nurseApp() {
                         body: JSON.stringify({ action: 'saveClassification', payload })
                     });
                 }
-                this.successMsg = 'บันทึกข้อมูลสำเร็จ';
+                this.successMsg = 'บันทึกข้อมูลเรียบร้อยแล้ว';
                 this.showSuccess = true;
                 setTimeout(() => this.showSuccess = false, 3000);
                 await this.loadClassifications(this.selectedPatient.an);
@@ -799,26 +800,26 @@ function nurseApp() {
         },
         // ฟังก์ชันช่วยคำนวณคะแนนในตาราง
         calcScores(scores) {
-            if (!scores) return { total: '', category: '' };
-            // กรองเอาเฉพาะตัวเลขจริงๆ และไม่เอาค่าว่าง/null
-            const validScores = scores.filter(v => v !== null && v !== '' && !isNaN(v));
+            if (!scores || !Array.isArray(scores)) return { total: '', category: '' };
             
-            // ถ้ายังกรอกไม่ครบ 8 ข้อ ให้ยังไม่ต้องแสดงประเภท (หรือจะแสดงแค่ผลรวมก็ได้)
-            if (validScores.length === 0) return { total: '', category: '' };
+            // กรองเอาเฉพาะตัวเลข 1-4 (ตัดค่า null หรือค่าว่างออก)
+            const validValues = scores.filter(v => v !== null && v !== '' && !isNaN(v));
             
-            const total = validScores.reduce((a, b) => a + parseInt(b), 0);
+            if (validValues.length === 0) return { total: '', category: '' };
             
-            // คำนวณประเภท (แสดงผลเฉพาะเมื่อกรอกครบ 8 ข้อ)
-            let category = '';
-            if (validScores.length === 8) {
-                if (total >= 27) category = 5;
-                else if (total >= 21) category = 4;
-                else if (total >= 15) category = 3;
-                else if (total >= 9) category = 2;
-                else category = 1;
+            const sum = validValues.reduce((a, b) => a + parseInt(b), 0);
+            
+            // จะแสดง "ประเภท" ก็ต่อเมื่อกรอกครบ 8 ข้อเท่านั้น
+            let cat = '';
+            if (validValues.length === 8) {
+                if (sum >= 27) cat = 5;
+                else if (sum >= 21) cat = 4;
+                else if (sum >= 15) cat = 3;
+                else if (sum >= 9) cat = 2;
+                else cat = 1;
             }
             
-            return { total, category };
+            return { total: sum, category: cat };
         },
         editClassItem(item) {
             // ดึงวันที่จาก item.evalDate มาแบบสะอาดๆ ไม่ต้องผ่านการคำนวณใหม่
