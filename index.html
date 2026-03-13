@@ -2225,164 +2225,140 @@
                 
                         <div id="fall-risk-print-area" class="hidden">
                             <template x-for="(page, pageIndex) in classTimeline" :key="pageIndex">
-                                <div>
-                                    <div class="a4-page bg-white text-black p-4">
-                                        <div class="text-right text-[10px] font-bold">
-                                            Echart-ipd-nurse<br>Morse-MAAS-Form หน้า <span x-text="pageIndex + 1"></span></div>
-                                        <div class="text-center font-bold text-[14px] mt-2 mb-4">
-                                            แบบประเมินความเสี่ยงต่อการพลัดตกหกล้ม Morse / การดึงอุปกรณ์ที่สอดใส่ในร่างกายผู้ป่วย (MAAS)
-                                        </div>
-                                        
+                                <div class="a4-page bg-white text-black p-4 mb-4" style="page-break-after: always;">
+                                    <div class="text-right text-[10px] font-bold">
+                                        Echart-ipd-nurse<br>Morse-MAAS-Form หน้า <span x-text="pageIndex + 1"></span>
+                                    </div>
+                                    <div class="text-center font-bold text-[13px] mt-1 mb-2">
+                                        แบบประเมินความเสี่ยงต่อการพลัดตกหกล้ม Morse / การดึงอุปกรณ์ที่สอดใส่ในร่างกายผู้ป่วย (MAAS)<br>โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
+                                    </div>
+                        
+                                    <table class="w-full text-[9px] border-collapse text-left mb-2">
                                         <thead>
-                                                <tr class="bg-gray">
-                                                    <th rowspan="2" class="w-label">ประเด็น</th>
-                                                    <th rowspan="2" class="w-guide text-center">คะแนน/<br>เวร</th>
-                                                    <template x-for="day in page">
-                                                        <th colspan="3" class="text-center" x-text="day.formattedDate"></th>
+                                            <tr class="bg-gray">
+                                                <th rowspan="2" class="w-label border border-black p-1">ประเด็น</th>
+                                                <th rowspan="2" class="w-guide border border-black p-1 text-center">คะแนน/<br>เวร</th>
+                                                <template x-for="day in page">
+                                                    <th colspan="3" class="border border-black p-1 text-center" x-text="day.formattedDate"></th>
+                                                </template>
+                                            </tr>
+                                            <tr class="bg-gray">
+                                                <template x-for="day in page">
+                                                    <template x-for="s in ['ด','ช','บ']">
+                                                        <th class="w-shift border border-black p-1 text-center" x-text="s"></th>
                                                     </template>
-                                                </tr>
-                                                <tr class="bg-gray">
-                                                    <template x-for="day in page">
-                                                        <template x-for="s in ['ด','ช','บ']">
-                                                            <th class="w-shift text-center" x-text="s"></th>
-                                                        </template>
+                                                </template>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td class="border border-black p-1">1. มีการหกล้มกะทันหัน หรือหกล้มช่วง 3 เดือนก่อนมา รพ.</td>
+                                                <td class="border border-black p-1 text-center">ไม่ใช่=0/ใช่=25</td>
+                                                <template x-for="day in page"><template x-for="shift in ['ดึก', 'เช้า', 'บ่าย']"><td class="border border-black text-center font-bold" x-text="getFallGridCell(day.date, shift).scores[0]"></td></template></template>
+                                            </tr>
+                                            <tr>
+                                                <td class="border border-black p-1">2. มีการวินิจฉัยโรคมากกว่า 1 รายการ</td>
+                                                <td class="border border-black p-1 text-center">ไม่ใช่=0/ใช่=15</td>
+                                                <template x-for="day in page"><template x-for="shift in ['ดึก', 'เช้า', 'บ่าย']"><td class="border border-black text-center font-bold" x-text="getFallGridCell(day.date, shift).scores[1]"></td></template></template>
+                                            </tr>
+                                            <tr>
+                                                <td class="border border-black p-1">3. การช่วยในการเคลื่อนย้าย<br>- เดินได้เอง/รถเข็น/นอนพัก<br>- ไม้ค้ำยัน/ไม้เท้า<br>- ยึดเกาะไปตามเตียง/โต๊ะ/เก้าอี้</td>
+                                                <td class="border border-black p-1 text-center">ใช่ = 0<br>ใช่ = 15<br>ใช่ = 30</td>
+                                                <template x-for="day in page"><template x-for="shift in ['ดึก', 'เช้า', 'บ่าย']"><td class="border border-black text-center font-bold" x-text="getFallGridCell(day.date, shift).scores[2]"></td></template></template>
+                                            </tr>
+                                            <tr>
+                                                <td class="border border-black p-1">4. ให้สารละลายทางหลอดเลือด/คา Heparin lock</td>
+                                                <td class="border border-black p-1 text-center">ไม่ใช่=0/ใช่=20</td>
+                                                <template x-for="day in page"><template x-for="shift in ['ดึก', 'เช้า', 'บ่าย']"><td class="border border-black text-center font-bold" x-text="getFallGridCell(day.date, shift).scores[3]"></td></template></template>
+                                            </tr>
+                                            <tr>
+                                                <td class="border border-black p-1">5. การเดิน (ปกติ=0/อ่อนแรง=10/ลำบาก=20)</td>
+                                                <td class="border border-black p-1 text-center">0 / 10 / 20</td>
+                                                <template x-for="day in page"><template x-for="shift in ['ดึก', 'เช้า', 'บ่าย']"><td class="border border-black text-center font-bold" x-text="getFallGridCell(day.date, shift).scores[4]"></td></template></template>
+                                            </tr>
+                                            <tr>
+                                                <td class="border border-black p-1">6. สภาพจิตใจ (ปกติ=0/สับสน=15)</td>
+                                                <td class="border border-black p-1 text-center">0 / 15</td>
+                                                <template x-for="day in page"><template x-for="shift in ['ดึก', 'เช้า', 'บ่าย']"><td class="border border-black text-center font-bold" x-text="getFallGridCell(day.date, shift).scores[5]"></td></template></template>
+                                            </tr>
+                                            <tr class="bg-gray font-bold">
+                                                <td colspan="2" class="border border-black text-right pr-2">รวมคะแนน</td>
+                                                <template x-for="day in page"><template x-for="shift in ['ดึก', 'เช้า', 'บ่าย']"><td class="border border-black text-center" x-text="calcMorseTotal(getFallGridCell(day.date, shift).scores)"></td></template></template>
+                                            </tr>
+                                            <tr>
+                                                <td colspan="2" class="border border-black text-right pr-2 font-bold">พยาบาลผู้ประเมิน</td>
+                                                <template x-for="day in page"><template x-for="shift in ['ดึก', 'เช้า', 'บ่าย']"><td class="border border-black text-center text-[8px]" x-text="getFallGridCell(day.date, shift).assessor"></td></template></template>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                        
+                                    <div class="font-bold text-[11px] mt-1 mb-1 text-center">แบบประเมินความเสี่ยงต่อการดึงอุปกรณ์ (MAAS)</div>
+                                    <table class="w-full text-[9px] border-collapse text-left mb-2">
+                                        <thead>
+                                            <tr class="bg-gray">
+                                                <th rowspan="2" class="w-label border border-black p-1">ประเด็น</th>
+                                                <th rowspan="2" class="w-guide border border-black p-1 text-center">คะแนน</th>
+                                                <template x-for="day in page">
+                                                    <th colspan="3" class="border border-black p-1 text-center" x-text="day.formattedDate"></th>
+                                                </template>
+                                            </tr>
+                                            <tr class="bg-gray">
+                                                <template x-for="day in page">
+                                                    <template x-for="s in ['ด','ช','บ']">
+                                                        <th class="w-shift border border-black p-1 text-center" x-text="s"></th>
                                                     </template>
+                                                </template>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr><td class="border border-black p-1">ไม่ตอบสนอง (0)</td><td class="border border-black text-center">0</td><template x-for="day in page"><template x-for="s in ['ดึก', 'เช้า', 'บ่าย']"><td class="border border-black text-center font-bold" x-text="getFallGridCell(day.date, s).maas == '0' ? '✓' : ''"></td></template></template></tr>
+                                            <tr><td class="border border-black p-1">ตอบสนองต่อการกระตุ้นแรงๆ (1)</td><td class="border border-black text-center">1</td><template x-for="day in page"><template x-for="s in ['ดึก', 'เช้า', 'บ่าย']"><td class="border border-black text-center font-bold" x-text="getFallGridCell(day.date, s).maas == '1' ? '✓' : ''"></td></template></template></tr>
+                                            <tr><td class="border border-black p-1">ตอบสนองการสัมผัส/เรียกชื่อ (2)</td><td class="border border-black text-center">2</td><template x-for="day in page"><template x-for="s in ['ดึก', 'เช้า', 'บ่าย']"><td class="border border-black text-center font-bold" x-text="getFallGridCell(day.date, s).maas == '2' ? '✓' : ''"></td></template></template></tr>
+                                            <tr><td class="border border-black p-1">สงบ/ให้ความร่วมมือ (3)</td><td class="border border-black text-center">3</td><template x-for="day in page"><template x-for="s in ['ดึก', 'เช้า', 'บ่าย']"><td class="border border-black text-center font-bold" x-text="getFallGridCell(day.date, s).maas == '3' ? '✓' : ''"></td></template></template></tr>
+                                            <tr><td class="border border-black p-1">พักน้อย/ไม่ร่วมมือ (4)</td><td class="border border-black text-center">4</td><template x-for="day in page"><template x-for="s in ['ดึก', 'เช้า', 'บ่าย']"><td class="border border-black text-center font-bold" x-text="getFallGridCell(day.date, s).maas == '4' ? '✓' : ''"></td></template></template></tr>
+                                            <tr><td class="border border-black p-1">ต่อต้านการรักษา (5)</td><td class="border border-black text-center">5</td><template x-for="day in page"><template x-for="s in ['ดึก', 'เช้า', 'บ่าย']"><td class="border border-black text-center font-bold" x-text="getFallGridCell(day.date, s).maas == '5' ? '✓' : ''"></td></template></template></tr>
+                                            <tr><td class="border border-black p-1">ต่อต้านการรักษา/อันตราย (6)</td><td class="border border-black text-center">6</td><template x-for="day in page"><template x-for="s in ['ดึก', 'เช้า', 'บ่าย']"><td class="border border-black text-center font-bold" x-text="getFallGridCell(day.date, s).maas == '6' ? '✓' : ''"></td></template></template></tr>
+                                            <tr class="bg-gray font-bold">
+                                                <td colspan="2" class="border border-black text-right pr-2">คะแนนที่ได้</td>
+                                                <template x-for="day in page"><template x-for="shift in ['ดึก', 'เช้า', 'บ่าย']"><td class="border border-black text-center" x-text="getFallGridCell(day.date, shift).maas"></td></template></template>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                        
+                                    <div class="mt-2 border-t border-dashed border-gray-400 pt-2">
+                                        <div class="font-bold text-[10px] mb-1 text-center">แนวปฏิบัติการป้องกันการพลัดตกหกล้ม</div>
+                                        <table class="w-full text-[8px] border-collapse mb-2">
+                                            <thead>
+                                                <tr class="bg-gray">
+                                                    <th class="border border-black p-1 w-1/3">No Risk 0-24</th>
+                                                    <th class="border border-black p-1 w-1/3">Low Risk 25-50</th>
+                                                    <th class="border border-black p-1 w-1/3">High Risk ≥ 51</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 <tr>
-                                                    <td>1. มีการหกล้มกะทันหัน หรือหกล้มช่วง 3 เดือนก่อนมา รพ.</td><td class="text-center">ไม่ใช่ = 0<br>ใช่ = 25</td>
-                                                    <template x-for="day in page"><template x-for="shift in ['ดึก', 'เช้า', 'บ่าย']"><td class="text-center font-bold" x-text="getFallGridCell(day.date, shift).scores[0]"></td></template></template>
-                                                </tr>
-                                                <tr>
-                                                    <td>2. มีการวินิจฉัยโรคมากกว่า 1 รายการ</td><td class="text-center">ไม่ใช่ = 0<br>ใช่ = 15</td>
-                                                    <template x-for="day in page"><template x-for="shift in ['ดึก', 'เช้า', 'บ่าย']"><td class="text-center font-bold" x-text="getFallGridCell(day.date, shift).scores[1]"></td></template></template>
-                                                </tr>
-                                                <tr>
-                                                    <td>3. การช่วยในการเคลื่อนย้าย<br>- เดินได้เอง/รถเข็น/นอนพัก<br>- ไม้ค้ำยัน/ไม้เท้า<br>- ยึดเกาะไปตามเตียง/โต๊ะ/เก้าอี้</td><td class="text-center"><br>ใช่ = 0<br>ใช่ = 15<br>ใช่ = 30</td>
-                                                    <template x-for="day in page"><template x-for="shift in ['ดึก', 'เช้า', 'บ่าย']"><td class="text-center font-bold" x-text="getFallGridCell(day.date, shift).scores[2]"></td></template></template>
-                                                </tr>
-                                                <tr>
-                                                    <td>4. ให้สารละลายทางหลอดเลือด/คา Heparin lock</td><td class="text-center">ไม่ใช่ = 0<br>ใช่ = 20</td>
-                                                    <template x-for="day in page"><template x-for="shift in ['ดึก', 'เช้า', 'บ่าย']"><td class="text-center font-bold" x-text="getFallGridCell(day.date, shift).scores[3]"></td></template></template>
-                                                </tr>
-                                                <tr>
-                                                    <td>5. การเดิน / การเคลื่อนย้าย<br>- ปกติ/นอนพัก/ไม่เคลื่อนไหว<br>- อ่อนแรงเล็กน้อยหรืออ่อนเพลีย<br>- ลุกจากเก้าอี้ลำบาก/เดินไม่ได้</td><td class="text-center"><br>ใช่ = 0<br>ใช่ = 10<br>ใช่ = 20</td>
-                                                    <template x-for="day in page"><template x-for="shift in ['ดึก', 'เช้า', 'บ่าย']"><td class="text-center font-bold" x-text="getFallGridCell(day.date, shift).scores[4]"></td></template></template>
-                                                </tr>
-                                                <tr>
-                                                    <td>6. สภาพจิตใจ<br>- รับรู้บุคคล เวลา สถานที่<br>- ตอบสนองไม่ตรงกับความจริง</td><td class="text-center"><br>ใช่ = 0<br>ใช่ = 15</td>
-                                                    <template x-for="day in page"><template x-for="shift in ['ดึก', 'เช้า', 'บ่าย']"><td class="text-center font-bold" x-text="getFallGridCell(day.date, shift).scores[5]"></td></template></template>
-                                                </tr>
-                                                <tr class="bg-gray font-bold">
-                                                    <td colspan="2" class="text-right pr-2">รวมคะแนน</td>
-                                                    <template x-for="day in page"><template x-for="shift in ['ดึก', 'เช้า', 'บ่าย']"><td class="text-center" x-text="calcMorseTotal(getFallGridCell(day.date, shift).scores)"></td></template></template>
-                                                </tr>
-                                                <tr>
-                                                    <td colspan="2" class="text-right pr-2 font-bold">พยาบาลผู้ประเมิน</td>
-                                                    <template x-for="day in page"><template x-for="shift in ['ดึก', 'เช้า', 'บ่าย']"><td class="text-center text-[8px]" x-text="getFallGridCell(day.date, shift).assessor"></td></template></template>
+                                                    <td class="border border-black p-1 align-top">1.จัดเตียงเหมาะสม<br>2.ประเมินตัว/ทรงตัว<br>3.ให้ข้อมูลญาติ<br>4.สิ่งแวดล้อมปลอดภัย<br>5.ญาติเฝ้า/6.ยกที่กั้น<br>7.เยี่ยมเวรละ 1 ครั้ง</td>
+                                                    <td class="border border-black p-1 align-top">1-6. ปฏิบัติเหมือน No Risk<br>7. เยี่ยมทุก 4 ชม.<br>8. ติดสัญลักษณ์เสี่ยง</td>
+                                                    <td class="border border-black p-1 align-top">1-6. ปฏิบัติเหมือน No Risk<br>7. เยี่ยมทุก 2 ชม.<br>8. ติดสัญลักษณ์<br>9. ผูกมัดตามสภาพ<br>10. ส่งเวรอาการ<br>11. ปรึกษาสหวิชาชีพ</td>
                                                 </tr>
                                             </tbody>
                                         </table>
-                
-                                        <div class="font-bold text-[12px] mt-4 mb-2 text-center">แบบประเมินความเสี่ยงต่อ การดึงอุปกรณ์ที่สอดใส่ในร่างกายผู้ป่วย (MAAS)</div>
-                                        <table class="w-full text-[10px] border-collapse text-left">
+                        
+                                        <div class="font-bold text-[10px] mb-1 text-center">แนวปฏิบัติการป้องกันการดึงอุปกรณ์ (MAAS)</div>
+                                        <table class="w-full text-[8px] border-collapse">
                                             <thead>
                                                 <tr class="bg-gray">
-                                                    <th rowspan="2" class="w-label">ประเด็น</th>
-                                                    <th rowspan="2" class="w-guide text-center">คะแนน</th>
-                                                    <template x-for="day in page">
-                                                        <th colspan="3" class="text-center" x-text="day.formattedDate"></th>
-                                                    </template>
-                                                </tr>
-                                                <tr class="bg-gray">
-                                                    <template x-for="day in page">
-                                                        <template x-for="s in ['ด','ช','บ']">
-                                                            <th class="w-shift text-center" x-text="s"></th>
-                                                        </template>
-                                                    </template>
+                                                    <th class="border border-black p-1 w-1/4">คะแนน</th>
+                                                    <th class="border border-black p-1 text-left">รายการปฏิบัติ</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                <tr><td>ไม่ตอบสนอง</td><td class="text-center">0</td><template x-for="day in page"><template x-for="s in ['ดึก', 'เช้า', 'บ่าย']"><td class="text-center font-bold" x-text="getFallGridCell(day.date, s).maas == '0' ? '✓' : ''"></td></template></template></tr>
-                                                <tr><td>ตอบสนองต่อการกระตุ้นแรง ๆ</td><td class="text-center">1</td><template x-for="day in page"><template x-for="s in ['ดึก', 'เช้า', 'บ่าย']"><td class="text-center font-bold" x-text="getFallGridCell(day.date, s).maas == '1' ? '✓' : ''"></td></template></template></tr>
-                                                <tr><td>ตอบสนองต่อการสัมผัสและการเรียกชื่อ</td><td class="text-center">2</td><template x-for="day in page"><template x-for="s in ['ดึก', 'เช้า', 'บ่าย']"><td class="text-center font-bold" x-text="getFallGridCell(day.date, s).maas == '2' ? '✓' : ''"></td></template></template></tr>
-                                                <tr><td>สงบและให้ความร่วมมือ</td><td class="text-center">3</td><template x-for="day in page"><template x-for="s in ['ดึก', 'เช้า', 'บ่าย']"><td class="text-center font-bold" x-text="getFallGridCell(day.date, s).maas == '3' ? '✓' : ''"></td></template></template></tr>
-                                                <tr><td>พักได้น้อยและไม่ให้ความร่วมมือ</td><td class="text-center">4</td><template x-for="day in page"><template x-for="s in ['ดึก', 'เช้า', 'บ่าย']"><td class="text-center font-bold" x-text="getFallGridCell(day.date, s).maas == '4' ? '✓' : ''"></td></template></template></tr>
-                                                <tr><td>ไม่ให้ความร่วมมือในการรักษา/ต่อต้านการรักษา</td><td class="text-center">5</td><template x-for="day in page"><template x-for="s in ['ดึก', 'เช้า', 'บ่าย']"><td class="text-center font-bold" x-text="getFallGridCell(day.date, s).maas == '5' ? '✓' : ''"></td></template></template></tr>
-                                                <tr><td>ไม่ให้ความร่วมมือในการรักษา/ต่อต้านการรักษาซึ่งก่อให้เกิดอันตรายต่อผู้อื่น</td><td class="text-center">6</td><template x-for="day in page"><template x-for="s in ['ดึก', 'เช้า', 'บ่าย']"><td class="text-center font-bold" x-text="getFallGridCell(day.date, s).maas == '6' ? '✓' : ''"></td></template></template></tr>
-                                                <tr class="bg-gray font-bold">
-                                                    <td colspan="2" class="text-right pr-2">คะแนนที่ได้</td>
-                                                    <template x-for="day in page"><template x-for="shift in ['ดึก', 'เช้า', 'บ่าย']"><td class="text-center" x-text="getFallGridCell(day.date, shift).maas"></td></template></template>
-                                                </tr>
-                                                <tr>
-                                                    <td colspan="2" class="text-right pr-2 font-bold">พยาบาลผู้ประเมิน</td>
-                                                    <template x-for="day in page"><template x-for="shift in ['ดึก', 'เช้า', 'บ่าย']"><td class="text-center text-[8px]" x-text="getFallGridCell(day.date, shift).assessor"></td></template></template>
-                                                </tr>
+                                                <tr><td class="border border-black text-center font-bold">0-3</td><td class="border border-black p-1">ไม่ต้องผูกยึด</td></tr>
+                                                <tr><td class="border border-black text-center font-bold">4-6</td><td class="border border-black p-1 font-bold">ต้องผูกยึดผู้ป่วยและเฝ้าระวังอย่างใกล้ชิด แจ้งญาติทราบก่อนทุกครั้ง</td></tr>
                                             </tbody>
                                         </table>
                                     </div>
-                
-                                    <div class="border-t border-dashed border-slate-300 pt-2">
-                                    <div class="font-bold text-[8px] mb-1 text-center text-slate-800">แนวปฏิบัติการป้องกันการพลัดตกหกล้ม</div>
-                                    <table class="w-full text-[8px] border-collapse mb-3 align-top">
-                                        <thead>
-                                            <tr class="bg-gray">
-                                                <th class="w-1/3 border border-black p-1">No Risk 0-24</th>
-                                                <th class="w-1/3 border border-black p-1">Low Risk 25-50</th>
-                                                <th class="w-1/3 border border-black p-1">High Risk ≥ 51</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td class="border border-black p-1 align-top">
-                                                    1. จัดเตียงให้เหมาะสมกับสภาพผู้ป่วย<br>
-                                                    2. ประเมินความสามารถในการช่วยเหลือตนเอง<br>
-                                                    3. ให้ข้อมูลผู้ป่วย/ญาติป้องกันการหกล้ม<br>
-                                                    4. จัดสิ่งแวดล้อมให้ปลอดภัย<br>
-                                                    5. ให้ญาติเฝ้า
-                                                    6. ยกเหล็กกั้นเตียง<br>
-                                                    7. ตรวจเยี่ยมเวรละ 1 ครั้ง
-                                                </td>
-                                                <td class="border border-black p-1 align-top">
-                                                    1-6. ปฏิบัติเหมือน No Risk<br>
-                                                    7. ตรวจเยี่ยมผู้ป่วยทุก 4 ชั่วโมง<br>
-                                                    8. ติดสัญลักษณ์ความเสี่ยงหกล้ม
-                                                </td>
-                                                <td class="border border-black p-1 align-top">
-                                                    1-6. ปฏิบัติเหมือน No Risk<br>
-                                                    7. ตรวจเยี่ยมผู้ป่วยทุก 2 ชม.
-                                                    8. ติดสัญลักษณ์ความเสี่ยงหกล้ม<br>
-                                                    9. ผูกมัดตามสภาพ
-                                                    10. ส่งเวรเกี่ยวกับอากาผู้ป่วย<br>
-                                                    11. ปรึกษาสหวิชาชีพ
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                    
-                                    <div class="font-bold text-[11px] mb-1 text-center text-slate-800">แนวปฏิบัติการป้องกันการดึงอุปกรณ์ที่สอดใส่ร่างกายผู้ป่วย</div>
-                                    <table class="w-full text-[9px] border-collapse w-full">
-                                        <thead>
-                                            <tr class="bg-gray">
-                                                <th class="w-[15%] border border-black p-1 text-center">คะแนน</th>
-                                                <th class="border border-black p-1 text-left">รายการปฏิบัติ</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr><td class="border border-black text-center font-bold">0-3</td><td class="border border-black p-1">ไม่ต้องผูกยึด</td></tr>
-                                            <tr>
-                                                <td class="border border-black text-center font-bold">4-6</td>
-                                                <td class="border border-black p-1">
-                                                    ต้องผูกยึดผู้ป่วยและเฝ้าระวังอย่างใกล้ชิด<br>
-                                                    **แจ้งญาติทราบก่อนทุกครั้ง / กรณีไม่มีญาติผูกยึดได้เลย
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                                </div>
-                            </template>
+                                </div> </template>
                         </div>
                     </div>
                 </div>
