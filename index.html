@@ -1891,81 +1891,77 @@
                         
                                 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                                     <div class="overflow-x-auto custom-scrollbar">
-                                        <table class="w-full min-w-[950px] border-collapse text-center text-[11px]" style="table-layout: fixed;">
+                                        <table class="w-full min-w-[1000px] border-collapse text-center text-[11px]" style="table-layout: fixed;">
                                             <thead>
-                                                <tr class="bg-slate-100 text-slate-700">
-                                                    <th class="border border-slate-200 text-left px-4 py-3 w-[200px] font-bold">เกณฑ์การจำแนก</th>
+                                                <tr class="bg-slate-100">
+                                                    <th class="border border-slate-300 w-[180px] p-2">ว/ด/ป</th>
                                                     <template x-for="day in (classTimeline[currentPageIndex] || [])">
-                                                        <th colspan="3" class="border border-slate-200 font-black bg-white py-3 text-indigo-600" x-text="day.formattedDate"></th>
+                                                        <th colspan="3" class="border border-slate-300 bg-white py-2 text-indigo-700 font-bold" x-text="day.formattedDate"></th>
                                                     </template>
                                                 </tr>
                                                 <tr class="bg-slate-50">
-                                                    <th class="border border-slate-200 p-1 font-bold text-slate-400 uppercase tracking-tighter text-[9px]">Shift</th>
+                                                    <th class="border border-slate-300 p-1 text-slate-400">เวร</th>
                                                     <template x-for="i in 5">
-                                                        <th class="border border-slate-200 w-[50px] py-1 font-black text-indigo-400">ดึก</th>
-                                                        <th class="border border-slate-200 w-[50px] py-1 font-black text-amber-500">เช้า</th>
-                                                        <th class="border border-slate-200 w-[50px] py-1 font-black text-orange-500">บ่าย</th>
+                                                        <th class="border border-slate-300 w-[55px] py-1 text-indigo-500 font-bold">ดึก</th>
+                                                        <th class="border border-slate-300 w-[55px] py-1 text-amber-600 font-bold">เช้า</th>
+                                                        <th class="border border-slate-300 w-[55px] py-1 text-orange-600 font-bold">บ่าย</th>
                                                     </template>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 <template x-for="(question, qIndex) in [
-                                                     '1. สัญญาณชีพ', '2. อาการและอาการแสดงทางระบบประสาท', '3. การได้รับการตรวจรักษา/ผ่าตัดหรือหัตถการ', '4. พฤติกรรมที่ผิดปกติอารมณ์ จิตสังคม',
+                                                    '1. สัญญาณชีพ', '2. อาการและอาการแสดงทางระบบประสาท', '3. การได้รับการตรวจรักษา/ผ่าตัดหรือหัตถการ', '4. พฤติกรรมที่ผิดปกติอารมณ์ จิตสังคม',
                                                     'SEPARATOR',
                                                     '5. ความสามารถในการปฏิบัติกิจวัตรประจำวัน', '6. ความต้องการด้านจิตใจและอารมณ์', '7. ความต้องการยา/การรักษาทำหัตถการ/ฟื้นฟู', '8. ความต้องการการบรรเทาอาการรบกวน'
                                                 ]">
-                                                    <tr class="group">
+                                                    <tr>
                                                         <template x-if="question === 'SEPARATOR'">
-                                                            <th colspan="16" class="border border-slate-200 text-left px-4 py-2 bg-slate-50 font-bold text-slate-500 text-[10px] uppercase tracking-widest">ความต้องการการดูแลขั้นต่ำ</th>
+                                                            <td colspan="16" class="bg-slate-100 px-3 py-1 font-bold text-left text-slate-500">ความต้องการการดูแลขั้นต่ำ</td>
                                                         </template>
-                                                        
                                                         <template x-if="question !== 'SEPARATOR'">
-                                                            <td class="border border-slate-200 text-left px-4 py-2 font-medium text-slate-600 group-hover:bg-slate-50 transition-colors" x-text="question"></td>
+                                                            <td class="border border-slate-300 px-3 py-1.5 text-left font-medium" x-text="question"></td>
                                                         </template>
                                                         
                                                         <template x-if="question !== 'SEPARATOR'">
                                                             <template x-for="day in (classTimeline[currentPageIndex] || [])">
-                                                                <template x-for="s in ['ดึก', 'เช้า', 'บ่าย']">
-                                                                    <td class="border border-slate-200 p-0 relative">
-                                                                        <input type="number" min="1" max="4" 
-                                                                            class="w-full h-10 text-center font-black text-sm focus:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 transition-all border-none bg-transparent"
+                                                                <template x-for="s in ['ดึก','เช้า','บ่าย']">
+                                                                    <td class="border border-slate-300 p-0">
+                                                                        <input type="number" 
+                                                                            class="w-full h-9 text-center font-bold focus:bg-yellow-50 outline-none border-none bg-transparent"
                                                                             x-model.number="
                                                                                 (gridData[day.date] = gridData[day.date] || {}, 
-                                                                                 gridData[day.date][s] = gridData[day.date][s] || { scores: [0,0,0,0,0,0,0,0], assessor: '' },
+                                                                                 gridData[day.date][s] = gridData[day.date][s] || { scores: [null,null,null,null,null,null,null,null], assessor: '' },
                                                                                  gridData[day.date][s].scores[qIndex > 4 ? qIndex-1 : qIndex])
                                                                             "
-                                                                            placeholder="-"
-                                                                            @wheel.prevent>
+                                                                            placeholder="">
                                                                     </td>
                                                                 </template>
                                                             </template>
                                                         </template>
                                                     </tr>
                                                 </template>
-                        
-                                                <tr class="bg-indigo-50/30">
-                                                    <td class="border border-slate-200 text-left px-4 py-3 font-black text-indigo-900">รวมคะแนน (ประเภท)</td>
+                                                
+                                                <tr class="bg-indigo-50/50">
+                                                    <td class="border border-slate-300 px-3 py-2 font-bold text-left">รวมคะแนน (ประเภท)</td>
                                                     <template x-for="day in (classTimeline[currentPageIndex] || [])">
-                                                        <template x-for="s in ['ดึก', 'เช้า', 'บ่าย']">
-                                                            <td class="border border-slate-200 font-black">
-                                                                <div class="text-[14px] text-indigo-700" x-text="gridData[day.date]?.[s] ? calcScores(gridData[day.date][s].scores).total : ''"></div>
-                                                                <div class="text-[10px] text-orange-600" x-text="gridData[day.date]?.[s] ? '(' + calcScores(gridData[day.date][s].scores).category + ')' : ''"></div>
+                                                        <template x-for="s in ['ดึก','เช้า','บ่าย']">
+                                                            <td class="border border-slate-300">
+                                                                <div class="font-bold text-indigo-700" x-text="gridData[day.date]?.[s] ? calcScores(gridData[day.date][s].scores).total : ''"></div>
+                                                                <div class="text-[9px] text-red-600 font-bold" x-text="gridData[day.date]?.[s] && calcScores(gridData[day.date][s].scores).category ? '(' + calcScores(gridData[day.date][s].scores).category + ')' : ''"></div>
                                                             </td>
                                                         </template>
                                                     </template>
                                                 </tr>
-                        
-                                                <tr class="bg-slate-50/50">
-                                                    <td class="border border-slate-200 text-left px-4 py-2 font-bold text-slate-400">
-                                                        <i class="fa-solid fa-user-nurse mr-1"></i> ผู้ประเมิน
-                                                    </td>
+                                    
+                                                <tr class="bg-slate-50">
+                                                    <td class="border border-slate-300 px-3 py-1 text-left text-slate-400 font-bold">ผู้ประเมิน</td>
                                                     <template x-for="day in (classTimeline[currentPageIndex] || [])">
-                                                        <template x-for="s in ['ดึก', 'เช้า', 'บ่าย']">
-                                                            <td class="border border-slate-200 p-0">
+                                                        <template x-for="s in ['ดึก','เช้า','บ่าย']">
+                                                            <td class="border border-slate-300 p-0">
                                                                 <input type="text" 
-                                                                    class="w-full h-10 text-[9px] text-center font-bold bg-transparent outline-none focus:bg-white placeholder:text-slate-300"
+                                                                    class="w-full h-8 text-[9px] text-center outline-none bg-transparent"
                                                                     x-model="gridData[day.date]?.[s].assessor"
-                                                                    placeholder="ระบุชื่อ...">
+                                                                    placeholder="ชื่อพยาบาล">
                                                             </td>
                                                         </template>
                                                     </template>
