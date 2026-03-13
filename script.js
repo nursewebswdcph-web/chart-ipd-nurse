@@ -1297,13 +1297,30 @@ function nurseApp() {
                             <title>พิมพ์แบบประเมิน Morse / MAAS</title>
                             ${styles}
                             <style>
-                                @page {size: A4 portrait; margin: 15mm 10mm 15mm 10mm;}
-                                body { background: white !important; margin: 0; padding: 0; color: black !important; -webkit-print-color-adjust: exact !important; font-size: 11px; }
-                                .a4-page { width: 100% !important; margin: 0 auto !important; position: relative; page-break-after: always; display: block !important; }
-                                .a4-page:last-child { page-break-after: auto; }
-                                table { width: 100%; border-collapse: collapse; margin-top: 5px; }
-                                th, td { border: 1px solid black !important; padding: 3px !important; color: black !important; font-size: 10px; }
-                                .bg-gray { background-color: #f3f4f6 !important; }
+                                @page { size: A4 portrait; margin: 10mm; }
+                                body { font-size: 11px; color: black !important; }
+                                
+                                /* บังคับตารางให้ขนาดคงที่ */
+                                table { 
+                                    width: 100%; 
+                                    table-layout: fixed; /* สำคัญ: บังคับคอลัมน์ไม่ให้ขยาย */
+                                    border-collapse: collapse; 
+                                    word-break: break-word; /* ตัดคำถ้าเนื้อหาเกิน */
+                                }
+                                
+                                th, td { 
+                                    border: 1px solid black !important; 
+                                    padding: 2px !important; 
+                                    overflow: hidden; /* ซ่อนเนื้อหาที่เกิน */
+                                }
+                        
+                                /* กำหนดความกว้างเฉพาะคอลัมน์ */
+                                .w-label { width: 200px; }       /* คอลัมน์รายการประเมิน */
+                                .w-guide { width: 85px; }        /* คอลัมน์เกณฑ์คะแนน */
+                                .w-shift { width: 24px; }        /* คอลัมน์เวร (ด/ช/บ) */
+                                
+                                .bg-gray { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
+                                .text-center { text-center: center; }
                             </style>
                         </head>
                         <body>
