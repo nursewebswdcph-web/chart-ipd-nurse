@@ -1280,7 +1280,7 @@ function nurseApp() {
             } finally {
                 this.isLoading = false;
             }
-        }
+        },
 
         // ฟังก์ชันสั่งพิมพ์ Morse/MAAS
         printFallRisk() {
