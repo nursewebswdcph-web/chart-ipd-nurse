@@ -1132,5 +1132,39 @@ function nurseApp() {
                 pri.document.close();
             });
         },
+        // ฟังก์ชันบันทึกวันที่จำหน่าย
+        saveDischargeDateAction(an, date) {
+            if (!date) return alert('กรุณาระบุวันที่จำหน่าย');
+            
+            this.isLoading = true;
+            fetch(this.API_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'saveDischargeDate',
+                    payload: {
+                        an: an,
+                        dischargeDate: date
+                    }
+                })
+            })
+            .then(res => res.json())
+            .then(result => {
+                this.isLoading = false;
+                if (result.status === 'success') {
+                    alert('บันทึกวันจำหน่ายเรียบร้อยแล้ว');
+                    // อัปเดตข้อมูลในหน้าเว็บทันทีโดยไม่ต้อง Refresh
+                    if(this.selectedPatient) {
+                        this.selectedPatient.dischargeDate = date;
+                    }
+                } else {
+                    alert('เกิดข้อผิดพลาด: ' + result.message);
+                }
+            })
+            .catch(err => {
+                this.isLoading = false;
+                console.error('Error:', err);
+                alert('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้');
+            });
+        },
     };
 }
