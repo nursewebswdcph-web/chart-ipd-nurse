@@ -1321,20 +1321,43 @@ function nurseApp() {
                                 
                                 .bg-gray { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
                                 .text-center { text-center: center; }
+                                .print-patient-info { 
+                                    font-size: 10px; border-bottom: 1px solid black; 
+                                    padding-bottom: 5px; margin-bottom: 10px; display: flex; justify-content: space-between;
+                                }
+                                .print-global-footer {
+                                position: fixed; /* ล็อกตำแหน่ง */
+                                bottom: 0;      /* ชิดด้านล่าง */
+                                left: 0;
+                                right: 0;
+                                text-align: center;
+                                font-size: 8px;
+                                color: #666 !important;
+                                border-top: 0.5px solid #ccc;
+                                padding-top: 4px;
+                                background-color: white !important;
+                                -webkit-print-color-adjust: exact;
+                            }
                             </style>
                         </head>
                         <body>
                             <div class="print-patient-info">
-                            <div>${this.selectedPatient?.name || '-'} &nbsp;&nbsp;<b>อายุ:</b> ${this.selectedPatient?.ageDisplay || '-'}</div>
-                            <div><b>HN:</b> ${this.selectedPatient?.hn || '-'} &nbsp;&nbsp;<b>AN:</b> ${this.selectedPatient?.an || '-'}</div>
-                            <div><b>แพทย์:</b> ${this.selectedPatient?.doctor || '-'} &nbsp;&nbsp;<b>ตึก:</b> ${this.currentWard || '-'} &nbsp;&nbsp;<b>เตียง:</b> ${this.selectedPatient?.bed || '-'}</div>
-                        </div>
-
-                        <div class="print-global-footer">
-                            เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | โปรแกรมบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
-                        </div>
+                                <div><b>ชื่อ:</b> ${this.selectedPatient?.name || '-'} &nbsp;&nbsp;<b>อายุ:</b> ${this.selectedPatient?.ageDisplay || '-'}</div>
+                                <div><b>HN:</b> ${this.selectedPatient?.hn || '-'} &nbsp;&nbsp;<b>AN:</b> ${this.selectedPatient?.an || '-'}</div>
+                                <div><b>ตึก:</b> ${this.currentWard || '-'} &nbsp;&nbsp;<b>เตียง:</b> ${this.selectedPatient?.bed || '-'}</div>
+                            </div>
+                
                             ${printContent}
-                            <script> window.onload = function() { setTimeout(() => { window.print(); }, 800); }; </script>
+                
+                            <div class="print-global-footer">
+                                เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | โปรแกรมบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
+                            </div>
+                
+                            <script>
+                                window.onload = function() {
+                                    setTimeout(() => { window.print(); }, 800);
+                                };
+                            </script>
                         </body>
                     </html>
                 `);
