@@ -798,16 +798,17 @@ function nurseApp() {
             this.isLoading = false;
         },
         // 🟢 1. ฟังก์ชันดึง/สร้างช่องข้อมูล (ช่วยให้ x-model ทำงานได้แม่นยำ)
-        getGridCell(date, shift) {
-            if (!this.gridData[date]) this.gridData[date] = {};
-            if (!this.gridData[date][shift]) {
-                this.gridData[date][shift] = {
-                    scores: [null, null, null, null, null, null, null, null],
-                    assessor: this.searchNurse || ''
+        getGridCell(dateStr, shift) {
+            if (!this.gridData[dateStr]) this.gridData[dateStr] = {};
+            if (!this.gridData[dateStr][shift]) {
+                this.gridData[dateStr][shift] = {
+                    scores: Array(8).fill(''),
+                    assessor: '', // เปลี่ยนเป็นค่าว่าง
+                    isNew: true
                 };
             }
-            return this.gridData[date][shift];
-        },
+            return this.gridData[dateStr][shift];
+        }
         // ฟังก์ชันช่วยคำนวณคะแนนในตาราง
         calcScores(scores) {
             if (!scores || !Array.isArray(scores)) return { total: '', category: '' };
