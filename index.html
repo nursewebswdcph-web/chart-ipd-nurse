@@ -2253,32 +2253,32 @@
                                         <tbody>
                                             <tr>
                                                 <td class="border border-black p-1">1. มีการหกล้มกะทันหัน หรือหกล้มช่วง 3 เดือนก่อนมา รพ.</td>
-                                                <td class="border border-black p-1 text-center">ไม่ใช่=0/ใช่=25</td>
+                                                <td class="border border-black p-1 text-center">ไม่ใช่ = 0<br>ใช่ = 25</td>
                                                 <template x-for="day in page"><template x-for="shift in ['ดึก', 'เช้า', 'บ่าย']"><td class="border border-black text-center font-bold" x-text="getFallGridCell(day.date, shift).scores[0]"></td></template></template>
                                             </tr>
                                             <tr>
                                                 <td class="border border-black p-1">2. มีการวินิจฉัยโรคมากกว่า 1 รายการ</td>
-                                                <td class="border border-black p-1 text-center">ไม่ใช่=0/ใช่=15</td>
+                                                <td class="border border-black p-1 text-center">ไม่ใช่ = 0<br>ใช่ = 15</td>
                                                 <template x-for="day in page"><template x-for="shift in ['ดึก', 'เช้า', 'บ่าย']"><td class="border border-black text-center font-bold" x-text="getFallGridCell(day.date, shift).scores[1]"></td></template></template>
                                             </tr>
                                             <tr>
                                                 <td class="border border-black p-1">3. การช่วยในการเคลื่อนย้าย<br>- เดินได้เอง/รถเข็น/นอนพัก<br>- ไม้ค้ำยัน/ไม้เท้า<br>- ยึดเกาะไปตามเตียง/โต๊ะ/เก้าอี้</td>
-                                                <td class="border border-black p-1 text-center">ใช่ = 0<br>ใช่ = 15<br>ใช่ = 30</td>
+                                                <td class="border border-black p-1 text-center"><br>ใช่ = 0<br>ใช่ = 15<br>ใช่ = 30</td>
                                                 <template x-for="day in page"><template x-for="shift in ['ดึก', 'เช้า', 'บ่าย']"><td class="border border-black text-center font-bold" x-text="getFallGridCell(day.date, shift).scores[2]"></td></template></template>
                                             </tr>
                                             <tr>
                                                 <td class="border border-black p-1">4. ให้สารละลายทางหลอดเลือด/คา Heparin lock</td>
-                                                <td class="border border-black p-1 text-center">ไม่ใช่=0/ใช่=20</td>
+                                                <td class="border border-black p-1 text-center">ไม่ใช่ = 0<br>ใช่ = 20/td>
                                                 <template x-for="day in page"><template x-for="shift in ['ดึก', 'เช้า', 'บ่าย']"><td class="border border-black text-center font-bold" x-text="getFallGridCell(day.date, shift).scores[3]"></td></template></template>
                                             </tr>
                                             <tr>
-                                                <td class="border border-black p-1">5. การเดิน (ปกติ=0/อ่อนแรง=10/ลำบาก=20)</td>
-                                                <td class="border border-black p-1 text-center">0 / 10 / 20</td>
+                                                <td class="border border-black p-1">5. การเดิน / การเคลื่อนย้าย<br>- ปกติ/นอนพัก/ไม่เคลื่อนไหว<br>- อ่อนแรงเล็กน้อยหรืออ่อนเพลีย<br>- ลุกจากเก้าอี้ลำบาก/เดินไม่ได้</td>
+                                                <td class="border border-black p-1 text-center"><br>ใช่ = 0<br>ใช่ = 10<br>ใช่ = 20</td>
                                                 <template x-for="day in page"><template x-for="shift in ['ดึก', 'เช้า', 'บ่าย']"><td class="border border-black text-center font-bold" x-text="getFallGridCell(day.date, shift).scores[4]"></td></template></template>
                                             </tr>
                                             <tr>
-                                                <td class="border border-black p-1">6. สภาพจิตใจ (ปกติ=0/สับสน=15)</td>
-                                                <td class="border border-black p-1 text-center">0 / 15</td>
+                                                <td class="border border-black p-1">6. สภาพจิตใจ<br>- รับรู้บุคคล เวลา สถานที่<br>- ตอบสนองไม่ตรงกับความจริง</td>
+                                                <td class="border border-black p-1 text-center"><br>ใช่ = 0<br>ใช่ = 15</td>
                                                 <template x-for="day in page"><template x-for="shift in ['ดึก', 'เช้า', 'บ่าย']"><td class="border border-black text-center font-bold" x-text="getFallGridCell(day.date, shift).scores[5]"></td></template></template>
                                             </tr>
                                             <tr class="bg-gray font-bold">
@@ -2337,9 +2337,28 @@
                                             </thead>
                                             <tbody>
                                                 <tr>
-                                                    <td class="border border-black p-1 align-top">1.จัดเตียงเหมาะสม<br>2.ประเมินตัว/ทรงตัว<br>3.ให้ข้อมูลญาติ<br>4.สิ่งแวดล้อมปลอดภัย<br>5.ญาติเฝ้า/6.ยกที่กั้น<br>7.เยี่ยมเวรละ 1 ครั้ง</td>
-                                                    <td class="border border-black p-1 align-top">1-6. ปฏิบัติเหมือน No Risk<br>7. เยี่ยมทุก 4 ชม.<br>8. ติดสัญลักษณ์เสี่ยง</td>
-                                                    <td class="border border-black p-1 align-top">1-6. ปฏิบัติเหมือน No Risk<br>7. เยี่ยมทุก 2 ชม.<br>8. ติดสัญลักษณ์<br>9. ผูกมัดตามสภาพ<br>10. ส่งเวรอาการ<br>11. ปรึกษาสหวิชาชีพ</td>
+                                                <td class="border border-black p-1 align-top">                                                
+                                                1. จัดเตียงให้เหมาะสมกับสภาพผู้ป่วย<br>                                                
+                                                2. ประเมินความสามารถในการช่วยเหลือตนเอง<br>                                                
+                                                3. ให้ข้อมูลผู้ป่วย/ญาติป้องกันการหกล้ม<br>                                                
+                                                4. จัดสิ่งแวดล้อมให้ปลอดภัย<br>                                                
+                                                5. ให้ญาติเฝ้า<br>                                                  
+                                                6. ยกเหล็กกั้นเตียง<br>                                                
+                                                7. ตรวจเยี่ยมเวรละ 1 ครั้ง                                                
+                                                </td>                                                
+                                                <td class="border border-black p-1 align-top">                                                
+                                                1-6. ปฏิบัติเหมือน No Risk<br>                                                
+                                                7. ตรวจเยี่ยมผู้ป่วยทุก 4 ชั่วโมง<br>                                                
+                                                8. ติดสัญลักษณ์ความเสี่ยงหกล้ม                                                
+                                                </td>                                                
+                                                <td class="border border-black p-1 align-top">                                                
+                                                1-6. ปฏิบัติเหมือน No Risk<br>                                                
+                                                7. ตรวจเยี่ยมผู้ป่วยทุก 2 ชม.<br>                                                   
+                                                8. ติดสัญลักษณ์ความเสี่ยงหกล้ม<br>                                                
+                                                9. ผูกมัดตามสภาพ<br>                                                   
+                                                10. ส่งเวรเกี่ยวกับอากาผู้ป่วย<br>                                                
+                                                11. ปรึกษาสหวิชาชีพ                                                
+                                                </td>                                                
                                                 </tr>
                                             </tbody>
                                         </table>
