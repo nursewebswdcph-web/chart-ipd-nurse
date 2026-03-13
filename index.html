@@ -2230,9 +2230,9 @@
                                         Echart-ipd-nurse<br>Morse-MAAS-Form หน้า <span x-text="pageIndex + 1"></span>
                                     </div>
                                     <div class="text-center font-bold text-[13px] mt-1 mb-2">
-                                        แบบประเมินความเสี่ยงต่อการพลัดตกหกล้ม Morse / การดึงอุปกรณ์ที่สอดใส่ในร่างกายผู้ป่วย (MAAS)<br>โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
+                                        การประเมินความเสี่ยงต่อการพลัดตกหกล้ม Morse / การดึงอุปกรณ์ที่สอดใส่ในร่างกายผู้ป่วย (MAAS)<br>โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
                                     </div>
-                        
+                                    <div class="font-bold text-[11px] mt-1 mb-1 text-start">1.การประเมินความเสี่ยงต่อการพลัดตกหกล้ม Morse Fall Risk  Score</div>                        
                                     <table class="w-full text-[9px] border-collapse text-left mb-2">
                                         <thead>
                                             <tr class="bg-gray">
@@ -2292,7 +2292,7 @@
                                         </tbody>
                                     </table>
                         
-                                    <div class="font-bold text-[11px] mt-1 mb-1 text-center">แบบประเมินความเสี่ยงต่อการดึงอุปกรณ์ (MAAS)</div>
+                                    <div class="font-bold text-[11px] mt-1 mb-1 text-start">2.แบบประเมินความเสี่ยงต่อการดึงอุปกรณ์ที่สอดใส่ในร่างกายผู้ป่วย (MAAS)</div>
                                     <table class="w-full text-[9px] border-collapse text-left mb-2">
                                         <thead>
                                             <tr class="bg-gray">
@@ -2321,6 +2321,10 @@
                                             <tr class="bg-gray font-bold">
                                                 <td colspan="2" class="border border-black text-right pr-2">คะแนนที่ได้</td>
                                                 <template x-for="day in page"><template x-for="shift in ['ดึก', 'เช้า', 'บ่าย']"><td class="border border-black text-center" x-text="getFallGridCell(day.date, shift).maas"></td></template></template>
+                                            </tr>
+                                            <tr>
+                                                <td colspan="2" class="border border-black text-right pr-2 font-bold">พยาบาลผู้ประเมิน</td>
+                                                <template x-for="day in page"><template x-for="shift in ['ดึก', 'เช้า', 'บ่าย']"><td class="border border-black text-center text-[8px]" x-text="getFallGridCell(day.date, shift).assessor"></td></template></template>
                                             </tr>
                                         </tbody>
                                     </table>
