@@ -1200,7 +1200,7 @@ function nurseApp() {
             } finally {
                 this.isLoading = false;
             }
-        }
+        },
 
         // ดึง/สร้างช่องข้อมูลสำหรับหน้าจอ Morse/MAAS
         getFallGridCell(dateStr, shift) {
