@@ -2225,26 +2225,25 @@
                             <template x-for="(page, pageIndex) in classTimeline" :key="pageIndex">
                                 <div>
                                     <div class="a4-page bg-white text-black p-4">
-                                        <div class="text-right text-[10px] font-bold">โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน</div>
+                                        <div class="text-right text-[10px] font-bold">
+                                            Echart-ipd-nurse<br>Morse-MAAS-Form หน้า <span x-text="pageIndex + 1"></span></div>
                                         <div class="text-center font-bold text-[14px] mt-2 mb-4">
                                             แบบประเมินความเสี่ยงต่อการพลัดตกหกล้ม Morse / การดึงอุปกรณ์ที่สอดใส่ในร่างกายผู้ป่วย (MAAS)
                                         </div>
                                         
-                                        <div class="flex justify-between text-[11px] mb-2 font-bold px-2">
-                                            <div>ชื่อ-สกุล: <span x-text="selectedPatient?.name"></span></div>
-                                            <div>HN: <span x-text="selectedPatient?.hn"></span></div>
-                                            <div>AN: <span x-text="selectedPatient?.an"></span></div>
-                                            <div>ตึก: <span x-text="currentWard"></span> เตียง: <span x-text="selectedPatient?.bed"></span></div>
-                                        </div>
-                
-                                        <table class="w-full text-[10px] border-collapse text-left mb-4">
-                                            <thead>
-                                                <tr class="bg-gray"><th rowspan="2" class="w-[30%]">ประเด็น</th><th rowspan="2" class="w-[10%] text-center">คะแนน/<br>เวร</th>
-                                                    <template x-for="day in page"><th colspan="3" class="text-center" x-text="day.formattedDate"></th></template>
+                                        <thead>
+                                                <tr class="bg-gray">
+                                                    <th rowspan="2" class="w-label">ประเด็น</th>
+                                                    <th rowspan="2" class="w-guide text-center">คะแนน/<br>เวร</th>
+                                                    <template x-for="day in page">
+                                                        <th colspan="3" class="text-center" x-text="day.formattedDate"></th>
+                                                    </template>
                                                 </tr>
                                                 <tr class="bg-gray">
                                                     <template x-for="day in page">
-                                                        <template x-for="s in ['ด','ช','บ']"><th class="text-center" x-text="s"></th></template>
+                                                        <template x-for="s in ['ด','ช','บ']">
+                                                            <th class="w-shift text-center" x-text="s"></th>
+                                                        </template>
                                                     </template>
                                                 </tr>
                                             </thead>
@@ -2287,12 +2286,18 @@
                                         <div class="font-bold text-[12px] mt-4 mb-2 text-center">แบบประเมินความเสี่ยงต่อ การดึงอุปกรณ์ที่สอดใส่ในร่างกายผู้ป่วย (MAAS)</div>
                                         <table class="w-full text-[10px] border-collapse text-left">
                                             <thead>
-                                                <tr class="bg-gray"><th rowspan="2" class="w-[30%]">ประเด็น</th><th rowspan="2" class="w-[10%] text-center">คะแนน</th>
-                                                    <template x-for="day in page"><th colspan="3" class="text-center" x-text="day.formattedDate"></th></template>
+                                                <tr class="bg-gray">
+                                                    <th rowspan="2" class="w-label">ประเด็น</th>
+                                                    <th rowspan="2" class="w-guide text-center">คะแนน</th>
+                                                    <template x-for="day in page">
+                                                        <th colspan="3" class="text-center" x-text="day.formattedDate"></th>
+                                                    </template>
                                                 </tr>
                                                 <tr class="bg-gray">
                                                     <template x-for="day in page">
-                                                        <template x-for="s in ['ด','ช','บ']"><th class="text-center" x-text="s"></th></template>
+                                                        <template x-for="s in ['ด','ช','บ']">
+                                                            <th class="w-shift text-center" x-text="s"></th>
+                                                        </template>
                                                     </template>
                                                 </tr>
                                             </thead>
@@ -2316,70 +2321,64 @@
                                         </table>
                                     </div>
                 
-                                    <div class="a4-page bg-white text-black p-4">
-                                        <div class="font-bold text-[14px] mb-2 text-center">แนวปฏิบัติการป้องกันการพลัดตกหกล้ม</div>
-                                        <table class="w-full text-[11px] border-collapse mb-8 align-top">
-                                            <thead>
-                                                <tr class="bg-gray">
-                                                    <th class="w-1/3">No Risk 0-24</th>
-                                                    <th class="w-1/3">Low Risk 25-50</th>
-                                                    <th class="w-1/3">High Risk ≥ 51</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr>
-                                                    <td class="align-top">
-                                                        1. จัดเตียงให้เหมาะสมกับสภาพผู้ป่วย<br>
-                                                        2. ประเมินความสามารถในการช่วยเหลือตนเอง การทรงตัว<br>
-                                                        3. ให้ข้อมูลผู้ป่วย/ญาติเกี่ยวกับการป้องกันการพลัดหกล้ม<br>
-                                                        4. จัดสิ่งแวดล้อมให้ปลอดภัย<br>
-                                                        5. ให้ญาติเฝ้า<br>
-                                                        6. ยกเหล็กกั้นเตียง<br>
-                                                        7. ตรวจเยี่ยมผู้ป่วยเวรละ 1 ครั้ง<br>
-                                                    </td>
-                                                    <td class="align-top">
-                                                        1. จัดเตียงให้เหมาะสมกับสภาพผู้ป่วย<br>
-                                                        2. ประเมินความสามารถในการช่วยเหลือตนเอง การทรงตัว<br>
-                                                        3. ให้ข้อมูลผู้ป่วย/ญาติเกี่ยวกับการป้องกันการพลัดหกล้ม<br>
-                                                        4. จัดสิ่งแวดล้อมให้ปลอดภัย<br>
-                                                        5. ให้ญาติเฝ้า<br>
-                                                        6. ยกเหล็กกั้นเตียง<br>
-                                                        7. ตรวจเยี่ยมผู้ป่วยทุก 4 ชั่วโมง<br>
-                                                        8. ติดสัญลักษณ์ความเสี่ยงการพลัดตกหกล้ม
-                                                    </td>
-                                                    <td class="align-top">
-                                                        1. จัดเตียงให้เหมาะสมกับสภาพผู้ป่วย<br>
-                                                        2. ประเมินความสามารถในการช่วยเหลือตนเอง การทรงตัว<br>
-                                                        3. ให้ข้อมูลผู้ป่วย/ญาติเกี่ยวกับการป้องกันการพลัดหกล้ม<br>
-                                                        4. จัดสิ่งแวดล้อมให้ปลอดภัย<br>
-                                                        5. ให้ญาติเฝ้า<br>
-                                                        6. ยกเหล็กกั้นเตียง<br>
-                                                        7. ตรวจเยี่ยมผู้ป่วยทุก 2 ชั่วโมง<br>
-                                                        8. ติดสัญลักษณ์ความเสี่ยงการพลัดตกหกล้ม<br>
-                                                        9. ผูกมัดผู้ป่วยตามสภาพ<br>
-                                                        10. ส่งเวรเกี่ยวกับอาการผู้ป่วย<br>
-                                                        11. ปรึกษาสหวิชาชีพ
-                                                    </td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                
-                                        <div class="font-bold text-[14px] mb-2 text-center">แนวทางปฏิบัติการป้องกันการดึงอุปกรณ์ที่สอดใส่ร่างกายผู้ป่วย</div>
-                                        <table class="w-full text-[12px] border-collapse w-2/3 mx-auto">
-                                            <thead><tr class="bg-gray"><th class="w-[20%] text-center">คะแนน</th><th>รายการปฏิบัติ</th></tr></thead>
-                                            <tbody>
-                                                <tr><td class="text-center font-bold">0-3</td><td>ไม่ต้องผูกยึด</td></tr>
-                                                <tr>
-                                                    <td class="text-center font-bold">4-6</td>
-                                                    <td>
-                                                        ต้องผูกยึดผู้ป่วยและเฝ้าระวังการดึงอย่างใกล้ชิด<br>
-                                                        <span class="font-bold">***ก่อนผูกยึดแจ้งญาติให้ทราบก่อนทุกครั้ง***</span><br>
-                                                        <span class="font-bold">***กรณีไม่มีญาติให้ผูกยึดได้เลย***</span>
-                                                    </td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
+                                    <div class="border-t border-dashed border-slate-300 pt-2">
+                                    <div class="font-bold text-[8px] mb-1 text-center text-slate-800">แนวปฏิบัติการป้องกันการพลัดตกหกล้ม</div>
+                                    <table class="w-full text-[8px] border-collapse mb-3 align-top">
+                                        <thead>
+                                            <tr class="bg-gray">
+                                                <th class="w-1/3 border border-black p-1">No Risk 0-24</th>
+                                                <th class="w-1/3 border border-black p-1">Low Risk 25-50</th>
+                                                <th class="w-1/3 border border-black p-1">High Risk ≥ 51</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td class="border border-black p-1 align-top">
+                                                    1. จัดเตียงให้เหมาะสมกับสภาพผู้ป่วย<br>
+                                                    2. ประเมินความสามารถในการช่วยเหลือตนเอง<br>
+                                                    3. ให้ข้อมูลผู้ป่วย/ญาติป้องกันการหกล้ม<br>
+                                                    4. จัดสิ่งแวดล้อมให้ปลอดภัย<br>
+                                                    5. ให้ญาติเฝ้า
+                                                    6. ยกเหล็กกั้นเตียง<br>
+                                                    7. ตรวจเยี่ยมเวรละ 1 ครั้ง
+                                                </td>
+                                                <td class="border border-black p-1 align-top">
+                                                    1-6. ปฏิบัติเหมือน No Risk<br>
+                                                    7. ตรวจเยี่ยมผู้ป่วยทุก 4 ชั่วโมง<br>
+                                                    8. ติดสัญลักษณ์ความเสี่ยงหกล้ม
+                                                </td>
+                                                <td class="border border-black p-1 align-top">
+                                                    1-6. ปฏิบัติเหมือน No Risk<br>
+                                                    7. ตรวจเยี่ยมผู้ป่วยทุก 2 ชม.
+                                                    8. ติดสัญลักษณ์ความเสี่ยงหกล้ม<br>
+                                                    9. ผูกมัดตามสภาพ
+                                                    10. ส่งเวรเกี่ยวกับอากาผู้ป่วย<br>
+                                                    11. ปรึกษาสหวิชาชีพ
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                    
+                                    <div class="font-bold text-[11px] mb-1 text-center text-slate-800">แนวปฏิบัติการป้องกันการดึงอุปกรณ์ที่สอดใส่ร่างกายผู้ป่วย</div>
+                                    <table class="w-full text-[9px] border-collapse w-full">
+                                        <thead>
+                                            <tr class="bg-gray">
+                                                <th class="w-[15%] border border-black p-1 text-center">คะแนน</th>
+                                                <th class="border border-black p-1 text-left">รายการปฏิบัติ</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr><td class="border border-black text-center font-bold">0-3</td><td class="border border-black p-1">ไม่ต้องผูกยึด</td></tr>
+                                            <tr>
+                                                <td class="border border-black text-center font-bold">4-6</td>
+                                                <td class="border border-black p-1">
+                                                    ต้องผูกยึดผู้ป่วยและเฝ้าระวังอย่างใกล้ชิด<br>
+                                                    **แจ้งญาติทราบก่อนทุกครั้ง / กรณีไม่มีญาติผูกยึดได้เลย
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
                                 </div>
                             </template>
                         </div>
