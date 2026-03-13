@@ -750,14 +750,14 @@ function nurseApp() {
         },
         async saveGridPage() {
             const currentPage = this.classTimeline[this.currentPageIndex];
+            if (!currentPage) return;
+            
             const recordsToSave = [];
-
             currentPage.forEach(day => {
                 const dKey = day.date;
                 ['ดึก', 'เช้า', 'บ่าย'].forEach(s => {
                     const data = this.gridData[dKey]?.[s];
-                    
-                    // เงื่อนไขบันทึก: ต้องกรอกครบ 8 ข้อในเวรนั้นๆ
+                    // บันทึกเฉพาะเวรที่กรอกคะแนนครบ 8 ข้อ
                     if (data && data.scores && data.scores.every(v => v !== null && v !== '')) {
                         const { total, category } = this.calcScores(data.scores);
                         recordsToSave.push({
@@ -769,7 +769,7 @@ function nurseApp() {
                             scores: data.scores,
                             total: total,
                             category: category,
-                            assessor: data.assessor || this.searchNurse || ''
+                            assessor: data.assessor || ''
                         });
                     }
                 });
@@ -781,7 +781,6 @@ function nurseApp() {
 
             this.isLoading = true;
             try {
-                // บันทึกทีละ Record เพื่อให้รองรับกับ API เดิม
                 for (const payload of recordsToSave) {
                     await fetch(this.API_URL, {
                         method: 'POST',
@@ -798,28 +797,36 @@ function nurseApp() {
             }
             this.isLoading = false;
         },
+        // 🟢 1. ฟังก์ชันดึง/สร้างช่องข้อมูล (ช่วยให้ x-model ทำงานได้แม่นยำ)
+        getGridCell(date, shift) {
+            if (!this.gridData[date]) this.gridData[date] = {};
+            if (!this.gridData[date][shift]) {
+                this.gridData[date][shift] = {
+                    scores: [null, null, null, null, null, null, null, null],
+                    assessor: this.searchNurse || ''
+                };
+            }
+            return this.gridData[date][shift];
+        },
         // ฟังก์ชันช่วยคำนวณคะแนนในตาราง
         calcScores(scores) {
             if (!scores || !Array.isArray(scores)) return { total: '', category: '' };
+            // กรองเอาเฉพาะตัวเลข 1-4
+            const valid = scores.filter(v => v !== null && v !== '' && !isNaN(v));
+            if (valid.length === 0) return { total: '', category: '' };
             
-            // กรองเอาเฉพาะตัวเลข 1-4 (ตัดค่า null หรือค่าว่างออก)
-            const validValues = scores.filter(v => v !== null && v !== '' && !isNaN(v));
+            const total = valid.reduce((a, b) => a + parseInt(b), 0);
+            let category = '';
             
-            if (validValues.length === 0) return { total: '', category: '' };
-            
-            const sum = validValues.reduce((a, b) => a + parseInt(b), 0);
-            
-            // จะแสดง "ประเภท" ก็ต่อเมื่อกรอกครบ 8 ข้อเท่านั้น
-            let cat = '';
-            if (validValues.length === 8) {
-                if (sum >= 27) cat = 5;
-                else if (sum >= 21) cat = 4;
-                else if (sum >= 15) cat = 3;
-                else if (sum >= 9) cat = 2;
-                else cat = 1;
+            // แสดงประเภทเมื่อกรอกครบ 8 ข้อเท่านั้น
+            if (valid.length === 8) {
+                if (total >= 27) category = 5;
+                else if (total >= 21) category = 4;
+                else if (total >= 15) category = 3;
+                else if (total >= 9) category = 2;
+                else category = 1;
             }
-            
-            return { total: sum, category: cat };
+            return { total, category };
         },
         editClassItem(item) {
             // ดึงวันที่จาก item.evalDate มาแบบสะอาดๆ ไม่ต้องผ่านการคำนวณใหม่
