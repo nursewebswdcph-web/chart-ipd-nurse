@@ -1313,7 +1313,7 @@ function nurseApp() {
                             <title>พิมพ์แบบประเมิน Morse / MAAS</title>
                             ${styles}
                             <style>
-                                @page {size: A4 portrait; margin: 8mm 8mm 5mm 8mm;}
+                                @page {size: A4 portrait; margin: 0mm 8mm 0mm 8mm;}
                                 body { font-size: 11px; color: black !important; }                             
 
                                 /* บังคับตารางให้ขนาดคงที่ */
