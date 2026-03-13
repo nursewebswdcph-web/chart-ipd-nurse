@@ -1172,14 +1172,20 @@ function nurseApp() {
         },
         // โหลดข้อมูลประวัติ Morse/MAAS
         async loadFallRisk(an) {
+            if (!an) return;
             this.isLoading = true;
             try {
-                // เรียก API ฝั่ง GAS ของคุณ (ต้องสร้าง action=getFallRisk ไว้ด้วย)
-                const res = await fetch(`${this.API_URL}?action=getFallRisk&an=${an}`);
-                this.fallHistory = await res.json();
+                // เพิ่ม Cache Buster (?_=...) เพื่อป้องกัน Browser จำค่าเก่า
+                const response = await fetch(`${this.API_URL}?action=getFallRisk&an=${an}&_=${new Date().getTime()}`);
+                
+                // ตรวจสอบว่า response โอเคไหม
+                if (!response.ok) throw new Error('Network response was not ok');
+                
+                this.fallHistory = await response.json();
                 
                 this.fallGridData = {}; 
                 this.fallHistory.forEach(item => {
+                    // ใช้ฟังก์ชันแปลงวันที่ที่มีอยู่เดิม
                     const dKey = this.getLocalYYYYMMDD(item.evalDate);
                     if (!this.fallGridData[dKey]) this.fallGridData[dKey] = {};
                     this.fallGridData[dKey][item.shift] = {
@@ -1190,11 +1196,11 @@ function nurseApp() {
                 });
             } catch (e) { 
                 console.error("Load Fall Risk Error:", e); 
-                // จำลองข้อมูลเปล่าหาก API ยังไม่พร้อม
                 this.fallGridData = {};
+            } finally {
+                this.isLoading = false;
             }
-            this.isLoading = false;
-        },
+        }
 
         // ดึง/สร้างช่องข้อมูลสำหรับหน้าจอ Morse/MAAS
         getFallGridCell(dateStr, shift) {
