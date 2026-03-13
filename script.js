@@ -1064,7 +1064,7 @@ function nurseApp() {
                             ${styles}
                             <style>
                                 /* ตั้งค่าหน้ากระดาษ */
-                                @page { size: A4 portrait; margin: 20mm 8mm; } 
+                                @page {size: A4 portrait; margin: 20mm 8mm 10mm 8mm;}
                                 body { 
                                     background: white !important; 
                                     margin: 0; 
