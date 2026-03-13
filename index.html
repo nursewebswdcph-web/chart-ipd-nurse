@@ -1859,28 +1859,36 @@
                                         <button type="button" @click="saveGridPage()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-lg shadow-emerald-100 transition-all active:scale-95 text-sm flex items-center">
                                             <i class="fa-solid fa-floppy-disk mr-2"></i> บันทึกข้อมูลหน้านี้
                                         </button>
-                        
+                                
                                         <button type="button" @click="printClassification()" class="bg-slate-800 hover:bg-black text-white font-bold py-2 px-6 rounded-xl shadow-md transition-all text-sm">
                                             <i class="fa-solid fa-print mr-1.5"></i> พิมพ์เอกสาร
                                         </button>
                                     </div>
                                 </div>
-                        
+                                
                                 <div class="flex justify-between items-center bg-indigo-50/50 p-3 rounded-2xl border border-indigo-100">
                                     <div class="text-sm font-bold text-indigo-900">
                                         <i class="fa-solid fa-keyboard mr-2"></i> วิธีการ: คลิกที่ช่องแล้วพิมพ์คะแนน (1-4) | <span class="text-slate-500 font-normal italic">ระบบจะคำนวณประเภทให้อัตโนมัติ</span>
                                     </div>
                                     <div class="flex items-center gap-3">
-                                        <button type="button" @click="prevPage()" :disabled="currentPageIndex === 0" class="px-3 py-1.5 bg-white border border-slate-200 hover:bg-indigo-100 disabled:opacity-40 rounded-lg text-xs font-bold transition-all">
+                                        <button type="button" 
+                                            @click="currentPageIndex = Math.max(0, currentPageIndex - 1)" 
+                                            :disabled="currentPageIndex === 0" 
+                                            class="px-3 py-1.5 bg-white border border-slate-200 hover:bg-indigo-100 disabled:opacity-40 rounded-lg text-xs font-bold transition-all">
                                             <i class="fa-solid fa-chevron-left mr-1"></i> ย้อนหลัง 5 วัน
                                         </button>
-                                        <span class="text-xs font-bold text-slate-600">หน้า <span x-text="currentPageIndex + 1"></span> / <span x-text="classTimeline.length"></span></span>
-                                        <button type="button" @click="nextPage()" :disabled="currentPageIndex >= classTimeline.length - 1" class="px-3 py-1.5 bg-white border border-slate-200 hover:bg-indigo-100 disabled:opacity-40 rounded-lg text-xs font-bold transition-all">
+                                        <span class="text-xs font-bold text-slate-600">
+                                            หน้า <span x-text="currentPageIndex + 1"></span> / <span x-text="classTimeline.length"></span>
+                                        </span>
+                                        <button type="button" 
+                                            @click="currentPageIndex = Math.min(classTimeline.length - 1, currentPageIndex + 1)" 
+                                            :disabled="currentPageIndex >= classTimeline.length - 1" 
+                                            class="px-3 py-1.5 bg-white border border-slate-200 hover:bg-indigo-100 disabled:opacity-40 rounded-lg text-xs font-bold transition-all">
                                             ถัดไป <i class="fa-solid fa-chevron-right ml-1"></i>
                                         </button>
                                     </div>
                                 </div>
-                        
+                                
                                 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                                     <div class="overflow-x-auto custom-scrollbar">
                                         <table class="w-full min-w-[1000px] border-collapse text-center text-[11px] table-fixed">
@@ -1893,13 +1901,20 @@
                                                 </tr>
                                                 <tr class="bg-slate-50">
                                                     <th class="border border-slate-300 p-1 text-slate-400">เวร</th>
-                                                    <template x-for="i in 5">
-                                                        <th class="border border-slate-300 w-[55px] py-1 text-indigo-500 font-bold bg-indigo-50/30">ดึก</th>
-                                                        <th class="border border-slate-300 w-[55px] py-1 text-amber-600 font-bold bg-amber-50/30">เช้า</th>
-                                                        <th class="border border-slate-300 w-[55px] py-1 text-orange-600 font-bold bg-orange-50/30">บ่าย</th>
+                                                    <template x-for="day in (classTimeline[currentPageIndex] || [])">
+                                                        <template x-for="shift in ['ดึก', 'เช้า', 'บ่าย']">
+                                                            <th class="border border-slate-300 w-[55px] py-1 font-bold"
+                                                                :class="{
+                                                                    'text-indigo-500 bg-indigo-50/30': shift === 'ดึก',
+                                                                    'text-amber-600 bg-amber-50/30': shift === 'เช้า',
+                                                                    'text-orange-600 bg-orange-50/30': shift === 'บ่าย'
+                                                                }" x-text="shift">
+                                                            </th>
+                                                        </template>
                                                     </template>
                                                 </tr>
                                             </thead>
+                                            
                                             <tbody>
                                                 <template x-for="(question, qIndex) in [
                                                     '1. สัญญาณชีพ', '2. อาการและอาการแสดงทางระบบประสาท', '3. การได้รับการตรวจรักษา/ผ่าตัดหรือหัตถการ', '4. พฤติกรรมที่ผิดปกติอารมณ์ จิตสังคม',
@@ -1913,6 +1928,7 @@
                                                         <template x-if="question !== 'SEPARATOR'">
                                                             <td class="border border-slate-300 px-3 py-1.5 text-left font-medium" x-text="question"></td>
                                                         </template>
+                                                        
                                                         <template x-if="question !== 'SEPARATOR'">
                                                             <template x-for="day in classTimeline[currentPageIndex]">
                                                                 <template x-for="s in ['ดึก','เช้า','บ่าย']">
@@ -1939,14 +1955,16 @@
                                                         </template>
                                                     </template>
                                                 </tr>
-                        
+                                    
                                                 <tr class="bg-slate-50">
                                                     <td class="border border-slate-300 px-3 py-1 text-left text-slate-400 font-bold text-[9px]">ผู้ประเมิน</td>
                                                     <template x-for="day in classTimeline[currentPageIndex]">
                                                         <template x-for="s in ['ดึก','เช้า','บ่าย']">
                                                             <td class="border border-slate-300 p-0">
-                                                                <input type="text" class="w-full h-8 text-[9px] text-center outline-none bg-transparent"
-                                                                    x-model="getGridCell(day.date, s).assessor" placeholder="ชื่อ...">
+                                                                <input type="text" 
+                                                                    class="w-full h-8 text-[9px] text-center outline-none bg-transparent"
+                                                                    x-model="getGridCell(day.date, s).assessor"
+                                                                    placeholder="ชื่อ...">
                                                             </td>
                                                         </template>
                                                     </template>
@@ -1955,20 +1973,21 @@
                                         </table>
                                     </div>
                                 </div>
-                        
+                                
                                 <div id="patient-class-print-area" class="mt-8 space-y-6 hidden">
                                     <template x-for="(page, pageIndex) in classTimeline" :key="pageIndex">
-                                        <div class="a4-page relative bg-white mx-auto rounded-lg p-6 max-w-[210mm] text-black">
+                                        <div class="a4-page relative bg-white shadow-xl mx-auto rounded-lg p-6 max-w-[210mm] text-black">
+                                            
                                             <div class="text-center font-bold text-[15px] leading-relaxed mb-4">
                                                 แบบบันทึกการจำแนกผู้ป่วย หอผู้ป่วย <span x-text="currentWard"></span><br>
                                                 กลุ่มการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
                                             </div>
-                        
+                                
                                             <div class="text-center text-[12px] font-bold mb-3">
                                                 <div>วันที่รับใหม่ <span class="border-b border-dotted border-black inline-block min-w-[140px] text-center" x-text="formatThaiDate(selectedPatient?.date)"></span></div>
                                                 <div>วันที่จำหน่าย <span class="border-b border-dotted border-black inline-block min-w-[140px] text-center" x-text="classHistory.length > 0 ? formatThaiDate(classHistory[classHistory.length-1].evalDate) : ''"></span></div>
                                             </div>
-                        
+                                
                                             <table class="w-full border-collapse border border-black text-center text-[11px] leading-tight" style="table-layout: fixed;">
                                                 <thead>
                                                     <tr class="bg-gray-100">
@@ -1979,10 +1998,10 @@
                                                     </tr>
                                                     <tr class="bg-gray-100">
                                                         <th class="border border-black text-left px-2 py-1">เวร</th>
-                                                        <template x-for="i in 5">
-                                                            <th class="border border-black w-[42px] font-bold">ดึก</th>
-                                                            <th class="border border-black w-[42px] font-bold">เช้า</th>
-                                                            <th class="border border-black w-[42px] font-bold">บ่าย</th>
+                                                        <template x-for="day in page">
+                                                            <template x-for="shift in ['ดึก', 'เช้า', 'บ่าย']">
+                                                                <th class="border border-black w-[42px] font-bold" x-text="shift"></th>
+                                                            </template>
                                                         </template>
                                                     </tr>
                                                 </thead>
@@ -2031,24 +2050,14 @@
                                                             </template>
                                                         </template>
                                                     </tr>
-                                                    <tr>
-                                                        <td class="border border-black text-left px-2 py-1 h-8">ผู้ประเมิน</td>
-                                                        <template x-for="day in page">
-                                                            <template x-for="shiftName in ['ดึก', 'เช้า', 'บ่าย']">
-                                                                <td class="border border-black text-[10px] align-middle">
-                                                                    <span x-text="gridData[day.date]?.[shiftName] ? formatShortName(gridData[day.date][shiftName].assessor || '') : ''"></span>
-                                                                </td>
-                                                            </template>
-                                                        </template>
-                                                    </tr>
                                                 </tbody>
                                             </table>
                                             
                                             <div class="mt-4 text-[11px] text-black font-medium leading-relaxed">
                                                 เกณฑ์การจำแนก นับรวมตั้งแต่ข้อ 1 ถึง ข้อ 8<br>
                                                 ประเภทที่ 1  ผู้ป่วยพักฟื้นดูแลตัวเองได้     (8 คะแนน)<br>
-                                                ประเภทที่ 2  ผู้ป่วยเจ็บป่วยเล็กน้อย         (9-14 คะแนน)<br>
-                                                ประเภทที่ 3  ผู้ป่วยเจ็บป่วยปานกลาง       (15-20 คะแนน)<br>
+                                                ประเภทที่ 2  ผู้ป่วยเจ็บป่วยเล็กน้อย        (9-14 คะแนน)<br>
+                                                ประเภทที่ 3  ผู้ป่วยเจ็บป่วยปานกลาง      (15-20 คะแนน)<br>
                                                 ประเภทที่ 4  ผู้ป่วยหนัก                (21-26 คะแนน)<br>
                                                 ประเภทที่ 5 ผู้ป่วยหนักมาก/วิกฤติ          (27-32 คะแนน)
                                             </div>
