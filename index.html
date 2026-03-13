@@ -1981,7 +1981,9 @@
                                 <div id="patient-class-print-area" class="mt-8 space-y-6 hidden">
                                     <template x-for="(page, pageIndex) in classTimeline" :key="pageIndex">
                                         <div class="a4-page relative bg-white shadow-xl mx-auto rounded-lg p-6 max-w-[210mm] text-black">
-                                            
+                                            <div class="text-right text-[8px] font-bold mb-2">
+                                            Echart-ipd-nurse<br>Classification-Form หน้า <span x-text="pageIndex + 1"></span>
+                                            </div>                                            
                                             <div class="text-center font-bold text-[15px] leading-relaxed mb-4">
                                                 แบบบันทึกการจำแนกผู้ป่วย หอผู้ป่วย <span x-text="currentWard"></span><br>
                                                 กลุ่มการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
@@ -1995,7 +1997,7 @@
                                             <table class="w-full border-collapse border border-black text-center text-[11px] leading-tight" style="table-layout: fixed;">
                                                 <thead>
                                                     <tr class="bg-gray-100">
-                                                        <th class="border border-black text-left px-2 py-1.5 w-[180px]">ว/ด/ป (หน้า <span x-text="pageIndex + 1"></span>)</th>
+                                                        <th class="border border-black text-left px-2 py-1.5 w-[180px]">ว/ด/ป</th>
                                                         <template x-for="day in page">
                                                             <th colspan="3" class="border border-black font-bold py-1" x-text="day.formattedDate"></th>
                                                         </template>
