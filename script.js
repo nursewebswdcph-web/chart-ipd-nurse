@@ -1317,7 +1317,7 @@ function nurseApp() {
                             <title>พิมพ์แบบประเมิน Morse / MAAS</title>
                             ${styles}
                             <style>
-                                @page { size: A4 portrait; margin: 10mm; }
+                                @page {size: A4 portrait; margin: 8mm 8mm 5mm 8mm;}
                                 body { font-size: 11px; color: black !important; }
                                 
                                 /* บังคับตารางให้ขนาดคงที่ */
@@ -1341,9 +1341,12 @@ function nurseApp() {
                                 
                                 .bg-gray { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
                                 .text-center { text-center: center; }
-                                .print-patient-info { 
-                                    font-size: 10px; border-bottom: 1px solid black; 
-                                    padding-bottom: 5px; margin-bottom: 10px; display: flex; justify-content: space-between;
+                                /* กรอบข้อมูลผู้ป่วย */
+                                .print-patient-info {
+                                    position: fixed; bottom: 22px; right: 15px; width: 260px;
+                                    border: 1px solid #000 !important; border-radius: 4px; padding: 6px 8px;
+                                    font-size: 10px; background-color: white !important; z-index: 1000; 
+                                    line-height: 1.4; color: black !important;
                                 }
                                 .print-global-footer {
                                 position: fixed; /* ล็อกตำแหน่ง */
@@ -1362,13 +1365,11 @@ function nurseApp() {
                         </head>
                         <body>
                             <div class="print-patient-info">
-                                <div><b>ชื่อ:</b> ${this.selectedPatient?.name || '-'} &nbsp;&nbsp;<b>อายุ:</b> ${this.selectedPatient?.ageDisplay || '-'}</div>
-                                <div><b>HN:</b> ${this.selectedPatient?.hn || '-'} &nbsp;&nbsp;<b>AN:</b> ${this.selectedPatient?.an || '-'}</div>
-                                <div><b>ตึก:</b> ${this.currentWard || '-'} &nbsp;&nbsp;<b>เตียง:</b> ${this.selectedPatient?.bed || '-'}</div>
-                            </div>
-                
-                            ${printContent}
-                
+                                <div><b>ชื่อ-สกุล:</b> ${pName} &nbsp;&nbsp;<b>อายุ:</b> ${pAge}</div>
+                                <div><b>HN:</b> ${pHn} &nbsp;&nbsp;<b>AN:</b> ${pAn}</div>
+                                <div><b>แพทย์:</b> ${pDoc} &nbsp;&nbsp;<b>ตึก:</b> ${pWard} &nbsp;&nbsp;<b>เตียง:</b> ${pBed}</div>
+                            </div>                
+                            ${printContent}                
                             <div class="print-global-footer">
                                 เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | โปรแกรมบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
                             </div>
