@@ -738,8 +738,11 @@ function nurseApp() {
             this.isLoading = false;
         },
         editClassItem(item) {
+            // ดึงวันที่จาก item.evalDate มาแบบสะอาดๆ ไม่ต้องผ่านการคำนวณใหม่
+            const cleanDate = this.getLocalYYYYMMDD(item.evalDate);
+            
             this.classForm = {
-                evalDate: item.evalDate.includes('T') ? item.evalDate.split('T')[0] : item.evalDate,
+                evalDate: cleanDate, // วันที่ในฟอร์มจะเป็นวันที่ 10 ตามฐานข้อมูลเป๊ะๆ
                 shift: item.shift,
                 scores: [...item.scores],
                 assessor: item.assessor
@@ -782,22 +785,15 @@ function nurseApp() {
             } catch (e) { console.error("Grouping error:", e); }
             return groups;
         },
+        // 🟢 ฟังก์ชันดึงวันที่ YYYY-MM-DD แบบ Local Time (ไทย) 100%
         getLocalYYYYMMDD(date) {
             if (!date) return '';
-            let d;
-            if (typeof date === 'string') {
-                // ถ้ามาเป็น ISO String (มีตัว T) หรือวันที่ธรรมดา
-                d = new Date(date);
-                // กรณีเป็นวันที่จาก Sheet ที่ไม่มีเวลาติดมา (เช่น 2026-03-10) 
-                // ให้สร้าง Date แบบระบุเวลาเป็นเที่ยงวัน เพื่อป้องกันการปัดวันถอยหลัง
-                if (!date.includes('T')) {
-                    const [y, m, day] = date.split('-').map(Number);
-                    d = new Date(y, m - 1, day, 12, 0, 0);
-                }
-            } else {
-                d = date;
+            const d = new Date(date);
+            // ถ้าเป็น String วันที่จาก Google Sheet ให้บังคับเวลาเป็นเที่ยงวันเพื่อป้องกันการปัดวัน
+            if (typeof date === 'string' && !date.includes('T')) {
+                const [y, m, day] = date.split('-').map(Number);
+                return `${y}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             }
-            
             const y = d.getFullYear();
             const m = String(d.getMonth() + 1).padStart(2, '0');
             const day = String(d.getDate()).padStart(2, '0');
@@ -805,22 +801,21 @@ function nurseApp() {
         },
         get classTimeline() {
             if (!this.selectedPatient || !this.selectedPatient.date) return [];
-        
-            // 1. แยกวันที่ Admit ออกมาเป็นตัวเลขเพื่อสร้าง Date แบบท้องถิ่น (Local Time)
+
+            // 1. สร้างวันที่ Admit แบบ Local
             const [y, m, d] = this.selectedPatient.date.split('-').map(Number);
-            const admitDate = new Date(y, m - 1, d);
-            admitDate.setHours(0, 0, 0, 0);
-        
-            // 2. คำนวณจำนวนวัน (อย่างน้อย 5 วัน)
+            const admitDate = new Date(y, m - 1, d, 12, 0, 0); // ตั้งเวลาเที่ยงวันกันพลาด
+
             const today = new Date();
-            today.setHours(0, 0, 0, 0);
+            today.setHours(12, 0, 0, 0);
+            
             const diffTime = Math.abs(today - admitDate);
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
             const totalPages = Math.ceil(Math.max(diffDays, 5) / 5);
-        
+
             const pages = [];
             const shifts = ['ดึก', 'เช้า', 'บ่าย'];
-        
+
             for (let p = 0; p < totalPages; p++) {
                 const dayInPage = [];
                 for (let i = 0; i < 5; i++) {
@@ -828,7 +823,7 @@ function nurseApp() {
                     const currentDate = new Date(admitDate);
                     currentDate.setDate(admitDate.getDate() + currentIdx);
                     
-                    // 🟢 เปลี่ยนมาใช้ getLocalYYYYMMDD แทน toISOString
+                    // ใช้ Helper ดึงค่า YYYY-MM-DD
                     const dateKey = this.getLocalYYYYMMDD(currentDate);
                     
                     const dayData = {
@@ -836,11 +831,10 @@ function nurseApp() {
                         formattedDate: this.formatThaiDateShort(dateKey),
                         slots: {}
                     };
-        
-                    // 🟢 ค้นหาข้อมูลย้อนหลังโดยเทียบ Date String ตรงๆ
+
                     shifts.forEach(s => {
                         const record = this.classHistory.find(h => {
-                            // แปลงวันที่จากฐานข้อมูล (h.evalDate) ให้เป็น YYYY-MM-DD แบบไทยก่อนเทียบ
+                            // 🟢 หัวใจสำคัญ: แปลงวันที่จากฐานข้อมูลเป็น YYYY-MM-DD ก่อนเทียบเสมอ
                             const hDate = this.getLocalYYYYMMDD(h.evalDate);
                             return hDate === dateKey && h.shift === s;
                         });
