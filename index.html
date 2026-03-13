@@ -1871,18 +1871,6 @@
                                         <i class="fa-solid fa-keyboard mr-2"></i> วิธีการ: คลิกที่ช่องแล้วพิมพ์คะแนน (1-4) | <span class="text-slate-500 font-normal italic">ระบบจะคำนวณประเภทให้อัตโนมัติ</span>
                                     </div>
                                     <div class="flex items-center gap-3">
-                                        <div class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                                            <label class="block text-sm font-bold text-blue-700">ระบุวันจำหน่ายผู้ป่วย:</label>
-                                            <div class="flex gap-2 mt-1">
-                                                <input type="date" 
-                                                       x-model="selectedPatient.dischargeDate" 
-                                                       class="border rounded px-2 py-1 focus:ring-2 focus:ring-blue-500">
-                                                <button @click="saveDischargeDateAction(selectedPatient.an, selectedPatient.dischargeDate)" 
-                                                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1 rounded transition">
-                                                    <i class="fas fa-save mr-1"></i> บันทึกวันจำหน่าย
-                                                </button>
-                                            </div>
-                                        </div>
                                         <button type="button" 
                                             @click="currentPageIndex = Math.max(0, currentPageIndex - 1)" 
                                             :disabled="currentPageIndex === 0" 
@@ -1899,6 +1887,14 @@
                                             ถัดไป <i class="fa-solid fa-chevron-right ml-1"></i>
                                         </button>
                                     </div>
+                                    <div class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                            <label class="block text-sm font-bold text-blue-700">ระบุวันจำหน่ายผู้ป่วย:</label>
+                                            <div class="flex gap-2 mt-1">
+                                                <input type="date" 
+                                                       x-model="selectedPatient.dischargeDate" 
+                                                       class="border rounded px-2 py-1 focus:ring-2 focus:ring-blue-500">
+                                            </div>
+                                        </div>
                                 </div>
                                 
                                 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
