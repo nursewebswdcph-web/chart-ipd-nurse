@@ -1908,6 +1908,15 @@
                                                     </template>
                                                 </tr>
                                             </thead>
+                                            
+                                            <template x-for="s in ['ดึก','เช้า','บ่าย']">
+                                                <td class="border border-slate-300 p-0">
+                                                    <input type="number" min="1" max="4"
+                                                        class="w-full h-10 text-center font-bold focus:bg-yellow-50 outline-none border-none bg-transparent"
+                                                        x-model.number="getGridCell(day.date, s).scores[qIndex > 4 ? qIndex-1 : qIndex]"
+                                                        placeholder="">
+                                                </td>
+                                            </template>
                                             <tbody>
                                                 <template x-for="(question, qIndex) in [
                                                     '1. สัญญาณชีพ', '2. อาการและอาการแสดงทางระบบประสาท', '3. การได้รับการตรวจรักษา/ผ่าตัดหรือหัตถการ', '4. พฤติกรรมที่ผิดปกติอารมณ์ จิตสังคม',
@@ -1992,9 +2001,9 @@
                                                     <tr class="bg-gray-100">
                                                         <th class="border border-black text-left px-2 py-1">เวร</th>
                                                         <template x-for="i in 5">
-                                                            <th class="border border-black w-[42px] font-bold">ด</th>
-                                                            <th class="border border-black w-[42px] font-bold">ช</th>
-                                                            <th class="border border-black w-[42px] font-bold">บ</th>
+                                                            <th class="border border-black w-[42px] font-bold">ดึก</th>
+                                                            <th class="border border-black w-[42px] font-bold">เช้า</th>
+                                                            <th class="border border-black w-[42px] font-bold">บ่าย</th>
                                                         </template>
                                                     </tr>
                                                 </thead>
@@ -2009,20 +2018,20 @@
                                                                 <th colspan="16" class="border border-black text-left px-2 py-1.5 bg-gray-50 font-bold" x-text="question"></th>
                                                             </template>
                                                             <template x-if="question !== 'ความต้องการการดูแลขั้นต่ำ'">
-                                                                <td class="border border-black text-left px-2 py-1.5" x-text="question"></td>
+                                                                <td class="border border-black text-left px-2 py-1.5 font-medium" x-text="question"></td>
                                                             </template>
                                                             <template x-if="question !== 'ความต้องการการดูแลขั้นต่ำ'">
                                                                 <template x-for="day in page">
                                                                     <template x-for="shiftName in ['ดึก', 'เช้า', 'บ่าย']">
-                                                                        <td class="border border-black font-bold">
-                                                                            <span x-text="gridData[day.date]?.[shiftName] ? gridData[day.date][shiftName].scores[qIndex > 4 ? qIndex-1 : qIndex] : ''"></span>
+                                                                        <td class="border border-black font-bold text-[12px]">
+                                                                            <span x-text="gridData[day.date]?.[shiftName]?.scores ? gridData[day.date][shiftName].scores[qIndex > 4 ? qIndex-1 : qIndex] : ''"></span>
                                                                         </td>
                                                                     </template>
                                                                 </template>
                                                             </template>
                                                         </tr>
                                                     </template>
-                        
+                                                    
                                                     <tr class="font-bold bg-gray-50">
                                                         <td class="border border-black text-left px-2 py-2">รวมคะแนน</td>
                                                         <template x-for="day in page">
@@ -2033,24 +2042,12 @@
                                                             </template>
                                                         </template>
                                                     </tr>
-                        
                                                     <tr class="font-bold">
                                                         <td class="border border-black text-left px-2 py-2">ประเภทผู้ป่วย</td>
                                                         <template x-for="day in page">
                                                             <template x-for="shiftName in ['ดึก', 'เช้า', 'บ่าย']">
                                                                 <td class="border border-black text-red-700">
                                                                     <span x-text="gridData[day.date]?.[shiftName] ? calcScores(gridData[day.date][shiftName].scores).category : ''"></span>
-                                                                </td>
-                                                            </template>
-                                                        </template>
-                                                    </tr>
-                        
-                                                    <tr>
-                                                        <td class="border border-black text-left px-2 py-1 h-8">ผู้ประเมิน</td>
-                                                        <template x-for="day in page">
-                                                            <template x-for="shiftName in ['ดึก', 'เช้า', 'บ่าย']">
-                                                                <td class="border border-black text-[10px] align-middle">
-                                                                    <span x-text="gridData[day.date]?.[shiftName] ? formatShortName(gridData[day.date][shiftName].assessor || '') : ''"></span>
                                                                 </td>
                                                             </template>
                                                         </template>
