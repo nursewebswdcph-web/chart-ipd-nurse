@@ -37,6 +37,7 @@ function nurseApp() {
         currentPageIndex: 0,
         showClassModal: false, // ควบคุมการเปิด/ปิด Popup ประเมินรอบใหม่
         showClassNurseList: false, // ควบคุม Dropdown ค้นหาชื่อพยาบาล
+        gridData: {},
 
         extraOptions: [],
         showMoveModal: false,
@@ -731,11 +732,80 @@ function nurseApp() {
             try {
                 const res = await fetch(`${this.API_URL}?action=getClassifications&an=${an}`);
                 this.classHistory = await res.json();
-            } catch (e) {
-                console.error(e);
-                this.classHistory = [];
-            }
+                
+                // 🟢 หัวใจสำคัญ: เอาข้อมูลที่โหลดมา กระจายลง gridData ทันที
+                this.gridData = {}; 
+                this.classHistory.forEach(item => {
+                    const dKey = this.getLocalYYYYMMDD(item.evalDate);
+                    if (!this.gridData[dKey]) this.gridData[dKey] = {};
+                    this.gridData[dKey][item.shift] = {
+                        scores: [...item.scores],
+                        assessor: item.assessor || '',
+                        total: item.total,
+                        category: item.category
+                    };
+                });
+            } catch (e) { console.error(e); }
             this.isLoading = false;
+        },
+        async saveGridPage() {
+            this.isLoading = true;
+            const currentPage = this.classTimeline[this.currentPageIndex];
+            const recordsToSave = [];
+
+            // วนลูปเฉพาะวันและเวรที่อยู่ในหน้าปัจจุบันที่มีการกรอกคะแนน
+            currentPage.forEach(day => {
+                const dKey = day.date;
+                ['ดึก', 'เช้า', 'บ่าย'].forEach(s => {
+                    const data = this.gridData[dKey]?.[s];
+                    // บันทึกเฉพาะช่องที่กรอกคะแนนครบ หรือมีการแก้ไข
+                    if (data && data.scores.every(v => v > 0)) {
+                        const { total, category } = this.calcScores(data.scores);
+                        recordsToSave.push({
+                            an: this.selectedPatient.an,
+                            hn: this.selectedPatient.hn,
+                            ward: this.currentWard,
+                            evalDate: dKey,
+                            shift: s,
+                            scores: data.scores,
+                            total: total,
+                            category: category,
+                            assessor: data.assessor || this.searchNurse // ใช้ชื่อพยาบาลที่เลือกไว้ หรือชื่อเดิม
+                        });
+                    }
+                });
+            });
+
+            if (recordsToSave.length === 0) {
+                this.isLoading = false;
+                return this.showAlert('แจ้งเตือน', 'ไม่พบข้อมูลใหม่ที่สมบูรณ์เพื่อบันทึก');
+            }
+
+            try {
+                // ส่งข้อมูลทั้งหมดในหน้านั้นไปเซฟทีเดียว (แนะนำให้ส่งทีละรายการในลูป หรือปรับ API รับ Array)
+                for (const payload of recordsToSave) {
+                    await fetch(this.API_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        body: JSON.stringify({ action: 'saveClassification', payload })
+                    });
+                }
+                this.successMsg = 'บันทึกข้อมูลทั้งหมดในหน้านี้เรียบร้อย';
+                this.showSuccess = true;
+                setTimeout(() => this.showSuccess = false, 3000);
+                await this.loadClassifications(this.selectedPatient.an); // โหลดใหม่เพื่อ Refresh
+            } catch (e) { this.showAlert('Error', e.message); }
+            this.isLoading = false;
+        },
+        // ฟังก์ชันช่วยคำนวณคะแนนในตาราง
+        calcScores(scores) {
+            const total = scores.reduce((a, b) => a + parseInt(b || 0), 0);
+            let category = 1;
+            if (total >= 27) category = 5;
+            else if (total >= 21) category = 4;
+            else if (total >= 15) category = 3;
+            else if (total >= 9) category = 2;
+            return { total, category };
         },
         editClassItem(item) {
             // ดึงวันที่จาก item.evalDate มาแบบสะอาดๆ ไม่ต้องผ่านการคำนวณใหม่
