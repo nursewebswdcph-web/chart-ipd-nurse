@@ -14,7 +14,8 @@ function nurseApp() {
         showAssessmentPreview: false, // ควบคุมการสลับหน้าฟอร์ม/พรีวิว
         savedAssessment: null,        // เก็บข้อมูลที่พึ่งบันทึกเพื่อแสดงในพรีวิว
 
-        fallRiskData: {},
+        fallHistory: [],
+        fallGridData: {},
                 
         isSidebarCollapsed: false, // สถานะการพับ Sidebar
         
@@ -495,6 +496,8 @@ function nurseApp() {
                     await this.loadAssessmentData(this.selectedPatient.an);
                 } else if (form.id === 'patient_class') {
                     await this.loadClassifications(this.selectedPatient.an);
+                } else if (form.id === 'fall_risk') {
+                    await this.loadFallRisk(this.selectedPatient.an);
                 }
             } catch (e) {
                 console.error("Error switching form:", e);
@@ -1167,39 +1170,150 @@ function nurseApp() {
                 alert('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้');
             });
         },
-        // ฟังก์ชันดึงข้อมูล (เรียกใช้ตอนเลือกคนไข้)
-        loadFallRisk(an) {
-            fetch(`${this.API_URL}?action=getFallRisks&an=${an}`)
-            .then(res => res.json())
-            .then(data => {
-                this.fallRiskData = {};
-                data.forEach(item => {
-                    if (!this.fallRiskData[item.evalDate]) this.fallRiskData[item.evalDate] = {};
-                    this.fallRiskData[item.evalDate][item.shift] = item;
+        // โหลดข้อมูลประวัติ Morse/MAAS
+        async loadFallRisk(an) {
+            this.isLoading = true;
+            try {
+                // เรียก API ฝั่ง GAS ของคุณ (ต้องสร้าง action=getFallRisk ไว้ด้วย)
+                const res = await fetch(`${this.API_URL}?action=getFallRisk&an=${an}`);
+                this.fallHistory = await res.json();
+                
+                this.fallGridData = {}; 
+                this.fallHistory.forEach(item => {
+                    const dKey = this.getLocalYYYYMMDD(item.evalDate);
+                    if (!this.fallGridData[dKey]) this.fallGridData[dKey] = {};
+                    this.fallGridData[dKey][item.shift] = {
+                        scores: [item.m1, item.m2, item.m3, item.m4, item.m5, item.m6],
+                        maas: item.maasScore,
+                        assessor: item.assessor || ''
+                    };
                 });
-            });
+            } catch (e) { 
+                console.error("Load Fall Risk Error:", e); 
+                // จำลองข้อมูลเปล่าหาก API ยังไม่พร้อม
+                this.fallGridData = {};
+            }
+            this.isLoading = false;
         },
-        
-        // ฟังก์ชันเตรียมช่องข้อมูล
-        getFallRiskCell(date, shift) {
-            if (!this.fallRiskData[date]) this.fallRiskData[date] = {};
-            if (!this.fallRiskData[date][shift]) {
-                this.fallRiskData[date][shift] = {
-                    morse: [0,0,0,0,0,0],
-                    maasScore: 0,
+
+        // ดึง/สร้างช่องข้อมูลสำหรับหน้าจอ Morse/MAAS
+        getFallGridCell(dateStr, shift) {
+            if (!this.fallGridData[dateStr]) this.fallGridData[dateStr] = {};
+            if (!this.fallGridData[dateStr][shift]) {
+                this.fallGridData[dateStr][shift] = {
+                    scores: ['', '', '', '', '', ''], // 6 ข้อของ Morse
+                    maas: '', // 1 ข้อของ MAAS
                     assessor: ''
                 };
             }
-            return this.fallRiskData[date][shift];
+            return this.fallGridData[dateStr][shift];
         },
-        
-        // คำนวณ Morse
-        calcMorse(scores) {
-            const total = scores.reduce((a, b) => Number(a) + Number(b), 0);
-            let risk = 'No Risk';
-            if (total >= 51) risk = 'High';
-            else if (total >= 25) risk = 'Low';
-            return { total, risk };
+
+        // คำนวณผลรวม Morse อัตโนมัติ
+        calcMorseTotal(scores) {
+            if (!scores || !Array.isArray(scores)) return '';
+            const valid = scores.filter(v => v !== null && v !== '');
+            if (valid.length === 0) return '';
+            return valid.reduce((a, b) => a + parseInt(b), 0);
+        },
+
+        // บันทึกหน้าตาราง Morse/MAAS
+        async saveFallRiskPage() {
+            const currentPage = this.classTimeline[this.currentPageIndex];
+            if (!currentPage) return;
+            
+            const recordsToSave = [];
+            currentPage.forEach(day => {
+                const dKey = day.date;
+                ['ดึก', 'เช้า', 'บ่าย'].forEach(s => {
+                    const data = this.fallGridData[dKey]?.[s];
+                    // บันทึกเฉพาะเวรที่มีการกรอก Morse ครบ หรือมี MAAS
+                    if (data && (data.scores.some(v => v !== '') || data.maas !== '')) {
+                        recordsToSave.push({
+                            an: this.selectedPatient.an,
+                            hn: this.selectedPatient.hn,
+                            ward: this.currentWard,
+                            evalDate: dKey,
+                            shift: s,
+                            m1: data.scores[0], m2: data.scores[1], m3: data.scores[2],
+                            m4: data.scores[3], m5: data.scores[4], m6: data.scores[5],
+                            morseTotal: this.calcMorseTotal(data.scores) || 0,
+                            maasScore: data.maas || 0,
+                            assessor: data.assessor || ''
+                        });
+                    }
+                });
+            });
+
+            if (recordsToSave.length === 0) {
+                return this.showAlert('แจ้งเตือน', 'กรุณากรอกข้อมูลอย่างน้อย 1 เวรเพื่อบันทึก');
+            }
+
+            this.isLoading = true;
+            try {
+                for (const payload of recordsToSave) {
+                    await fetch(this.API_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        body: JSON.stringify({ action: 'saveFallRisk', payload })
+                    });
+                }
+                this.successMsg = 'บันทึกข้อมูลพลัดตกหกล้มเรียบร้อยแล้ว';
+                this.showSuccess = true;
+                setTimeout(() => this.showSuccess = false, 3000);
+                await this.loadFallRisk(this.selectedPatient.an);
+            } catch (e) {
+                this.showAlert('Error', 'บันทึกไม่สำเร็จ: ' + e.message);
+            }
+            this.isLoading = false;
+        },
+
+        // ฟังก์ชันสั่งพิมพ์ Morse/MAAS
+        printFallRisk() {
+            window.scrollTo(0, 0);
+            this.$nextTick(() => {
+                const printArea = document.getElementById('fall-risk-print-area');
+                if (!printArea) return this.showAlert('แจ้งเตือน', 'ไม่พบพื้นที่สำหรับพิมพ์เอกสาร');
+                
+                const cloneDOM = printArea.cloneNode(true);
+                cloneDOM.querySelectorAll('template').forEach(t => t.remove());
+                const printContent = cloneDOM.innerHTML;
+                
+                let iframe = document.getElementById('print-frame');
+                if (iframe) iframe.remove(); 
+                iframe = document.createElement('iframe');
+                iframe.id = 'print-frame';
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
+                
+                const pri = iframe.contentWindow;
+                const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]')).map(s => s.outerHTML).join('');
+
+                pri.document.open();
+                pri.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                        <head>
+                            <title>พิมพ์แบบประเมิน Morse / MAAS</title>
+                            ${styles}
+                            <style>
+                                @page {size: A4 portrait; margin: 15mm 10mm 15mm 10mm;}
+                                body { background: white !important; margin: 0; padding: 0; color: black !important; -webkit-print-color-adjust: exact !important; font-size: 11px; }
+                                .a4-page { width: 100% !important; margin: 0 auto !important; position: relative; page-break-after: always; display: block !important; }
+                                .a4-page:last-child { page-break-after: auto; }
+                                table { width: 100%; border-collapse: collapse; margin-top: 5px; }
+                                th, td { border: 1px solid black !important; padding: 3px !important; color: black !important; font-size: 10px; }
+                                .bg-gray { background-color: #f3f4f6 !important; }
+                            </style>
+                        </head>
+                        <body>
+                            ${printContent}
+                            <script> window.onload = function() { setTimeout(() => { window.print(); }, 800); }; </script>
+                        </body>
+                    </html>
+                `);
+                pri.document.close();
+            });
         },
     };
 }
