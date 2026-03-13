@@ -1313,7 +1313,7 @@ function nurseApp() {
                             <title>พิมพ์แบบประเมิน Morse / MAAS</title>
                             ${styles}
                             <style>
-                                @page {size: A4 portrait; margin: 0mm 8mm 0mm 8mm;}
+                                @page {size: A4 portrait; margin: 8mm 8mm 0mm 8mm;}
                                 body { font-size: 11px; color: black !important; }                             
 
                                 /* บังคับตารางให้ขนาดคงที่ */
@@ -1338,24 +1338,19 @@ function nurseApp() {
                                 .bg-gray { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
                                 .text-center { text-center: center; }
                                 /* กรอบข้อมูลผู้ป่วย */
+                                /* Footer ท้ายกระดาษ */
+                                .print-global-footer {
+                                    position: fixed; bottom: 0; left: 0; width: 100%; text-align: center;
+                                    font-size: 9px; color: #475569 !important; border-top: 1px solid #9ca3af; 
+                                    padding-top: 4px; padding-bottom: 4px; background-color: white; z-index: 1000;
+                                }
+                                
+                                /* กรอบข้อมูลผู้ป่วย */
                                 .print-patient-info {
                                     position: fixed; bottom: 22px; right: 15px; width: 260px;
                                     border: 1px solid #000 !important; border-radius: 4px; padding: 6px 8px;
                                     font-size: 10px; background-color: white !important; z-index: 1000; 
                                     line-height: 1.4; color: black !important;
-                                }
-                                .print-global-footer 
-                                position: fixed; /* ล็อกตำแหน่ง */
-                                bottom: 0;      /* ชิดด้านล่าง */
-                                left: 0;
-                                right: 0;
-                                text-align: center;
-                                font-size: 8px;
-                                color: #666 !important;
-                                border-top: 0.5px solid #ccc;
-                                padding-top: 4px;
-                                background-color: white !important;
-                                -webkit-print-color-adjust: exact;
                             }
                             </style>
                         </head>
