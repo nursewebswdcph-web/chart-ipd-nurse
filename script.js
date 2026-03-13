@@ -733,33 +733,31 @@ function nurseApp() {
                 const res = await fetch(`${this.API_URL}?action=getClassifications&an=${an}`);
                 this.classHistory = await res.json();
                 
-                // 🟢 หัวใจสำคัญ: เอาข้อมูลที่โหลดมา กระจายลง gridData ทันที
+                // ล้างข้อมูลเก่า
                 this.gridData = {}; 
+                
+                // นำข้อมูลจากฐานข้อมูลมาใส่ใน Grid
                 this.classHistory.forEach(item => {
                     const dKey = this.getLocalYYYYMMDD(item.evalDate);
                     if (!this.gridData[dKey]) this.gridData[dKey] = {};
                     this.gridData[dKey][item.shift] = {
                         scores: [...item.scores],
-                        assessor: item.assessor || '',
-                        total: item.total,
-                        category: item.category
+                        assessor: item.assessor || ''
                     };
                 });
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error("Load Error:", e); }
             this.isLoading = false;
         },
         async saveGridPage() {
-            this.isLoading = true;
             const currentPage = this.classTimeline[this.currentPageIndex];
             const recordsToSave = [];
 
-            // วนลูปเฉพาะวันและเวรที่อยู่ในหน้าปัจจุบันที่มีการกรอกคะแนน
             currentPage.forEach(day => {
                 const dKey = day.date;
                 ['ดึก', 'เช้า', 'บ่าย'].forEach(s => {
                     const data = this.gridData[dKey]?.[s];
-                    // บันทึกเฉพาะช่องที่กรอกคะแนนครบ หรือมีการแก้ไข
-                    if (data && data.scores.every(v => v > 0)) {
+                    // เงื่อนไข: ต้องกรอกครบ 8 ข้อ และมีชื่อผู้ประเมิน ถึงจะยอมให้บันทึกเวรนั้น
+                    if (data && data.scores.every(v => v !== null && v !== '')) {
                         const { total, category } = this.calcScores(data.scores);
                         recordsToSave.push({
                             an: this.selectedPatient.an,
@@ -770,19 +768,19 @@ function nurseApp() {
                             scores: data.scores,
                             total: total,
                             category: category,
-                            assessor: data.assessor || this.searchNurse // ใช้ชื่อพยาบาลที่เลือกไว้ หรือชื่อเดิม
+                            assessor: data.assessor || ''
                         });
                     }
                 });
             });
 
             if (recordsToSave.length === 0) {
-                this.isLoading = false;
-                return this.showAlert('แจ้งเตือน', 'ไม่พบข้อมูลใหม่ที่สมบูรณ์เพื่อบันทึก');
+                return this.showAlert('แจ้งเตือน', 'กรุณากรอกคะแนนให้ครบ 8 ข้อ ในเวรที่ต้องการบันทึก');
             }
 
+            this.isLoading = true;
             try {
-                // ส่งข้อมูลทั้งหมดในหน้านั้นไปเซฟทีเดียว (แนะนำให้ส่งทีละรายการในลูป หรือปรับ API รับ Array)
+                // ส่งบันทึก (ยิงทีละรายการเพื่อให้ API เดิมรองรับได้)
                 for (const payload of recordsToSave) {
                     await fetch(this.API_URL, {
                         method: 'POST',
@@ -790,21 +788,36 @@ function nurseApp() {
                         body: JSON.stringify({ action: 'saveClassification', payload })
                     });
                 }
-                this.successMsg = 'บันทึกข้อมูลทั้งหมดในหน้านี้เรียบร้อย';
+                this.successMsg = 'บันทึกข้อมูลสำเร็จ';
                 this.showSuccess = true;
                 setTimeout(() => this.showSuccess = false, 3000);
-                await this.loadClassifications(this.selectedPatient.an); // โหลดใหม่เพื่อ Refresh
-            } catch (e) { this.showAlert('Error', e.message); }
+                await this.loadClassifications(this.selectedPatient.an);
+            } catch (e) {
+                this.showAlert('Error', 'บันทึกไม่สำเร็จ: ' + e.message);
+            }
             this.isLoading = false;
         },
         // ฟังก์ชันช่วยคำนวณคะแนนในตาราง
         calcScores(scores) {
-            const total = scores.reduce((a, b) => a + parseInt(b || 0), 0);
-            let category = 1;
-            if (total >= 27) category = 5;
-            else if (total >= 21) category = 4;
-            else if (total >= 15) category = 3;
-            else if (total >= 9) category = 2;
+            if (!scores) return { total: '', category: '' };
+            // กรองเอาเฉพาะตัวเลขจริงๆ และไม่เอาค่าว่าง/null
+            const validScores = scores.filter(v => v !== null && v !== '' && !isNaN(v));
+            
+            // ถ้ายังกรอกไม่ครบ 8 ข้อ ให้ยังไม่ต้องแสดงประเภท (หรือจะแสดงแค่ผลรวมก็ได้)
+            if (validScores.length === 0) return { total: '', category: '' };
+            
+            const total = validScores.reduce((a, b) => a + parseInt(b), 0);
+            
+            // คำนวณประเภท (แสดงผลเฉพาะเมื่อกรอกครบ 8 ข้อ)
+            let category = '';
+            if (validScores.length === 8) {
+                if (total >= 27) category = 5;
+                else if (total >= 21) category = 4;
+                else if (total >= 15) category = 3;
+                else if (total >= 9) category = 2;
+                else category = 1;
+            }
+            
             return { total, category };
         },
         editClassItem(item) {
