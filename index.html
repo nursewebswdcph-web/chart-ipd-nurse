@@ -1999,7 +1999,7 @@
                                     
                                             <div class="flex justify-center gap-8 text-[12px] font-bold mb-3">
                                                 <div>วันที่รับใหม่ <span class="border-b border-dotted border-black inline-block min-w-[140px] text-center" x-text="formatThaiDate(selectedPatient?.date)"></span></div>
-                                                <div>วันที่จำหน่าย <span class="border-b border-dotted border-black inline-block min-w-[140px] text-center" x-text="selectedPatient && selectedPatient.dischargeDate ? formatThaiDate(selectedPatient.dischargeDate) : '.........................'"></span></div>
+                                                <div>วันที่จำหน่าย <span class="border-b border-dotted border-black inline-block min-w-[140px] text-center" x-text="selectedPatient && selectedPatient.dischargeDate ? formatThaiDate(selectedPatient.dischargeDate) : '' "></span></div>
                                             </div>
                                     
                                             <table class="w-full border-collapse border border-black text-center text-[11px] leading-tight" style="table-layout: fixed;">
