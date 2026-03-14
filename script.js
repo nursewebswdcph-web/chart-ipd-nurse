@@ -2000,33 +2000,78 @@ function nurseApp() {
                             position:fixed; bottom:0; left:0; width:100%; text-align:center;
                             font-size:9px; color:#444; border-top:1px solid #ccc; padding:5px 0; background:#fff;
                         }
-                        @media print { .a4-page { padding: 5mm; } }
+                        /* จัดการหัวกระดาษขวาบน */
+                        .print-header-container {
+                            display: flex;
+                            justify-content: flex-end;
+                            width: 100%;
+                            margin-bottom: 10px;
+                        }
+                        .header-info {
+                            text-align: right;
+                            font-size: 11pt;
+                            line-height: 1.2;
+                            font-weight: bold;
+                        }
+            
+                        /* ปรับขนาดเนื้อหาในตารางให้เท่ากัน 100% */
+                        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                        th, td { 
+                            border: 1px solid black; 
+                            padding: 6px; 
+                            font-size: 11pt !important; /* บังคับขนาดตัวอักษรเนื้อหาให้เท่ากัน */
+                            vertical-align: top;
+                        }
+                        th { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
+                        
+                        /* จัดการการขึ้นหน้าใหม่ให้มีหัวกระดาษ (ถ้า Browser รองรับ) */
+                        @media print {
+                            @page { margin: 1.5cm; }
+                            .no-print { display: none; }
+                        }
                     </style>
-                </head>
-                <body>
-                    <div class="a4-page">
-                        <h2 style="text-align:center; font-size:16px;">การให้คำแนะนำการปฏิบัติตัวระหว่างเข้ารับการรักษาในโรงพยาบาลและเมื่อผู้ป่วยกลับบ้าน</h2>
-                        <table>
-                            <thead>
-                                <tr style="background:#eee">
-                                    <th>เรื่อง</th><th>คำแนะนำ</th><th>ว/ด/ป ที่ให้</th><th>ผู้ให้คำแนะนำ</th><th>ผู้รับคำแนะนำ</th>
-                                </tr>
-                            </thead>
-                            <tbody>${htmlRows}</tbody>
-                        </table>
-                    </div>
-                    <div class="print-patient-box">
-                <div><b>ชื่อ-สกุล:</b> ${this.selectedPatient?.name || '-'} &nbsp; <b>อายุ:</b> ${this.selectedPatient?.ageDisplay || '-'}</div>
-                <div><b>HN:</b> ${this.selectedPatient?.hn || '-'} &nbsp; <b>AN:</b> ${this.selectedPatient?.an || '-'}</div>
-                <div><b>ตึก:</b> ${this.currentWard || '-'} &nbsp; <b>เตียง:</b> ${this.selectedPatient?.bed || '-'}</div>
-                <div><b>แพทย์:</b> ${this.selectedPatient?.doctor || '-'}</div>
-            </div>
-
-            <div class="print-footer">
-                เอกสารฉบับนี้พิมพ์จากระบบ IPD Nurse Workbench | โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
-            </div>
-                    <script>window.onload=()=>{ setTimeout(()=>{window.print(); window.close();}, 500); }</script>
-                </body></html>`);
+                    </head>
+                    <body>
+                        <div class="a4-page">
+                            <div class="header-right">
+                                <div>Echart-ipd-nurse</div>
+                                <div>Discharge-Plan-Form</div>
+                            </div>
+                
+                            <h2 style="text-align:center; font-size:18px; margin-top: 10px;">การให้คำแนะนำการปฏิบัติตัวระหว่างเข้ารับการรักษาในโรงพยาบาลและเมื่อผู้ป่วยกลับบ้าน</h2>
+                            
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th style="width:15%">เรื่อง</th>
+                                        <th style="width:40%">คำแนะนำ</th>
+                                        <th style="width:15%">ว/ด/ป ที่ให้</th>
+                                        <th style="width:15%">ผู้ให้คำแนะนำ</th>
+                                        <th style="width:15%">ผู้รับคำแนะนำ</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${htmlRows}</tbody>
+                            </table>
+                
+                            <div class="print-patient-box">
+                                <div><b>ชื่อ-สกุล:</b> ${this.selectedPatient?.name || '-'} &nbsp; <b>อายุ:</b> ${this.selectedPatient?.ageDisplay || '-'}</div>
+                                <div><b>HN:</b> ${this.selectedPatient?.hn || '-'} &nbsp; <b>AN:</b> ${this.selectedPatient?.an || '-'}</div>                
+                                <div><b>แพทย์:</b> ${this.selectedPatient?.doctor || '-'} &nbsp; <b>ตึก:</b> ${this.currentWard || '-'} &nbsp; <b>เตียง:</b> ${this.selectedPatient?.bed || '-'}</div>
+                            </div>
+                        </div>
+                
+                        <div class="print-footer">
+                            เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | โปรแกรมบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
+                        </div>
+                
+                        <script>
+                            window.onload = () => { 
+                                setTimeout(() => { window.print(); window.close(); }, 500); 
+                            }
+                        </script>
+                    </body>
+                    </html>
+                `);
                 pri.document.close();
             },
     };
