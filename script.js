@@ -1482,6 +1482,16 @@ function nurseApp() {
             let records = [...this.bradenHistory].sort((a, b) => new Date(a.EvalDate) - new Date(b.EvalDate));
             if(records.length === 0) { alert("ไม่พบข้อมูลการประเมินเพื่อพิมพ์ กรุณาบันทึกข้อมูลก่อน"); return; }
             
+            // ฟังก์ชันตัวช่วยสำหรับจัดการปัญหา Timezone และแปลงวันที่เป็นแบบไทย (เช่น 10 มี.ค. 2569)
+            const formatThaiDate = (dateStr) => {
+                if (!dateStr) return '-';
+                const d = new Date(dateStr);
+                if (isNaN(d.getTime())) return dateStr;
+                return d.toLocaleDateString('th-TH', { 
+                    day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Bangkok' 
+                });
+            };
+
             let chunks = [];
             for(let i=0; i<records.length; i+=10) chunks.push(records.slice(i, i+10));
             const lastRec = records[records.length-1];
@@ -1492,12 +1502,12 @@ function nurseApp() {
                 let dateHeaders = '';
                 for(let i=0; i<10; i++) {
                     if(i < chunk.length) {
-                        let dStr = new Date(chunk[i].EvalDate).toLocaleDateString('th-TH',{day:'2-digit',month:'short'});
-                        dateHeaders += `<th style="writing-mode: vertical-lr; transform: rotate(180deg); width: 28px; text-align: center; padding: 2px;">${dStr}</th>`;
-                    } else dateHeaders += `<th style="width: 28px;"></th>`;
+                        let dObj = new Date(chunk[i].EvalDate);
+                        let dStr = !isNaN(dObj.getTime()) ? dObj.toLocaleDateString('th-TH', { day: '2-digit', month: 'short', timeZone: 'Asia/Bangkok' }) : '';
+                        dateHeaders += `<th style="writing-mode: vertical-lr; transform: rotate(180deg); width: 22px; text-align: center; padding: 2px;">${dStr}</th>`;
+                    } else dateHeaders += `<th style="width: 22px;"></th>`;
                 }
 
-                // สร้างแถวคะแนนย่อย
                 const generateSubRow = (label, score, key) => {
                     let rowHtml = `<tr><td>${label}</td><td class="text-center">${score}</td>`;
                     for(let i=0; i<10; i++) rowHtml += `<td class="text-center">${chunk[i] && chunk[i][key] == score ? '/' : ''}</td>`;
@@ -1508,45 +1518,49 @@ function nurseApp() {
                 let assessorRows = `<tr><td colspan="2" style="text-align:right; font-weight:bold; padding-right:10px;">พยาบาลผู้ประเมิน</td>`;
                 for(let i=0; i<10; i++) {
                     totalRows += `<td class="text-center font-bold">${chunk[i] ? chunk[i].TotalScore || 0 : ''}</td>`;
-                    assessorRows += `<td class="text-center" style="font-size:10px;">${chunk[i] ? chunk[i].Assessor || '' : ''}</td>`;
+                    assessorRows += `<td class="text-center" style="font-size:8px;">${chunk[i] ? chunk[i].Assessor || '' : ''}</td>`;
                 }
                 totalRows += '</tr>'; assessorRows += '</tr>';
 
                 let section3Rows = '';
                 for(let i=0; i<10; i++) {
                     let r = chunk[i] || {};
-                    let dStr = r.EvalDate ? new Date(r.EvalDate).toLocaleDateString('th-TH',{day:'2-digit',month:'2-digit',year:'2-digit'}) : '';
+                    let dObj = r.EvalDate ? new Date(r.EvalDate) : null;
+                    let dStr = dObj && !isNaN(dObj.getTime()) ? dObj.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: '2-digit', timeZone: 'Asia/Bangkok' }) : '';
                     section3Rows += `
-                        <tr>
-                            ${i===0 ? `<td rowspan="10" style="text-align:center; width:28%; padding:0;"><img src="https://www.weymouthphysiotherapy.com/wp-content/uploads/2018/02/Body-chart.jpg" style="width:100%; max-height:260px; object-fit:contain;"></td>` : ''}
-                            <td class="text-center">${dStr}</td>
-                            <td>${r.S3_Location||''}</td>
-                            <td class="text-center">${r.S3_Stage||''}</td>
-                            <td>${r.S3_Appearance||''}</td>
-                            <td>${r.Assessor||''}</td>
+                        <tr style="height: 25px;">
+                            ${i===0 ? `<td rowspan="10" style="text-align:center; width:22%; padding:0; vertical-align:middle;"><img src="https://www.weymouthphysiotherapy.com/wp-content/uploads/2018/02/Body-chart.jpg" style="width:100%; max-height:240px; object-fit:contain;"></td>` : ''}
+                            <td class="text-center" style="width:12%;">${dStr}</td>
+                            <td style="width:20%; padding-left:5px;">${r.S3_Location||''}</td>
+                            <td class="text-center" style="width:10%;">${r.S3_Stage||''}</td>
+                            <td style="width:21%; padding-left:5px;">${r.S3_Appearance||''}</td>
+                            <td class="text-center" style="width:15%;">${r.Assessor||''}</td>
                         </tr>
                     `;
                 }
 
                 html += `
                 <div class="a4-page">
-                    <h2 class="text-center font-bold" style="font-size: 16px; margin-bottom:10px;">แบบบันทึกการพยาบาลเพื่อป้องกันและการดูแลผู้ป่วยที่มีแผลกดทับ โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน</h2>
-                    <table class="no-border" style="margin-bottom:10px;">
+                    <div style="text-align: right; font-size: 9px; font-weight: bold; line-height: 1.2; margin-bottom: 5px;">
+                        Echart-ipd-nurse<br>Braden-Scale-Form หน้า ${(index * 2) + 1}
+                    </div>
+                    <h2 class="text-center font-bold" style="font-size: 13px; margin-bottom:5px;">แบบบันทึกการพยาบาลเพื่อป้องกันและการดูแลผู้ป่วยที่มีแผลกดทับ <br>โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน</h2>
+                    <table class="no-border text-sm" style="margin-bottom:5px;">
                         <tr>
-                            <td><b>วันที่ Admit:</b> ${lastRec.AdmitDate||''}</td>
-                            <td><b>วันที่รับย้าย:</b> ${lastRec.TransferDate||''} &nbsp; <b>จาก Ward:</b> ${this.currentWard||''}</td>
-                            <td><b>วันที่ประเมินครั้งแรก:</b> ${lastRec.FirstEvalDate||''}</td>
+                            <td><b>วันที่ Admit:</b> ${formatThaiDate(lastRec.AdmitDate)}</td>
+                            <td><b>วันที่รับย้าย:</b> ${formatThaiDate(lastRec.TransferDate)} &nbsp; <b>จาก Ward:</b> ${this.currentWard||''}</td>
+                            <td><b>วันที่ประเมินครั้งแรก:</b> ${formatThaiDate(lastRec.FirstEvalDate)}</td>
                         </tr>
                         <tr><td colspan="3"><b>Diagnosis/Operation:</b> ${lastRec.Diagnosis||''}</td></tr>
                         <tr><td colspan="3"><b>แผลกดทับแรกรับ:</b> [ ${lastRec.InitialUlcer==='ไม่มี'?'/':' '} ] ไม่มี &nbsp; [ ${lastRec.InitialUlcer==='มี'?'/':' '} ] มี &nbsp; <b>ตำแหน่ง/ลักษณะ/ขนาด:</b> ${lastRec.InitialUlcerDetail||'-'}</td></tr>
-                        <tr><td colspan="3"><b>Serum Albumin:</b> ${lastRec.Albumin||'-'} mg/dL (ค่าปกติ 305-5.4) &nbsp; <b>Hb:</b> ${lastRec.Hb||'-'} mg% &nbsp; <b>Hct:</b> ${lastRec.Hct||'-'} Vol% &nbsp; <b>BMI:</b> ${lastRec.BMI||'-'}</td></tr>
+                        <tr><td colspan="3"><b>Serum Albumin:</b> ${lastRec.Albumin||'-'} mg/dL (ค่าปกติ 3.5-5.4) &nbsp; <b>Hb:</b> ${lastRec.Hb||'-'} mg% &nbsp; <b>Hct:</b> ${lastRec.Hct||'-'} Vol% &nbsp; <b>BMI:</b> ${lastRec.BMI||'-'}</td></tr>
                     </table>
 
-                    <div class="font-bold mb-5" style="font-size:14px;">ส่วนที่ 1 การประเมินความเสี่ยงต่อการเกิดแผลกดทับ</div>
-                    <table>
+                    <div class="font-bold mb-1" style="font-size:11px;">ส่วนที่ 1 การประเมินความเสี่ยงต่อการเกิดแผลกดทับ</div>
+                    <table class="tight-table">
                         <thead>
                             <tr class="bg-gray">
-                                <th>ปัจจัยส่งเสริมการเกิดแผลกดทับ</th><th style="width:50px;">คะแนน</th>${dateHeaders}
+                                <th>ปัจจัยส่งเสริมการเกิดแผลกดทับ</th><th style="width:40px;">คะแนน</th>${dateHeaders}
                             </tr>
                         </thead>
                         <tbody>
@@ -1559,7 +1573,7 @@ function nurseApp() {
                             <tr class="bg-gray"><td colspan="12"><b>4. การเคลื่อนไหว</b></td></tr>
                             ${generateSubRow('4.1 เคลื่อนไหวเองไม่ได้', 1, 'S1_M4')} ${generateSubRow('4.2 เคลื่อนไหวเองได้น้อย / มีข้อติด / ต้องมีผู้ช่วยเหลือ', 2, 'S1_M4')} ${generateSubRow('4.3 เคลื่อนไหวเองได้ มีผู้ช่วยเหลือบางครั้ง', 3, 'S1_M4')} ${generateSubRow('4.4 เคลื่อนไหวเองได้ปกติ', 4, 'S1_M4')}
                             <tr class="bg-gray"><td colspan="12"><b>5. การรับอาหาร</b></td></tr>
-                            ${generateSubRow('5.1 NPO / กินได้ 1/3 ถาด', 1, 'S1_M5')} ${generateSubRow('5.2 รับประทานอาหารได้บ้างเล็กน้อย / กินได้ ½ ถาด', 2, 'S1_M5')} ${generateSubRow('5.3 รับประทานอาหารได้พอควร / กินได้ > ½ ถาด', 3, 'S1_M5')} ${generateSubRow('5.4 รับประทานอาหารได้ปกติ/ Feed รับได้หมด', 4, 'S1_M5')}
+                            ${generateSubRow('5.1 NPO / กินได้ 1/3 ถาด', 1, 'S1_M5')} ${generateSubRow('5.2 รับประทานได้บ้างเล็กน้อย / กินได้ ½ ถาด', 2, 'S1_M5')} ${generateSubRow('5.3 รับประทานได้พอควร / กินได้ > ½ ถาด', 3, 'S1_M5')} ${generateSubRow('5.4 รับประทานได้ปกติ/ Feed รับได้หมด', 4, 'S1_M5')}
                             <tr class="bg-gray"><td colspan="12"><b>6. การเสียดสี</b></td></tr>
                             ${generateSubRow('6.1 มีกล้ามเนื้อหดเกร็ง ต้องมีผู้ช่วยหลายคนในการเคลื่อนย้าย', 1, 'S1_M6')} ${generateSubRow('6.2 เวลานั่งลื่นไถลได้ / ใช้ผู้ช่วยน้อยคนในการเคลื่อนย้าย', 2, 'S1_M6')} ${generateSubRow('6.3 เคลื่อนย้ายบนเตียงได้อย่างอิสระ ไม่มีปัญหาการเสียดสี', 3, 'S1_M6')}
                             ${totalRows}
@@ -1567,53 +1581,69 @@ function nurseApp() {
                         </tbody>
                     </table>
 
-                    <div style="page-break-before: always;"></div>
-                    
-                    <div class="font-bold mb-5" style="font-size:14px;">ส่วนที่ 2 การปฏิบัติเพื่อป้องกัน / ดูแลการเกิดแผลกดทับ (Braden Score < 16)</div>
-                    <div style="border: 1px solid #000; padding: 10px; margin-bottom: 15px; line-height: 1.4;">
-                        <b>การป้องกัน:</b> 1.พลิกตะแคงตัวทุก 2 ชั่วโมง 2.ใช้ที่นอนลม 3.จับคู่ช่วยกันพลิกตะแคงตัว/ไม่ดึงลาก/ดึงผ้าปูให้ตึง 4.ประเมินผิวหนังทุกเวร 5.บันทึกการเกิดแผลใหม่ 6.บันทึกเมื่อมีการเปลี่ยนแปลง 7.ส่งต่อข้อมูล<br>
-                        <b>การดูแลแผล:</b> 1.ทำความสะอาดด้วย NSS ทา Zinc Plate 2.แผลมีเนื้อตายรายงานแพทย์ ตัดออกและ Wet Dressing NSS 3.ดูแลโภชนาการ
+                    <div class="note-section">
+                        <b>หมายเหตุ</b> 1. คะแนน ≤ 16 ถือเป็นกลุ่มเสี่ยงต่อการเกิดแผลกดทับสูง , คะแนน ≥ 16 ถือเป็นกลุ่มเสี่ยงต่อการเกิดแผลกดทับต่ำ<br>
+                        2. กรณีคะแนนน้อยกว่า 16 ให้ประเมินใหม่ทุก 3-5 วัน<br>
+                        <b>ผู้ป่วยกลุ่มเสี่ยง</b> 1) ผู้ป่วยถูกจำกัดการเคลื่อนไหว / จำกัดกิจกรรม เช่น มีการดึงถ่วงน้ำหนัก, เข้าเฝือก, On Respirator &nbsp; 2) ผู้ป่วยไม่รู้สึกตัว / เป็นอัมพาต<br>
+                        3) ผู้ป่วยที่มีปัญหาการบาดเจ็บของระบบประสาทและไขสันหลัง &nbsp; 4) ผู้ป่วยที่มีภาวะทุพโภชนาการ / มีระดับอัลบูมินในเลือดต่ำกว่า 304 mg/Dl<br>
+                        5) ผู้สูงอายุ อายุตั้งแต่ 60 ปีขึ้นไป &nbsp; 6) ผู้ป่วยที่ถ่ายอุจจาระ ปัสสาวะราดบ่อยครั้ง/กลั้นปัสสาวะ อุจจาระไม่ได้ &nbsp; 7) ผู้ป่วยที่มีภาวะซีด<br>
+                        8) ผู้ป่วยที่อ้วน/ผอมมาก &nbsp; 9) ผู้ป่วยที่ได้รับยาระงับความรู้สึกหลังการผ่าตัดภายใน 72 ชั่วโมง &nbsp; 10) ผู้ป่วยเรื้อรังที่ต้องนอนพักบนเตียงตลอด
                     </div>
 
-                    <div class="font-bold mb-5" style="font-size:14px;">ส่วนที่ 3 บันทึกแผลกดทับ</div>
-                    <table>
+                    <div style="page-break-before: always;"></div>
+                    
+                    <div class="font-bold mb-2" style="font-size:12px;">ส่วนที่ 2 การปฏิบัติเพื่อป้องกัน / ดูแลการเกิดแผลกดทับ (โดยเฉพาะผู้ป่วยที่มีความเสี่ยงสูง Braden Score < 16)</div>
+                    <div style="border: 1px solid #000; padding: 15px; line-height: 1.6; font-family: sans-serif; max-width: 600px;">
+                        <div style="display: flex; margin-bottom: 10px;">
+                            <b style="min-width: 80px;">การป้องกัน</b>
+                            <div style="flex-grow: 1;">
+                                1. พลิกตะแคงตัวทุก 2 ชั่วโมง ตรงตามเวลาที่กำหนด<br>
+                                2. ใช้ที่นอนลม<br>
+                                3. จับคู่ช่วยกันพลิกตะแคงตัว / ไม่ดึงลากเวลาพลิกตะแคงตัว / ดึงผ้าปูที่นอนให้เรียบตึง<br>
+                                4. ประเมินผิวหนังปุ่มกระดูกบริเวณกดทับทุกเวร<br>
+                                5. บันทึกการเกิดแผลกดทับทุกครั้งที่พบแผลใหม่<br>
+                                6. บันทึกเมื่อมีการเปลี่ยนแปลงของแผล (ตั้งแต่รอยแดง / ใหญ่ขึ้น / ลึกลง / แผลหาย)<br>
+                                7. ส่งต่อข้อมูลการเกิดแผลกดทับในการส่งเวรแต่ละครั้ง
+                            </div>
+                        </div>
+                    
+                        <div style="display: flex;">
+                            <b style="min-width: 80px;">การดูแลแผล</b>
+                            <div style="flex-grow: 1;">
+                                1. ทำความสะอาดแผลด้วย NSS หลังจากนั้นทาด้วย Zinc Paste<br>
+                                2. แผลที่มีเนื้อตาย รายงานแพทย์ทราบเพื่อตัดเนื้อตายออก และ Wet Dressing ด้วย NSS<br>
+                                3. ดูแลให้ผู้ป่วยมีภาวะโภชนาการที่เหมาะสม
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="font-bold mb-2 mt-4" style="font-size:12px;">ส่วนที่ 3 บันทึกแผลกดทับ</div>
+                    <table class="table-fixed-layout">
                         <thead>
                             <tr class="bg-gray">
-                                <th>Body Chart</th><th style="width:12%;">ว/ด/ป</th><th>ตำแหน่งแผล</th><th style="width:8%;">ระดับ</th><th>ลักษณะแผล</th><th style="width:15%;">ผู้บันทึก</th>
+                                <th style="width:22%;">Body Chart</th><th style="width:12%;">ว/ด/ป</th><th style="width:20%;">ตำแหน่งแผล</th><th style="width:10%;">ระดับ</th><th style="width:21%;">ลักษณะแผล</th><th style="width:15%;">ผู้บันทึก</th>
                             </tr>
                         </thead>
                         <tbody>${section3Rows}</tbody>
                     </table>
 
                     ${isLastChunk ? `
-                    <div class="font-bold mb-5 mt-10" style="font-size:14px;">ส่วนที่ 4 สรุปการเกิดแผลกดทับ</div>
-                    <div style="border: 1px solid #000; padding: 10px; line-height: 1.6;">
-                        <b>วันที่จำหน่าย / ย้าย:</b> ${lastRec.S4_DischargeDate||'-'}<br>
-                        <b>ผลปรากฏ:</b> [ ${lastRec.S4_Outcome==='ไม่เกิดแผลกดทับ'?'/':' '} ] ไม่เกิดแผลกดทับ &nbsp;&nbsp; [ ${lastRec.S4_Outcome==='เกิดแผลกดทับ'?'/':' '} ] เกิดแผลกดทับ <b>วันที่:</b> ${lastRec.S4_UlcerDate||'-'}<br>
+                    <div class="font-bold mb-2 mt-4" style="font-size:12px;">ส่วนที่ 4 สรุปการเกิดแผลกดทับ</div>
+                    <div style="border: 1px solid #000; padding: 6px; line-height: 1.5;">
+                        <b>วันที่จำหน่าย / ย้าย:</b> ${formatThaiDate(lastRec.S4_DischargeDate)}<br>
+                        <b>ผลปรากฏ:</b> [ ${lastRec.S4_Outcome==='ไม่เกิดแผลกดทับ'?'/':' '} ] ไม่เกิดแผลกดทับ &nbsp;&nbsp; [ ${lastRec.S4_Outcome==='เกิดแผลกดทับ'?'/':' '} ] เกิดแผลกดทับ <b>วันที่:</b> ${formatThaiDate(lastRec.S4_UlcerDate)}<br>
                         <b>ตำแหน่งที่เป็น:</b> ${lastRec.S4_Location||'-'} &nbsp;&nbsp; <b>ขนาด:</b> ${lastRec.S4_Size||'-'} &nbsp;&nbsp; <b>ลักษณะแผล:</b> ${lastRec.S4_Appearance||'-'}<br>
                         <b>ระดับของแผลกดทับ:</b> ${lastRec.S4_Stage||'-'} &nbsp;&nbsp; <b>จำนวนแผลกดทับ:</b> ${lastRec.S4_Count||'-'} แผล
                     </div>` : ''}
                 </div>`;
             });
 
-            // เพิ่ม Fixed Elements สำหรับทุกหน้า (ข้อมูลผู้ป่วย + Footer)
             const fixedElements = `
                 <div class="print-patient-info">
-                    <div>
-                        <b>ชื่อ-สกุล:</b> ${this.selectedPatient?.name || '-'} &nbsp;&nbsp;
-                        <b>อายุ:</b> ${this.selectedPatient?.ageDisplay || '-'}
-                    </div>
-                    <div>
-                        <b>HN:</b> ${this.selectedPatient?.hn || '-'} &nbsp;&nbsp;
-                        <b>AN:</b> ${this.selectedPatient?.an || '-'}
-                    </div>
-                    <div>
-                        <b>แพทย์:</b> ${this.selectedPatient?.doctor || '-'} &nbsp;&nbsp;
-                        <b>ตึก:</b> ${this.currentWard || '-'} &nbsp;&nbsp;
-                        <b>เตียง:</b> ${this.selectedPatient?.bed || '-'}
-                    </div>
+                    <div><b>ชื่อ-สกุล:</b> ${this.selectedPatient?.name || '-'} &nbsp;&nbsp;<b>อายุ:</b> ${this.selectedPatient?.ageDisplay || '-'}</div>
+                    <div><b>HN:</b> ${this.selectedPatient?.hn || '-'} &nbsp;&nbsp;<b>AN:</b> ${this.selectedPatient?.an || '-'}</div>
+                    <div><b>แพทย์:</b> ${this.selectedPatient?.doctor || '-'} &nbsp;&nbsp;<b>ตึก:</b> ${this.currentWard || '-'} &nbsp;&nbsp;<b>เตียง:</b> ${this.selectedPatient?.bed || '-'}</div>
                 </div> 
-
                 <div class="print-global-footer">
                     เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | โปรแกรมบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
                 </div>
@@ -1621,36 +1651,41 @@ function nurseApp() {
 
             const pri = window.open('', '_blank');
             pri.document.write(`<html><head><title>พิมพ์แบบประเมินแผลกดทับ</title><link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet"><style>
-                body { font-family:'Sarabun',sans-serif; font-size:12px; margin:0; padding:0; } 
-                .a4-page { width:210mm; min-height:297mm; padding:10mm; margin:auto; box-sizing:border-box; } 
-                table { width:100%; border-collapse:collapse; margin-bottom:10px; } 
-                th,td { border:1px solid #000; padding:3px 5px; } 
+                body { font-family:'Sarabun',sans-serif; font-size:10px; margin:0; padding:0; line-height: 1.2; } 
+                .a4-page { width:210mm; min-height:297mm; padding:8mm 10mm 35mm 10mm; margin:auto; box-sizing:border-box; position:relative; } 
+                table { width:100%; border-collapse:collapse; margin-bottom:5px; } 
+                th,td { border:1px solid #000; padding:2px 4px; } 
                 .no-border { border:none; } 
-                .no-border td { border:none; padding:2px; } 
+                .no-border td { border:none; padding:1px; } 
                 .text-center { text-align:center; } 
                 .bg-gray { background-color:#f0f0f0; } 
                 .font-bold { font-weight:bold; } 
-                .mb-5 { margin-bottom:5px; } 
-                .mt-10 { margin-top:10px; } 
+                .mb-1 { margin-bottom:2px; } .mb-2 { margin-bottom:4px; } 
+                .mt-4 { margin-top:10px; } 
                 
+                .tight-table td, .tight-table th { padding: 1px 3px; }
+                .table-fixed-layout { table-layout: fixed; width: 100%; }
+                
+                .note-section { font-size: 8.5px; line-height: 1.3; margin-top: 4px; border: 1px dashed #ccc; padding: 4px; }
+
                 /* Footer ท้ายกระดาษ */
                 .print-global-footer {
                     position: fixed; bottom: 0; left: 0; width: 100%; text-align: center;
-                    font-size: 9px; color: #475569 !important; border-top: 1px solid #9ca3af; 
+                    font-size: 8.5px; color: #475569 !important; border-top: 1px solid #9ca3af; 
                     padding-top: 4px; padding-bottom: 4px; background-color: white; z-index: 1000;
                 }
                 
                 /* กรอบข้อมูลผู้ป่วย */
                 .print-patient-info {
-                    position: fixed; bottom: 22px; right: 15px; width: 260px;
-                    border: 1px solid #000 !important; border-radius: 4px; padding: 6px 8px;
+                    position: fixed; bottom: 25px; right: 15px; width: 260px;
+                    border: 1px solid #000 !important; border-radius: 4px; padding: 4px 6px;
                     font-size: 10px; background-color: white !important; z-index: 1000; 
-                    line-height: 1.4; color: black !important;
+                    line-height: 1.3; color: black !important;
                 }
 
                 @media print { 
-                    .a4-page { margin: 0; padding: 10mm; border: none; box-shadow: none; page-break-after: always; } 
-                    @page { margin-bottom: 25mm; } /* เผื่อระยะขอบล่างให้กรอบผู้ป่วยและ Footer */
+                    .a4-page { margin: 0; border: none; box-shadow: none; page-break-after: always; padding-bottom: 35mm; } 
+                    @page { margin: 5mm; } 
                 }
             </style></head><body>
             ${fixedElements}
