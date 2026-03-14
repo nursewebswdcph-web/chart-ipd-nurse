@@ -16,10 +16,14 @@ function nurseApp() {
 
         fallHistory: [],
         fallGridData: {},
-        bradenData: {}, // เก็บรายวัน { '2026-03-14': { part1: [...], part2: [...], part3: {...}, assessor: '' } }
-        bradenGlobal: { header: {}, summary: {} }, // เก็บส่วนหัวและส่วนที่ 4
-        bradenTimeline: [], // เก็บไทม์ไลน์ชุดละ 10 วัน
-        currentBradenPage: 0,
+        bradenHistory: [],
+        bradenForm: {
+            evalDate: new Date().toISOString().split('T')[0],
+            admitDate: '', transferDate: '', firstEvalDate: '', diagnosis: '', initialUlcer: 'ไม่มี', initialUlcerDetail: '', albumin: '', hb: '', hct: '', bmi: '',
+            s1_m1: null, s1_m2: null, s1_m3: null, s1_m4: null, s1_m5: null, s1_m6: null, totalScore: 0,
+            s3_location: '', s3_stage: '', s3_appearance: '', assessor: '',
+            s4_dischargeDate: '', s4_outcome: '', s4_ulcerDate: '', s4_location: '', s4_size: '', s4_appearance: '', s4_stage: '', s4_count: ''
+        },
                 
         isSidebarCollapsed: false, // สถานะการพับ Sidebar
         
@@ -1390,199 +1394,267 @@ function nurseApp() {
                 pri.document.close();
             });
         }, 
-        // 🟢 2. เพิ่มฟังก์ชันการดึงและสร้างตาราง 10 วัน (วางต่อจากกลุ่มฟังก์ชันฟอร์มอื่นๆ)
-        loadBradenScale(an) {
-            fetch(`${this.API_URL}?action=getBradenScale&an=${an}`)
-            .then(res => res.json())
-            .then(data => {
-                this.bradenData = data.daily || {};
-                this.bradenGlobal = data.global && Object.keys(data.global).length > 0 ? data.global : {
-                    header: {
-                        admitDate: this.selectedPatient?.admitDate ? this.formatThaiDate(this.selectedPatient.admitDate) : '',
-                        diagnosis: this.selectedPatient?.diagnosis || '',
-                        riskDate: '', bmi: '', score: '', otherRisk: ''
-                    },
-                    summary: { dischargeDate: '', totalDays: '', woundStatus: '', detail: '' }
-                };
-                this.generateBradenTimeline();
-            });
+        calculateBradenScore() {
+            let t = 0;
+            if(this.bradenForm.s1_m1) t += parseInt(this.bradenForm.s1_m1);
+            if(this.bradenForm.s1_m2) t += parseInt(this.bradenForm.s1_m2);
+            if(this.bradenForm.s1_m3) t += parseInt(this.bradenForm.s1_m3);
+            if(this.bradenForm.s1_m4) t += parseInt(this.bradenForm.s1_m4);
+            if(this.bradenForm.s1_m5) t += parseInt(this.bradenForm.s1_m5);
+            if(this.bradenForm.s1_m6) t += parseInt(this.bradenForm.s1_m6);
+            this.bradenForm.totalScore = t;
         },
-        
-        generateBradenTimeline() {
-            if (!this.selectedPatient || !this.selectedPatient.date) return;
-            const admitDate = new Date(this.selectedPatient.date);
-            const today = new Date();
-            const daysDiff = Math.floor((today - admitDate) / (1000 * 60 * 60 * 24));
-            const totalDays = Math.max(daysDiff + 3, 10); // สร้างเผื่ออนาคตเล็กน้อย แต่อย่างน้อย 10 วัน
-        
-            const chunks = [];
-            let currentChunk = [];
-            
-            for (let i = 0; i <= totalDays; i++) {
-                const d = new Date(admitDate);
-                d.setDate(admitDate.getDate() + i);
-                const dateStr = d.toISOString().split('T')[0];
-                const formatted = d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
-                
-                currentChunk.push({ date: dateStr, formattedDate: formatted });
-                
-                if (currentChunk.length === 10 || i === totalDays) {
-                    chunks.push(currentChunk);
-                    currentChunk = [];
-                }
-            }
-            this.bradenTimeline = chunks;
-        },
-        
-        getBradenDailyCell(date) {
-            if (!this.bradenData[date]) {
-                this.bradenData[date] = {
-                    part1: [0,0,0,0,0,0], // 6 ข้อของ Braden
-                    part2: [false, false, false, false, false, false], // Checklist ป้องกัน
-                    part3: { woundDate: '', stage: '', size: '', exudate: '', marker: '' }, // ข้อมูลแผล
-                    assessor: ''
-                };
-            }
-            return this.bradenData[date];
-        },
-        
-        calcBradenTotal(scores) {
-            return scores.reduce((a, b) => Number(a) + Number(b), 0);
-        },
-        
-        saveBradenPage() {
+        async loadBraden(an) {
             this.isLoading = true;
-            const currentPageDays = this.bradenTimeline[this.currentBradenPage];
-            
-            // บันทึกแยกรายวันในหน้าปัจจุบัน
-            const promises = currentPageDays.map(day => {
-                const payload = {
-                    an: this.selectedPatient.an,
-                    hn: this.selectedPatient.hn,
-                    ward: this.currentWard,
-                    evalDate: day.date,
-                    dailyData: this.bradenData[day.date] || {},
-                    globalData: this.bradenGlobal, // เซฟค่า header และ summary ไปด้วย
-                    assessor: this.bradenData[day.date]?.assessor || ''
-                };
-                return fetch(this.API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'saveBradenScale', payload: payload })
-                });
-            });
-        
-            Promise.all(promises).then(() => {
-                this.isLoading = false;
-                alert('บันทึกข้อมูลหน้าปัจจุบันเรียบร้อยแล้ว');
-            }).catch(() => {
-                this.isLoading = false;
-                alert('เกิดข้อผิดพลาดในการบันทึก');
-            });
+            try {
+                const r = await fetch(`${this.API_URL}?action=getBradenScale&an=${an}`);
+                const data = await r.json();
+                this.bradenHistory = data;
+                
+                // Set default ค่ารับใหม่
+                if(this.selectedPatient) {
+                    this.bradenForm.admitDate = this.selectedPatient.admitDate || '';
+                    this.bradenForm.diagnosis = this.selectedPatient.diagnosis || '';
+                }
+                // ถ้าเคยมีประวัติ ให้ดึงส่วนหัวและส่วนสรุปมาแสดงอัตโนมัติ
+                if(data.length > 0) {
+                    const last = data[data.length-1];
+                    this.bradenForm.admitDate = last.AdmitDate || this.bradenForm.admitDate;
+                    this.bradenForm.transferDate = last.TransferDate || '';
+                    this.bradenForm.firstEvalDate = last.FirstEvalDate || '';
+                    this.bradenForm.diagnosis = last.Diagnosis || this.bradenForm.diagnosis;
+                    this.bradenForm.initialUlcer = last.InitialUlcer || 'ไม่มี';
+                    this.bradenForm.initialUlcerDetail = last.InitialUlcerDetail || '';
+                    this.bradenForm.albumin = last.Albumin || '';
+                    this.bradenForm.hb = last.Hb || '';
+                    this.bradenForm.hct = last.Hct || '';
+                    this.bradenForm.bmi = last.BMI || '';
+                    this.bradenForm.s4_dischargeDate = last.S4_DischargeDate || '';
+                    this.bradenForm.s4_outcome = last.S4_Outcome || '';
+                    this.bradenForm.s4_ulcerDate = last.S4_UlcerDate || '';
+                    this.bradenForm.s4_location = last.S4_Location || '';
+                    this.bradenForm.s4_size = last.S4_Size || '';
+                    this.bradenForm.s4_appearance = last.S4_Appearance || '';
+                    this.bradenForm.s4_stage = last.S4_Stage || '';
+                    this.bradenForm.s4_count = last.S4_Count || '';
+                }
+                this.loadBradenByDate();
+            } catch(e) { console.error(e); }
+            this.isLoading = false;
         },
-        printBradenScale() {
-            window.scrollTo(0, 0);
-            this.$nextTick(() => {
-                const printArea = document.getElementById('braden-print-area');
-                if (!printArea) return this.showAlert('แจ้งเตือน', 'ไม่พบพื้นที่สำหรับพิมพ์เอกสาร');            
-                
-                const cloneDOM = printArea.cloneNode(true);
-                cloneDOM.querySelectorAll('template').forEach(t => t.remove());
-                const printContent = cloneDOM.innerHTML;                
-                
-                let iframe = document.getElementById('print-frame');
-                if (iframe) iframe.remove(); 
-                
-                iframe = document.createElement('iframe');
-                iframe.id = 'print-frame';
-                iframe.style.display = 'none';
-                document.body.appendChild(iframe);                
-                
-                const pri = iframe.contentWindow;
-                const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]')).map(s => s.outerHTML).join('');
-                
-                pri.document.open();
-                pri.document.write(`
-                    <!DOCTYPE html>
-                    <html>
-                        <head>
-                            <title>พิมพ์แบบประเมินแผลกดทับ (Braden Scale)</title>
-                            ${styles}
-                            <style>
-                                /* 🟢 บังคับให้เป็น A4 แนวตั้ง (Portrait) และลดขอบกระดาษลงนิดหน่อย */
-                                @page {size: A4 portrait; margin: 8mm 5mm 12mm 5mm;}
-                                body { font-size: 10px; color: black !important; }                              
-        
-                                /* บังคับตารางให้ขนาดคงที่ บีบให้พอดีความกว้าง */
-                                table { 
-                                    width: 100%; 
-                                    table-layout: fixed; 
-                                    border-collapse: collapse; 
-                                    word-break: break-word; 
-                                }                               
-        
-                                /* 🟢 ลดขนาดตัวหนังสือ (8px) และลด Padding ลงเพื่อให้ 10 วันลงล็อคแนวตั้งได้ */
-                                th, td { 
-                                    border: 1px solid black !important; 
-                                    padding: 2px !important; 
-                                    overflow: hidden; 
-                                    font-size: 8px !important; 
-                                    line-height: 1.1;
-                                }                       
-        
-                                /* กำหนดความกว้างคอลัมน์หัวข้อให้พอดี */
-                                .w-label { width: 110px; }       
-                                
-                                .bg-gray { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
-                                .text-center { text-align: center; } 
-                                
-                                /* Footer ท้ายกระดาษ */
-                                .print-global-footer {
-                                    position: fixed; bottom: 0; left: 0; width: 100%; text-align: center;
-                                    font-size: 8px; color: #475569 !important; border-top: 1px solid #9ca3af; 
-                                    padding-top: 3px; padding-bottom: 3px; background-color: white; z-index: 1000;
-                                }
-                                
-                                /* กรอบข้อมูลผู้ป่วย (ย่อขนาดลงนิดหน่อย) */
-                                .print-patient-info {
-                                    position: fixed; bottom: 18px; right: 10px; width: 230px;
-                                    border: 1px solid #000 !important; border-radius: 4px; padding: 4px 6px;
-                                    font-size: 9px; background-color: white !important; z-index: 1000; 
-                                    line-height: 1.3; color: black !important;
-                                }
-                            </style>
-                        </head>
-                        <body>
-                            <div class="print-patient-info">
-                                <div>
-                                    <b>ชื่อ-สกุล:</b> ${this.selectedPatient?.name || '-'} &nbsp;&nbsp;
-                                    <b>อายุ:</b> ${this.selectedPatient?.ageDisplay || '-'}
-                                </div>
-                                <div>
-                                    <b>HN:</b> ${this.selectedPatient?.hn || '-'} &nbsp;&nbsp;
-                                    <b>AN:</b> ${this.selectedPatient?.an || '-'}
-                                </div>
-                                <div>
-                                    <b>แพทย์:</b> ${this.selectedPatient?.doctor || '-'} &nbsp;&nbsp;
-                                    <b>ตึก:</b> ${this.currentWard || '-'} &nbsp;&nbsp;
-                                    <b>เตียง:</b> ${this.selectedPatient?.bed || '-'}
-                                </div>
-                            </div>                
-        
-                            ${printContent}            
-                            
-                            <div class="print-global-footer">
-                                เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | โปรแกรมบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
-                            </div>                
-                            <script>
-                                window.onload = function() {
-                                    setTimeout(() => { window.print(); }, 800);
-                                };
-                            </script>
-                        </body>
-                    </html>
-                `);
-                pri.document.close();
+        loadBradenByDate() {
+            const existing = this.bradenHistory.find(r => {
+                if(!r.EvalDate) return false;
+                const d = new Date(r.EvalDate);
+                return !isNaN(d) && d.toISOString().split('T')[0] === this.bradenForm.evalDate;
             });
+            if(existing) {
+                this.bradenForm.s1_m1 = existing.S1_M1; this.bradenForm.s1_m2 = existing.S1_M2;
+                this.bradenForm.s1_m3 = existing.S1_M3; this.bradenForm.s1_m4 = existing.S1_M4;
+                this.bradenForm.s1_m5 = existing.S1_M5; this.bradenForm.s1_m6 = existing.S1_M6;
+                this.bradenForm.totalScore = existing.TotalScore;
+                this.bradenForm.s3_location = existing.S3_Location; this.bradenForm.s3_stage = existing.S3_Stage;
+                this.bradenForm.s3_appearance = existing.S3_Appearance; this.bradenForm.assessor = existing.Assessor;
+            } else {
+                this.bradenForm.s1_m1 = null; this.bradenForm.s1_m2 = null; this.bradenForm.s1_m3 = null;
+                this.bradenForm.s1_m4 = null; this.bradenForm.s1_m5 = null; this.bradenForm.s1_m6 = null;
+                this.bradenForm.totalScore = 0;
+                this.bradenForm.s3_location = ''; this.bradenForm.s3_stage = ''; this.bradenForm.s3_appearance = ''; this.bradenForm.assessor = '';
+            }
+        },
+        async saveBraden() {
+            this.isLoading = true;
+            const payload = { ...this.bradenForm, an: this.selectedPatient.an, hn: this.selectedPatient.hn, ward: this.currentWard };
+            try {
+                const res = await fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveBradenScale', payload }) });
+                const out = await res.json();
+                if(out.status === 'success') {
+                    this.showSuccessMsg = true; this.successMsg = 'บันทึกข้อมูลแบบประเมินเรียบร้อย';
+                    setTimeout(() => { this.showSuccessMsg = false; }, 3000);
+                    this.loadBraden(this.selectedPatient.an);
+                }
+            } catch(e) { alert('เกิดข้อผิดพลาดในการบันทึก'); }
+            this.isLoading = false;
+        },
+        printBraden() {
+            let records = [...this.bradenHistory].sort((a, b) => new Date(a.EvalDate) - new Date(b.EvalDate));
+            if(records.length === 0) { alert("ไม่พบข้อมูลการประเมินเพื่อพิมพ์ กรุณาบันทึกข้อมูลก่อน"); return; }
+            
+            let chunks = [];
+            for(let i=0; i<records.length; i+=10) chunks.push(records.slice(i, i+10));
+            const lastRec = records[records.length-1];
+            let html = '';
+
+            chunks.forEach((chunk, index) => {
+                const isLastChunk = index === chunks.length - 1;
+                let dateHeaders = '';
+                for(let i=0; i<10; i++) {
+                    if(i < chunk.length) {
+                        let dStr = new Date(chunk[i].EvalDate).toLocaleDateString('th-TH',{day:'2-digit',month:'short'});
+                        dateHeaders += `<th style="writing-mode: vertical-lr; transform: rotate(180deg); width: 28px; text-align: center; padding: 2px;">${dStr}</th>`;
+                    } else dateHeaders += `<th style="width: 28px;"></th>`;
+                }
+
+                // สร้างแถวคะแนนย่อย
+                const generateSubRow = (label, score, key) => {
+                    let rowHtml = `<tr><td>${label}</td><td class="text-center">${score}</td>`;
+                    for(let i=0; i<10; i++) rowHtml += `<td class="text-center">${chunk[i] && chunk[i][key] == score ? '/' : ''}</td>`;
+                    return rowHtml + '</tr>';
+                };
+
+                let totalRows = `<tr class="bg-gray"><td colspan="2" style="text-align:right; font-weight:bold; padding-right:10px;">คะแนนรวม</td>`;
+                let assessorRows = `<tr><td colspan="2" style="text-align:right; font-weight:bold; padding-right:10px;">พยาบาลผู้ประเมิน</td>`;
+                for(let i=0; i<10; i++) {
+                    totalRows += `<td class="text-center font-bold">${chunk[i] ? chunk[i].TotalScore || 0 : ''}</td>`;
+                    assessorRows += `<td class="text-center" style="font-size:10px;">${chunk[i] ? chunk[i].Assessor || '' : ''}</td>`;
+                }
+                totalRows += '</tr>'; assessorRows += '</tr>';
+
+                let section3Rows = '';
+                for(let i=0; i<10; i++) {
+                    let r = chunk[i] || {};
+                    let dStr = r.EvalDate ? new Date(r.EvalDate).toLocaleDateString('th-TH',{day:'2-digit',month:'2-digit',year:'2-digit'}) : '';
+                    section3Rows += `
+                        <tr>
+                            ${i===0 ? `<td rowspan="10" style="text-align:center; width:28%; padding:0;"><img src="https://www.weymouthphysiotherapy.com/wp-content/uploads/2018/02/Body-chart.jpg" style="width:100%; max-height:260px; object-fit:contain;"></td>` : ''}
+                            <td class="text-center">${dStr}</td>
+                            <td>${r.S3_Location||''}</td>
+                            <td class="text-center">${r.S3_Stage||''}</td>
+                            <td>${r.S3_Appearance||''}</td>
+                            <td>${r.Assessor||''}</td>
+                        </tr>
+                    `;
+                }
+
+                html += `
+                <div class="a4-page">
+                    <h2 class="text-center font-bold" style="font-size: 16px; margin-bottom:10px;">แบบบันทึกการพยาบาลเพื่อป้องกันและการดูแลผู้ป่วยที่มีแผลกดทับ โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน</h2>
+                    <table class="no-border" style="margin-bottom:10px;">
+                        <tr>
+                            <td><b>วันที่ Admit:</b> ${lastRec.AdmitDate||''}</td>
+                            <td><b>วันที่รับย้าย:</b> ${lastRec.TransferDate||''} &nbsp; <b>จาก Ward:</b> ${this.currentWard||''}</td>
+                            <td><b>วันที่ประเมินครั้งแรก:</b> ${lastRec.FirstEvalDate||''}</td>
+                        </tr>
+                        <tr><td colspan="3"><b>Diagnosis/Operation:</b> ${lastRec.Diagnosis||''}</td></tr>
+                        <tr><td colspan="3"><b>แผลกดทับแรกรับ:</b> [ ${lastRec.InitialUlcer==='ไม่มี'?'/':' '} ] ไม่มี &nbsp; [ ${lastRec.InitialUlcer==='มี'?'/':' '} ] มี &nbsp; <b>ตำแหน่ง/ลักษณะ/ขนาด:</b> ${lastRec.InitialUlcerDetail||'-'}</td></tr>
+                        <tr><td colspan="3"><b>Serum Albumin:</b> ${lastRec.Albumin||'-'} mg/dL (ค่าปกติ 305-5.4) &nbsp; <b>Hb:</b> ${lastRec.Hb||'-'} mg% &nbsp; <b>Hct:</b> ${lastRec.Hct||'-'} Vol% &nbsp; <b>BMI:</b> ${lastRec.BMI||'-'}</td></tr>
+                    </table>
+
+                    <div class="font-bold mb-5" style="font-size:14px;">ส่วนที่ 1 การประเมินความเสี่ยงต่อการเกิดแผลกดทับ</div>
+                    <table>
+                        <thead>
+                            <tr class="bg-gray">
+                                <th>ปัจจัยส่งเสริมการเกิดแผลกดทับ</th><th style="width:50px;">คะแนน</th>${dateHeaders}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="bg-gray"><td colspan="12"><b>1. การรับความรู้สึก</b></td></tr>
+                            ${generateSubRow('1.1 ไม่ตอบสนอง', 1, 'S1_M1')} ${generateSubRow('1.2 มี Pain Stimuli', 2, 'S1_M1')} ${generateSubRow('1.3 สับสน สื่อไม่ได้ทุกครั้ง', 3, 'S1_M1')} ${generateSubRow('1.4 ไม่มีความบกพร่อง ปกติ', 4, 'S1_M1')}
+                            <tr class="bg-gray"><td colspan="12"><b>2. การเปียกชื้นของผิวหนัง</b></td></tr>
+                            ${generateSubRow('2.1 เปียกชุ่มตลอดเวลา Diarrhea', 1, 'S1_M2')} ${generateSubRow('2.2 ปัสสาวะราด / อุจจาระราดบ่อยครั้ง', 2, 'S1_M2')} ${generateSubRow('2.3 ปัสสาวะราด / อุจจาระราดบางครั้ง', 3, 'S1_M2')} ${generateSubRow('2.4 ไม่เปียก/กลั้นปัสสาวะและอุจจาระได้/Retain Cath', 4, 'S1_M2')}
+                            <tr class="bg-gray"><td colspan="12"><b>3. การทำกิจกรรม</b></td></tr>
+                            ${generateSubRow('3.1 ต้องอยู่บนเตียงตลอดเวลา', 1, 'S1_M3')} ${generateSubRow('3.2 ทรงตัวไม่อยู่ / ต้องนั่งรถเข็น', 2, 'S1_M3')} ${generateSubRow('3.3 เดินได้ระยะสั้น ต้องช่วยพยุง', 3, 'S1_M3')} ${generateSubRow('3.4 เดินได้เอง / ทำกิจกรรมเองได้', 4, 'S1_M3')}
+                            <tr class="bg-gray"><td colspan="12"><b>4. การเคลื่อนไหว</b></td></tr>
+                            ${generateSubRow('4.1 เคลื่อนไหวเองไม่ได้', 1, 'S1_M4')} ${generateSubRow('4.2 เคลื่อนไหวเองได้น้อย / มีข้อติด / ต้องมีผู้ช่วยเหลือ', 2, 'S1_M4')} ${generateSubRow('4.3 เคลื่อนไหวเองได้ มีผู้ช่วยเหลือบางครั้ง', 3, 'S1_M4')} ${generateSubRow('4.4 เคลื่อนไหวเองได้ปกติ', 4, 'S1_M4')}
+                            <tr class="bg-gray"><td colspan="12"><b>5. การรับอาหาร</b></td></tr>
+                            ${generateSubRow('5.1 NPO / กินได้ 1/3 ถาด', 1, 'S1_M5')} ${generateSubRow('5.2 รับประทานอาหารได้บ้างเล็กน้อย / กินได้ ½ ถาด', 2, 'S1_M5')} ${generateSubRow('5.3 รับประทานอาหารได้พอควร / กินได้ > ½ ถาด', 3, 'S1_M5')} ${generateSubRow('5.4 รับประทานอาหารได้ปกติ/ Feed รับได้หมด', 4, 'S1_M5')}
+                            <tr class="bg-gray"><td colspan="12"><b>6. การเสียดสี</b></td></tr>
+                            ${generateSubRow('6.1 มีกล้ามเนื้อหดเกร็ง ต้องมีผู้ช่วยหลายคนในการเคลื่อนย้าย', 1, 'S1_M6')} ${generateSubRow('6.2 เวลานั่งลื่นไถลได้ / ใช้ผู้ช่วยน้อยคนในการเคลื่อนย้าย', 2, 'S1_M6')} ${generateSubRow('6.3 เคลื่อนย้ายบนเตียงได้อย่างอิสระ ไม่มีปัญหาการเสียดสี', 3, 'S1_M6')}
+                            ${totalRows}
+                            ${assessorRows}
+                        </tbody>
+                    </table>
+
+                    <div style="page-break-before: always;"></div>
+                    
+                    <div class="font-bold mb-5" style="font-size:14px;">ส่วนที่ 2 การปฏิบัติเพื่อป้องกัน / ดูแลการเกิดแผลกดทับ (Braden Score < 16)</div>
+                    <div style="border: 1px solid #000; padding: 10px; margin-bottom: 15px; line-height: 1.4;">
+                        <b>การป้องกัน:</b> 1.พลิกตะแคงตัวทุก 2 ชั่วโมง 2.ใช้ที่นอนลม 3.จับคู่ช่วยกันพลิกตะแคงตัว/ไม่ดึงลาก/ดึงผ้าปูให้ตึง 4.ประเมินผิวหนังทุกเวร 5.บันทึกการเกิดแผลใหม่ 6.บันทึกเมื่อมีการเปลี่ยนแปลง 7.ส่งต่อข้อมูล<br>
+                        <b>การดูแลแผล:</b> 1.ทำความสะอาดด้วย NSS ทา Zinc Plate 2.แผลมีเนื้อตายรายงานแพทย์ ตัดออกและ Wet Dressing NSS 3.ดูแลโภชนาการ
+                    </div>
+
+                    <div class="font-bold mb-5" style="font-size:14px;">ส่วนที่ 3 บันทึกแผลกดทับ</div>
+                    <table>
+                        <thead>
+                            <tr class="bg-gray">
+                                <th>Body Chart</th><th style="width:12%;">ว/ด/ป</th><th>ตำแหน่งแผล</th><th style="width:8%;">ระดับ</th><th>ลักษณะแผล</th><th style="width:15%;">ผู้บันทึก</th>
+                            </tr>
+                        </thead>
+                        <tbody>${section3Rows}</tbody>
+                    </table>
+
+                    ${isLastChunk ? `
+                    <div class="font-bold mb-5 mt-10" style="font-size:14px;">ส่วนที่ 4 สรุปการเกิดแผลกดทับ</div>
+                    <div style="border: 1px solid #000; padding: 10px; line-height: 1.6;">
+                        <b>วันที่จำหน่าย / ย้าย:</b> ${lastRec.S4_DischargeDate||'-'}<br>
+                        <b>ผลปรากฏ:</b> [ ${lastRec.S4_Outcome==='ไม่เกิดแผลกดทับ'?'/':' '} ] ไม่เกิดแผลกดทับ &nbsp;&nbsp; [ ${lastRec.S4_Outcome==='เกิดแผลกดทับ'?'/':' '} ] เกิดแผลกดทับ <b>วันที่:</b> ${lastRec.S4_UlcerDate||'-'}<br>
+                        <b>ตำแหน่งที่เป็น:</b> ${lastRec.S4_Location||'-'} &nbsp;&nbsp; <b>ขนาด:</b> ${lastRec.S4_Size||'-'} &nbsp;&nbsp; <b>ลักษณะแผล:</b> ${lastRec.S4_Appearance||'-'}<br>
+                        <b>ระดับของแผลกดทับ:</b> ${lastRec.S4_Stage||'-'} &nbsp;&nbsp; <b>จำนวนแผลกดทับ:</b> ${lastRec.S4_Count||'-'} แผล
+                    </div>` : ''}
+                </div>`;
+            });
+
+            // เพิ่ม Fixed Elements สำหรับทุกหน้า (ข้อมูลผู้ป่วย + Footer)
+            const fixedElements = `
+                <div class="print-patient-info">
+                    <div>
+                        <b>ชื่อ-สกุล:</b> ${this.selectedPatient?.name || '-'} &nbsp;&nbsp;
+                        <b>อายุ:</b> ${this.selectedPatient?.ageDisplay || '-'}
+                    </div>
+                    <div>
+                        <b>HN:</b> ${this.selectedPatient?.hn || '-'} &nbsp;&nbsp;
+                        <b>AN:</b> ${this.selectedPatient?.an || '-'}
+                    </div>
+                    <div>
+                        <b>แพทย์:</b> ${this.selectedPatient?.doctor || '-'} &nbsp;&nbsp;
+                        <b>ตึก:</b> ${this.currentWard || '-'} &nbsp;&nbsp;
+                        <b>เตียง:</b> ${this.selectedPatient?.bed || '-'}
+                    </div>
+                </div> 
+
+                <div class="print-global-footer">
+                    เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | โปรแกรมบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
+                </div>
+            `;
+
+            const pri = window.open('', '_blank');
+            pri.document.write(`<html><head><title>พิมพ์แบบประเมินแผลกดทับ</title><link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet"><style>
+                body { font-family:'Sarabun',sans-serif; font-size:12px; margin:0; padding:0; } 
+                .a4-page { width:210mm; min-height:297mm; padding:10mm; margin:auto; box-sizing:border-box; } 
+                table { width:100%; border-collapse:collapse; margin-bottom:10px; } 
+                th,td { border:1px solid #000; padding:3px 5px; } 
+                .no-border { border:none; } 
+                .no-border td { border:none; padding:2px; } 
+                .text-center { text-align:center; } 
+                .bg-gray { background-color:#f0f0f0; } 
+                .font-bold { font-weight:bold; } 
+                .mb-5 { margin-bottom:5px; } 
+                .mt-10 { margin-top:10px; } 
+                
+                /* Footer ท้ายกระดาษ */
+                .print-global-footer {
+                    position: fixed; bottom: 0; left: 0; width: 100%; text-align: center;
+                    font-size: 9px; color: #475569 !important; border-top: 1px solid #9ca3af; 
+                    padding-top: 4px; padding-bottom: 4px; background-color: white; z-index: 1000;
+                }
+                
+                /* กรอบข้อมูลผู้ป่วย */
+                .print-patient-info {
+                    position: fixed; bottom: 22px; right: 15px; width: 260px;
+                    border: 1px solid #000 !important; border-radius: 4px; padding: 6px 8px;
+                    font-size: 10px; background-color: white !important; z-index: 1000; 
+                    line-height: 1.4; color: black !important;
+                }
+
+                @media print { 
+                    .a4-page { margin: 0; padding: 10mm; border: none; box-shadow: none; page-break-after: always; } 
+                    @page { margin-bottom: 25mm; } /* เผื่อระยะขอบล่างให้กรอบผู้ป่วยและ Footer */
+                }
+            </style></head><body>
+            ${fixedElements}
+            ${html}
+            <script>window.onload=()=>{setTimeout(()=>{window.print();},800)};</script></body></html>`);
+            pri.document.close();
         },
     };
 }
