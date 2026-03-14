@@ -1482,14 +1482,17 @@ function nurseApp() {
             let records = [...this.bradenHistory].sort((a, b) => new Date(a.EvalDate) - new Date(b.EvalDate));
             if(records.length === 0) { alert("ไม่พบข้อมูลการประเมินเพื่อพิมพ์ กรุณาบันทึกข้อมูลก่อน"); return; }
             
-            // ฟังก์ชันตัวช่วยสำหรับจัดการปัญหา Timezone และแปลงวันที่เป็นแบบไทย (เช่น 10 มี.ค. 2569)
+            // ฟังก์ชันจัดการวันที่และปี พ.ศ. (เขียนแยก Manual เพื่อป้องกันปัญหาเบราว์เซอร์บวกปี 543 ซ้ำซ้อน)
             const formatThaiDate = (dateStr) => {
                 if (!dateStr) return '-';
                 const d = new Date(dateStr);
                 if (isNaN(d.getTime())) return dateStr;
-                return d.toLocaleDateString('th-TH', { 
-                    day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Bangkok' 
-                });
+                const day = d.getDate();
+                const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+                const month = months[d.getMonth()];
+                let year = d.getFullYear();
+                if (year < 2400) year += 543; // บวก 543 เฉพาะในกรณีที่ยังเป็น ค.ศ.
+                return `${day} ${month} ${year}`;
             };
 
             let chunks = [];
@@ -1500,12 +1503,20 @@ function nurseApp() {
             chunks.forEach((chunk, index) => {
                 const isLastChunk = index === chunks.length - 1;
                 let dateHeaders = '';
+                
+                // วนลูปสร้างส่วนหัวคอลัมน์ของวันที่ประเมิน (10 วัน)
                 for(let i=0; i<10; i++) {
                     if(i < chunk.length) {
                         let dObj = new Date(chunk[i].EvalDate);
-                        let dStr = !isNaN(dObj.getTime()) ? dObj.toLocaleDateString('th-TH', { day: '2-digit', month: 'short', timeZone: 'Asia/Bangkok' }) : '';
-                        dateHeaders += `<th style="writing-mode: vertical-lr; transform: rotate(180deg); width: 22px; text-align: center; padding: 2px;">${dStr}</th>`;
-                    } else dateHeaders += `<th style="width: 22px;"></th>`;
+                        let dStr = '';
+                        if (!isNaN(dObj.getTime())) {
+                            const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+                            dStr = `${String(dObj.getDate()).padStart(2, '0')} ${months[dObj.getMonth()]}`;
+                        }
+                        dateHeaders += `<th style="writing-mode: vertical-lr; transform: rotate(180deg); width: 24px; text-align: center; padding: 2px;">${dStr}</th>`;
+                    } else {
+                        dateHeaders += `<th style="width: 24px;"></th>`;
+                    }
                 }
 
                 const generateSubRow = (label, score, key) => {
@@ -1517,18 +1528,26 @@ function nurseApp() {
                 let totalRows = `<tr class="bg-gray"><td colspan="2" style="text-align:right; font-weight:bold; padding-right:10px;">คะแนนรวม</td>`;
                 let assessorRows = `<tr><td colspan="2" style="text-align:right; font-weight:bold; padding-right:10px;">พยาบาลผู้ประเมิน</td>`;
                 for(let i=0; i<10; i++) {
-                    totalRows += `<td class="text-center font-bold">${chunk[i] ? chunk[i].TotalScore || 0 : ''}</td>`;
-                    assessorRows += `<td class="text-center" style="font-size:8px;">${chunk[i] ? chunk[i].Assessor || '' : ''}</td>`;
+                    totalRows += `<td class="text-center font-bold text-blue-800">${chunk[i] ? chunk[i].TotalScore || 0 : ''}</td>`;
+                    assessorRows += `<td class="text-center" style="font-size:10px; white-space:nowrap; overflow:hidden;">${chunk[i] ? chunk[i].Assessor || '' : ''}</td>`;
                 }
                 totalRows += '</tr>'; assessorRows += '</tr>';
 
                 let section3Rows = '';
                 for(let i=0; i<10; i++) {
                     let r = chunk[i] || {};
-                    let dObj = r.EvalDate ? new Date(r.EvalDate) : null;
-                    let dStr = dObj && !isNaN(dObj.getTime()) ? dObj.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: '2-digit', timeZone: 'Asia/Bangkok' }) : '';
+                    let dStr = '';
+                    if (r.EvalDate) {
+                        let dObj = new Date(r.EvalDate);
+                        if (!isNaN(dObj.getTime())) {
+                            let yy = dObj.getFullYear();
+                            if (yy < 2400) yy += 543;
+                            dStr = `${String(dObj.getDate()).padStart(2, '0')}/${String(dObj.getMonth()+1).padStart(2, '0')}/${yy.toString().slice(-2)}`;
+                        }
+                    }
+                    
                     section3Rows += `
-                        <tr style="height: 25px;">
+                        <tr style="height: 26px;">
                             ${i===0 ? `<td rowspan="10" style="text-align:center; width:22%; padding:0; vertical-align:middle;"><img src="https://www.weymouthphysiotherapy.com/wp-content/uploads/2018/02/Body-chart.jpg" style="width:100%; max-height:240px; object-fit:contain;"></td>` : ''}
                             <td class="text-center" style="width:12%;">${dStr}</td>
                             <td style="width:20%; padding-left:5px;">${r.S3_Location||''}</td>
@@ -1544,8 +1563,10 @@ function nurseApp() {
                     <div style="text-align: right; font-size: 9px; font-weight: bold; line-height: 1.2; margin-bottom: 5px;">
                         Echart-ipd-nurse<br>Braden-Scale-Form หน้า ${(index * 2) + 1}
                     </div>
+
                     <h2 class="text-center font-bold" style="font-size: 13px; margin-bottom:5px;">แบบบันทึกการพยาบาลเพื่อป้องกันและการดูแลผู้ป่วยที่มีแผลกดทับ <br>โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน</h2>
-                    <table class="no-border text-sm" style="margin-bottom:5px;">
+                    
+                    <table class="no-border" style="margin-bottom:5px;">
                         <tr>
                             <td><b>วันที่ Admit:</b> ${formatThaiDate(lastRec.AdmitDate)}</td>
                             <td><b>วันที่รับย้าย:</b> ${formatThaiDate(lastRec.TransferDate)} &nbsp; <b>จาก Ward:</b> ${this.currentWard||''}</td>
@@ -1556,7 +1577,7 @@ function nurseApp() {
                         <tr><td colspan="3"><b>Serum Albumin:</b> ${lastRec.Albumin||'-'} mg/dL (ค่าปกติ 3.5-5.4) &nbsp; <b>Hb:</b> ${lastRec.Hb||'-'} mg% &nbsp; <b>Hct:</b> ${lastRec.Hct||'-'} Vol% &nbsp; <b>BMI:</b> ${lastRec.BMI||'-'}</td></tr>
                     </table>
 
-                    <div class="font-bold mb-1" style="font-size:11px;">ส่วนที่ 1 การประเมินความเสี่ยงต่อการเกิดแผลกดทับ</div>
+                    <div class="font-bold mb-1" style="font-size:13px;">ส่วนที่ 1 การประเมินความเสี่ยงต่อการเกิดแผลกดทับ</div>
                     <table class="tight-table">
                         <thead>
                             <tr class="bg-gray">
@@ -1592,9 +1613,13 @@ function nurseApp() {
 
                     <div style="page-break-before: always;"></div>
                     
-                    <div class="font-bold mb-2" style="font-size:12px;">ส่วนที่ 2 การปฏิบัติเพื่อป้องกัน / ดูแลการเกิดแผลกดทับ (โดยเฉพาะผู้ป่วยที่มีความเสี่ยงสูง Braden Score < 16)</div>
-                    <div style="border: 1px solid #000; padding: 15px; line-height: 1.6; font-family: sans-serif; max-width: 600px;">
-                        <div style="display: flex; margin-bottom: 10px;">
+                    <div style="text-align: right; font-size: 9px; font-weight: bold; line-height: 1.2; margin-bottom: 5px; padding-top: 5px;">
+                        Echart-ipd-nurse<br>Braden-Scale-Form หน้า ${(index * 2) + 2}
+                    </div>
+
+                    <div class="font-bold mb-2" style="font-size:13px;">ส่วนที่ 2 การปฏิบัติเพื่อป้องกัน / ดูแลการเกิดแผลกดทับ (โดยเฉพาะผู้ป่วยที่มีความเสี่ยงสูง Braden Score < 16)</div>
+                    <div style="border: 1px solid #000; padding: 10px; line-height: 1.4; width: 100%; box-sizing: border-box;">
+                        <div style="display: flex; margin-bottom: 6px;">
                             <b style="min-width: 80px;">การป้องกัน</b>
                             <div style="flex-grow: 1;">
                                 1. พลิกตะแคงตัวทุก 2 ชั่วโมง ตรงตามเวลาที่กำหนด<br>
@@ -1617,7 +1642,7 @@ function nurseApp() {
                         </div>
                     </div>
 
-                    <div class="font-bold mb-2 mt-4" style="font-size:12px;">ส่วนที่ 3 บันทึกแผลกดทับ</div>
+                    <div class="font-bold mb-2 mt-4" style="font-size:13px;">ส่วนที่ 3 บันทึกแผลกดทับ</div>
                     <table class="table-fixed-layout">
                         <thead>
                             <tr class="bg-gray">
@@ -1628,8 +1653,8 @@ function nurseApp() {
                     </table>
 
                     ${isLastChunk ? `
-                    <div class="font-bold mb-2 mt-4" style="font-size:12px;">ส่วนที่ 4 สรุปการเกิดแผลกดทับ</div>
-                    <div style="border: 1px solid #000; padding: 6px; line-height: 1.5;">
+                    <div class="font-bold mb-2 mt-4" style="font-size:13px;">ส่วนที่ 4 สรุปการเกิดแผลกดทับ</div>
+                    <div style="border: 1px solid #000; padding: 8px; line-height: 1.5; width: 100%; box-sizing: border-box;">
                         <b>วันที่จำหน่าย / ย้าย:</b> ${formatThaiDate(lastRec.S4_DischargeDate)}<br>
                         <b>ผลปรากฏ:</b> [ ${lastRec.S4_Outcome==='ไม่เกิดแผลกดทับ'?'/':' '} ] ไม่เกิดแผลกดทับ &nbsp;&nbsp; [ ${lastRec.S4_Outcome==='เกิดแผลกดทับ'?'/':' '} ] เกิดแผลกดทับ <b>วันที่:</b> ${formatThaiDate(lastRec.S4_UlcerDate)}<br>
                         <b>ตำแหน่งที่เป็น:</b> ${lastRec.S4_Location||'-'} &nbsp;&nbsp; <b>ขนาด:</b> ${lastRec.S4_Size||'-'} &nbsp;&nbsp; <b>ลักษณะแผล:</b> ${lastRec.S4_Appearance||'-'}<br>
@@ -1651,22 +1676,22 @@ function nurseApp() {
 
             const pri = window.open('', '_blank');
             pri.document.write(`<html><head><title>พิมพ์แบบประเมินแผลกดทับ</title><link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet"><style>
-                body { font-family:'Sarabun',sans-serif; font-size:10px; margin:0; padding:0; line-height: 1.2; } 
+                body { font-family:'Sarabun',sans-serif; font-size:12px; margin:0; padding:0; line-height: 1.3; color: #000; } 
                 .a4-page { width:210mm; min-height:297mm; padding:8mm 10mm 35mm 10mm; margin:auto; box-sizing:border-box; position:relative; } 
-                table { width:100%; border-collapse:collapse; margin-bottom:5px; } 
-                th,td { border:1px solid #000; padding:2px 4px; } 
+                table { width:100%; border-collapse:collapse; margin-bottom:5px; font-size:12px; } 
+                th,td { border:1px solid #000; padding:3px 4px; } 
                 .no-border { border:none; } 
-                .no-border td { border:none; padding:1px; } 
+                .no-border td { border:none; padding:2px; } 
                 .text-center { text-align:center; } 
                 .bg-gray { background-color:#f0f0f0; } 
                 .font-bold { font-weight:bold; } 
                 .mb-1 { margin-bottom:2px; } .mb-2 { margin-bottom:4px; } 
                 .mt-4 { margin-top:10px; } 
                 
-                .tight-table td, .tight-table th { padding: 1px 3px; }
+                .tight-table td, .tight-table th { padding: 2px 4px; }
                 .table-fixed-layout { table-layout: fixed; width: 100%; }
                 
-                .note-section { font-size: 8.5px; line-height: 1.3; margin-top: 4px; border: 1px dashed #ccc; padding: 4px; }
+                .note-section { font-size: 9px; line-height: 1.3; margin-top: 4px; border: 1px dashed #ccc; padding: 5px; }
 
                 /* Footer ท้ายกระดาษ */
                 .print-global-footer {
