@@ -1511,24 +1511,24 @@ function nurseApp() {
                 const res = await fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveBradenScale', payload }) });
                 const out = await res.json();
                 if(out.status === 'success') {
-                    // แก้ไขตัวแปรเป็น showSuccess ให้ตรงกับด้านบน
                     this.showSuccess = true; 
                     this.successMsg = 'บันทึกข้อมูลแบบประเมินเรียบร้อย';
                     setTimeout(() => { this.showSuccess = false; }, 3000);
                     
                     this.loadBraden(this.selectedPatient.an);
-                    this.showBradenModal = false; 
-                    this.showBradenGuidelineModal = true; // เปิด Popup แนวปฏิบัติต่อ
+                    this.showBradenModal = false; // ปิดแค่ฟอร์มบันทึก แล้วจบเลย
                 }
             } catch(e) { alert('เกิดข้อผิดพลาดในการบันทึก'); }
             this.isLoading = false;
         },
-        openBradenSummaryModal() {
+        async saveBradenSummary() {
+            this.isLoading = true;
+            
+            // ค้นหาวันที่ประเมินล่าสุดที่มีอยู่ (หรือถ้าไม่มีก็ใช้วันนี้) 
+            // เพื่อใช้เป็นอ้างอิงส่งไปให้ Google Script บันทึกลงถูกบรรทัด
             try {
-                // 1. ดึงวันที่ของการประเมินล่าสุด เพื่อให้อัปเดตข้อมูลลงบรรทัดเดิมได้ถูกต้อง
                 if (this.bradenHistory && this.bradenHistory.length > 0) {
                     const last = this.bradenHistory[this.bradenHistory.length - 1];
-                    // ดักรองรับ Property ทั้งตัวพิมพ์เล็กและใหญ่
                     const evalDateRaw = last.EvalDate || last.evalDate; 
                     if (evalDateRaw) {
                         const d = new Date(evalDateRaw);
@@ -1540,36 +1540,19 @@ function nurseApp() {
                     const d = new Date();
                     this.bradenForm.evalDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
                 }
-
-                // 2. ถ้ายังไม่เคยใส่วันที่จำหน่าย ให้ดึงวันที่ปัจจุบันมาแสดงเป็นค่าเริ่มต้น
-                if (!this.bradenForm.s4_dischargeDate) {
-                    const d = new Date();
-                    this.bradenForm.s4_dischargeDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                }
-
-                // 3. สั่งเปิด Popup ส่วนที่ 4 อย่างปลอดภัย
-                this.showBradenSummaryModal = true;
-
-            } catch (error) {
-                console.error("Error opening Braden Summary Modal:", error);
-                alert("เกิดข้อผิดพลาดในการดึงข้อมูลวันที่ กรุณาลองใหม่อีกครั้ง");
+            } catch (e) {
+                console.error("Date Setup Error", e);
             }
-        },
 
-        async saveBradenSummary() {
-            this.isLoading = true;
             const payload = { ...this.bradenForm, an: this.selectedPatient.an, hn: this.selectedPatient.hn, ward: this.currentWard };
             try {
                 const res = await fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveBradenScale', payload }) });
                 const out = await res.json();
                 if(out.status === 'success') {
-                    // แก้ไขตัวแปรแจ้งเตือนให้ถูกต้อง
                     this.showSuccess = true; 
                     this.successMsg = 'บันทึกสรุปการเกิดแผลกดทับเรียบร้อย';
                     setTimeout(() => { this.showSuccess = false; }, 3000);
-                    
                     this.loadBraden(this.selectedPatient.an);
-                    this.showBradenSummaryModal = false; // ปิด popup
                 }
             } catch(e) { 
                 alert('เกิดข้อผิดพลาดในการบันทึก'); 
@@ -1753,11 +1736,20 @@ function nurseApp() {
 
                     ${isLastChunk ? `
                     <div class="font-bold mb-2 mt-4" style="font-size:13px;">ส่วนที่ 4 สรุปการเกิดแผลกดทับ</div>
-                    <div style="border: 1px solid #000; padding: 8px; line-height: 1.5; width: 100%; box-sizing: border-box;">
-                        <b>วันที่จำหน่าย / ย้าย:</b> ${formatThaiDate(lastRec.S4_DischargeDate)}<br>
-                        <b>ผลปรากฏ:</b> [ ${lastRec.S4_Outcome==='ไม่เกิดแผลกดทับ'?'✔':' '} ] ไม่เกิดแผลกดทับ &nbsp;&nbsp; [ ${lastRec.S4_Outcome==='เกิดแผลกดทับ'?'✔':' '} ] เกิดแผลกดทับ <b>วันที่:</b> ${formatThaiDate(lastRec.S4_UlcerDate)}<br>
-                        <b>ตำแหน่งที่เป็น:</b> ${lastRec.S4_Location||'-'} &nbsp;&nbsp; <b>ขนาด:</b> ${lastRec.S4_Size||'-'} &nbsp;&nbsp; <b>ลักษณะแผล:</b> ${lastRec.S4_Appearance||'-'}<br>
-                        <b>ระดับของแผลกดทับ:</b> ${lastRec.S4_Stage||'-'} &nbsp;&nbsp; <b>จำนวนแผลกดทับ:</b> ${lastRec.S4_Count||'-'} แผล
+                    <div style="border: 1px solid #000; padding: 12px 10px; line-height: 2.0; width: 100%; box-sizing: border-box; font-size: 12px;">
+                        <b>วันที่จำหน่าย / ย้าย:</b> ${lastRec.S4_DischargeDate ? formatThaiDate(lastRec.S4_DischargeDate) : '.........................................................................'}<br>
+                        
+                        <b>ผลปรากฏ:</b> 
+                        [ ${lastRec.S4_Outcome === 'ไม่เกิดแผลกดทับ' ? '✔' : '&nbsp;&nbsp;'} ] ไม่เกิดแผลกดทับ &nbsp;&nbsp;&nbsp;&nbsp; 
+                        [ ${lastRec.S4_Outcome === 'เกิดแผลกดทับ' ? '✔' : '&nbsp;&nbsp;'} ] เกิดแผลกดทับ &nbsp;&nbsp;
+                        <b>วันที่:</b> ${lastRec.S4_UlcerDate ? formatThaiDate(lastRec.S4_UlcerDate) : '................................................................'}<br>
+                        
+                        <b>ตำแหน่งที่เป็น:</b> ${lastRec.S4_Location || '.......................................................'} &nbsp;&nbsp; 
+                        <b>ขนาด:</b> ${lastRec.S4_Size || '.......................................................'} &nbsp;&nbsp; 
+                        <b>ลักษณะแผล:</b> ${lastRec.S4_Appearance || '.......................................................'}<br>
+                        
+                        <b>ระดับของแผลกดทับ:</b> ${lastRec.S4_Stage || '.......................................................'} &nbsp;&nbsp; 
+                        <b>จำนวนแผลกดทับ:</b> ${lastRec.S4_Count || '......................................'} แผล
                     </div>` : ''}
                 </div>`;
             });
