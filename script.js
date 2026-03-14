@@ -1986,7 +1986,7 @@ function nurseApp() {
                         body { 
                             font-family: 'Sarabun', sans-serif; 
                             margin: 0; padding: 0; color: #000; 
-                            font-size: 10pt; /* บังคับขนาดอักษรพื้นฐาน */
+                            font-size: 9pt; /* บังคับขนาดอักษรพื้นฐาน */
                         } 
             
                         .a4-page { 
@@ -2003,8 +2003,7 @@ function nurseApp() {
                         /* จัดการรหัสเอกสารให้อยู่ฝั่งขวา */
                         .header-right {
                             text-align: right;
-                            font-size: 10pt;
-                            font-weight: bold;
+                            font-size: 8pt;
                             line-height: 1.2;
                             margin-bottom: 5px;
                         }
@@ -2018,12 +2017,12 @@ function nurseApp() {
                         
                         th, td { 
                             border: 1px solid #000; 
-                            padding: 4px; /* ลด Padding ลงเพื่อให้พอดีหน้า */
-                            font-size: 10pt !important; /* บังคับขนาดอักษรในตารางให้เท่ากันเป๊ะ */
+                            padding: 3px 4px; /* ลด padding ลงเล็กน้อยเพื่อประหยัดพื้นที่ */
+                            font-size: 9pt !important; /* ปรับให้เท่ากับ body หรือเล็กกว่าตามต้องการ */
                             vertical-align: top;
                             word-wrap: break-word;
-                            line-height: 1.3;
-                        } 
+                            line-height: 1.2; /* ปรับระยะห่างระหว่างบรรทัดให้แคบลง */
+                        }
                         
                         th { 
                             background-color: #eee !important; 
@@ -2044,7 +2043,7 @@ function nurseApp() {
                             border: 1px solid #000; 
                             border-radius: 4px; 
                             padding: 6px 12px;
-                            font-size: 10pt !important; /* ขนาดอักษรเท่าตาราง */
+                            font-size: 9pt !important; /* ขนาดอักษรเท่าตาราง */
                             background: #fff; 
                         }
             
@@ -2052,7 +2051,7 @@ function nurseApp() {
                         .print-footer { 
                             width: 100%; 
                             text-align: center;
-                            font-size: 10pt !important; /* ขนาดอักษรเท่าตาราง */
+                            font-size: 8pt !important; /* ขนาดอักษรเท่าตาราง */
                             color: #444; 
                             border-top: 1px solid #ccc; 
                             padding-top: 8px; 
