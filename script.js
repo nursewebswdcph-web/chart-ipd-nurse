@@ -1521,6 +1521,19 @@ function nurseApp() {
             this.isLoading = false;
         },
         openBradenSummaryModal() {
+            // ดึงวันที่ของการประเมินล่าสุด เพื่อให้อัปเดตข้อมูลลงบรรทัดเดิมได้ถูกต้อง
+            if (this.bradenHistory && this.bradenHistory.length > 0) {
+                const last = this.bradenHistory[this.bradenHistory.length - 1];
+                const d = new Date(last.EvalDate);
+                if (!isNaN(d.getTime())) {
+                    this.bradenForm.evalDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                }
+            } else {
+                const d = new Date();
+                this.bradenForm.evalDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            }
+            
+            // สั่งเปิด Popup ส่วนที่ 4
             this.showBradenSummaryModal = true;
         },
 
@@ -1536,8 +1549,11 @@ function nurseApp() {
                     this.loadBraden(this.selectedPatient.an);
                     this.showBradenSummaryModal = false; // ปิด popup
                 }
-            } catch(e) { alert('เกิดข้อผิดพลาดในการบันทึก'); }
-            this.isLoading = false;
+            } catch(e) { 
+                alert('เกิดข้อผิดพลาดในการบันทึก'); 
+            } finally {
+                this.isLoading = false;
+            }
         },
         printBraden() {
             let records = [...this.bradenHistory].sort((a, b) => new Date(a.EvalDate) - new Date(b.EvalDate));
