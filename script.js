@@ -11,8 +11,11 @@ function nurseApp() {
 
         selectedPatient: null,
         currentForm: null, 
-        showAssessmentPreview: false, // ควบคุมการสลับหน้าฟอร์ม/พรีวิว
-        savedAssessment: null,        // เก็บข้อมูลที่พึ่งบันทึกเพื่อแสดงในพรีวิว
+        showAssessmentPreview: false, 
+        savedAssessment: null,    
+        showBradenModal: false,
+        showBradenGuidelineModal: false,
+        showBradenSummaryModal: false,
 
         fallHistory: [],
         fallGridData: {},
@@ -1396,15 +1399,28 @@ function nurseApp() {
                 pri.document.close();
             });
         }, 
-        calculateBradenScore() {
+        calcBradenFormScore() {
             let t = 0;
-            if(this.bradenForm.s1_m1) t += parseInt(this.bradenForm.s1_m1);
-            if(this.bradenForm.s1_m2) t += parseInt(this.bradenForm.s1_m2);
-            if(this.bradenForm.s1_m3) t += parseInt(this.bradenForm.s1_m3);
-            if(this.bradenForm.s1_m4) t += parseInt(this.bradenForm.s1_m4);
-            if(this.bradenForm.s1_m5) t += parseInt(this.bradenForm.s1_m5);
-            if(this.bradenForm.s1_m6) t += parseInt(this.bradenForm.s1_m6);
+            if(this.bradenForm.s1_m1 && this.bradenForm.s1_m1 !== 'null') t += parseInt(this.bradenForm.s1_m1);
+            if(this.bradenForm.s1_m2 && this.bradenForm.s1_m2 !== 'null') t += parseInt(this.bradenForm.s1_m2);
+            if(this.bradenForm.s1_m3 && this.bradenForm.s1_m3 !== 'null') t += parseInt(this.bradenForm.s1_m3);
+            if(this.bradenForm.s1_m4 && this.bradenForm.s1_m4 !== 'null') t += parseInt(this.bradenForm.s1_m4);
+            if(this.bradenForm.s1_m5 && this.bradenForm.s1_m5 !== 'null') t += parseInt(this.bradenForm.s1_m5);
+            if(this.bradenForm.s1_m6 && this.bradenForm.s1_m6 !== 'null') t += parseInt(this.bradenForm.s1_m6);
             this.bradenForm.totalScore = t;
+        },
+        openBradenModal(dateStr = null) {
+            if (dateStr) {
+                // แก้ปัญหา Timezone เวลาแก้ไข
+                const d = new Date(dateStr);
+                this.bradenForm.evalDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            } else {
+                // ถ้ากดเพิ่มใหม่ ให้เป็นวันปัจจุบัน
+                const d = new Date();
+                this.bradenForm.evalDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            }
+            this.loadBradenByDate();
+            this.showBradenModal = true;
         },
         async loadBraden(an) {
             this.isLoading = true;
@@ -1486,6 +1502,38 @@ function nurseApp() {
                     this.showSuccessMsg = true; this.successMsg = 'บันทึกข้อมูลแบบประเมินเรียบร้อย';
                     setTimeout(() => { this.showSuccessMsg = false; }, 3000);
                     this.loadBraden(this.selectedPatient.an);
+                    this.showBradenModal = false; 
+                    this.showBradenGuidelineModal = true; // ให้เปิด Popup แนวปฏิบัติต่อ
+                }
+            } catch(e) { alert('เกิดข้อผิดพลาดในการบันทึก'); }
+            this.isLoading = false;
+        },
+        openBradenSummaryModal() {
+            // ดึงวันที่ของ record ล่าสุดเพื่ออัปเดตบรรทัดเดิม (ถ้ามี)
+            if (this.bradenHistory && this.bradenHistory.length > 0) {
+                const last = this.bradenHistory[this.bradenHistory.length - 1];
+                const d = new Date(last.EvalDate);
+                if (!isNaN(d.getTime())) {
+                    this.bradenForm.evalDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                }
+            } else {
+                const d = new Date();
+                this.bradenForm.evalDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            }
+            this.showBradenSummaryModal = true;
+        },
+
+        async saveBradenSummary() {
+            this.isLoading = true;
+            const payload = { ...this.bradenForm, an: this.selectedPatient.an, hn: this.selectedPatient.hn, ward: this.currentWard };
+            try {
+                const res = await fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveBradenScale', payload }) });
+                const out = await res.json();
+                if(out.status === 'success') {
+                    this.showSuccessMsg = true; this.successMsg = 'บันทึกสรุปการเกิดแผลกดทับเรียบร้อย';
+                    setTimeout(() => { this.showSuccessMsg = false; }, 3000);
+                    this.loadBraden(this.selectedPatient.an);
+                    this.showBradenSummaryModal = false; // ปิด popup
                 }
             } catch(e) { alert('เกิดข้อผิดพลาดในการบันทึก'); }
             this.isLoading = false;
