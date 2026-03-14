@@ -1956,134 +1956,114 @@ function nurseApp() {
                 ];
             
                 let htmlRows = '';
-                rowsDef.forEach(row => {
-                    const d = this.eduForm[row.id];
-                    const dateStr = d.date ? this.formatThaiDateShort(d.date) : '.................';
-                    
-                    htmlRows += `
-                        <tr>
-                            ${row.rs > 0 ? `<td rowspan="${row.rs}" style="vertical-align:top; font-weight:bold; width: 18%; background-color:#f8fafc;">${row.topic}</td>` : ''}
-                            <td style="width: 44%; line-height: 1.5; font-size: 11px;">${row.text(d)}</td>
-                            <td style="width: 12%; text-align:center; vertical-align:top;">${dateStr}</td>
-                            <td style="width: 13%; text-align:center; vertical-align:top; font-size:10px;">
-                                ${d.provider || '.................'}<br>
-                                <span style="color:#666;">${d.pos ? '(' + d.pos + ')' : ''}</span>
-                            </td>
-                            <td style="width: 13%; text-align:center; vertical-align:top;">${d.receiver || '.................'}</td>
-                        </tr>
-                    `;
-                });
-            
-                // ... (ส่วนการเปิด window.open และ pri.document.write ให้ใช้ CSS เดิม แต่เพิ่มคลาส .dot-line)
-                const pri = window.open('', '_blank');
-                pri.document.write(`
-                <html><head><title>Print D-M-E-T-H-O-D</title>
-                    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
-                    <style>
-                        /* ตั้งค่าฟอนต์และการแสดงผลพื้นฐาน */
-                        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap');
+                    rowsDef.forEach(row => {
+                        const d = this.eduForm[row.id];
+                        const dateStr = d.date ? this.formatThaiDateShort(d.date) : '.................';
                         
-                        body { 
-                            font-family: 'Sarabun', sans-serif; 
-                            font-size: 11pt; 
-                            margin: 0; 
-                            padding: 0; 
-                            color: #000; 
-                        } 
-                    
-                        .a4-page { 
-                            width: 210mm; 
-                            padding: 10mm; 
-                            margin: auto; 
-                            position: relative;
-                        } 
-                    
-                        /* หัวกระดาษขวาบน */
-                        .print-header-container {
-                            display: flex;
-                            justify-content: flex-end;
-                            width: 100%;
-                            margin-bottom: 5px;
-                        }
-                        .header-info {
-                            text-align: right;
-                            font-size: 10pt;
-                            line-height: 1.3;
-                            font-weight: bold;
-                        }
-                    
-                        /* จัดการตารางและเนื้อหาให้เท่ากันทั้งหมด */
-                        table { 
-                            width: 100%; 
-                            border-collapse: collapse; 
-                            margin-top: 10px; 
-                            table-layout: fixed; /* ช่วยให้การแบ่งความกว้างคอลัมน์แม่นยำขึ้น */
-                        } 
-                        
-                        th, td { 
-                            border: 1px solid #000; 
-                            padding: 6px 8px; 
-                            font-size: 11pt !important; /* บังคับเนื้อหาให้เท่ากันทุกช่อง */
-                            vertical-align: top;
-                            word-wrap: break-word;
-                        } 
-                        
-                        th { 
-                            background-color: #eee !important; 
-                            font-weight: bold;
-                            text-align: center;
-                            -webkit-print-color-adjust: exact; 
-                        } 
-                    
-                        /* กรอบข้อมูลผู้ป่วย (ติดลอยท้ายกระดาษ) */
-                        .print-patient-box { 
-                            position: fixed; 
-                            bottom: 45px; /* ขยับขึ้นเล็กน้อยเพื่อให้พ้น Footer */
-                            right: 15mm; 
-                            width: 320px;
-                            border: 1px solid #000; 
-                            border-radius: 4px; 
-                            padding: 8px 12px;
-                            font-size: 10pt; 
-                            background: #fff; 
-                            z-index: 1000; 
-                            line-height: 1.5;
-                        }
-                    
-                        /* Footer ท้ายกระดาษ */
-                        .print-footer { 
-                            position: fixed; 
-                            bottom: 0; 
-                            left: 0; 
-                            width: 100%; 
-                            text-align: center;
-                            font-size: 9pt; 
-                            color: #444; 
-                            border-top: 1px solid #ccc; 
-                            padding: 8px 0; 
-                            background: #fff;
-                        }
-                    
-                        .dot-line { 
-                            border-bottom: 1px dotted #000; 
-                            min-width: 50px; 
-                            display: inline-block; 
-                            padding: 0 5px; 
-                        }
-                    
-                        /* การตั้งค่าสำหรับการพิมพ์ */
-                        @media print {
-                            @page { 
-                                size: A4; 
-                                margin: 15mm 10mm 40mm 10mm; /* เว้นระยะล่างเผื่อไว้สำหรับ Patient Box */
-                            }
-                            body { -webkit-print-color-adjust: exact; }
-                            .no-print { display: none; }
+                        htmlRows += `
+                            <tr>
+                                ${row.rs > 0 ? `<td rowspan="${row.rs}" style="vertical-align:top; font-weight:bold; width: 18%; background-color:#f8fafc;">${row.topic}</td>` : ''}
+                                <td style="width: 44%; line-height: 1.5; font-size: 11pt !important;">${row.text(d)}</td>
+                                <td style="width: 12%; text-align:center; vertical-align:top;">${dateStr}</td>
+                                <td style="width: 13%; text-align:center; vertical-align:top; font-size:10pt;">
+                                    ${d.provider || '.................'}<br>
+                                    <span style="color:#666;">${d.pos ? '(' + d.pos + ')' : ''}</span>
+                                </td>
+                                <td style="width: 13%; text-align:center; vertical-align:top;">${d.receiver || '.................'}</td>
+                            </tr>
+                        `;
+                    });
+                
+                    const pri = window.open('', '_blank');
+                    pri.document.write(`
+                    <html>
+                    <head>
+                        <title>Print D-M-E-T-H-O-D</title>
+                        <style>
+                            @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap');
                             
-                            /* ป้องกันตารางโดนตัดแบ่งบรรทัดในแถวเดียวกัน */
-                            tr { page-break-inside: avoid; page-break-after: auto; }
-                        }
-                    </style>
+                            body { 
+                                font-family: 'Sarabun', sans-serif; 
+                                margin: 0; padding: 0; color: #000; 
+                            } 
+                
+                            .a4-page { 
+                                width: 210mm; 
+                                margin: auto; 
+                                padding: 10mm 10mm 50mm 10mm; /* เพิ่ม padding-bottom เพื่อไม่ให้เนื้อหาถูกทับ */
+                                position: relative;
+                                box-sizing: border-box;
+                            } 
+                
+                            /* จัดการรหัสเอกสารให้อยู่ฝั่งขวา */
+                            .header-right {
+                                text-align: right;
+                                font-size: 10pt;
+                                font-weight: bold;
+                                line-height: 1.2;
+                                margin-bottom: 5px;
+                            }
+                
+                            table { 
+                                width: 100%; 
+                                border-collapse: collapse; 
+                                margin-top: 10px; 
+                                table-layout: fixed; 
+                            } 
+                            
+                            th, td { 
+                                border: 1px solid #000; 
+                                padding: 6px 8px; 
+                                font-size: 11pt !important; /* บังคับขนาดตัวอักษรเท่ากัน */
+                                vertical-align: top;
+                                word-wrap: break-word;
+                            } 
+                            
+                            th { 
+                                background-color: #eee !important; 
+                                text-align: center;
+                                -webkit-print-color-adjust: exact; 
+                            } 
+                
+                            /* กล่องข้อมูลผู้ป่วย - ติดลอย */
+                            .print-patient-box { 
+                                position: fixed; 
+                                bottom: 40px; 
+                                right: 15mm; 
+                                width: 350px;
+                                border: 1px solid #000; 
+                                border-radius: 4px; 
+                                padding: 8px 12px;
+                                font-size: 10pt; 
+                                background: #fff; 
+                                z-index: 1000;
+                            }
+                
+                            /* Footer ท้ายกระดาษ */
+                            .print-footer { 
+                                position: fixed; 
+                                bottom: 0; 
+                                left: 0; 
+                                width: 100%; 
+                                text-align: center;
+                                font-size: 9pt; 
+                                color: #444; 
+                                border-top: 1px solid #ccc; 
+                                padding: 8px 0; 
+                                background: #fff;
+                            }
+                
+                            .dot-line { border-bottom: 1px dotted #000; min-width: 40px; display: inline-block; }
+                
+                            @media print {
+                                @page { 
+                                    size: A4; 
+                                    margin: 10mm 0mm 45mm 0mm; /* กำหนด Margin ล่างให้กว้างขึ้น */
+                                }
+                                body { -webkit-print-color-adjust: exact; }
+                                tr { page-break-inside: avoid; } /* ป้องกันแถวตารางขาดครึ่งหน้า */
+                            }
+                        </style>
                     </head>
                     <body>
                         <div class="a4-page">
@@ -2092,16 +2072,16 @@ function nurseApp() {
                                 <div>Discharge-Plan-Form</div>
                             </div>
                 
-                            <h2 style="text-align:center; font-size:18px; margin-top: 10px;">การให้คำแนะนำการปฏิบัติตัวระหว่างเข้ารับการรักษาในโรงพยาบาลและเมื่อผู้ป่วยกลับบ้าน</h2>
+                            <h2 style="text-align:center; font-size:16pt; margin: 10px 0;">การให้คำแนะนำการปฏิบัติตัวระหว่างเข้ารับการรักษาในโรงพยาบาลและเมื่อผู้ป่วยกลับบ้าน</h2>
                             
                             <table>
                                 <thead>
                                     <tr>
-                                        <th style="width:15%">เรื่อง</th>
-                                        <th style="width:40%">คำแนะนำ</th>
-                                        <th style="width:15%">ว/ด/ป ที่ให้</th>
-                                        <th style="width:15%">ผู้ให้คำแนะนำ</th>
-                                        <th style="width:15%">ผู้รับคำแนะนำ</th>
+                                        <th style="width:18%">เรื่อง</th>
+                                        <th style="width:44%">คำแนะนำ</th>
+                                        <th style="width:12%">ว/ด/ป ที่ให้</th>
+                                        <th style="width:13%">ผู้ให้คำแนะนำ</th>
+                                        <th style="width:13%">ผู้รับคำแนะนำ</th>
                                     </tr>
                                 </thead>
                                 <tbody>${htmlRows}</tbody>
@@ -2125,8 +2105,8 @@ function nurseApp() {
                         </script>
                     </body>
                     </html>
-                `);
-                pri.document.close();
+                    `);
+                    pri.document.close();
             },
     };
 }
