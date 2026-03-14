@@ -2617,82 +2617,92 @@
                         </div>
                 
                         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 overflow-x-auto">
-                            <table class="w-full text-sm border-collapse border border-slate-300 min-w-[1100px]">
-                                <thead class="bg-slate-100 text-slate-700">
+                            <table class="w-full text-[13px] border-collapse border border-slate-300 min-w-full">
+                                <thead class="bg-slate-100">
                                     <tr>
-                                        <th class="p-3 border border-slate-300 w-[15%]">เรื่อง</th>
-                                        <th class="p-3 border border-slate-300 w-[45%]">คำแนะนำ</th>
-                                        <th class="p-3 border border-slate-300 w-[12%]">ว/ด/ป ที่ให้</th>
-                                        <th class="p-3 border border-slate-300 w-[14%]">ผู้ให้คำแนะนำ (ชื่อ/ตำแหน่ง)</th>
-                                        <th class="p-3 border border-slate-300 w-[14%]">ผู้รับคำแนะนำ</th>
+                                        <th class="p-2 border border-slate-300 w-[12%]">เรื่อง</th>
+                                        <th class="p-2 border border-slate-300 w-[40%]">คำแนะนำ</th>
+                                        <th class="p-2 border border-slate-300 w-[12%]">ว/ด/ป ที่ให้</th>
+                                        <th class="p-2 border border-slate-300 w-[18%]">ผู้ให้คำแนะนำ</th>
+                                        <th class="p-2 border border-slate-300 w-[18%]">ผู้รับคำแนะนำ</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr>
-                                        <td class="p-3 border border-slate-300 font-bold bg-slate-50">1.D=Diagnosis การให้ความรู้เรื่องโรค</td>
+                                        <td class="p-3 border border-slate-300 font-bold bg-slate-50 text-[11px]">1.D=Diagnosis การให้ความรู้เรื่องโรค</td>
                                         <td class="p-3 border border-slate-300">
                                             <label class="flex items-start gap-2">
                                                 <input type="checkbox" x-model="eduForm.D1.checked" :disabled="!isEduEditing" class="mt-1">
                                                 <span class="flex-1">ให้ความรู้เรื่องโรคที่เป็นอยู่ถึงสาเหตุ อาการ การปฏิบัติตัว ระบุ <input type="text" x-model="eduForm.D1.text1" :disabled="!isEduEditing" class="border-b w-full outline-none"></span>
                                             </label>
                                         </td>
-                                        <td class="p-2 border border-slate-300 text-center"><input type="date" x-model="eduForm.D1.date" :disabled="!isEduEditing" class="w-full bg-transparent text-center"></td>
+                                        <td class="p-2 border border-slate-300 text-center"><input type="date" x-model="eduForm.D1.date" :disabled="!isEduEditing" class="w-full bg-transparent text-center text-xs"></td>
                                         <td class="p-2 border border-slate-300 text-center relative">
-                                            <input type="text" x-model="eduForm.D1.provider" @focus="showNurseListFor = 'D1'" :disabled="!isEduEditing" class="w-full text-center border-b outline-none" placeholder="ค้นหาชื่อ...">
+                                            <input type="text" x-model="eduForm.D1.provider" @focus="showNurseListFor = 'D1'" :disabled="!isEduEditing" class="w-full text-center border-b outline-none text-xs" placeholder="ค้นชื่อ...">
                                             <div class="text-[10px] text-cyan-600 font-bold h-4" x-text="eduForm.D1.pos"></div>
-                                            <div x-show="showNurseListFor === 'D1'" class="absolute left-0 top-full w-full bg-white border shadow-xl z-50 max-h-40 overflow-y-auto">
+                                            <div x-show="showNurseListFor === 'D1'" @click.away="showNurseListFor = null" class="absolute left-0 top-full w-full bg-white border shadow-xl z-50 max-h-40 overflow-y-auto">
                                                 <template x-for="n in filteredNursesEdu(eduForm.D1.provider)" :key="n.name">
                                                     <div @click="eduForm.D1.provider = n.name; eduForm.D1.pos = n.position; showNurseListFor = null" class="p-2 hover:bg-cyan-50 cursor-pointer text-left text-xs border-b" x-text="n.name"></div>
                                                 </template>
                                             </div>
                                         </td>
-                                        <td class="p-2 border border-slate-300"><select x-model="eduForm.D1.receiver" :disabled="!isEduEditing" class="w-full bg-transparent outline-none"><option value=""></option><option>ผู้ป่วย</option><option>ญาติ</option></select></td>
+                                        <td class="p-2 border border-slate-300"><select x-model="eduForm.D1.receiver" :disabled="!isEduEditing" class="w-full bg-transparent outline-none text-xs"><option value=""></option><option>ผู้ป่วย</option><option>ญาติ</option></select></td>
                                     </tr>
-                
+                                
                                     <tr>
-                                        <td class="p-3 border border-slate-300 font-bold bg-slate-50">2.M=Medicine การให้ความรู้เรื่องยา</td>
+                                        <td class="p-3 border border-slate-300 font-bold bg-slate-50 text-[11px]">2.M=Medicine การให้ความรู้เรื่องยา</td>
                                         <td class="p-3 border border-slate-300 space-y-2">
                                             <div class="flex items-center gap-2"><span class="w-24">-ชนิดของยา</span> <input type="text" x-model="eduForm.M1.text1" :disabled="!isEduEditing" class="flex-1 border-b outline-none"></div>
                                             <div class="flex items-center gap-2"><span class="w-24">-ฤทธิ์ของยา / ผลข้างเคียง</span> <input type="text" x-model="eduForm.M1.text2" :disabled="!isEduEditing" class="flex-1 border-b outline-none"></div>
                                         </td>
-                                        <td class="p-2 border border-slate-300 text-center"><input type="date" x-model="eduForm.M1.date" :disabled="!isEduEditing" class="w-full text-center"></td>
+                                        <td class="p-2 border border-slate-300 text-center"><input type="date" x-model="eduForm.M1.date" :disabled="!isEduEditing" class="w-full text-center text-xs"></td>
                                         <td class="p-2 border border-slate-300 text-center relative">
-                                            <input type="text" x-model="eduForm.M1.provider" @focus="showNurseListFor = 'M1'" :disabled="!isEduEditing" class="w-full text-center border-b outline-none">
+                                            <input type="text" x-model="eduForm.M1.provider" @focus="showNurseListFor = 'M1'" :disabled="!isEduEditing" class="w-full text-center border-b outline-none text-xs" placeholder="ค้นชื่อ...">
                                             <div class="text-[10px] text-cyan-600 font-bold h-4" x-text="eduForm.M1.pos"></div>
+                                            <div x-show="showNurseListFor === 'M1'" @click.away="showNurseListFor = null" class="absolute left-0 top-full w-full bg-white border shadow-xl z-50 max-h-40 overflow-y-auto">
+                                                <template x-for="n in filteredNursesEdu(eduForm.M1.provider)" :key="n.name">
+                                                    <div @click="eduForm.M1.provider = n.name; eduForm.M1.pos = n.position; showNurseListFor = null" class="p-2 hover:bg-cyan-50 cursor-pointer text-left text-xs border-b" x-text="n.name"></div>
+                                                </template>
+                                            </div>
                                         </td>
-                                        <td class="p-2 border border-slate-300"><select x-model="eduForm.M1.receiver" :disabled="!isEduEditing" class="w-full"><option value=""></option><option>ผู้ป่วย</option><option>ญาติ</option></select></td>
+                                        <td class="p-2 border border-slate-300"><select x-model="eduForm.M1.receiver" :disabled="!isEduEditing" class="w-full text-xs"><option value=""></option><option>ผู้ป่วย</option><option>ญาติ</option></select></td>
                                     </tr>
-                
+                                
                                     <tr>
-                                        <td rowspan="2" class="p-3 border border-slate-300 font-bold bg-slate-50">3.E=Environment & Economic การให้ความรู้ด้านสิ่งแวดล้อมและสภาวะเศรษฐกิจ</td>
+                                        <td rowspan="2" class="p-3 border border-slate-300 font-bold bg-slate-50 text-[11px]">3.E=Environment & Economic การให้ความรู้ด้านสิ่งแวดล้อมและสภาวะเศรษฐกิจ</td>
                                         <td class="p-3 border border-slate-300">
                                             <div class="font-bold text-xs mb-1">- การดำรงชีวิตที่เหมาะสมกับสภาวะของโรค (เลือกได้มากกว่า 1)</div>
                                             <div class="grid grid-cols-2 gap-x-4 gap-y-1">
                                                 <template x-for="opt in ['การจัดการโภชนาการที่เหมาะสม', 'การออกกำลังกายที่สม่ำเสมอ', 'การใช้ยาและการปฏิบัติตามแผนการรักษา', 'การป้องกันภาวะแทรกซ้อนและการดูแลตนเอง']">
-                                                    <label class="flex items-center gap-1 text-xs"><input type="checkbox" :value="opt" x-model="eduForm.E1.options" :disabled="!isEduEditing"> <span x-text="opt"></span></label>
+                                                    <label class="flex items-center gap-1 text-[11px]"><input type="checkbox" :value="opt" x-model="eduForm.E1.options" :disabled="!isEduEditing"> <span x-text="opt"></span></label>
                                                 </template>
                                             </div>
                                         </td>
-                                        <td rowspan="2" class="p-2 border border-slate-300 text-center align-top"><input type="date" x-model="eduForm.E1.date" :disabled="!isEduEditing" class="w-full text-center"></td>
+                                        <td rowspan="2" class="p-2 border border-slate-300 text-center align-top"><input type="date" x-model="eduForm.E1.date" :disabled="!isEduEditing" class="w-full text-center text-xs"></td>
                                         <td rowspan="2" class="p-2 border border-slate-300 text-center align-top relative">
-                                            <input type="text" x-model="eduForm.E1.provider" @focus="showNurseListFor = 'E1'" :disabled="!isEduEditing" class="w-full text-center border-b outline-none">
+                                            <input type="text" x-model="eduForm.E1.provider" @focus="showNurseListFor = 'E1'" :disabled="!isEduEditing" class="w-full text-center border-b outline-none text-xs" placeholder="ค้นชื่อ...">
                                             <div class="text-[10px] text-cyan-600 font-bold h-4" x-text="eduForm.E1.pos"></div>
+                                            <div x-show="showNurseListFor === 'E1'" @click.away="showNurseListFor = null" class="absolute left-0 top-full w-full bg-white border shadow-xl z-50 max-h-40 overflow-y-auto">
+                                                <template x-for="n in filteredNursesEdu(eduForm.E1.provider)" :key="n.name">
+                                                    <div @click="eduForm.E1.provider = n.name; eduForm.E1.pos = n.position; showNurseListFor = null" class="p-2 hover:bg-cyan-50 cursor-pointer text-left text-xs border-b" x-text="n.name"></div>
+                                                </template>
+                                            </div>
                                         </td>
-                                        <td rowspan="2" class="p-2 border border-slate-300 align-top"><select x-model="eduForm.E1.receiver" :disabled="!isEduEditing" class="w-full"><option value=""></option><option>ผู้ป่วย</option><option>ญาติ</option></select></td>
+                                        <td rowspan="2" class="p-2 border border-slate-300 align-top"><select x-model="eduForm.E1.receiver" :disabled="!isEduEditing" class="w-full text-xs"><option value=""></option><option>ผู้ป่วย</option><option>ญาติ</option></select></td>
                                     </tr>
                                     <tr>
                                         <td class="p-3 border border-slate-300">
                                             <div class="font-bold text-xs mb-1">- ผู้ป่วยจำเป็นที่จะต้องได้รับการดูแลช่วยเหลือในเรื่อง (เลือกได้มากกว่า 1)</div>
                                             <div class="grid grid-cols-1 gap-1">
                                                 <template x-for="opt in ['การสนับสนุนการมีส่วนร่วมของครอบครัวในการดูแลผู้ป่วย', 'การช่วยเหลือด้านสภาวะเศรษฐกิจ', 'ปัญหาด้านสิทธิ์การรักษา']">
-                                                    <label class="flex items-center gap-1 text-xs"><input type="checkbox" :value="opt" x-model="eduForm.E2.options" :disabled="!isEduEditing"> <span x-text="opt"></span></label>
+                                                    <label class="flex items-center gap-1 text-[11px]"><input type="checkbox" :value="opt" x-model="eduForm.E2.options" :disabled="!isEduEditing"> <span x-text="opt"></span></label>
                                                 </template>
                                             </div>
                                         </td>
                                     </tr>
-                
+                                
                                     <tr>
-                                        <td rowspan="3" class="p-3 border border-slate-300 font-bold bg-slate-50">4.T=Treatment แนวทางการรักษาพยาบาล</td>
+                                        <td rowspan="3" class="p-3 border border-slate-300 font-bold bg-slate-50 text-[11px]">4.T=Treatment แนวทางการรักษาพยาบาล</td>
                                         <td class="p-3 border border-slate-300">
                                             <div class="font-bold text-xs mb-1">- แนวทางการรักษาพยาบาล (เลือกได้มากกว่า 1)</div>
                                             <div class="grid grid-cols-3 gap-1 text-[11px]">
@@ -2707,17 +2717,22 @@
                                                 <input type="text" x-model="eduForm.T1.text2" :disabled="!isEduEditing" class="border-b flex-1 outline-none">
                                             </div>
                                         </td>
-                                        <td rowspan="3" class="p-2 border border-slate-300 text-center align-top"><input type="date" x-model="eduForm.T1.date" :disabled="!isEduEditing" class="w-full text-center"></td>
+                                        <td rowspan="3" class="p-2 border border-slate-300 text-center align-top"><input type="date" x-model="eduForm.T1.date" :disabled="!isEduEditing" class="w-full text-center text-xs"></td>
                                         <td rowspan="3" class="p-2 border border-slate-300 text-center align-top relative">
-                                            <input type="text" x-model="eduForm.T1.provider" @focus="showNurseListFor = 'T1'" :disabled="!isEduEditing" class="w-full text-center border-b outline-none">
+                                            <input type="text" x-model="eduForm.T1.provider" @focus="showNurseListFor = 'T1'" :disabled="!isEduEditing" class="w-full text-center border-b outline-none text-xs" placeholder="ค้นชื่อ...">
                                             <div class="text-[10px] text-cyan-600 font-bold h-4" x-text="eduForm.T1.pos"></div>
+                                            <div x-show="showNurseListFor === 'T1'" @click.away="showNurseListFor = null" class="absolute left-0 top-full w-full bg-white border shadow-xl z-50 max-h-40 overflow-y-auto">
+                                                <template x-for="n in filteredNursesEdu(eduForm.T1.provider)" :key="n.name">
+                                                    <div @click="eduForm.T1.provider = n.name; eduForm.T1.pos = n.position; showNurseListFor = null" class="p-2 hover:bg-cyan-50 cursor-pointer text-left text-xs border-b" x-text="n.name"></div>
+                                                </template>
+                                            </div>
                                         </td>
-                                        <td rowspan="3" class="p-2 border border-slate-300 align-top"><select x-model="eduForm.T1.receiver" :disabled="!isEduEditing" class="w-full"><option value=""></option><option>ผู้ป่วย</option><option>ญาติ</option></select></td>
+                                        <td rowspan="3" class="p-2 border border-slate-300 align-top"><select x-model="eduForm.T1.receiver" :disabled="!isEduEditing" class="w-full text-xs"><option value=""></option><option>ผู้ป่วย</option><option>ญาติ</option></select></td>
                                     </tr>
                                     <tr>
                                         <td class="p-3 border border-slate-300">
                                             <div class="font-bold text-xs mb-1">- สาธิตวิธีการดูแลตนเองในเรื่อง (เลือกได้มากกว่า 1)</div>
-                                            <div class="flex flex-wrap gap-4 text-xs">
+                                            <div class="flex flex-wrap gap-4 text-[11px]">
                                                 <template x-for="opt in ['การให้อาหารทางสายยาง', 'การดูแลแผล']">
                                                     <label class="flex items-center gap-1"><input type="checkbox" :value="opt" x-model="eduForm.T2.options" :disabled="!isEduEditing"> <span x-text="opt"></span></label>
                                                 </template>
@@ -2738,9 +2753,9 @@
                                             </div>
                                         </td>
                                     </tr>
-                
+                                
                                     <tr>
-                                        <td class="p-3 border border-slate-300 font-bold bg-slate-50">5. H=Health ภาวะสุขภาพ โรคที่เจ็บป่วย การส่งเสริมด้านร่างกาย จิตใจ</td>
+                                        <td class="p-3 border border-slate-300 font-bold bg-slate-50 text-[11px]">5. H=Health ภาวะสุขภาพ โรคที่เจ็บป่วย การส่งเสริมด้านร่างกาย จิตใจ</td>
                                         <td class="p-3 border border-slate-300">
                                             <div class="font-bold text-xs mb-1">- ความรู้เรื่องการลดปัจจัยเสี่ยงต่อการเกิดโรคของผู้ป่วย (เลือกได้มากกว่า 1)</div>
                                             <div class="grid grid-cols-2 gap-1 text-[11px]">
@@ -2749,16 +2764,21 @@
                                                 </template>
                                             </div>
                                         </td>
-                                        <td class="p-2 border border-slate-300 text-center"><input type="date" x-model="eduForm.H1.date" :disabled="!isEduEditing" class="w-full text-center"></td>
+                                        <td class="p-2 border border-slate-300 text-center"><input type="date" x-model="eduForm.H1.date" :disabled="!isEduEditing" class="w-full text-center text-xs"></td>
                                         <td class="p-2 border border-slate-300 text-center relative">
-                                            <input type="text" x-model="eduForm.H1.provider" @focus="showNurseListFor = 'H1'" :disabled="!isEduEditing" class="w-full text-center border-b outline-none">
+                                            <input type="text" x-model="eduForm.H1.provider" @focus="showNurseListFor = 'H1'" :disabled="!isEduEditing" class="w-full text-center border-b outline-none text-xs" placeholder="ค้นชื่อ...">
                                             <div class="text-[10px] text-cyan-600 font-bold h-4" x-text="eduForm.H1.pos"></div>
+                                            <div x-show="showNurseListFor === 'H1'" @click.away="showNurseListFor = null" class="absolute left-0 top-full w-full bg-white border shadow-xl z-50 max-h-40 overflow-y-auto">
+                                                <template x-for="n in filteredNursesEdu(eduForm.H1.provider)" :key="n.name">
+                                                    <div @click="eduForm.H1.provider = n.name; eduForm.H1.pos = n.position; showNurseListFor = null" class="p-2 hover:bg-cyan-50 cursor-pointer text-left text-xs border-b" x-text="n.name"></div>
+                                                </template>
+                                            </div>
                                         </td>
-                                        <td class="p-2 border border-slate-300"><select x-model="eduForm.H1.receiver" :disabled="!isEduEditing" class="w-full"><option value=""></option><option>ผู้ป่วย</option><option>ญาติ</option></select></td>
+                                        <td class="p-2 border border-slate-300"><select x-model="eduForm.H1.receiver" :disabled="!isEduEditing" class="w-full text-xs"><option value=""></option><option>ผู้ป่วย</option><option>ญาติ</option></select></td>
                                     </tr>
-                
+                                
                                     <tr>
-                                        <td rowspan="3" class="p-3 border border-slate-300 font-bold bg-slate-50">6. O=Out Patient การดูแลต่อเนื่อง</td>
+                                        <td rowspan="3" class="p-3 border border-slate-300 font-bold bg-slate-50 text-[11px]">6. O=Out Patient การดูแลต่อเนื่อง</td>
                                         <td class="p-3 border border-slate-300 text-xs">
                                             <div class="flex flex-wrap items-center gap-1">
                                                 <span>- การมาตรวจตามนัด วันที่</span> <input type="text" x-model="eduForm.O1.text1" :disabled="!isEduEditing" class="border-b w-32 outline-none">
@@ -2766,17 +2786,22 @@
                                                 <span>การเตรียมตัว</span> <input type="text" x-model="eduForm.O1.text3" :disabled="!isEduEditing" class="border-b w-full mt-1 outline-none">
                                             </div>
                                         </td>
-                                        <td rowspan="3" class="p-2 border border-slate-300 text-center align-top"><input type="date" x-model="eduForm.O1.date" :disabled="!isEduEditing" class="w-full text-center"></td>
+                                        <td rowspan="3" class="p-2 border border-slate-300 text-center align-top"><input type="date" x-model="eduForm.O1.date" :disabled="!isEduEditing" class="w-full text-center text-xs"></td>
                                         <td rowspan="3" class="p-2 border border-slate-300 text-center align-top relative">
-                                            <input type="text" x-model="eduForm.O1.provider" @focus="showNurseListFor = 'O1'" :disabled="!isEduEditing" class="w-full text-center border-b outline-none">
+                                            <input type="text" x-model="eduForm.O1.provider" @focus="showNurseListFor = 'O1'" :disabled="!isEduEditing" class="w-full text-center border-b outline-none text-xs" placeholder="ค้นชื่อ...">
                                             <div class="text-[10px] text-cyan-600 font-bold h-4" x-text="eduForm.O1.pos"></div>
+                                            <div x-show="showNurseListFor === 'O1'" @click.away="showNurseListFor = null" class="absolute left-0 top-full w-full bg-white border shadow-xl z-50 max-h-40 overflow-y-auto">
+                                                <template x-for="n in filteredNursesEdu(eduForm.O1.provider)" :key="n.name">
+                                                    <div @click="eduForm.O1.provider = n.name; eduForm.O1.pos = n.position; showNurseListFor = null" class="p-2 hover:bg-cyan-50 cursor-pointer text-left text-xs border-b" x-text="n.name"></div>
+                                                </template>
+                                            </div>
                                         </td>
-                                        <td rowspan="3" class="p-2 border border-slate-300 align-top"><select x-model="eduForm.O1.receiver" :disabled="!isEduEditing" class="w-full"><option value=""></option><option>ผู้ป่วย</option><option>ญาติ</option></select></td>
+                                        <td rowspan="3" class="p-2 border border-slate-300 align-top"><select x-model="eduForm.O1.receiver" :disabled="!isEduEditing" class="w-full text-xs"><option value=""></option><option>ผู้ป่วย</option><option>ญาติ</option></select></td>
                                     </tr>
                                     <tr>
                                         <td class="p-3 border border-slate-300">
                                             <div class="font-bold text-xs mb-1">- แหล่งข้อมูลเครือข่ายหรือแหล่งสนับสนุนทางสังคม (เลือกได้มากกว่า 1)</div>
-                                            <div class="flex flex-wrap gap-4 text-xs">
+                                            <div class="flex flex-wrap gap-4 text-[11px]">
                                                 <template x-for="opt in ['ผู้นำชุมชน', 'อสม.', 'รพ.สต.']">
                                                     <label class="flex items-center gap-1"><input type="checkbox" :value="opt" x-model="eduForm.O2.options" :disabled="!isEduEditing"> <span x-text="opt"></span></label>
                                                 </template>
@@ -2787,22 +2812,27 @@
                                             </div>
                                         </td>
                                     </tr>
-                                    <tr><td class="p-3 border border-slate-300 text-xs font-bold">- การขอความช่วยเหลือ 1669</td></tr>
-                
+                                    <tr><td class="p-3 border border-slate-300 text-xs font-bold bg-white">- การขอความช่วยเหลือ 1669</td></tr>
+                                
                                     <tr>
-                                        <td class="p-3 border border-slate-300 font-bold bg-slate-50">7. D-Diet การเลือกรับประทานอาหาร</td>
+                                        <td class="p-3 border border-slate-300 font-bold bg-slate-50 text-[11px]">7. D-Diet การเลือกรับประทานอาหาร</td>
                                         <td class="p-3 border border-slate-300 space-y-2 text-xs">
                                             <div class="font-bold">ความรู้ความเข้าใจด้านอาหารที่เหมาะสมกับสภาวะของโรค</div>
                                             <div class="flex items-center gap-2"><span>อาหารเฉพาะโรค ระบุ</span> <input type="text" x-model="eduForm.Diet1.text1" :disabled="!isEduEditing" class="flex-1 border-b outline-none"></div>
                                             <div class="flex items-center gap-2"><span>อาหารที่ควรหลีกเลี่ยง</span> <input type="text" x-model="eduForm.Diet1.text2" :disabled="!isEduEditing" class="flex-1 border-b outline-none"></div>
                                             <div class="flex items-center gap-2"><span>อื่นๆ</span> <input type="text" x-model="eduForm.Diet1.text3" :disabled="!isEduEditing" class="flex-1 border-b outline-none"></div>
                                         </td>
-                                        <td class="p-2 border border-slate-300 text-center"><input type="date" x-model="eduForm.Diet1.date" :disabled="!isEduEditing" class="w-full text-center"></td>
+                                        <td class="p-2 border border-slate-300 text-center"><input type="date" x-model="eduForm.Diet1.date" :disabled="!isEduEditing" class="w-full text-center text-xs"></td>
                                         <td class="p-2 border border-slate-300 text-center relative">
-                                            <input type="text" x-model="eduForm.Diet1.provider" @focus="showNurseListFor = 'Diet1'" :disabled="!isEduEditing" class="w-full text-center border-b outline-none">
+                                            <input type="text" x-model="eduForm.Diet1.provider" @focus="showNurseListFor = 'Diet1'" :disabled="!isEduEditing" class="w-full text-center border-b outline-none text-xs" placeholder="ค้นชื่อ...">
                                             <div class="text-[10px] text-cyan-600 font-bold h-4" x-text="eduForm.Diet1.pos"></div>
+                                            <div x-show="showNurseListFor === 'Diet1'" @click.away="showNurseListFor = null" class="absolute left-0 top-full w-full bg-white border shadow-xl z-50 max-h-40 overflow-y-auto">
+                                                <template x-for="n in filteredNursesEdu(eduForm.Diet1.provider)" :key="n.name">
+                                                    <div @click="eduForm.Diet1.provider = n.name; eduForm.Diet1.pos = n.position; showNurseListFor = null" class="p-2 hover:bg-cyan-50 cursor-pointer text-left text-xs border-b" x-text="n.name"></div>
+                                                </template>
+                                            </div>
                                         </td>
-                                        <td class="p-2 border border-slate-300"><select x-model="eduForm.Diet1.receiver" :disabled="!isEduEditing" class="w-full"><option value=""></option><option>ผู้ป่วย</option><option>ญาติ</option></select></td>
+                                        <td class="p-2 border border-slate-300"><select x-model="eduForm.Diet1.receiver" :disabled="!isEduEditing" class="w-full text-xs"><option value=""></option><option>ผู้ป่วย</option><option>ญาติ</option></select></td>
                                     </tr>
                                 </tbody>
                             </table>
