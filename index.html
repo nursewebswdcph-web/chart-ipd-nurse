@@ -2394,6 +2394,242 @@
                         </div>
                     </div>
                 </div>
+
+                <div x-show="currentForm?.id === 'braden_scale'" x-cloak>
+                    <div class="space-y-4">
+                        
+                        <div class="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-200 sticky top-0 z-30">
+                            <div>
+                                <h2 class="text-xl font-black text-pink-700">แบบบันทึกการป้องกันและดูแลแผลกดทับ (Braden Scale)</h2>
+                            </div>
+                            <div class="flex gap-2">
+                                <button @click="viewMode = 'detail'" class="px-4 py-2 bg-slate-100 rounded-xl font-bold">กลับ</button>
+                                <button @click="saveBradenPage()" class="px-4 py-2 bg-emerald-600 text-white rounded-xl font-bold">บันทึกหน้านี้</button>
+                                <button @click="printBradenScale()" class="px-4 py-2 bg-slate-800 text-white rounded-xl font-bold"><i class="fa-print mr-1"></i> พิมพ์</button>
+                            </div>
+                        </div>
+                
+                        <div class="flex justify-between items-center bg-pink-50/50 p-3 rounded-2xl border border-pink-100">
+                            <div class="text-sm font-bold text-pink-900">ประเมินวันละ 1 ครั้ง (ชุดละ 10 วัน)</div>
+                            <div class="flex items-center gap-3">
+                                <button @click="currentBradenPage = Math.max(0, currentBradenPage - 1)" :disabled="currentBradenPage === 0" class="px-3 py-1 bg-white border rounded-lg text-xs font-bold">&laquo; ย้อนหลัง 10 วัน</button>
+                                <span class="text-xs font-bold">หน้า <span x-text="currentBradenPage + 1"></span> / <span x-text="bradenTimeline.length"></span></span>
+                                <button @click="currentBradenPage = Math.min(bradenTimeline.length - 1, currentBradenPage + 1)" :disabled="currentBradenPage >= bradenTimeline.length - 1" class="px-3 py-1 bg-white border rounded-lg text-xs font-bold">ถัดไป 10 วัน &raquo;</button>
+                            </div>
+                        </div>
+                
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-bold text-slate-700">
+                            <div>วันที่ Admit: <input type="text" x-model="bradenGlobal.header.admitDate" class="border-b border-slate-300 w-full font-normal outline-none text-blue-700 mt-1"></div>
+                            <div>Diagnosis: <input type="text" x-model="bradenGlobal.header.diagnosis" class="border-b border-slate-300 w-full font-normal outline-none text-blue-700 mt-1"></div>
+                            <div>วันที่เริ่มประเมินความเสี่ยง: <input type="date" x-model="bradenGlobal.header.riskDate" class="border-b border-slate-300 w-full font-normal outline-none text-blue-700 mt-1"></div>
+                            <div>ปัจจัยเสี่ยงอื่นๆ: <input type="text" x-model="bradenGlobal.header.otherRisk" class="border-b border-slate-300 w-full font-normal outline-none text-blue-700 mt-1"></div>
+                        </div>
+                
+                        <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
+                            <h3 class="font-bold text-indigo-900 mb-2">ส่วนที่ 4: สรุปการเกิดแผลกดทับ (ประเมินครั้งเดียวตอนจำหน่าย)</h3>
+                            <div class="grid grid-cols-2 gap-4 text-xs">
+                                <div>วันที่จำหน่าย/เสียชีวิต: <input type="date" x-model="bradenGlobal.summary.dischargeDate" class="border-b border-indigo-200 bg-transparent w-full"></div>
+                                <div>สภาพแผล: 
+                                    <select x-model="bradenGlobal.summary.woundStatus" class="border-b border-indigo-200 bg-transparent w-full outline-none">
+                                        <option value="">- เลือก -</option>
+                                        <option value="ทุเลา/หาย">ทุเลา/หาย</option>
+                                        <option value="เท่าเดิม">เท่าเดิม</option>
+                                        <option value="แย่ลง">แย่ลง</option>
+                                        <option value="เกิดใหม่">เกิดแผลใหม่</option>
+                                    </select>
+                                </div>
+                                <div class="col-span-2">รายละเอียดเพิ่มเติม: <input type="text" x-model="bradenGlobal.summary.detail" class="border-b border-indigo-200 bg-transparent w-full"></div>
+                            </div>
+                        </div>
+                
+                        <div class="bg-white rounded-2xl border border-slate-200 overflow-x-auto shadow-sm">
+                            <table class="w-full text-center text-[11px] min-w-[1200px] border-collapse table-fixed">
+                                <thead>
+                                    <tr class="bg-slate-100">
+                                        <th class="w-[200px] p-2 border border-slate-300 text-left">รายการประเมิน (รายวัน)</th>
+                                        <template x-for="day in bradenTimeline[currentBradenPage]">
+                                            <th class="w-[80px] p-2 border border-slate-300 font-bold text-pink-700" x-text="day.formattedDate"></th>
+                                        </template>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="bg-pink-50"><td colspan="11" class="font-bold text-left px-2 py-1 text-pink-900">ส่วนที่ 1: การประเมินความเสี่ยง (Braden Scale) 1-4 คะแนน</td></tr>
+                                    <template x-for="(label, idx) in [
+                                        '1. การรับรู้ความรู้สึก (Sensory)', '2. ความเปียกชื้น (Moisture)', '3. การทำกิจกรรม (Activity)',
+                                        '4. การเคลื่อนไหว (Mobility)', '5. ภาวะโภชนาการ (Nutrition)', '6. การเสียดสี/แรงเลื่อนไถล (Friction)'
+                                    ]">
+                                        <tr>
+                                            <td class="text-left px-2 py-1 border border-slate-300" x-text="label"></td>
+                                            <template x-for="day in bradenTimeline[currentBradenPage]">
+                                                <td class="border border-slate-300 p-0">
+                                                    <input type="number" min="1" max="4" class="w-full h-8 text-center bg-transparent outline-none" x-model.number="getBradenDailyCell(day.date).part1[idx]">
+                                                </td>
+                                            </template>
+                                        </tr>
+                                    </template>
+                                    <tr class="bg-slate-50 font-bold">
+                                        <td class="text-left px-2 py-1 border border-slate-300">รวมคะแนน (Total)</td>
+                                        <template x-for="day in bradenTimeline[currentBradenPage]">
+                                            <td class="border border-slate-300 text-blue-700" x-text="calcBradenTotal(getBradenDailyCell(day.date).part1)"></td>
+                                        </template>
+                                    </tr>
+                
+                                    <tr class="bg-teal-50"><td colspan="11" class="font-bold text-left px-2 py-1 text-teal-900">ส่วนที่ 2: การพยาบาลเพื่อป้องกันแผลกดทับ (ติ๊กเครื่องหมาย)</td></tr>
+                                    <template x-for="(label, idx) in [
+                                        'พลิกตะแคงตัวทุก 2 ชม.', 'ใช้ที่นอนลม/เจล', 'ดูแลให้ผิวหนังแห้งสะอาด', 'ทาโลชั่น/ครีมให้ความชุ่มชื้น', 'ประเมินและให้อาหารอย่างเพียงพอ', 'อื่นๆ...'
+                                    ]">
+                                        <tr>
+                                            <td class="text-left px-2 py-1 border border-slate-300" x-text="label"></td>
+                                            <template x-for="day in bradenTimeline[currentBradenPage]">
+                                                <td class="border border-slate-300 text-center">
+                                                    <input type="checkbox" class="w-4 h-4 cursor-pointer" x-model="getBradenDailyCell(day.date).part2[idx]">
+                                                </td>
+                                            </template>
+                                        </tr>
+                                    </template>
+                
+                                    <tr>
+                                        <td class="text-left px-2 py-1 border border-slate-300 font-bold bg-slate-50">ผู้ประเมิน</td>
+                                        <template x-for="day in bradenTimeline[currentBradenPage]">
+                                            <td class="border border-slate-300 p-0">
+                                                <input type="text" class="w-full h-8 text-center text-[10px] outline-none" x-model="getBradenDailyCell(day.date).assessor">
+                                            </td>
+                                        </template>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                
+                        <div class="bg-white p-4 rounded-xl border border-slate-200">
+                            <h3 class="font-bold text-slate-800 mb-4">ส่วนที่ 3: การประเมินแผลกดทับ (Wound Assessment)</h3>
+                            <div class="flex flex-col md:flex-row gap-6">
+                                <div class="w-full md:w-1/3 bg-slate-50 p-2 rounded-lg border border-slate-200 flex flex-col items-center">
+                                    <span class="text-[10px] text-slate-500 mb-2">ระบุตำแหน่งแผลตามหมายเลข</span>
+                                    <img src="https://www.weymouthphysiotherapy.com/wp-content/uploads/2018/02/Body-chart.jpg" alt="Body Chart" class="w-full h-auto object-contain" style="max-height: 300px;">
+                                </div>
+                                <div class="w-full md:w-2/3 grid grid-cols-2 md:grid-cols-4 gap-2">
+                                    <template x-for="day in bradenTimeline[currentBradenPage].slice(0, 4)">
+                                        <div class="border border-slate-200 p-2 rounded bg-slate-50 text-[10px]">
+                                            <div class="font-bold text-pink-700 mb-1" x-text="day.formattedDate"></div>
+                                            <div>ตำแหน่งที่: <input type="text" class="w-full border-b outline-none bg-transparent" x-model="getBradenDailyCell(day.date).part3.marker"></div>
+                                            <div class="mt-1">ระดับ (Stage): <input type="text" class="w-full border-b outline-none bg-transparent" x-model="getBradenDailyCell(day.date).part3.stage"></div>
+                                            <div class="mt-1">ขนาด (WxLxD): <input type="text" class="w-full border-b outline-none bg-transparent" x-model="getBradenDailyCell(day.date).part3.size"></div>
+                                            <div class="mt-1">Exudate: <input type="text" class="w-full border-b outline-none bg-transparent" x-model="getBradenDailyCell(day.date).part3.exudate"></div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="braden-print-area" class="hidden">
+                            <template x-for="(page, pageIndex) in bradenTimeline" :key="pageIndex">
+                                <div class="a4-page relative bg-white mx-auto text-black pb-8">
+                                    
+                                    <div class="text-center font-bold text-[13px] mb-2">
+                                        แบบบันทึกการพยาบาลเพื่อป้องกันและดูแลผู้ป่วยที่มีแผลกดทับ หอผู้ป่วย <span x-text="currentWard"></span><br>
+                                        โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
+                                    </div>
+                                    <div class="flex justify-between text-[10px] font-bold mb-2">
+                                        <div>ชื่อผู้ป่วย: <span x-text="selectedPatient?.name"></span> &nbsp; HN: <span x-text="selectedPatient?.hn"></span> &nbsp; AN: <span x-text="selectedPatient?.an"></span></div>
+                                        <div>Admit: <span x-text="bradenGlobal.header.admitDate"></span> &nbsp; Dx: <span x-text="bradenGlobal.header.diagnosis"></span></div>
+                                    </div>
+                        
+                                    <table class="w-full mb-3 text-[9px]">
+                                        <thead>
+                                            <tr class="bg-gray-100">
+                                                <th class="text-left w-label">รายการประเมิน (หน้า <span x-text="pageIndex + 1"></span>)</th>
+                                                <template x-for="day in page"><th x-text="day.formattedDate" class="text-center"></th></template>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr><td colspan="11" class="bg-gray-50 font-bold">ส่วนที่ 1: การประเมินความเสี่ยง</td></tr>
+                                            <template x-for="(label, idx) in ['1. Sensory', '2. Moisture', '3. Activity', '4. Mobility', '5. Nutrition', '6. Friction']">
+                                                <tr>
+                                                    <td x-text="label"></td>
+                                                    <template x-for="day in page"><td class="text-center font-bold" x-text="gridData[day.date] ? gridData[day.date].part1[idx] : ''"></td></template>
+                                                </tr>
+                                            </template>
+                                            <tr class="font-bold bg-gray-100">
+                                                <td>รวมคะแนน</td>
+                                                <template x-for="day in page"><td class="text-center text-blue-800" x-text="gridData[day.date] ? calcBradenTotal(gridData[day.date].part1) : ''"></td></template>
+                                            </tr>
+                                            <tr><td colspan="11" class="bg-gray-50 font-bold">ส่วนที่ 2: การป้องกันแผลกดทับ ( ✓ )</td></tr>
+                                            <template x-for="(label, idx) in ['พลิกตัวทุก 2 ชม.', 'ที่นอนลม/เจล', 'ผิวหนังแห้งสะอาด', 'โลชั่นชุ่มชื้น', 'โภชนาการพอเพียง', 'อื่นๆ']">
+                                                <tr>
+                                                    <td x-text="label"></td>
+                                                    <template x-for="day in page">
+                                                        <td class="text-center font-bold">
+                                                            <span x-show="gridData[day.date]?.part2?.[idx]">✓</span>
+                                                        </td>
+                                                    </template>
+                                                </tr>
+                                            </template>
+                                            <tr>
+                                                <td class="bg-gray-50 font-bold">ผู้ประเมิน</td>
+                                                <template x-for="day in page"><td class="text-center text-[7px]" x-text="gridData[day.date]?.assessor"></td></template>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                        
+                                    <div class="flex flex-col gap-2">
+                                        <div class="font-bold text-[10px]">ส่วนที่ 3: Body Chart และ การประเมินบาดแผล (Wound Assessment)</div>
+                                        <div class="flex gap-2">
+                                            <div class="w-[28%]">
+                                                <img src="https://www.weymouthphysiotherapy.com/wp-content/uploads/2018/02/Body-chart.jpg" class="w-full border p-1" style="height: 140px; object-fit: contain;">
+                                            </div>
+                                            <div class="w-[72%]">
+                                                <table class="w-full text-[8px]">
+                                                    <tr class="bg-gray-50 text-center">
+                                                        <th class="w-[35px]">วันที่</th><th>ตำแหน่ง</th><th>Stage</th><th>Size</th><th>Exudate</th>
+                                                        <th class="w-[35px]">วันที่</th><th>ตำแหน่ง</th><th>Stage</th><th>Size</th><th>Exudate</th>
+                                                    </tr>
+                                                    <tr>
+                                                        <td colspan="5" class="p-0 align-top">
+                                                            <table class="w-full border-none">
+                                                                <template x-for="day in page.slice(0,5)">
+                                                                    <tr>
+                                                                        <td class="w-[35px] font-bold text-center" x-text="day.formattedDate"></td>
+                                                                        <td class="text-center" x-text="gridData[day.date]?.part3?.marker"></td>
+                                                                        <td class="text-center" x-text="gridData[day.date]?.part3?.stage"></td>
+                                                                        <td class="text-center" x-text="gridData[day.date]?.part3?.size"></td>
+                                                                        <td class="text-center" x-text="gridData[day.date]?.part3?.exudate"></td>
+                                                                    </tr>
+                                                                </template>
+                                                            </table>
+                                                        </td>
+                                                        <td colspan="5" class="p-0 align-top border-l">
+                                                            <table class="w-full border-none">
+                                                                <template x-for="day in page.slice(5,10)">
+                                                                    <tr>
+                                                                        <td class="w-[35px] font-bold text-center" x-text="day.formattedDate"></td>
+                                                                        <td class="text-center" x-text="gridData[day.date]?.part3?.marker"></td>
+                                                                        <td class="text-center" x-text="gridData[day.date]?.part3?.stage"></td>
+                                                                        <td class="text-center" x-text="gridData[day.date]?.part3?.size"></td>
+                                                                        <td class="text-center" x-text="gridData[day.date]?.part3?.exudate"></td>
+                                                                    </tr>
+                                                                </template>
+                                                            </table>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                        </div>
+                        
+                                        <template x-if="pageIndex === bradenTimeline.length - 1">
+                                            <div class="mt-2 p-2 border border-black bg-gray-50">
+                                                <div class="font-bold text-[10px] underline mb-1">ส่วนที่ 4: สรุปการเกิดแผลกดทับ (เมื่อจำหน่าย)</div>
+                                                <div class="text-[9px]">
+                                                    วันที่จำหน่าย: <span class="font-bold" x-text="bradenGlobal.summary.dischargeDate"></span> &nbsp;|&nbsp; 
+                                                    สภาพแผล: <span class="font-bold text-red-600" x-text="bradenGlobal.summary.woundStatus"></span> &nbsp;|&nbsp;
+                                                    รายละเอียด: <span x-text="bradenGlobal.summary.detail"></span>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
             </main>
         </div>
     </div>
