@@ -2453,7 +2453,11 @@
                                     </tr>
                                     <tr class="bg-slate-100">
                                         <template x-for="day in bradenTimeline[currentBradenPage]">
-                                            <th class="w-[60px] p-2 border border-slate-300 font-bold text-slate-700 text-center" x-text="day.formattedDate"></th>
+                                            <th class="w-[60px] p-1 border border-slate-300">
+                                                <input type="text" class="w-full text-center text-[10px] font-bold outline-none bg-transparent text-pink-700" 
+                                                    x-model="getBradenDailyCell(day.date).customDate" 
+                                                    :placeholder="day.formattedDate">
+                                            </th>
                                         </template>
                                     </tr>
                                 </thead>
@@ -2535,15 +2539,19 @@
                                     <table class="w-full text-[11px] border-collapse min-w-[700px] text-center">
                                         <tr class="bg-slate-100">
                                             <th class="border border-slate-300 py-2 w-[12%]">ว/ด/ป</th>
-                                            <th class="border border-slate-300 py-2 w-[18%]">ตำแหน่งแผล</th> <th class="border border-slate-300 py-2 w-[15%]">ระดับ</th>
+                                            <th class="border border-slate-300 py-2 w-[18%]">ตำแหน่งแผล</th>
+                                            <th class="border border-slate-300 py-2 w-[15%]">ระดับ</th>
                                             <th class="border border-slate-300 py-2 w-[35%]">ลักษณะแผล</th>
                                             <th class="border border-slate-300 py-2 w-[20%]">ผู้บันทึก</th>
                                         </tr>
                                         <template x-for="day in bradenTimeline[currentBradenPage]">
                                             <tr>
-                                                <td class="border border-slate-300 font-bold p-1" x-text="day.formattedDate"></td>
+                                                <td class="border border-slate-300 p-0">
+                                                    <input type="text" class="w-full h-8 px-1 text-center font-bold outline-none bg-transparent" 
+                                                        x-model="getBradenDailyCell(day.date).customDate" 
+                                                        :placeholder="day.formattedDate">
+                                                </td>
                                                 <td class="border border-slate-300 p-0"><input type="text" class="w-full h-8 px-2 text-center outline-none bg-transparent" x-model="getBradenDailyCell(day.date).part3.location"></td>
-                                                
                                                 <td class="border border-slate-300 p-0"><input type="text" class="w-full h-8 px-2 text-center outline-none bg-transparent" x-model="getBradenDailyCell(day.date).part3.stage"></td>
                                                 <td class="border border-slate-300 p-0"><input type="text" class="w-full h-8 px-2 text-center outline-none bg-transparent" x-model="getBradenDailyCell(day.date).part3.appearance"></td>
                                                 <td class="border border-slate-300 p-0"><input type="text" class="w-full h-8 px-2 text-center outline-none bg-transparent" x-model="getBradenDailyCell(day.date).part3.recorder"></td>
@@ -2623,9 +2631,12 @@
                                             </tr>
                                             <tr class="bg-gray-100">
                                                 <template x-for="day in page">
-                                                    <th class="border border-black w-[20px] h-[60px] align-bottom pb-1" style="writing-mode: vertical-rl; transform: rotate(180deg);" x-text="day.formattedDate"></th>
+                                                    <th class="border border-black w-[20px] h-[60px] align-bottom pb-1 whitespace-nowrap" 
+                                                        style="writing-mode: vertical-rl; transform: rotate(180deg);" 
+                                                        x-text="bradenData[day.date]?.customDate || day.formattedDate"></th>
                                                 </template>
                                             </tr>
+                                        </thead>
                                         </thead>
                                         <tbody>
                                             <template x-for="(factor, fIndex) in [
@@ -2693,14 +2704,14 @@
                                                         <img src="https://www.weymouthphysiotherapy.com/wp-content/uploads/2018/02/Body-chart.jpg" class="w-full max-w-[120px] mx-auto" style="object-fit: contain;">
                                                     </td>
                                                 </template>
-                                                <td class="border border-black p-1 font-bold" x-text="day.formattedDate"></td>
+                                                <td class="border border-black p-1 font-bold" x-text="bradenData[day.date]?.customDate || day.formattedDate"></td>
                                                 
                                                 <td class="border border-black p-1" x-text="bradenData[day.date]?.part3?.location"></td>
-                                                
                                                 <td class="border border-black p-1" x-text="bradenData[day.date]?.part3?.stage"></td>
                                                 <td class="border border-black p-1 text-left px-1" x-text="bradenData[day.date]?.part3?.appearance"></td>
                                                 <td class="border border-black p-1 text-[8px]" x-text="bradenData[day.date]?.part3?.recorder"></td>
                                             </tr>
+                                        </template>
                                         </template>
                                     </table>
                 
