@@ -2603,6 +2603,179 @@
                         </div>
                     </div>
                 </template>
+                <template x-if="currentForm?.id === 'patient_edu'">
+                    <div x-init="loadPatientEdu(selectedPatient.an)" class="space-y-4 pb-10">
+                        
+                        <div class="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-cyan-200 sticky top-0 z-30 gap-4">
+                            <div>
+                                <h2 class="text-xl font-black text-cyan-700"><i class="fa-solid fa-chalkboard-user mr-2"></i>การให้คำแนะนำการปฏิบัติตัว (Discharge Planning)</h2>
+                            </div>
+                            <div class="flex flex-wrap gap-2 w-full md:w-auto">
+                                <button @click="currentForm = null; viewMode = 'detail'" class="flex-1 md:flex-none px-4 py-2 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition">กลับ</button>
+                                <button @click="printPatientEdu()" class="flex-1 md:flex-none px-4 py-2 bg-slate-800 text-white rounded-xl font-bold shadow-md hover:bg-slate-900 transition"><i class="fa-solid fa-print mr-2"></i>พิมพ์เอกสาร</button>
+                                
+                                <button x-show="!isEduEditing" @click="isEduEditing = true" class="flex-1 md:flex-none px-4 py-2 bg-cyan-600 text-white rounded-xl font-bold shadow-md hover:bg-cyan-700 transition">
+                                    <i class="fa-solid fa-pen mr-2"></i>แก้ไขข้อมูลเพื่อประเมินเพิ่ม
+                                </button>
+                                <button x-show="isEduEditing" @click="savePatientEdu()" class="flex-1 md:flex-none px-6 py-2 bg-rose-600 text-white rounded-xl font-bold shadow-md hover:bg-rose-700 transition animate-pulse">
+                                    <i class="fa-solid fa-floppy-disk mr-2"></i>บันทึกการเปลี่ยนแปลง
+                                </button>
+                            </div>
+                        </div>
+                
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 overflow-x-auto">
+                            <div x-show="!isEduEditing" class="mb-4 text-sm text-cyan-700 bg-cyan-50 p-3 rounded-lg border border-cyan-100 inline-block font-bold">
+                                <i class="fa-solid fa-eye mr-2"></i> โหมดดูข้อมูล (อ่านอย่างเดียว) หากต้องการประเมินเพิ่มให้กดปุ่ม "แก้ไขข้อมูลเพื่อประเมินเพิ่ม"
+                            </div>
+                            <div x-show="isEduEditing" class="mb-4 text-sm text-rose-700 bg-rose-50 p-3 rounded-lg border border-rose-100 inline-block font-bold">
+                                <i class="fa-solid fa-pen-nib mr-2"></i> โหมดแก้ไขข้อมูล (ติ๊กเลือกและกรอกข้อมูลได้เลย)
+                            </div>
+                
+                            <table class="w-full text-sm border-collapse border border-slate-300 min-w-[900px]">
+                                <thead class="bg-slate-100 text-slate-700 border-b-2 border-slate-300">
+                                    <tr>
+                                        <th class="p-3 border-r border-slate-300 w-[18%] text-left">เรื่อง</th>
+                                        <th class="p-3 border-r border-slate-300 w-[42%] text-left">คำแนะนำ</th>
+                                        <th class="p-3 border-r border-slate-300 w-[12%]">ว/ด/ป ที่ให้</th>
+                                        <th class="p-3 border-r border-slate-300 w-[14%]">ผู้ให้คำแนะนำ</th>
+                                        <th class="p-3 w-[14%]">ผู้รับคำแนะนำ</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="border-b border-slate-200 hover:bg-slate-50 transition">
+                                        <td class="p-3 border-r border-slate-200 font-bold align-top">D=Diagnosis<br><span class="text-xs font-normal text-slate-500">การให้ความรู้เรื่องโรค</span></td>
+                                        <td class="p-3 border-r border-slate-200">
+                                            <label class="flex items-start gap-2" :class="isEduEditing ? 'cursor-pointer' : 'cursor-default'">
+                                                <input type="checkbox" x-model="eduForm.D1.checked" :disabled="!isEduEditing" class="mt-1 w-4 h-4">
+                                                <span class="flex-1">ให้ความรู้เรื่องโรคที่เป็นอยู่ถึงสาเหตุ อาการ การปฏิบัติตัว ระบุ
+                                                    <input type="text" x-model="eduForm.D1.text1" :disabled="!isEduEditing" class="w-full border-b border-slate-300 bg-transparent outline-none focus:border-cyan-500 mt-1" placeholder="...">
+                                                </span>
+                                            </label>
+                                        </td>
+                                        <td class="p-2 border-r border-slate-200"><input type="date" x-model="eduForm.D1.date" :disabled="!isEduEditing" class="w-full bg-transparent outline-none text-center"></td>
+                                        <td class="p-2 border-r border-slate-200"><input type="text" x-model="eduForm.D1.provider" :disabled="!isEduEditing" class="w-full bg-transparent outline-none text-center" placeholder="ชื่อพยาบาล"></td>
+                                        <td class="p-2"><select x-model="eduForm.D1.receiver" :disabled="!isEduEditing" class="w-full bg-transparent outline-none"><option value=""></option><option>ผู้ป่วย</option><option>ญาติ</option></select></td>
+                                    </tr>
+                                    
+                                    <tr class="border-b border-slate-200 hover:bg-slate-50 transition">
+                                        <td class="p-3 border-r border-slate-200 font-bold align-top">M=Medicine<br><span class="text-xs font-normal text-slate-500">การให้ความรู้เรื่องยา</span></td>
+                                        <td class="p-3 border-r border-slate-200">
+                                            <label class="flex items-start gap-2" :class="isEduEditing ? 'cursor-pointer' : 'cursor-default'">
+                                                <input type="checkbox" x-model="eduForm.M1.checked" :disabled="!isEduEditing" class="mt-1 w-4 h-4">
+                                                <span class="flex-1">- ชนิดของยา ฤทธิ์ของยา / ผลข้างเคียง
+                                                    <input type="text" x-model="eduForm.M1.text1" :disabled="!isEduEditing" class="w-full border-b border-slate-300 bg-transparent outline-none focus:border-cyan-500 mt-1" placeholder="...">
+                                                </span>
+                                            </label>
+                                        </td>
+                                        <td class="p-2 border-r border-slate-200"><input type="date" x-model="eduForm.M1.date" :disabled="!isEduEditing" class="w-full bg-transparent outline-none text-center"></td>
+                                        <td class="p-2 border-r border-slate-200"><input type="text" x-model="eduForm.M1.provider" :disabled="!isEduEditing" class="w-full bg-transparent outline-none text-center" placeholder="ชื่อพยาบาล"></td>
+                                        <td class="p-2"><select x-model="eduForm.M1.receiver" :disabled="!isEduEditing" class="w-full bg-transparent outline-none"><option value=""></option><option>ผู้ป่วย</option><option>ญาติ</option></select></td>
+                                    </tr>
+                
+                                    <template x-for="(item, idx) in [
+                                        {id: 'E1', t: '- การดำรงชีวิตที่เหมาะสมกับสภาวะของโรค'},
+                                        {id: 'E2', t: 'การจัดการโภชนาการที่เหมาะสม การออกกำลังกายที่สม่ำเสมอ'},
+                                        {id: 'E3', t: 'การใช้ยาและการปฏิบัติตามแผนการรักษา การจัดการอารมณ์และความเครียด การป้องกันภาวะแทรกซ้อนและการดูแลตนเอง'},
+                                        {id: 'E4', t: 'ผู้ป่วยจำเป็นที่จะต้องได้รับการดูแลช่วยเหลือในเรื่อง การสนับสนุนการมีส่วนร่วมของครอบครัวในการดูแลผู้ป่วย การช่วยเหลือด้านสภาวะเศรษฐกิจ ปัญหาด้านสิทธิ์การรักษา'}
+                                    ]" :key="item.id">
+                                        <tr class="border-b border-slate-200 hover:bg-slate-50 transition">
+                                            <td x-show="idx === 0" rowspan="4" class="p-3 border-r border-slate-200 font-bold align-top bg-white">E=Environment & Economic<br><span class="text-xs font-normal text-slate-500">สิ่งแวดล้อมและสภาวะเศรษฐกิจ</span></td>
+                                            <td class="p-3 border-r border-slate-200">
+                                                <label class="flex items-start gap-2" :class="isEduEditing ? 'cursor-pointer' : 'cursor-default'">
+                                                    <input type="checkbox" x-model="eduForm[item.id].checked" :disabled="!isEduEditing" class="mt-1 w-4 h-4">
+                                                    <span class="flex-1" x-text="item.t"></span>
+                                                </label>
+                                            </td>
+                                            <td class="p-2 border-r border-slate-200"><input type="date" x-model="eduForm[item.id].date" :disabled="!isEduEditing" class="w-full bg-transparent outline-none text-center"></td>
+                                            <td class="p-2 border-r border-slate-200"><input type="text" x-model="eduForm[item.id].provider" :disabled="!isEduEditing" class="w-full bg-transparent outline-none text-center" placeholder="ชื่อพยาบาล"></td>
+                                            <td class="p-2"><select x-model="eduForm[item.id].receiver" :disabled="!isEduEditing" class="w-full bg-transparent outline-none"><option value=""></option><option>ผู้ป่วย</option><option>ญาติ</option></select></td>
+                                        </tr>
+                                    </template>
+                
+                                    <tr class="border-b border-slate-200 hover:bg-slate-50 transition">
+                                        <td rowspan="9" class="p-3 border-r border-slate-200 font-bold align-top bg-white">T=Treatment<br><span class="text-xs font-normal text-slate-500">แนวทางการรักษาพยาบาล</span></td>
+                                        <td class="p-3 border-r border-slate-200">
+                                            <label class="flex items-start gap-2" :class="isEduEditing ? 'cursor-pointer' : 'cursor-default'">
+                                                <input type="checkbox" x-model="eduForm.T1.checked" :disabled="!isEduEditing" class="mt-1 w-4 h-4">
+                                                <span class="flex-1">แนวทางการรักษาพยาบาล การรักษาด้วยยา การให้สารน้ำ ให้เลือด การผ่าตัด/หัตถการ ระบุ 
+                                                    <input type="text" x-model="eduForm.T1.text1" :disabled="!isEduEditing" class="w-32 border-b border-slate-300 bg-transparent outline-none"> 
+                                                    อื่นๆ ระบุ <input type="text" x-model="eduForm.T1.text2" :disabled="!isEduEditing" class="w-32 border-b border-slate-300 bg-transparent outline-none">
+                                                </span>
+                                            </label>
+                                        </td>
+                                        <td class="p-2 border-r border-slate-200"><input type="date" x-model="eduForm.T1.date" :disabled="!isEduEditing" class="w-full bg-transparent outline-none text-center"></td>
+                                        <td class="p-2 border-r border-slate-200"><input type="text" x-model="eduForm.T1.provider" :disabled="!isEduEditing" class="w-full bg-transparent outline-none text-center" placeholder="ชื่อพยาบาล"></td>
+                                        <td class="p-2"><select x-model="eduForm.T1.receiver" :disabled="!isEduEditing" class="w-full bg-transparent outline-none"><option value=""></option><option>ผู้ป่วย</option><option>ญาติ</option></select></td>
+                                    </tr>
+                                    <tr class="border-b border-slate-200 hover:bg-slate-50 transition">
+                                        <td class="p-3 border-r border-slate-200">
+                                            <label class="flex items-start gap-2" :class="isEduEditing ? 'cursor-pointer' : 'cursor-default'">
+                                                <input type="checkbox" x-model="eduForm.T2.checked" :disabled="!isEduEditing" class="mt-1 w-4 h-4">
+                                                <span class="flex-1">- สาธิตวิธีการดูแลตนเองในเรื่อง การให้อาหารทางสายยาง การดูแลแผล อื่นๆ ระบุ
+                                                    <input type="text" x-model="eduForm.T2.text1" :disabled="!isEduEditing" class="w-full border-b border-slate-300 bg-transparent outline-none mt-1"> 
+                                                </span>
+                                            </label>
+                                        </td>
+                                        <td class="p-2 border-r border-slate-200"><input type="date" x-model="eduForm.T2.date" :disabled="!isEduEditing" class="w-full bg-transparent outline-none text-center"></td>
+                                        <td class="p-2 border-r border-slate-200"><input type="text" x-model="eduForm.T2.provider" :disabled="!isEduEditing" class="w-full bg-transparent outline-none text-center" placeholder="ชื่อพยาบาล"></td>
+                                        <td class="p-2"><select x-model="eduForm.T2.receiver" :disabled="!isEduEditing" class="w-full bg-transparent outline-none"><option value=""></option><option>ผู้ป่วย</option><option>ญาติ</option></select></td>
+                                    </tr>
+                                    <template x-for="item in [
+                                        {id: 'T3', t: '- ความสำคัญในการดูแลสุขภาพและการปฏิบัติตัวที่ถูกต้อง'},
+                                        {id: 'T4', t: 'รับประทานยาให้ถูกขนาด ถูกเวลา และต่อเนื่อง'},
+                                        {id: 'T5', t: 'ควบคุมและเลือกทานอาหารตามคำแนะนำเฉพาะโรค'},
+                                        {id: 'T6', t: 'ออกกำลังกายอย่างสม่ำเสมอและเหมาะสมกับสภาพร่างกาย'},
+                                        {id: 'T7', t: 'ตรวจวัด น้ำตาล ความดัน และ สังเกตอาการผิดปกติ'},
+                                        {id: 'T8', t: 'งด การสูบบุหรี่ และเครื่องดื่มแอลกอฮอล์ทุกชนิด'},
+                                        {id: 'T9', t: 'สังเกตและ ดูแลบาดแผลหรืออาการผิดปกติ'}
+                                    ]" :key="item.id">
+                                        <tr class="border-b border-slate-200 hover:bg-slate-50 transition">
+                                            <td class="p-3 border-r border-slate-200">
+                                                <label class="flex items-start gap-2" :class="isEduEditing ? 'cursor-pointer' : 'cursor-default'"><input type="checkbox" x-model="eduForm[item.id].checked" :disabled="!isEduEditing" class="mt-1 w-4 h-4"><span class="flex-1" x-text="item.t"></span></label>
+                                            </td>
+                                            <td class="p-2 border-r border-slate-200"><input type="date" x-model="eduForm[item.id].date" :disabled="!isEduEditing" class="w-full bg-transparent outline-none text-center"></td>
+                                            <td class="p-2 border-r border-slate-200"><input type="text" x-model="eduForm[item.id].provider" :disabled="!isEduEditing" class="w-full bg-transparent outline-none text-center" placeholder="ชื่อพยาบาล"></td>
+                                            <td class="p-2"><select x-model="eduForm[item.id].receiver" :disabled="!isEduEditing" class="w-full bg-transparent outline-none"><option value=""></option><option>ผู้ป่วย</option><option>ญาติ</option></select></td>
+                                        </tr>
+                                    </template>
+                
+                                    <template x-for="(item, idx) in [
+                                        {id: 'H1', t: '- ความรู้เรื่องการลดปัจจัยเสี่ยงต่อการเกิดโรคของผู้ป่วย'},
+                                        {id: 'H2', t: 'ควบคุมอาหารตามหลักโภชนาการ ออกกำลังกายสม่ำเสมอ'},
+                                        {id: 'H3', t: 'งด การสูบบุหรี่ และเครื่องดื่มแอลกอฮอล์ทุกชนิด'},
+                                        {id: 'H4', t: 'จัดการความเครียด/พักผ่อนให้เพียงพอ'},
+                                        {id: 'H5', t: 'ใช้ยาตามแผนการรักษา อย่างเคร่งครัด'},
+                                        {id: 'H6', t: 'หลีกเลี่ยงความเสี่ยงต่อการติดเชื้อ'}
+                                    ]" :key="item.id">
+                                        <tr class="border-b border-slate-200 hover:bg-slate-50 transition">
+                                            <td x-show="idx === 0" rowspan="6" class="p-3 border-r border-slate-200 font-bold align-top bg-white">H=Health<br><span class="text-xs font-normal text-slate-500">ภาวะสุขภาพ การส่งเสริมร่างกายจิตใจ</span></td>
+                                            <td class="p-3 border-r border-slate-200">
+                                                <label class="flex items-start gap-2" :class="isEduEditing ? 'cursor-pointer' : 'cursor-default'"><input type="checkbox" x-model="eduForm[item.id].checked" :disabled="!isEduEditing" class="mt-1 w-4 h-4"><span class="flex-1" x-text="item.t"></span></label>
+                                            </td>
+                                            <td class="p-2 border-r border-slate-200"><input type="date" x-model="eduForm[item.id].date" :disabled="!isEduEditing" class="w-full bg-transparent outline-none text-center"></td>
+                                            <td class="p-2 border-r border-slate-200"><input type="text" x-model="eduForm[item.id].provider" :disabled="!isEduEditing" class="w-full bg-transparent outline-none text-center" placeholder="ชื่อพยาบาล"></td>
+                                            <td class="p-2"><select x-model="eduForm[item.id].receiver" :disabled="!isEduEditing" class="w-full bg-transparent outline-none"><option value=""></option><option>ผู้ป่วย</option><option>ญาติ</option></select></td>
+                                        </tr>
+                                    </template>
+                
+                                    <tr class="border-b border-slate-200 hover:bg-slate-50 transition">
+                                        <td class="p-3 border-r border-slate-200 font-bold align-top">Empowerment<br><span class="text-xs font-normal text-slate-500">การดูแลสุขภาพที่เหมาะสม</span></td>
+                                        <td class="p-3 border-r border-slate-200">
+                                            <span class="block mb-2 text-sm font-bold">เรื่อง <input type="text" x-model="eduForm.EM1.text1" :disabled="!isEduEditing" class="w-48 border-b border-slate-300 bg-transparent outline-none"></span>
+                                            <label class="flex items-start gap-2" :class="isEduEditing ? 'cursor-pointer' : 'cursor-default'">
+                                                <input type="checkbox" x-model="eduForm.EM1.checked" :disabled="!isEduEditing" class="mt-1 w-4 h-4">
+                                                <span class="flex-1">ความรู้ที่ถูกต้องเกี่ยวกับโรค ทักษะในการจัดการดูแลตนเองที่บ้าน</span>
+                                            </label>
+                                        </td>
+                                        <td class="p-2 border-r border-slate-200 align-bottom"><input type="date" x-model="eduForm.EM1.date" :disabled="!isEduEditing" class="w-full bg-transparent outline-none text-center"></td>
+                                        <td class="p-2 border-r border-slate-200 align-bottom"><input type="text" x-model="eduForm.EM1.provider" :disabled="!isEduEditing" class="w-full bg-transparent outline-none text-center" placeholder="ชื่อพยาบาล"></td>
+                                        <td class="p-2 align-bottom"><select x-model="eduForm.EM1.receiver" :disabled="!isEduEditing" class="w-full bg-transparent outline-none"><option value=""></option><option>ผู้ป่วย</option><option>ญาติ</option></select></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </template>
             </main>
         </div>
     </div>
