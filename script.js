@@ -8,6 +8,7 @@ function nurseApp() {
         viewMode: 'list', 
         isEditing: false,
         nurses: [],
+        showNurseListFor: null,
 
         selectedPatient: null,
         currentForm: null, 
@@ -30,31 +31,23 @@ function nurseApp() {
             s4_dischargeDate: '', s4_outcome: '', s4_ulcerDate: '', s4_location: '', s4_size: '', s4_appearance: '', s4_stage: '', s4_count: ''
         },
         defaultEduForm() {
+            defaultEduForm() {
+            defaultEduForm() {
             return {
-                D1: { checked: false, text1: '', date: '', provider: '', receiver: '' },
-                M1: { checked: false, text1: '', date: '', provider: '', receiver: '' },
-                E1: { checked: false, date: '', provider: '', receiver: '' },
-                E2: { checked: false, date: '', provider: '', receiver: '' },
-                E3: { checked: false, date: '', provider: '', receiver: '' },
-                E4: { checked: false, date: '', provider: '', receiver: '' },
-                T1: { checked: false, text1: '', text2: '', date: '', provider: '', receiver: '' },
-                T2: { checked: false, text1: '', date: '', provider: '', receiver: '' },
-                T3: { checked: false, date: '', provider: '', receiver: '' },
-                T4: { checked: false, date: '', provider: '', receiver: '' },
-                T5: { checked: false, date: '', provider: '', receiver: '' },
-                T6: { checked: false, date: '', provider: '', receiver: '' },
-                T7: { checked: false, date: '', provider: '', receiver: '' },
-                T8: { checked: false, date: '', provider: '', receiver: '' },
-                T9: { checked: false, date: '', provider: '', receiver: '' },
-                H1: { checked: false, date: '', provider: '', receiver: '' },
-                H2: { checked: false, date: '', provider: '', receiver: '' },
-                H3: { checked: false, date: '', provider: '', receiver: '' },
-                H4: { checked: false, date: '', provider: '', receiver: '' },
-                H5: { checked: false, date: '', provider: '', receiver: '' },
-                H6: { checked: false, date: '', provider: '', receiver: '' },
-                EM1: { checked: false, text1: '', date: '', provider: '', receiver: '' }
+                D1: { checked: false, text1: '', date: '', provider: '', pos: '', receiver: '' },
+                M1: { checked: false, text1: '', text2: '', date: '', provider: '', pos: '', receiver: '' },
+                E1: { checked: false, options: [], date: '', provider: '', pos: '', receiver: '' },
+                E2: { checked: false, options: [], date: '', provider: '', pos: '', receiver: '' },
+                T1: { checked: false, options: [], text1: '', text2: '', date: '', provider: '', pos: '', receiver: '' },
+                T2: { checked: false, options: [], text1: '', date: '', provider: '', pos: '', receiver: '' },
+                T3: { checked: false, options: [], date: '', provider: '', pos: '', receiver: '' },
+                H1: { checked: false, options: [], date: '', provider: '', pos: '', receiver: '' },
+                O1: { checked: false, text1: '', text2: '', text3: '', date: '', provider: '', pos: '', receiver: '' },
+                O2: { checked: false, options: [], text1: '', date: '', provider: '', pos: '', receiver: '' },
+                O3: { checked: false, date: '', provider: '', pos: '', receiver: '' },
+                Diet1: { checked: false, text1: '', text2: '', text3: '', date: '', provider: '', pos: '', receiver: '' }
             };
-        },       
+        }       
                 
         isSidebarCollapsed: false, // สถานะการพับ Sidebar
         
@@ -148,6 +141,12 @@ function nurseApp() {
             return this.nurses.filter(n => 
                 n && n.name && n.name.toString().toLowerCase().includes(term)
             );
+        },
+        filteredNursesEdu(term) {
+            if (!this.nurses) return [];
+            if (!term) return this.nurses.slice(0, 20); // แสดง 20 คนแรกถ้ายังไม่พิมพ์
+            const q = term.toLowerCase();
+            return this.nurses.filter(n => n.name.toLowerCase().includes(q));
         },
 
         async loadInitialData() {
@@ -1886,110 +1885,124 @@ function nurseApp() {
     
             printPatientEdu() {
                 if (!this.eduForm) return;
-    
-                // ชุดข้อมูลสำหรับวนลูปสร้างตาราง (ให้หน้าตาเหมือน PDF 100%)
+            
+                // ฟังก์ชันช่วยจัดการเครื่องหมายถูก (Checked) สำหรับ Array และ Boolean
+                const getCheck = (id, optionValue = null) => {
+                    const d = this.eduForm[id];
+                    if (!d) return '☐';
+                    // ถ้าส่ง optionValue มา แสดงว่าเป็นข้อที่เป็นตัวเลือกหลายข้อ
+                    if (optionValue) {
+                        return (d.options && d.options.includes(optionValue)) ? '☑' : '☐';
+                    }
+                    // ถ้าไม่มี optionValue แสดงว่าเป็น Checkbox หลักของแถวนั้น
+                    return d.checked ? '☑' : '☐';
+                };
+            
+                // ชุดข้อมูลสำหรับวนลูปสร้างตาราง (ตามเงื่อนไข 100%)
                 const rowsDef = [
-                    { id: 'D1', rs: 1, topic: 'D=Diagnosis<br>การให้ความรู้เรื่องโรค', text: (d) => `ให้ความรู้เรื่องโรคที่เป็นอยู่ถึงสาเหตุ อาการ การปฏิบัติตัว ระบุ <span style="border-bottom:1px dotted #000;">${d.text1 || '...........................................'}</span>` },
-                    { id: 'M1', rs: 1, topic: 'M=Medicine<br>การให้ความรู้เรื่องยา', text: (d) => `- ชนิดของยา ฤทธิ์ของยา / ผลข้างเคียง <span style="border-bottom:1px dotted #000;">${d.text1 || '...........................................'}</span>` },
-                    { id: 'E1', rs: 4, topic: 'E=Environment & Economic<br>การให้ความรู้ด้านสิ่งแวดล้อมและสภาวะเศรษฐกิจ', text: () => `- การดำรงชีวิตที่เหมาะสมกับสภาวะของโรค` },
-                    { id: 'E2', rs: 0, text: () => `การจัดการโภชนาการที่เหมาะสม การออกกำลังกายที่สม่ำเสมอ` },
-                    { id: 'E3', rs: 0, text: () => `การใช้ยาและการปฏิบัติตามแผนการรักษา การจัดการอารมณ์และความเครียด การป้องกันภาวะแทรกซ้อนและการดูแลตนเอง` },
-                    { id: 'E4', rs: 0, text: () => `ผู้ป่วยจำเป็นที่จะต้องได้รับการดูแลช่วยเหลือในเรื่อง การสนับสนุนการมีส่วนร่วมของครอบครัวในการดูแลผู้ป่วย การช่วยเหลือด้านสภาวะเศรษฐกิจ ปัญหาด้านสิทธิ์การรักษา` },
-                    { id: 'T1', rs: 9, topic: 'T=Treatment<br>แนวทางการรักษาพยาบาล', text: (d) => `แนวทางการรักษาพยาบาล การรักษาด้วยยา การให้สารน้ำ ให้เลือด การผ่าตัด/หัตถการ ระบุ <span style="border-bottom:1px dotted #000;">${d.text1||'...........'}</span> อื่นๆ ระบุ <span style="border-bottom:1px dotted #000;">${d.text2||'...........'}</span>` },
-                    { id: 'T2', rs: 0, text: (d) => `- สาธิตวิธีการดูแลตนเองในเรื่อง การให้อาหารทางสายยาง การดูแลแผล อื่นๆ ระบุ <span style="border-bottom:1px dotted #000;">${d.text1||'..................'}</span>` },
-                    { id: 'T3', rs: 0, text: () => `- ความสำคัญในการดูแลสุขภาพและการปฏิบัติตัวที่ถูกต้อง` },
-                    { id: 'T4', rs: 0, text: () => `รับประทานยาให้ถูกขนาด ถูกเวลา และต่อเนื่อง` },
-                    { id: 'T5', rs: 0, text: () => `ควบคุมและเลือกทานอาหารตามคำแนะนำเฉพาะโรค` },
-                    { id: 'T6', rs: 0, text: () => `ออกกำลังกายอย่างสม่ำเสมอและเหมาะสมกับสภาพร่างกาย` },
-                    { id: 'T7', rs: 0, text: () => `ตรวจวัด น้ำตาล ความดัน และ สังเกตอาการผิดปกติ` },
-                    { id: 'T8', rs: 0, text: () => `งด การสูบบุหรี่ และเครื่องดื่มแอลกอฮอล์ทุกชนิด` },
-                    { id: 'T9', rs: 0, text: () => `สังเกตและ ดูแลบาดแผลหรืออาการผิดปกติ` },
-                    { id: 'H1', rs: 6, topic: 'H=Health<br>ภาวะสุขภาพ โรคที่เจ็บป่วย การส่งเสริมสุขภาพด้านร่างกาย จิตใจ', text: () => `- ความรู้เรื่องการลดปัจจัยเสี่ยงต่อการเกิดโรคของผู้ป่วย` },
-                    { id: 'H2', rs: 0, text: () => `ควบคุมอาหารตามหลักโภชนาการ ออกกำลังกายสม่ำเสมอ` },
-                    { id: 'H3', rs: 0, text: () => `งด การสูบบุหรี่ และเครื่องดื่มแอลกอฮอล์ทุกชนิด` },
-                    { id: 'H4', rs: 0, text: () => `จัดการความเครียด/พักผ่อนให้เพียงพอ` },
-                    { id: 'H5', rs: 0, text: () => `ใช้ยาตามแผนการรักษา อย่างเคร่งครัด` },
-                    { id: 'H6', rs: 0, text: () => `หลีกเลี่ยงความเสี่ยงต่อการติดเชื้อ` },
-                    { id: 'EM1', rs: 1, topic: 'Empowerment<br>การดูแลสุขภาพที่เหมาะสม', text: (d) => `เรื่อง <span style="border-bottom:1px dotted #000;">${d.text1||'.............................................'}</span><br>ความรู้ที่ถูกต้องเกี่ยวกับโรค ทักษะในการจัดการดูแลตนเองที่บ้าน` }
+                    { id: 'D1', rs: 1, topic: '1.D=Diagnosis<br>การให้ความรู้เรื่องโรค', text: (d) => `ให้ความรู้เรื่องโรคที่เป็นอยู่ถึงสาเหตุ อาการ การปฏิบัติตัว ระบุ <span class="dot-line">${d.text1 || '...........................................'}</span>` },
+                    { id: 'M1', rs: 1, topic: '2.M=Medicine<br>การให้ความรู้เรื่องยา', text: (d) => `- ชนิดของยา <span class="dot-line">${d.text1 || '..................'}</span><br>- ฤทธิ์ของยา / ผลข้างเคียง <span class="dot-line">${d.text2 || '..................'}</span>` },
+                    
+                    // E Section
+                    { id: 'E1', rs: 2, topic: '3.E=Environment & Economic<br>การให้ความรู้ด้านสิ่งแวดล้อมและสภาวะเศรษฐกิจ', text: (d) => `
+                        - การดำรงชีวิตที่เหมาะสมกับสภาวะของโรค ได้แก่:<br>
+                        ${['การจัดการโภชนาการที่เหมาะสม', 'การออกกำลังกายที่สม่ำเสมอ', 'การใช้ยาและการปฏิบัติตามแผนการรักษา', 'การป้องกันภาวะแทรกซ้อนและการดูแลตนเอง'].map(opt => `${getCheck('E1', opt)} ${opt}`).join(' ')}
+                    ` },
+                    { id: 'E1', rs: 0, text: (d) => `
+                        - ผู้ป่วยจำเป็นที่จะต้องได้รับการดูแลช่วยเหลือในเรื่อง ได้แก่:<br>
+                        ${['การสนับสนุนการมีส่วนร่วมของครอบครัวในการดูแลผู้ป่วย', 'การช่วยเหลือด้านสภาวะเศรษฐกิจ', 'ปัญหาด้านสิทธิ์การรักษา'].map(opt => `${getCheck('E2', opt)} ${opt}`).join(' ')}
+                    ` },
+            
+                    // T Section
+                    { id: 'T1', rs: 3, topic: '4.T=Treatment<br>แนวทางการรักษาพยาบาล', text: (d) => `
+                        - แนวทางการรักษาพยาบาล ได้แก่:<br>
+                        ${['การรักษาด้วยยา', 'การให้สารน้ำ', 'ให้เลือด'].map(opt => `${getCheck('T1', opt)} ${opt}`).join(' ')} 
+                        ${getCheck('T1', 'การผ่าตัด/หัตถการ')} ผ่าตัด/หัตถการ ระบุ <span class="dot-line">${d.text1 || '.......'}</span> 
+                        ${getCheck('T1', 'อื่นๆ')} อื่นๆ ระบุ <span class="dot-line">${d.text2 || '.......'}</span>
+                    ` },
+                    { id: 'T1', rs: 0, text: (d) => `
+                        - สาธิตวิธีการดูแลตนเองในเรื่อง:<br>
+                        ${['การให้อาหารทางสายยาง', 'การดูแลแผล'].map(opt => `${getCheck('T2', opt)} ${opt}`).join(' ')} 
+                        ${getCheck('T2', 'อื่นๆ')} อื่นๆ ระบุ <span class="dot-line">${this.eduForm.T2.text1 || '................'}</span>
+                    ` },
+                    { id: 'T1', rs: 0, text: (d) => `
+                        - ความสำคัญในการดูแลสุขภาพและการปฏิบัติตัวที่ถูกต้อง ได้แก่:<br>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 2px;">
+                            ${['รับประทานยาให้ถูกขนาด ถูกเวลา และต่อเนื่อง', 'ควบคุมและเลือกทานอาหารตามคำแนะนำเฉพาะโรค', 'ออกกำลังกายอย่างสม่ำเสมอและเหมาะสมกับสภาพร่างกาย', 'ตรวจวัด น้ำตาล ความดัน และ สังเกตอาการผิดปกติ', 'งด การสูบบุหรี่ และเครื่องดื่มแอลกอฮอล์ทุกชนิด', 'สังเกตและ ดูแลบาดแผลหรืออาการผิดปกติ'].map(opt => `<span>${getCheck('T3', opt)} ${opt}</span>`).join('')}
+                        </div>
+                    ` },
+            
+                    // H Section
+                    { id: 'H1', rs: 1, topic: '5.H=Health<br>ภาวะสุขภาพ โรคที่เจ็บป่วย การส่งเสริมด้านร่างกาย จิตใจ', text: (d) => `
+                        - ความรู้เรื่องการลดปัจจัยเสี่ยงต่อการเกิดโรคของผู้ป่วย ได้แก่:<br>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 2px;">
+                            ${['ควบคุมอาหารตามหลักโภชนาการ ออกกำลังกายสม่ำเสมอ', 'งด การสูบบุหรี่ และเครื่องดื่มแอลกอฮอล์ทุกชนิด', 'จัดการความเครียด/พักผ่อนให้เพียงพอ', 'ใช้ยาตามแผนการรักษา อย่างเคร่งครัด', 'หลีกเลี่ยงความเสี่ยงต่อการติดเชื้อ'].map(opt => `<span>${getCheck('H1', opt)} ${opt}</span>`).join('')}
+                        </div>
+                    ` },
+            
+                    // O Section
+                    { id: 'O1', rs: 3, topic: '6. O=Out Patient<br>การดูแลต่อเนื่อง', text: (d) => `- การมาตรวจตามนัด วันที่ <span class="dot-line">${d.text1 || '.............'}</span> สถานที่ <span class="dot-line">${d.text2 || '.............'}</span> การเตรียมตัว <span class="dot-line">${d.text3 || '.............'}</span>` },
+                    { id: 'O1', rs: 0, text: (d) => `
+                        - แหล่งข้อมูลเครือข่ายหรือแหล่งสนับสนุนทางสังคม:<br>
+                        ${['ผู้นำชุมชน', 'อสม.', 'รพ.สต.'].map(opt => `${getCheck('O2', opt)} ${opt}`).join(' ')} 
+                        ${getCheck('O2', 'อื่นๆ')} อื่นๆ ระบุ <span class="dot-line">${this.eduForm.O2.text1 || '...........'}</span>
+                    ` },
+                    { id: 'O1', rs: 0, text: (d) => `<b>- การขอความช่วยเหลือ 1669</b>` },
+            
+                    // Diet Section
+                    { id: 'Diet1', rs: 1, topic: '7. D-Diet<br>การเลือกรับประทานอาหาร', text: (d) => `
+                        ความรู้ความเข้าใจด้านอาหารที่เหมาะสมกับสภาวะของโรค:<br>
+                        - อาหารเฉพาะโรค ระบุ <span class="dot-line">${d.text1 || '....................'}</span><br>
+                        - อาหารที่ควรหลีกเลี่ยง <span class="dot-line">${d.text2 || '....................'}</span> อื่นๆ <span class="dot-line">${d.text3 || '....................'}</span>
+                    ` }
                 ];
-    
+            
                 let htmlRows = '';
                 rowsDef.forEach(row => {
                     const d = this.eduForm[row.id];
                     const dateStr = d.date ? this.formatThaiDateShort(d.date) : '.................';
-                    const check = d.checked ? '✔' : '&nbsp;&nbsp;&nbsp;';
+                    
                     htmlRows += `
                         <tr>
                             ${row.rs > 0 ? `<td rowspan="${row.rs}" style="vertical-align:top; font-weight:bold; width: 18%; background-color:#f8fafc;">${row.topic}</td>` : ''}
-                            <td style="width: 44%; line-height: 1.6;">[ ${check} ] ${row.text(d)}</td>
-                            <td style="width: 12%; text-align:center;">${dateStr}</td>
-                            <td style="width: 13%; text-align:center;">${d.provider || '.................'}</td>
-                            <td style="width: 13%; text-align:center;">${d.receiver || '.................'}</td>
+                            <td style="width: 44%; line-height: 1.5; font-size: 11px;">${row.text(d)}</td>
+                            <td style="width: 12%; text-align:center; vertical-align:top;">${dateStr}</td>
+                            <td style="width: 13%; text-align:center; vertical-align:top; font-size:10px;">
+                                ${d.provider || '.................'}<br>
+                                <span style="color:#666;">${d.pos ? '(' + d.pos + ')' : ''}</span>
+                            </td>
+                            <td style="width: 13%; text-align:center; vertical-align:top;">${d.receiver || '.................'}</td>
                         </tr>
                     `;
                 });
-    
-                const fixedElements = `
-                    <div class="print-patient-info">
-                        <div><b>ชื่อ-สกุล:</b> ${this.selectedPatient?.name || '-'} &nbsp;&nbsp;<b>อายุ:</b> ${this.selectedPatient?.ageDisplay || '-'}</div>
-                        <div><b>HN:</b> ${this.selectedPatient?.hn || '-'} &nbsp;&nbsp;<b>AN:</b> ${this.selectedPatient?.an || '-'}</div>
-                        <div><b>แพทย์:</b> ${this.selectedPatient?.doctor || '-'} &nbsp;&nbsp;<b>ตึก:</b> ${this.currentWard || '-'} &nbsp;&nbsp;<b>เตียง:</b> ${this.selectedPatient?.bed || '-'}</div>
-                    </div> 
-                    <div class="print-global-footer">
-                        เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | โปรแกรมบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
-                    </div>
-                `;
-    
+            
+                // ... (ส่วนการเปิด window.open และ pri.document.write ให้ใช้ CSS เดิม แต่เพิ่มคลาส .dot-line)
                 const pri = window.open('', '_blank');
-                pri.document.write(`<html><head><title>พิมพ์การให้คำแนะนำ (Discharge Planning)</title><link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet"><style>
-                    body { font-family:'Sarabun',sans-serif; font-size:12px; margin:0; padding:0; line-height: 1.3; color: #000; } 
-                    .a4-page { width:210mm; min-height:297mm; padding:8mm 10mm 35mm 10mm; margin:auto; box-sizing:border-box; position:relative; } 
-                    table { width:100%; border-collapse:collapse; margin-bottom:5px; font-size:12px; } 
-                    th,td { border:1px solid #000; padding:4px 6px; } 
-                    .text-center { text-align:center; } 
-                    .bg-gray { background-color:#e2e8f0; } 
-                    .font-bold { font-weight:bold; } 
-                    
-                    .print-global-footer {
-                        position: fixed; bottom: 0; left: 0; width: 100%; text-align: center;
-                        font-size: 8.5px; color: #475569 !important; border-top: 1px solid #9ca3af; 
-                        padding-top: 4px; padding-bottom: 4px; background-color: white; z-index: 1000;
-                    }
-                    .print-patient-info {
-                        position: fixed; bottom: 25px; right: 15px; width: 260px;
-                        border: 1px solid #000 !important; border-radius: 4px; padding: 4px 6px;
-                        font-size: 10px; background-color: white !important; z-index: 1000; 
-                        line-height: 1.3; color: black !important;
-                    }
-                    @media print { 
-                        .a4-page { margin: 0; border: none; box-shadow: none; padding-bottom: 35mm; } 
-                        @page { margin: 5mm; } 
-                    }
-                </style></head><body>
-                <div class="a4-page">
-                    <div style="text-align: right; font-size: 10px; font-weight: bold; line-height: 1.3; margin-bottom: 5px;">
-                        Echart-ipd-nurse<br>Discharge-Planning-Form
+                pri.document.write(`<html><head><title>Print D-M-E-T-H-O-D</title>
+                    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+                    <style>
+                        body { font-family:'Sarabun',sans-serif; font-size:12px; margin:0; padding:0; color: #000; } 
+                        .a4-page { width:210mm; padding:10mm; margin:auto; } 
+                        table { width:100%; border-collapse:collapse; } 
+                        th,td { border:1px solid #000; padding:5px; } 
+                        .dot-line { border-bottom: 1px dotted #000; min-width: 50px; display: inline-block; padding: 0 5px; }
+                        @media print { .a4-page { padding: 5mm; } }
+                    </style>
+                </head><body>
+                    <div class="a4-page">
+                        <h2 style="text-align:center; font-size:16px;">แบบบันทึกการให้คำแนะนำ D-M-E-T-H-O-D</h2>
+                        <table>
+                            <thead>
+                                <tr style="background:#eee">
+                                    <th>เรื่อง</th><th>คำแนะนำ</th><th>ว/ด/ป ที่ให้</th><th>ผู้ให้คำแนะนำ</th><th>ผู้รับคำแนะนำ</th>
+                                </tr>
+                            </thead>
+                            <tbody>${htmlRows}</tbody>
+                        </table>
                     </div>
-                    <h2 class="text-center font-bold" style="font-size: 15px; margin-bottom: 12px;">แบบบันทึกการให้คำแนะนำการปฏิบัติตัวระหว่างเข้ารับการรักษาในโรงพยาบาลและเมื่อผู้ป่วยกลับบ้าน</h2>
-                    
-                    <table>
-                        <thead>
-                            <tr class="bg-gray">
-                                <th>เรื่อง</th>
-                                <th>คำแนะนำ</th>
-                                <th>ว/ด/ป ที่ให้คำแนะนำ</th>
-                                <th>ผู้ให้คำแนะนำ</th>
-                                <th>ผู้รับคำแนะนำ</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${htmlRows}
-                        </tbody>
-                    </table>
-                </div>
-                ${fixedElements}
-                <script>window.onload=()=>{setTimeout(()=>{window.print();},800)};</script></body></html>`);
+                    <script>window.onload=()=>{ setTimeout(()=>{window.print(); window.close();}, 500); }</script>
+                </body></html>`);
                 pri.document.close();
-            },
+            }
     };
 }
