@@ -506,7 +506,7 @@ function nurseApp() {
                     await this.loadClassifications(this.selectedPatient.an);
                 } else if (form.id === 'fall_risk') {
                     await this.loadFallRisk(this.selectedPatient.an);
-                } } else if (form.id === 'braden_scale') {
+                }  else if (form.id === 'braden_scale') {
                     await this.loadBraden(this.selectedPatient.an);
                 }
             } catch (e) {
