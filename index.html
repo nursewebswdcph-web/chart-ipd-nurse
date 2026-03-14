@@ -2446,6 +2446,32 @@
                                 </table>
                             </div>
                         </div>
+                        <div class="bg-indigo-50/50 p-6 rounded-2xl shadow-sm border border-indigo-200">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b border-indigo-200 pb-3 gap-3">
+                            <h3 class="font-bold text-lg text-indigo-800"><i class="fa-solid fa-file-contract mr-2"></i>ส่วนที่ 4: สรุปการเกิดแผลกดทับ (ประเมินเมื่อจำหน่าย/ย้าย)</h3>
+                            <button @click="saveBradenSummary()" class="px-8 py-2.5 bg-indigo-600 text-white rounded-xl font-bold shadow-md hover:bg-indigo-700 transition active:scale-95 flex-1 md:flex-none w-full md:w-auto">
+                                <i class="fa-solid fa-floppy-disk mr-2"></i> บันทึกสรุปแผลกดทับ
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 bg-white p-5 rounded-xl border border-indigo-100 shadow-sm">
+                            <div><label class="block text-xs font-bold text-indigo-700 mb-1">วันที่จำหน่าย / ย้าย</label><input type="date" x-model="bradenForm.s4_dischargeDate" class="w-full border border-indigo-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500"></div>
+                            <div><label class="block text-xs font-bold text-indigo-700 mb-1">ผลปรากฏ</label>
+                                <select x-model="bradenForm.s4_outcome" class="w-full border border-indigo-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 bg-white"><option value="">- เลือกผลลัพธ์ -</option><option>ไม่เกิดแผลกดทับ</option><option>เกิดแผลกดทับ</option></select>
+                            </div>
+                            <div><label class="block text-xs font-bold text-indigo-700 mb-1">เกิดแผลวันที่</label><input type="date" x-model="bradenForm.s4_ulcerDate" :disabled="bradenForm.s4_outcome !== 'เกิดแผลกดทับ'" class="w-full border border-indigo-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 disabled:bg-slate-100"></div>
+                            <div><label class="block text-xs font-bold text-indigo-700 mb-1">ตำแหน่งแผล</label><input type="text" x-model="bradenForm.s4_location" class="w-full border border-indigo-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500"></div>
+                            <div><label class="block text-xs font-bold text-indigo-700 mb-1">ขนาด</label><input type="text" x-model="bradenForm.s4_size" class="w-full border border-indigo-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500"></div>
+                            <div><label class="block text-xs font-bold text-indigo-700 mb-1">ลักษณะแผล</label><input type="text" x-model="bradenForm.s4_appearance" class="w-full border border-indigo-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500"></div>
+                            <div><label class="block text-xs font-bold text-indigo-700 mb-1">ระดับแผลกดทับ</label><input type="text" x-model="bradenForm.s4_stage" class="w-full border border-indigo-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500"></div>
+                            <div><label class="block text-xs font-bold text-indigo-700 mb-1">จำนวนแผล</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="number" x-model="bradenForm.s4_count" class="w-full border border-indigo-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500">
+                                    <span class="text-sm font-bold text-indigo-900">แผล</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                         <div class="p-6 bg-white">
                         <div class="bg-teal-50/20 p-5 rounded-xl border border-teal-100">
                             <div class="mb-4 pb-2 border-b border-teal-100">
@@ -2570,85 +2596,6 @@
                                     <button @click="saveBraden()" class="px-8 py-2.5 bg-pink-600 text-white rounded-xl font-bold shadow-lg shadow-pink-200 hover:bg-pink-700 transition active:scale-95"><i class="fa-solid fa-floppy-disk mr-2"></i> บันทึกข้อมูลแบบประเมิน</button>
                                 </div>
                                 
-                            </div>
-                        </div>
-                    </div>
-                    <div x-show="showBradenSummaryModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" x-cloak>
-                        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden"
-                             x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0"
-                             x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 translate-y-4">
-                            
-                            <div class="px-6 py-4 border-b border-indigo-200 flex justify-between items-center bg-indigo-50">
-                                <h3 class="font-bold text-lg text-indigo-800"><i class="fa-solid fa-file-contract mr-2"></i>ส่วนที่ 4: สรุปการเกิดแผลกดทับ (ประเมินเมื่อจำหน่าย/ย้าย)</h3>
-                                <button @click="showBradenSummaryModal = false" class="text-indigo-400 hover:text-rose-600 transition"><i class="fa-solid fa-xmark text-2xl"></i></button>
-                            </div>
-            
-                            <div class="p-6 overflow-y-auto custom-scrollbar flex-1 bg-white">
-                                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 bg-indigo-50 p-5 rounded-xl border border-indigo-100">
-                                    <div><label class="block text-xs font-bold text-indigo-700 mb-1">วันที่จำหน่าย / ย้าย</label><input type="date" x-model="bradenForm.s4_dischargeDate" class="w-full border border-indigo-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500"></div>
-                                    <div><label class="block text-xs font-bold text-indigo-700 mb-1">ผลปรากฏ</label>
-                                        <select x-model="bradenForm.s4_outcome" class="w-full border border-indigo-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 bg-white"><option value="">- เลือกผลลัพธ์ -</option><option>ไม่เกิดแผลกดทับ</option><option>เกิดแผลกดทับ</option></select>
-                                    </div>
-                                    <div><label class="block text-xs font-bold text-indigo-700 mb-1">เกิดแผลวันที่</label><input type="date" x-model="bradenForm.s4_ulcerDate" :disabled="bradenForm.s4_outcome !== 'เกิดแผลกดทับ'" class="w-full border border-indigo-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 disabled:bg-slate-100"></div>
-                                    <div><label class="block text-xs font-bold text-indigo-700 mb-1">ตำแหน่งแผล</label><input type="text" x-model="bradenForm.s4_location" class="w-full border border-indigo-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500"></div>
-                                    <div><label class="block text-xs font-bold text-indigo-700 mb-1">ขนาด</label><input type="text" x-model="bradenForm.s4_size" class="w-full border border-indigo-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500"></div>
-                                    <div><label class="block text-xs font-bold text-indigo-700 mb-1">ลักษณะแผล</label><input type="text" x-model="bradenForm.s4_appearance" class="w-full border border-indigo-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500"></div>
-                                    <div><label class="block text-xs font-bold text-indigo-700 mb-1">ระดับแผลกดทับ</label><input type="text" x-model="bradenForm.s4_stage" class="w-full border border-indigo-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500"></div>
-                                    <div><label class="block text-xs font-bold text-indigo-700 mb-1">จำนวนแผล</label>
-                                        <div class="flex items-center gap-2">
-                                            <input type="number" x-model="bradenForm.s4_count" class="w-full border border-indigo-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500">
-                                            <span class="text-sm font-bold text-indigo-900">แผล</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-            
-                            <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 flex justify-end gap-3 rounded-b-2xl">
-                                <button @click="showBradenSummaryModal = false" class="px-6 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-xl font-bold hover:bg-slate-100 transition">ยกเลิก</button>
-                                <button @click="saveBradenSummary()" class="px-8 py-2.5 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition active:scale-95"><i class="fa-solid fa-floppy-disk mr-2"></i> บันทึกสรุปแผลกดทับ</button>
-                            </div>
-                        </div>
-                    </div>
-            
-                    <div x-show="showBradenGuidelineModal" class="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" x-cloak>
-                        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden transform transition-all"
-                             x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
-                             x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95">
-                            
-                            <div class="px-6 py-4 border-b border-teal-200 flex justify-between items-center bg-teal-50">
-                                <h3 class="font-bold text-lg text-teal-800"><i class="fa-solid fa-user-nurse mr-2"></i>แนวปฏิบัติเพื่อป้องกัน / ดูแลการเกิดแผลกดทับ</h3>
-                                <button @click="showBradenGuidelineModal = false" class="text-teal-400 hover:text-rose-600 transition"><i class="fa-solid fa-xmark text-2xl"></i></button>
-                            </div>
-            
-                            <div class="p-6 bg-white">
-                                <div class="bg-teal-50/20 p-5 rounded-xl border border-teal-100">
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-600">
-                                        <div class="flex flex-row">
-                                            <b class="text-teal-700 min-w-[70px]">การป้องกัน:</b>
-                                            <div class="flex-1">
-                                                1. พลิกตะแคงตัวทุก 2 ชั่วโมง ตรงตามเวลาที่กำหนด<br>
-                                                2. ใช้ที่นอนลม<br>
-                                                3. จับคู่ช่วยกันพลิกตะแคงตัว / ไม่ดึงลากเวลาพลิกตะแคงตัว / ดึงผ้าปูที่นอนให้เรียบตึง<br>
-                                                4. ประเมินผิวหนังปุ่มกระดูกบริเวณกดทับทุกเวร<br>
-                                                5. บันทึกการเกิดแผลกดทับทุกครั้งที่พบแผลใหม่<br>
-                                                6. บันทึกเมื่อมีการเปลี่ยนแปลงของแผล (ตั้งแต่รอยแดง / ใหญ่ขึ้น / ลึกลง / แผลหาย)<br>
-                                                7. ส่งต่อข้อมูลการเกิดแผลกดทับในการส่งเวรแต่ละครั้ง
-                                            </div>
-                                        </div>
-                                        <div class="flex flex-row">
-                                            <b class="text-teal-700 min-w-[70px]">การดูแลแผล:</b>
-                                            <div class="flex-1">
-                                                1. ทำความสะอาดแผลด้วย NSS หลังจากนั้นทาด้วย Zinc Paste<br>
-                                                2. แผลที่มีเนื้อตาย รายงานแพทย์ทราบเพื่อตัดเนื้อตายออก และ Wet Dressing ด้วย NSS<br>
-                                                3. ดูแลให้ผู้ป่วยมีภาวะโภชนาการที่เหมาะสม
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 flex justify-center rounded-b-2xl">
-                                <button @click="showBradenGuidelineModal = false" class="px-10 py-2.5 bg-teal-600 text-white rounded-xl font-bold shadow-lg shadow-teal-200 hover:bg-teal-700 transition active:scale-95">รับทราบแนวปฏิบัติ</button>
                             </div>
                         </div>
                     </div>
