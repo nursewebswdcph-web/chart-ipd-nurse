@@ -1980,54 +1980,108 @@ function nurseApp() {
                 <html><head><title>Print D-M-E-T-H-O-D</title>
                     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
                     <style>
-                        body { font-family:'Sarabun',sans-serif; font-size:12px; margin:0; padding:0; color: #000; } 
-                        .a4-page { width:210mm; padding:10mm; margin:auto; } 
-                        table { width:100%; border-collapse:collapse; } 
-                        th,td { border:1px solid #000; padding:5px; } 
-                        .dot-line { border-bottom: 1px dotted #000; min-width: 50px; display: inline-block; padding: 0 5px; }
-                        /* กู้คืนส่วนหัวกระดาษ */
-                        .print-header-top { text-align:right; font-size:10px; font-weight:bold; margin-bottom:5px; }
+                        /* ตั้งค่าฟอนต์และการแสดงผลพื้นฐาน */
+                        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap');
                         
-                        /* กู้คืนกรอบข้อมูลผู้ป่วย (ติดลอยท้ายกระดาษ) */
-                        .print-patient-box { 
-                            position:fixed; bottom:35px; right:12mm; width:280px;
-                            border:1px solid #000; border-radius:4px; padding:6px 10px;
-                            font-size:11px; background:#fff; z-index:1000; line-height:1.4;
-                        }
-                        
-                        /* กู้คืน Footer ท้ายกระดาษ */
-                        .print-footer { 
-                            position:fixed; bottom:0; left:0; width:100%; text-align:center;
-                            font-size:9px; color:#444; border-top:1px solid #ccc; padding:5px 0; background:#fff;
-                        }
-                        /* จัดการหัวกระดาษขวาบน */
+                        body { 
+                            font-family: 'Sarabun', sans-serif; 
+                            font-size: 11pt; 
+                            margin: 0; 
+                            padding: 0; 
+                            color: #000; 
+                        } 
+                    
+                        .a4-page { 
+                            width: 210mm; 
+                            padding: 10mm; 
+                            margin: auto; 
+                            position: relative;
+                        } 
+                    
+                        /* หัวกระดาษขวาบน */
                         .print-header-container {
                             display: flex;
                             justify-content: flex-end;
                             width: 100%;
-                            margin-bottom: 10px;
+                            margin-bottom: 5px;
                         }
                         .header-info {
                             text-align: right;
-                            font-size: 11pt;
-                            line-height: 1.2;
+                            font-size: 10pt;
+                            line-height: 1.3;
                             font-weight: bold;
                         }
-            
-                        /* ปรับขนาดเนื้อหาในตารางให้เท่ากัน 100% */
-                        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-                        th, td { 
-                            border: 1px solid black; 
-                            padding: 6px; 
-                            font-size: 11pt !important; /* บังคับขนาดตัวอักษรเนื้อหาให้เท่ากัน */
-                            vertical-align: top;
-                        }
-                        th { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
+                    
+                        /* จัดการตารางและเนื้อหาให้เท่ากันทั้งหมด */
+                        table { 
+                            width: 100%; 
+                            border-collapse: collapse; 
+                            margin-top: 10px; 
+                            table-layout: fixed; /* ช่วยให้การแบ่งความกว้างคอลัมน์แม่นยำขึ้น */
+                        } 
                         
-                        /* จัดการการขึ้นหน้าใหม่ให้มีหัวกระดาษ (ถ้า Browser รองรับ) */
+                        th, td { 
+                            border: 1px solid #000; 
+                            padding: 6px 8px; 
+                            font-size: 11pt !important; /* บังคับเนื้อหาให้เท่ากันทุกช่อง */
+                            vertical-align: top;
+                            word-wrap: break-word;
+                        } 
+                        
+                        th { 
+                            background-color: #eee !important; 
+                            font-weight: bold;
+                            text-align: center;
+                            -webkit-print-color-adjust: exact; 
+                        } 
+                    
+                        /* กรอบข้อมูลผู้ป่วย (ติดลอยท้ายกระดาษ) */
+                        .print-patient-box { 
+                            position: fixed; 
+                            bottom: 45px; /* ขยับขึ้นเล็กน้อยเพื่อให้พ้น Footer */
+                            right: 15mm; 
+                            width: 320px;
+                            border: 1px solid #000; 
+                            border-radius: 4px; 
+                            padding: 8px 12px;
+                            font-size: 10pt; 
+                            background: #fff; 
+                            z-index: 1000; 
+                            line-height: 1.5;
+                        }
+                    
+                        /* Footer ท้ายกระดาษ */
+                        .print-footer { 
+                            position: fixed; 
+                            bottom: 0; 
+                            left: 0; 
+                            width: 100%; 
+                            text-align: center;
+                            font-size: 9pt; 
+                            color: #444; 
+                            border-top: 1px solid #ccc; 
+                            padding: 8px 0; 
+                            background: #fff;
+                        }
+                    
+                        .dot-line { 
+                            border-bottom: 1px dotted #000; 
+                            min-width: 50px; 
+                            display: inline-block; 
+                            padding: 0 5px; 
+                        }
+                    
+                        /* การตั้งค่าสำหรับการพิมพ์ */
                         @media print {
-                            @page { margin: 1.5cm; }
+                            @page { 
+                                size: A4; 
+                                margin: 15mm 10mm 40mm 10mm; /* เว้นระยะล่างเผื่อไว้สำหรับ Patient Box */
+                            }
+                            body { -webkit-print-color-adjust: exact; }
                             .no-print { display: none; }
+                            
+                            /* ป้องกันตารางโดนตัดแบ่งบรรทัดในแถวเดียวกัน */
+                            tr { page-break-inside: avoid; page-break-after: auto; }
                         }
                     </style>
                     </head>
