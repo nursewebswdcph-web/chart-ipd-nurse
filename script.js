@@ -1976,7 +1976,8 @@ function nurseApp() {
             
                 // ... (ส่วนการเปิด window.open และ pri.document.write ให้ใช้ CSS เดิม แต่เพิ่มคลาส .dot-line)
                 const pri = window.open('', '_blank');
-                pri.document.write(`<html><head><title>Print D-M-E-T-H-O-D</title>
+                pri.document.write(`
+                <html><head><title>Print D-M-E-T-H-O-D</title>
                     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
                     <style>
                         body { font-family:'Sarabun',sans-serif; font-size:12px; margin:0; padding:0; color: #000; } 
@@ -1984,11 +1985,27 @@ function nurseApp() {
                         table { width:100%; border-collapse:collapse; } 
                         th,td { border:1px solid #000; padding:5px; } 
                         .dot-line { border-bottom: 1px dotted #000; min-width: 50px; display: inline-block; padding: 0 5px; }
+                        /* กู้คืนส่วนหัวกระดาษ */
+                        .print-header-top { text-align:right; font-size:10px; font-weight:bold; margin-bottom:5px; }
+                        
+                        /* กู้คืนกรอบข้อมูลผู้ป่วย (ติดลอยท้ายกระดาษ) */
+                        .print-patient-box { 
+                            position:fixed; bottom:35px; right:12mm; width:280px;
+                            border:1px solid #000; border-radius:4px; padding:6px 10px;
+                            font-size:11px; background:#fff; z-index:1000; line-height:1.4;
+                        }
+                        
+                        /* กู้คืน Footer ท้ายกระดาษ */
+                        .print-footer { 
+                            position:fixed; bottom:0; left:0; width:100%; text-align:center;
+                            font-size:9px; color:#444; border-top:1px solid #ccc; padding:5px 0; background:#fff;
+                        }
                         @media print { .a4-page { padding: 5mm; } }
                     </style>
-                </head><body>
+                </head>
+                <body>
                     <div class="a4-page">
-                        <h2 style="text-align:center; font-size:16px;">แบบบันทึกการให้คำแนะนำ D-M-E-T-H-O-D</h2>
+                        <h2 style="text-align:center; font-size:16px;">การให้คำแนะนำการปฏิบัติตัวระหว่างเข้ารับการรักษาในโรงพยาบาลและเมื่อผู้ป่วยกลับบ้าน</h2>
                         <table>
                             <thead>
                                 <tr style="background:#eee">
@@ -1998,6 +2015,16 @@ function nurseApp() {
                             <tbody>${htmlRows}</tbody>
                         </table>
                     </div>
+                    <div class="print-patient-box">
+                <div><b>ชื่อ-สกุล:</b> ${this.selectedPatient?.name || '-'} &nbsp; <b>อายุ:</b> ${this.selectedPatient?.ageDisplay || '-'}</div>
+                <div><b>HN:</b> ${this.selectedPatient?.hn || '-'} &nbsp; <b>AN:</b> ${this.selectedPatient?.an || '-'}</div>
+                <div><b>ตึก:</b> ${this.currentWard || '-'} &nbsp; <b>เตียง:</b> ${this.selectedPatient?.bed || '-'}</div>
+                <div><b>แพทย์:</b> ${this.selectedPatient?.doctor || '-'}</div>
+            </div>
+
+            <div class="print-footer">
+                เอกสารฉบับนี้พิมพ์จากระบบ IPD Nurse Workbench | โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
+            </div>
                     <script>window.onload=()=>{ setTimeout(()=>{window.print(); window.close();}, 500); }</script>
                 </body></html>`);
                 pri.document.close();
