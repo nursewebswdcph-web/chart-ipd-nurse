@@ -19,7 +19,7 @@ function nurseApp() {
         bradenHistory: [],
         bradenForm: {
             evalDate: new Date().toISOString().split('T')[0],
-            admitDate: '', transferDate: '', firstEvalDate: '', diagnosis: '', initialUlcer: 'ไม่มี', initialUlcerDetail: '', albumin: '', hb: '', hct: '', bmi: '',
+            admitDate: '', transferDate: '',fromWard: '', firstEvalDate: '', diagnosis: '', initialUlcer: 'ไม่มี', initialUlcerDetail: '', albumin: '', hb: '', hct: '', bmi: '',
             s1_m1: null, s1_m2: null, s1_m3: null, s1_m4: null, s1_m5: null, s1_m6: null, totalScore: 0,
             s3_location: '', s3_stage: '', s3_appearance: '', assessor: '',
             s4_dischargeDate: '', s4_outcome: '', s4_ulcerDate: '', s4_location: '', s4_size: '', s4_appearance: '', s4_stage: '', s4_count: ''
@@ -1413,17 +1413,28 @@ function nurseApp() {
                 const data = await r.json();
                 this.bradenHistory = data;
                 
+                // ฟังก์ชันแปลงวันที่ให้ตรงกับโซนเวลาไทย (แก้ปัญหาดึงข้อมูลมาแล้ววันเหลื่อม) และฟอร์แมตสำหรับ type="date"
+                const toInputDate = (dStr) => {
+                    if (!dStr) return '';
+                    const d = new Date(dStr);
+                    if (isNaN(d.getTime())) return dStr;
+                    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                };
+                
                 // Set default ค่ารับใหม่
                 if(this.selectedPatient) {
-                    this.bradenForm.admitDate = this.selectedPatient.admitDate || '';
+                    this.bradenForm.admitDate = toInputDate(this.selectedPatient.admitDate) || '';
                     this.bradenForm.diagnosis = this.selectedPatient.diagnosis || '';
                 }
+                
                 // ถ้าเคยมีประวัติ ให้ดึงส่วนหัวและส่วนสรุปมาแสดงอัตโนมัติ
                 if(data.length > 0) {
                     const last = data[data.length-1];
-                    this.bradenForm.admitDate = last.AdmitDate || this.bradenForm.admitDate;
-                    this.bradenForm.transferDate = last.TransferDate || '';
-                    this.bradenForm.firstEvalDate = last.FirstEvalDate || '';
+                    // ใช้ toInputDate() ครอบข้อมูลวันที่เพื่อจัด Format และแก้ Timezone
+                    this.bradenForm.admitDate = toInputDate(last.AdmitDate) || this.bradenForm.admitDate;
+                    this.bradenForm.transferDate = toInputDate(last.TransferDate) || '';
+                    this.bradenForm.fromWard = last.FromWard || '';
+                    this.bradenForm.firstEvalDate = toInputDate(last.FirstEvalDate) || '';
                     this.bradenForm.diagnosis = last.Diagnosis || this.bradenForm.diagnosis;
                     this.bradenForm.initialUlcer = last.InitialUlcer || 'ไม่มี';
                     this.bradenForm.initialUlcerDetail = last.InitialUlcerDetail || '';
@@ -1431,9 +1442,10 @@ function nurseApp() {
                     this.bradenForm.hb = last.Hb || '';
                     this.bradenForm.hct = last.Hct || '';
                     this.bradenForm.bmi = last.BMI || '';
-                    this.bradenForm.s4_dischargeDate = last.S4_DischargeDate || '';
+                    
+                    this.bradenForm.s4_dischargeDate = toInputDate(last.S4_DischargeDate) || '';
                     this.bradenForm.s4_outcome = last.S4_Outcome || '';
-                    this.bradenForm.s4_ulcerDate = last.S4_UlcerDate || '';
+                    this.bradenForm.s4_ulcerDate = toInputDate(last.S4_UlcerDate) || '';
                     this.bradenForm.s4_location = last.S4_Location || '';
                     this.bradenForm.s4_size = last.S4_Size || '';
                     this.bradenForm.s4_appearance = last.S4_Appearance || '';
@@ -1521,7 +1533,7 @@ function nurseApp() {
 
                 const generateSubRow = (label, score, key) => {
                     let rowHtml = `<tr><td>${label}</td><td class="text-center">${score}</td>`;
-                    for(let i=0; i<10; i++) rowHtml += `<td class="text-center">${chunk[i] && chunk[i][key] == score ? '/' : ''}</td>`;
+                    for(let i=0; i<10; i++) rowHtml += `<td class="text-center">${chunk[i] && chunk[i][key] == score ? '✔' : ''}</td>`;
                     return rowHtml + '</tr>';
                 };
 
@@ -1569,11 +1581,11 @@ function nurseApp() {
                     <table class="no-border" style="margin-bottom:5px;">
                         <tr>
                             <td><b>วันที่ Admit:</b> ${formatThaiDate(lastRec.AdmitDate)}</td>
-                            <td><b>วันที่รับย้าย:</b> ${formatThaiDate(lastRec.TransferDate)} &nbsp; <b>จาก Ward:</b> ${this.currentWard||''}</td>
+                            <td><b>วันที่รับย้าย:</b> ${formatThaiDate(lastRec.TransferDate)} &nbsp; <b>จาก Ward:</b> ${lastRec.FromWard||'-'}</td>
                             <td><b>วันที่ประเมินครั้งแรก:</b> ${formatThaiDate(lastRec.FirstEvalDate)}</td>
                         </tr>
                         <tr><td colspan="3"><b>Diagnosis/Operation:</b> ${lastRec.Diagnosis||''}</td></tr>
-                        <tr><td colspan="3"><b>แผลกดทับแรกรับ:</b> [ ${lastRec.InitialUlcer==='ไม่มี'?'/':' '} ] ไม่มี &nbsp; [ ${lastRec.InitialUlcer==='มี'?'/':' '} ] มี &nbsp; <b>ตำแหน่ง/ลักษณะ/ขนาด:</b> ${lastRec.InitialUlcerDetail||'-'}</td></tr>
+                        <tr><td colspan="3"><b>แผลกดทับแรกรับ:</b> [ ${lastRec.InitialUlcer==='ไม่มี'?'✔':' '} ] ไม่มี &nbsp; [ ${lastRec.InitialUlcer==='มี'?'✔':' '} ] มี &nbsp; <b>ตำแหน่ง/ลักษณะ/ขนาด:</b> ${lastRec.InitialUlcerDetail||'-'}</td></tr>
                         <tr><td colspan="3"><b>Serum Albumin:</b> ${lastRec.Albumin||'-'} mg/dL (ค่าปกติ 3.5-5.4) &nbsp; <b>Hb:</b> ${lastRec.Hb||'-'} mg% &nbsp; <b>Hct:</b> ${lastRec.Hct||'-'} Vol% &nbsp; <b>BMI:</b> ${lastRec.BMI||'-'}</td></tr>
                     </table>
 
@@ -1656,7 +1668,7 @@ function nurseApp() {
                     <div class="font-bold mb-2 mt-4" style="font-size:13px;">ส่วนที่ 4 สรุปการเกิดแผลกดทับ</div>
                     <div style="border: 1px solid #000; padding: 8px; line-height: 1.5; width: 100%; box-sizing: border-box;">
                         <b>วันที่จำหน่าย / ย้าย:</b> ${formatThaiDate(lastRec.S4_DischargeDate)}<br>
-                        <b>ผลปรากฏ:</b> [ ${lastRec.S4_Outcome==='ไม่เกิดแผลกดทับ'?'/':' '} ] ไม่เกิดแผลกดทับ &nbsp;&nbsp; [ ${lastRec.S4_Outcome==='เกิดแผลกดทับ'?'/':' '} ] เกิดแผลกดทับ <b>วันที่:</b> ${formatThaiDate(lastRec.S4_UlcerDate)}<br>
+                        <b>ผลปรากฏ:</b> [ ${lastRec.S4_Outcome==='ไม่เกิดแผลกดทับ'?'✔':' '} ] ไม่เกิดแผลกดทับ &nbsp;&nbsp; [ ${lastRec.S4_Outcome==='เกิดแผลกดทับ'?'✔':' '} ] เกิดแผลกดทับ <b>วันที่:</b> ${formatThaiDate(lastRec.S4_UlcerDate)}<br>
                         <b>ตำแหน่งที่เป็น:</b> ${lastRec.S4_Location||'-'} &nbsp;&nbsp; <b>ขนาด:</b> ${lastRec.S4_Size||'-'} &nbsp;&nbsp; <b>ลักษณะแผล:</b> ${lastRec.S4_Appearance||'-'}<br>
                         <b>ระดับของแผลกดทับ:</b> ${lastRec.S4_Stage||'-'} &nbsp;&nbsp; <b>จำนวนแผลกดทับ:</b> ${lastRec.S4_Count||'-'} แผล
                     </div>` : ''}
