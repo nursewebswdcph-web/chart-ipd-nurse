@@ -30,9 +30,7 @@ function nurseApp() {
             s3_location: '', s3_stage: '', s3_appearance: '', assessor: '',
             s4_dischargeDate: '', s4_outcome: '', s4_ulcerDate: '', s4_location: '', s4_size: '', s4_appearance: '', s4_stage: '', s4_count: ''
         },
-        defaultEduForm() {
-            defaultEduForm() {
-            defaultEduForm() {
+         defaultEduForm() {
             return {
                 D1: { checked: false, text1: '', date: '', provider: '', pos: '', receiver: '' },
                 M1: { checked: false, text1: '', text2: '', date: '', provider: '', pos: '', receiver: '' },
@@ -47,7 +45,7 @@ function nurseApp() {
                 O3: { checked: false, date: '', provider: '', pos: '', receiver: '' },
                 Diet1: { checked: false, text1: '', text2: '', text3: '', date: '', provider: '', pos: '', receiver: '' }
             };
-        }       
+        },       
                 
         isSidebarCollapsed: false, // สถานะการพับ Sidebar
         
@@ -2003,6 +2001,6 @@ function nurseApp() {
                     <script>window.onload=()=>{ setTimeout(()=>{window.print(); window.close();}, 500); }</script>
                 </body></html>`);
                 pri.document.close();
-            }
+            },
     };
 }
