@@ -1511,30 +1511,49 @@ function nurseApp() {
                 const res = await fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveBradenScale', payload }) });
                 const out = await res.json();
                 if(out.status === 'success') {
-                    this.showSuccessMsg = true; this.successMsg = 'บันทึกข้อมูลแบบประเมินเรียบร้อย';
-                    setTimeout(() => { this.showSuccessMsg = false; }, 3000);
+                    // แก้ไขตัวแปรเป็น showSuccess ให้ตรงกับด้านบน
+                    this.showSuccess = true; 
+                    this.successMsg = 'บันทึกข้อมูลแบบประเมินเรียบร้อย';
+                    setTimeout(() => { this.showSuccess = false; }, 3000);
+                    
                     this.loadBraden(this.selectedPatient.an);
                     this.showBradenModal = false; 
-                    this.showBradenGuidelineModal = true; // ให้เปิด Popup แนวปฏิบัติต่อ
+                    this.showBradenGuidelineModal = true; // เปิด Popup แนวปฏิบัติต่อ
                 }
             } catch(e) { alert('เกิดข้อผิดพลาดในการบันทึก'); }
             this.isLoading = false;
         },
         openBradenSummaryModal() {
-            // ดึงวันที่ของการประเมินล่าสุด เพื่อให้อัปเดตข้อมูลลงบรรทัดเดิมได้ถูกต้อง
-            if (this.bradenHistory && this.bradenHistory.length > 0) {
-                const last = this.bradenHistory[this.bradenHistory.length - 1];
-                const d = new Date(last.EvalDate);
-                if (!isNaN(d.getTime())) {
+            try {
+                // 1. ดึงวันที่ของการประเมินล่าสุด เพื่อให้อัปเดตข้อมูลลงบรรทัดเดิมได้ถูกต้อง
+                if (this.bradenHistory && this.bradenHistory.length > 0) {
+                    const last = this.bradenHistory[this.bradenHistory.length - 1];
+                    // ดักรองรับ Property ทั้งตัวพิมพ์เล็กและใหญ่
+                    const evalDateRaw = last.EvalDate || last.evalDate; 
+                    if (evalDateRaw) {
+                        const d = new Date(evalDateRaw);
+                        if (!isNaN(d.getTime())) {
+                            this.bradenForm.evalDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                        }
+                    }
+                } else {
+                    const d = new Date();
                     this.bradenForm.evalDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
                 }
-            } else {
-                const d = new Date();
-                this.bradenForm.evalDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+                // 2. ถ้ายังไม่เคยใส่วันที่จำหน่าย ให้ดึงวันที่ปัจจุบันมาแสดงเป็นค่าเริ่มต้น
+                if (!this.bradenForm.s4_dischargeDate) {
+                    const d = new Date();
+                    this.bradenForm.s4_dischargeDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                }
+
+                // 3. สั่งเปิด Popup ส่วนที่ 4 อย่างปลอดภัย
+                this.showBradenSummaryModal = true;
+
+            } catch (error) {
+                console.error("Error opening Braden Summary Modal:", error);
+                alert("เกิดข้อผิดพลาดในการดึงข้อมูลวันที่ กรุณาลองใหม่อีกครั้ง");
             }
-            
-            // สั่งเปิด Popup ส่วนที่ 4
-            this.showBradenSummaryModal = true;
         },
 
         async saveBradenSummary() {
@@ -1544,8 +1563,11 @@ function nurseApp() {
                 const res = await fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveBradenScale', payload }) });
                 const out = await res.json();
                 if(out.status === 'success') {
-                    this.showSuccessMsg = true; this.successMsg = 'บันทึกสรุปการเกิดแผลกดทับเรียบร้อย';
-                    setTimeout(() => { this.showSuccessMsg = false; }, 3000);
+                    // แก้ไขตัวแปรแจ้งเตือนให้ถูกต้อง
+                    this.showSuccess = true; 
+                    this.successMsg = 'บันทึกสรุปการเกิดแผลกดทับเรียบร้อย';
+                    setTimeout(() => { this.showSuccess = false; }, 3000);
+                    
                     this.loadBraden(this.selectedPatient.an);
                     this.showBradenSummaryModal = false; // ปิด popup
                 }
