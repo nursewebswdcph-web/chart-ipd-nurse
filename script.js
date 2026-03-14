@@ -16,6 +16,10 @@ function nurseApp() {
 
         fallHistory: [],
         fallGridData: {},
+        bradenData: {}, // เก็บรายวัน { '2026-03-14': { part1: [...], part2: [...], part3: {...}, assessor: '' } }
+        bradenGlobal: { header: {}, summary: {} }, // เก็บส่วนหัวและส่วนที่ 4
+        bradenTimeline: [], // เก็บไทม์ไลน์ชุดละ 10 วัน
+        currentBradenPage: 0,
                 
         isSidebarCollapsed: false, // สถานะการพับ Sidebar
         
@@ -1386,5 +1390,199 @@ function nurseApp() {
                 pri.document.close();
             });
         }, 
+        // 🟢 2. เพิ่มฟังก์ชันการดึงและสร้างตาราง 10 วัน (วางต่อจากกลุ่มฟังก์ชันฟอร์มอื่นๆ)
+        loadBradenScale(an) {
+            fetch(`${this.API_URL}?action=getBradenScale&an=${an}`)
+            .then(res => res.json())
+            .then(data => {
+                this.bradenData = data.daily || {};
+                this.bradenGlobal = data.global && Object.keys(data.global).length > 0 ? data.global : {
+                    header: {
+                        admitDate: this.selectedPatient?.admitDate ? this.formatThaiDate(this.selectedPatient.admitDate) : '',
+                        diagnosis: this.selectedPatient?.diagnosis || '',
+                        riskDate: '', bmi: '', score: '', otherRisk: ''
+                    },
+                    summary: { dischargeDate: '', totalDays: '', woundStatus: '', detail: '' }
+                };
+                this.generateBradenTimeline();
+            });
+        },
+        
+        generateBradenTimeline() {
+            if (!this.selectedPatient || !this.selectedPatient.date) return;
+            const admitDate = new Date(this.selectedPatient.date);
+            const today = new Date();
+            const daysDiff = Math.floor((today - admitDate) / (1000 * 60 * 60 * 24));
+            const totalDays = Math.max(daysDiff + 3, 10); // สร้างเผื่ออนาคตเล็กน้อย แต่อย่างน้อย 10 วัน
+        
+            const chunks = [];
+            let currentChunk = [];
+            
+            for (let i = 0; i <= totalDays; i++) {
+                const d = new Date(admitDate);
+                d.setDate(admitDate.getDate() + i);
+                const dateStr = d.toISOString().split('T')[0];
+                const formatted = d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+                
+                currentChunk.push({ date: dateStr, formattedDate: formatted });
+                
+                if (currentChunk.length === 10 || i === totalDays) {
+                    chunks.push(currentChunk);
+                    currentChunk = [];
+                }
+            }
+            this.bradenTimeline = chunks;
+        },
+        
+        getBradenDailyCell(date) {
+            if (!this.bradenData[date]) {
+                this.bradenData[date] = {
+                    part1: [0,0,0,0,0,0], // 6 ข้อของ Braden
+                    part2: [false, false, false, false, false, false], // Checklist ป้องกัน
+                    part3: { woundDate: '', stage: '', size: '', exudate: '', marker: '' }, // ข้อมูลแผล
+                    assessor: ''
+                };
+            }
+            return this.bradenData[date];
+        },
+        
+        calcBradenTotal(scores) {
+            return scores.reduce((a, b) => Number(a) + Number(b), 0);
+        },
+        
+        saveBradenPage() {
+            this.isLoading = true;
+            const currentPageDays = this.bradenTimeline[this.currentBradenPage];
+            
+            // บันทึกแยกรายวันในหน้าปัจจุบัน
+            const promises = currentPageDays.map(day => {
+                const payload = {
+                    an: this.selectedPatient.an,
+                    hn: this.selectedPatient.hn,
+                    ward: this.currentWard,
+                    evalDate: day.date,
+                    dailyData: this.bradenData[day.date] || {},
+                    globalData: this.bradenGlobal, // เซฟค่า header และ summary ไปด้วย
+                    assessor: this.bradenData[day.date]?.assessor || ''
+                };
+                return fetch(this.API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'saveBradenScale', payload: payload })
+                });
+            });
+        
+            Promise.all(promises).then(() => {
+                this.isLoading = false;
+                alert('บันทึกข้อมูลหน้าปัจจุบันเรียบร้อยแล้ว');
+            }).catch(() => {
+                this.isLoading = false;
+                alert('เกิดข้อผิดพลาดในการบันทึก');
+            });
+        },
+        printBradenScale() {
+            window.scrollTo(0, 0);
+            this.$nextTick(() => {
+                const printArea = document.getElementById('braden-print-area');
+                if (!printArea) return this.showAlert('แจ้งเตือน', 'ไม่พบพื้นที่สำหรับพิมพ์เอกสาร');            
+                
+                const cloneDOM = printArea.cloneNode(true);
+                cloneDOM.querySelectorAll('template').forEach(t => t.remove());
+                const printContent = cloneDOM.innerHTML;                
+                
+                let iframe = document.getElementById('print-frame');
+                if (iframe) iframe.remove(); 
+                
+                iframe = document.createElement('iframe');
+                iframe.id = 'print-frame';
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);                
+                
+                const pri = iframe.contentWindow;
+                const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]')).map(s => s.outerHTML).join('');
+                
+                pri.document.open();
+                pri.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                        <head>
+                            <title>พิมพ์แบบประเมินแผลกดทับ (Braden Scale)</title>
+                            ${styles}
+                            <style>
+                                /* 🟢 บังคับให้เป็น A4 แนวตั้ง (Portrait) และลดขอบกระดาษลงนิดหน่อย */
+                                @page {size: A4 portrait; margin: 8mm 5mm 12mm 5mm;}
+                                body { font-size: 10px; color: black !important; }                              
+        
+                                /* บังคับตารางให้ขนาดคงที่ บีบให้พอดีความกว้าง */
+                                table { 
+                                    width: 100%; 
+                                    table-layout: fixed; 
+                                    border-collapse: collapse; 
+                                    word-break: break-word; 
+                                }                               
+        
+                                /* 🟢 ลดขนาดตัวหนังสือ (8px) และลด Padding ลงเพื่อให้ 10 วันลงล็อคแนวตั้งได้ */
+                                th, td { 
+                                    border: 1px solid black !important; 
+                                    padding: 2px !important; 
+                                    overflow: hidden; 
+                                    font-size: 8px !important; 
+                                    line-height: 1.1;
+                                }                       
+        
+                                /* กำหนดความกว้างคอลัมน์หัวข้อให้พอดี */
+                                .w-label { width: 110px; }       
+                                
+                                .bg-gray { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
+                                .text-center { text-align: center; } 
+                                
+                                /* Footer ท้ายกระดาษ */
+                                .print-global-footer {
+                                    position: fixed; bottom: 0; left: 0; width: 100%; text-align: center;
+                                    font-size: 8px; color: #475569 !important; border-top: 1px solid #9ca3af; 
+                                    padding-top: 3px; padding-bottom: 3px; background-color: white; z-index: 1000;
+                                }
+                                
+                                /* กรอบข้อมูลผู้ป่วย (ย่อขนาดลงนิดหน่อย) */
+                                .print-patient-info {
+                                    position: fixed; bottom: 18px; right: 10px; width: 230px;
+                                    border: 1px solid #000 !important; border-radius: 4px; padding: 4px 6px;
+                                    font-size: 9px; background-color: white !important; z-index: 1000; 
+                                    line-height: 1.3; color: black !important;
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="print-patient-info">
+                                <div>
+                                    <b>ชื่อ-สกุล:</b> ${this.selectedPatient?.name || '-'} &nbsp;&nbsp;
+                                    <b>อายุ:</b> ${this.selectedPatient?.ageDisplay || '-'}
+                                </div>
+                                <div>
+                                    <b>HN:</b> ${this.selectedPatient?.hn || '-'} &nbsp;&nbsp;
+                                    <b>AN:</b> ${this.selectedPatient?.an || '-'}
+                                </div>
+                                <div>
+                                    <b>แพทย์:</b> ${this.selectedPatient?.doctor || '-'} &nbsp;&nbsp;
+                                    <b>ตึก:</b> ${this.currentWard || '-'} &nbsp;&nbsp;
+                                    <b>เตียง:</b> ${this.selectedPatient?.bed || '-'}
+                                </div>
+                            </div>                
+        
+                            ${printContent}            
+                            
+                            <div class="print-global-footer">
+                                เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | โปรแกรมบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
+                            </div>                
+                            <script>
+                                window.onload = function() {
+                                    setTimeout(() => { window.print(); }, 800);
+                                };
+                            </script>
+                        </body>
+                    </html>
+                `);
+                pri.document.close();
+            });
+        },
     };
 }
