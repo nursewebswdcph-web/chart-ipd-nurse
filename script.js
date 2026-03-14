@@ -1411,11 +1411,11 @@ function nurseApp() {
         },
         openBradenModal(dateStr = null) {
             if (dateStr) {
-                // แก้ปัญหา Timezone เวลาแก้ไข
                 const d = new Date(dateStr);
-                this.bradenForm.evalDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                if (!isNaN(d.getTime())) {
+                    this.bradenForm.evalDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                }
             } else {
-                // ถ้ากดเพิ่มใหม่ ให้เป็นวันปัจจุบัน
                 const d = new Date();
                 this.bradenForm.evalDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
             }
@@ -1472,24 +1472,36 @@ function nurseApp() {
             } catch(e) { console.error(e); }
             this.isLoading = false;
         },
+        
         loadBradenByDate() {
             const existing = this.bradenHistory.find(r => {
                 if(!r.EvalDate) return false;
                 const d = new Date(r.EvalDate);
-                return !isNaN(d) && d.toISOString().split('T')[0] === this.bradenForm.evalDate;
+                if (isNaN(d.getTime())) return false;
+                
+                // สร้างรูปแบบ YYYY-MM-DD แบบเวลา Local ของไทย เพื่อป้องกันวันเหลื่อม
+                const localDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                return localDateStr === this.bradenForm.evalDate;
             });
+            
             if(existing) {
-                this.bradenForm.s1_m1 = existing.S1_M1; this.bradenForm.s1_m2 = existing.S1_M2;
-                this.bradenForm.s1_m3 = existing.S1_M3; this.bradenForm.s1_m4 = existing.S1_M4;
-                this.bradenForm.s1_m5 = existing.S1_M5; this.bradenForm.s1_m6 = existing.S1_M6;
-                this.bradenForm.totalScore = existing.TotalScore;
-                this.bradenForm.s3_location = existing.S3_Location; this.bradenForm.s3_stage = existing.S3_Stage;
-                this.bradenForm.s3_appearance = existing.S3_Appearance; this.bradenForm.assessor = existing.Assessor;
+                this.bradenForm.s1_m1 = existing.S1_M1 || null; 
+                this.bradenForm.s1_m2 = existing.S1_M2 || null;
+                this.bradenForm.s1_m3 = existing.S1_M3 || null; 
+                this.bradenForm.s1_m4 = existing.S1_M4 || null;
+                this.bradenForm.s1_m5 = existing.S1_M5 || null; 
+                this.bradenForm.s1_m6 = existing.S1_M6 || null;
+                this.bradenForm.totalScore = existing.TotalScore || 0;
+                this.bradenForm.s3_location = existing.S3_Location || ''; 
+                this.bradenForm.s3_stage = existing.S3_Stage || '';
+                this.bradenForm.s3_appearance = existing.S3_Appearance || ''; 
+                this.bradenForm.assessor = existing.Assessor || '';
             } else {
                 this.bradenForm.s1_m1 = null; this.bradenForm.s1_m2 = null; this.bradenForm.s1_m3 = null;
                 this.bradenForm.s1_m4 = null; this.bradenForm.s1_m5 = null; this.bradenForm.s1_m6 = null;
                 this.bradenForm.totalScore = 0;
-                this.bradenForm.s3_location = ''; this.bradenForm.s3_stage = ''; this.bradenForm.s3_appearance = ''; this.bradenForm.assessor = '';
+                this.bradenForm.s3_location = ''; this.bradenForm.s3_stage = ''; 
+                this.bradenForm.s3_appearance = ''; this.bradenForm.assessor = '';
             }
         },
         async saveBraden() {
@@ -1509,17 +1521,6 @@ function nurseApp() {
             this.isLoading = false;
         },
         openBradenSummaryModal() {
-            // ดึงวันที่ของ record ล่าสุดเพื่ออัปเดตบรรทัดเดิม (ถ้ามี)
-            if (this.bradenHistory && this.bradenHistory.length > 0) {
-                const last = this.bradenHistory[this.bradenHistory.length - 1];
-                const d = new Date(last.EvalDate);
-                if (!isNaN(d.getTime())) {
-                    this.bradenForm.evalDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                }
-            } else {
-                const d = new Date();
-                this.bradenForm.evalDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-            }
             this.showBradenSummaryModal = true;
         },
 
