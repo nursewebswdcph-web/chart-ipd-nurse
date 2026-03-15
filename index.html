@@ -2962,23 +2962,23 @@
                         </div>
                 
                     </div>
-                    <div x-show="focusModal.show" style="display: none;" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
+                    <div x-show="focusModal.show" style="display: none;" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
                         <div @click.away="focusModal.type === 'alert' ? focusModal.show = false : null" class="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6 text-center transform transition-all">
                             
                             <div class="mb-3">
-                                <i x-show="focusModal.type === 'confirm' || focusModal.type === 'confirm_progress'" class="fa-solid fa-circle-exclamation text-4xl text-amber-500"></i>
-                                <i x-show="focusModal.type === 'prompt' || focusModal.type === 'prompt_progress'" class="fa-solid fa-folder-plus text-4xl text-indigo-500"></i>
+                                <i x-show="focusModal.type.includes('confirm')" class="fa-solid fa-circle-exclamation text-4xl text-amber-500"></i>
+                                <i x-show="focusModal.type.includes('prompt')" class="fa-solid fa-folder-plus text-4xl text-indigo-500"></i>
                                 <i x-show="focusModal.type === 'alert'" class="fa-solid fa-circle-info text-4xl text-cyan-500"></i>
                             </div>
             
                             <div class="mb-4 text-slate-700 text-[15px] font-bold" x-text="focusModal.msg"></div>
                             
-                            <template x-if="focusModal.type === 'prompt' || focusModal.type === 'prompt_progress'">
-                                <input type="text" x-model="focusModal.input" class="w-full border border-slate-300 rounded-lg p-2 mb-4 outline-none focus:border-cyan-500 text-center" placeholder="พิมพ์ชื่อ Template ที่นี่...">
+                            <template x-if="focusModal.type.includes('prompt')">
+                                <input type="text" x-model="focusModal.input" class="w-full border border-slate-300 rounded-lg p-2 mb-4 outline-none focus:border-cyan-500 text-center font-bold text-indigo-700" placeholder="พิมพ์ชื่อ Template ที่นี่...">
                             </template>
                             
                             <div class="flex justify-center gap-3 mt-4">
-                                <template x-if="focusModal.type !== 'alert'">
+                                <template x-if="focusModal.type.includes('confirm') || focusModal.type.includes('prompt')">
                                     <button @click="focusModal.show = false" class="px-5 py-2 bg-slate-200 text-slate-700 rounded-lg font-bold hover:bg-slate-300 transition">ยกเลิก</button>
                                 </template>
                                 <button @click="executeFocusModal()" class="px-5 py-2 bg-cyan-600 text-white rounded-lg font-bold hover:bg-cyan-700 shadow-md transition">ตกลง</button>
