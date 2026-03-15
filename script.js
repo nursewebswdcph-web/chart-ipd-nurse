@@ -2060,10 +2060,7 @@ function nurseApp() {
                         .dot-line { border-bottom: 1px dotted #000; min-width: 40px; display: inline-block; }
             
                         @media print {
-                            @page { 
-                                size: A4; 
-                                margin: 5mm 0mm 5mm 5mm; /* ลดระยะขอบกระดาษในระบบปรินท์ให้เหลือน้อยที่สุด */
-                            }
+                            @page {size: A4; margin: 5mm 5mm 0mm 5mm; }
                             body { -webkit-print-color-adjust: exact; }
                             tr { page-break-inside: avoid; }
                         }
