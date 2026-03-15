@@ -2699,6 +2699,7 @@ function nurseApp() {
                             <td style="font-weight:bold;">${item.focus.replace(/\n/g, '<br>')}</td>
                             <td>
                                 ${soieHtml}
+                                <br>
                                 <div style="text-align:right; padding-right: 20px;">
                                     ลงชื่อ ${item.nurse} ผู้บันทึก<br>
                                     ${item.pos}
@@ -2721,9 +2722,9 @@ function nurseApp() {
                         <table>
                             <thead>
                                 <tr>
-                                    <th style="width: 10%;">DATE / SHIFT</th>
-                                    <th style="width: 10%;">Actual Time</th>
-                                    <th style="width: 25%;">FOCUS / PROBLEM</th>
+                                    <th style="width: 15%;">DATE /<br> SHIFT</th>
+                                    <th style="width: 8%;">Actual Time</th>
+                                    <th style="width: 22%;">FOCUS / PROBLEM</th>
                                     <th style="width: 55%;">Nursing Progress Note</th>
                                 </tr>
                             </thead>
