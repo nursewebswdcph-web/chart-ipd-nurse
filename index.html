@@ -2962,29 +2962,7 @@
                         </div>
                 
                     </div>
-                    <div x-show="focusModal.show" style="display: none;" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
-                        <div @click.away="focusModal.type === 'alert' ? focusModal.show = false : null" class="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6 text-center transform transition-all">
-                            
-                            <div class="mb-3">
-                                <i x-show="focusModal.type.includes('confirm')" class="fa-solid fa-circle-exclamation text-4xl text-amber-500"></i>
-                                <i x-show="focusModal.type.includes('prompt')" class="fa-solid fa-folder-plus text-4xl text-indigo-500"></i>
-                                <i x-show="focusModal.type === 'alert'" class="fa-solid fa-circle-info text-4xl text-cyan-500"></i>
-                            </div>
-            
-                            <div class="mb-4 text-slate-700 text-[15px] font-bold" x-text="focusModal.msg"></div>
-                            
-                            <template x-if="focusModal.type.includes('prompt')">
-                                <input type="text" x-model="focusModal.input" class="w-full border border-slate-300 rounded-lg p-2 mb-4 outline-none focus:border-cyan-500 text-center font-bold text-indigo-700" placeholder="พิมพ์ชื่อ Template ที่นี่...">
-                            </template>
-                            
-                            <div class="flex justify-center gap-3 mt-4">
-                                <template x-if="focusModal.type.includes('confirm') || focusModal.type.includes('prompt')">
-                                    <button @click="focusModal.show = false" class="px-5 py-2 bg-slate-200 text-slate-700 rounded-lg font-bold hover:bg-slate-300 transition">ยกเลิก</button>
-                                </template>
-                                <button @click="executeFocusModal()" class="px-5 py-2 bg-cyan-600 text-white rounded-lg font-bold hover:bg-cyan-700 shadow-md transition">ตกลง</button>
-                            </div>
-                        </div>
-                    </div>
+                    
                 </template>
                 <template x-if="currentForm?.id === 'progress_note'">
                     <div x-init="loadProgressNotesInit()" class="space-y-4 pb-10">
@@ -3361,6 +3339,29 @@
                 <div><label class="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2">ตึกปลายทาง</label><select x-model="moveForm.targetWard" @change="fetchMoveBeds()" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 text-lg font-bold text-slate-700 outline-none"><template x-for="ward in wards" :key="ward"><option :value="ward" x-text="ward"></option></template></select></div>
                 <div><label class="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2">เตียงว่างใน <span class="text-amber-600" x-text="moveForm.targetWard"></span></label><select x-model="moveForm.targetBed" class="w-full bg-amber-50 border-2 border-amber-200 rounded-2xl p-4 text-xl font-black text-amber-700 outline-none"><option value="">-- เลือกเตียง --</option><template x-for="bed in moveBeds" :key="bed"><option :value="bed" x-text="bed"></option></template></select></div>
                 <button @click="confirmMove()" :disabled="!moveForm.targetBed" class="w-full bg-amber-600 text-white py-4 rounded-2xl font-bold text-lg shadow-xl shadow-amber-200 hover:bg-amber-700 transition-all active:scale-95">ยืนยันการย้ายทันที</button>
+            </div>
+        </div>
+    </div>
+    <div x-show="focusModal.show" class="fixed inset-0 z-[20000] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" x-cloak>
+        <div @click.away="focusModal.type === 'alert' ? focusModal.show = false : null" class="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6 text-center transform transition-all">
+            
+            <div class="mb-3">
+                <i x-show="focusModal.type.includes('confirm')" class="fa-solid fa-circle-exclamation text-4xl text-amber-500"></i>
+                <i x-show="focusModal.type.includes('prompt')" class="fa-solid fa-folder-plus text-4xl text-indigo-500"></i>
+                <i x-show="focusModal.type === 'alert'" class="fa-solid fa-circle-info text-4xl text-cyan-500"></i>
+            </div>
+
+            <div class="mb-4 text-slate-700 text-[15px] font-bold" x-text="focusModal.msg"></div>
+            
+            <div x-show="focusModal.type.includes('prompt')">
+                <input type="text" x-model="focusModal.input" class="w-full border border-slate-300 rounded-lg p-3 mb-4 outline-none focus:border-cyan-500 text-center font-bold text-indigo-700 shadow-inner bg-slate-50" placeholder="พิมพ์ชื่อ Template ที่นี่...">
+            </div>
+            
+            <div class="flex justify-center gap-3 mt-4">
+                <div x-show="focusModal.type.includes('confirm') || focusModal.type.includes('prompt')">
+                    <button @click="focusModal.show = false" class="px-5 py-2.5 bg-slate-200 text-slate-700 rounded-lg font-bold hover:bg-slate-300 transition">ยกเลิก</button>
+                </div>
+                <button @click="executeFocusModal()" class="px-5 py-2.5 bg-cyan-600 text-white rounded-lg font-bold hover:bg-cyan-700 shadow-md transition">ตกลง</button>
             </div>
         </div>
     </div>
