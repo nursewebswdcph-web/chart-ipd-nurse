@@ -2803,6 +2803,43 @@ function nurseApp() {
                 receiverName: '', relation: '', nurseName: this.nurseName || '', pos: this.nursePosition || ''
             };
         },
+        async saveDischargeManual() {
+            if (!this.selectedPatient) return;
+            
+            this.isLoading = true;
+            try {
+                // เตรียมข้อมูลที่จะส่ง
+                const payload = {
+                    action: 'saveDischarge', // ชื่อ action ที่จะไปสั่งใน Apps Script
+                    an: this.selectedPatient.an,
+                    hn: this.selectedPatient.hn,
+                    ward: this.currentWard,
+                    data: JSON.stringify(this.dischargeForm)
+                };
+
+                const response = await fetch(this.API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    // แสดงแจ้งเตือนว่าบันทึกสำเร็จ (ใช้ dialog ที่คุณมีอยู่แล้ว)
+                    this.dialog = {
+                        show: true,
+                        type: 'success',
+                        title: 'บันทึกสำเร็จ',
+                        msg: 'ข้อมูลแบบบันทึกการพยาบาลผู้ป่วยจำหน่ายถูกจัดเก็บเรียบร้อยแล้ว'
+                    };
+                }
+            } catch (e) {
+                console.error("Save Error:", e);
+                alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+            } finally {
+                this.isLoading = false;
+            }
+        },
 
         printDischargeRecord() {
             const d = this.dischargeForm;
