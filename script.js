@@ -2166,21 +2166,21 @@ function nurseApp() {
         // เมื่อกดปุ่ม "ตกลง" ใน Modal
         async executeFocusModal() {
             if (this.focusModal.type === 'confirm') {
-                // ------------------------------------------------
-                // 1. ยืนยันการลบ Focus List
-                // ------------------------------------------------
                 this.focusList.splice(this.focusModal.index, 1);
                 this.focusModal.show = false;
                 await this.saveFocusToDB();
                 
+            } else if (this.focusModal.type === 'confirm_progress') {
+                this.progressNotes.splice(this.focusModal.index, 1);
+                this.focusModal.show = false;
+                await this.saveProgressToDB();
+                
             } else if (this.focusModal.type === 'prompt') {
-                // ------------------------------------------------
-                // 2. ยืนยันการเซฟ Template (Focus List)
-                // ------------------------------------------------
-                if (!this.focusModal.input.trim()) {
+                // กรณี: บันทึกของ Focus List
+                if (!this.focusModal.input || !this.focusModal.input.trim()) {
                     this.focusAlert('กรุณาระบุชื่อ Template'); return;
                 }
-                const pName = this.focusModal.input;
+                const pName = this.focusModal.input.trim();
                 this.focusModal.show = false;
                 this.isLoading = true;
                 
@@ -2191,27 +2191,15 @@ function nurseApp() {
                     
                     if(out.status === 'success') {
                         this.focusTemplates.push({...payload, id: new Date().getTime()});
-                        await this.addOrUpdateFocus(); 
-                        this.focusAlert('บันทึกเป็น Template ใหม่และเพิ่มลงตารางเรียบร้อยแล้ว');
+                        await this.addOrUpdateFocus(); // สั่งลงตารางและฐานข้อมูลคนไข้
+                        this.focusAlert('บันทึกและจัดเก็บเป็น Template เรียบร้อยแล้ว');
                     }
-                } catch(e) { 
-                    this.focusAlert('เกิดข้อผิดพลาดในการบันทึก Template'); 
-                }
+                } catch(e) { this.focusAlert('เกิดข้อผิดพลาดในการบันทึก Template'); }
                 this.isLoading = false;
                 
-            } else if (this.focusModal.type === 'confirm_progress') {
-                // ------------------------------------------------
-                // 3. ยืนยันการลบ Nursing Progress Note
-                // ------------------------------------------------
-                this.progressNotes.splice(this.focusModal.index, 1);
-                this.focusModal.show = false;
-                await this.saveProgressToDB();
-                
             } else if (this.focusModal.type === 'prompt_progress') {
-                // ------------------------------------------------
-                // 4. ยืนยันการเซฟ Template (Nursing Progress Note)
-                // ------------------------------------------------
-                if (!this.focusModal.input.trim()) {
+                // กรณี: บันทึกของ Progress Note
+                if (!this.focusModal.input || !this.focusModal.input.trim()) {
                     this.focusAlert('กรุณาระบุชื่อ Template'); return;
                 }
                 const pName = this.focusModal.input.trim();
@@ -2222,28 +2210,20 @@ function nurseApp() {
                     const payload = { 
                         templateName: pName, 
                         focus: this.pnForm.focus, 
-                        s: this.pnForm.s, 
-                        o: this.pnForm.o, 
-                        i: this.pnForm.i, 
-                        e: this.pnForm.e 
+                        s: this.pnForm.s, o: this.pnForm.o, i: this.pnForm.i, e: this.pnForm.e 
                     };
                     const res = await fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveNursingTemplate', payload }) });
                     const out = await res.json();
                     
                     if(out.status === 'success') {
                         this.nursingTemplates.push({...payload, id: new Date().getTime()});
-                        await this.addOrUpdateProgressNote();
-                        this.focusAlert('บันทึก Template และเพิ่มลงตารางเรียบร้อย');
+                        await this.addOrUpdateProgressNote(); // สั่งลงตารางและฐานข้อมูลคนไข้
+                        this.focusAlert('บันทึกและจัดเก็บเป็น Template เรียบร้อยแล้ว');
                     }
-                } catch(e) { 
-                    this.focusAlert('เกิดข้อผิดพลาดในการบันทึก Template Progress Note'); 
-                }
+                } catch(e) { this.focusAlert('เกิดข้อผิดพลาดในการบันทึก Template Progress Note'); }
                 this.isLoading = false;
                 
             } else {
-                // ------------------------------------------------
-                // 5. ปิด Alert ปกติ (ปุ่มตกลงรับทราบเฉยๆ)
-                // ------------------------------------------------
                 this.focusModal.show = false;
             }
         },
@@ -2337,21 +2317,11 @@ function nurseApp() {
         },
 
         // --- ระบบ Template ---
-        async saveAsNewTemplate() {
-            // เช็คว่ากรอกข้อมูลหรือยัง ถ้ายังให้เรียก focusAlert (Custom Modal แบบแจ้งเตือน)
+        saveAsNewTemplate() {
             if (!this.focusForm.focus || !this.focusForm.goal) {
-                this.focusAlert('กรุณากรอกปัญหาและเป้าหมายเพื่อสร้าง Template'); 
-                return;
+                this.focusAlert('กรุณากรอกปัญหาและเป้าหมายเพื่อสร้าง Template'); return;
             }
-            
-            // เปิด Custom Modal แบบ prompt ให้ตั้งชื่อ Template
-            this.focusModal = { 
-                show: true, 
-                type: 'prompt', 
-                msg: 'ตั้งชื่อให้รายการปัญหานี้ (Problem Name):', 
-                input: '', 
-                index: -1 
-            };
+            this.focusModal = { show: true, type: 'prompt', msg: 'ตั้งชื่อให้รายการปัญหานี้ (Problem Name):', input: '', index: -1 };
         },
 
         selectFocusTemplate(t) {
@@ -2607,8 +2577,10 @@ function nurseApp() {
         },
 
         // --- ระบบ Template & Re-Problem ---
-        async saveProgressAsTemplate() {
-            if (!this.pnForm.focus) { this.focusAlert('กรุณากรอก FOCUS ก่อนสร้าง Template'); return; }
+        saveProgressAsTemplate() {
+            if (!this.pnForm.focus) { 
+                this.focusAlert('กรุณากรอก FOCUS ก่อนสร้าง Template'); return; 
+            }
             this.focusModal = { show: true, type: 'prompt_progress', msg: 'ตั้งชื่อ Template นี้ (เช่น ชื่อโรค/อาการ):', input: '', index: -1 };
         },
 
