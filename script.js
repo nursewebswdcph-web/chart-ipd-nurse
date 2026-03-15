@@ -2166,7 +2166,7 @@ function nurseApp() {
             return d.toISOString().split('T')[0];
         },
 
-        addOrUpdateFocus() {
+        async addOrUpdateFocus() {
             if (!this.focusForm.focus || !this.focusForm.goal) {
                 alert('กรุณากรอกปัญหาและเป้าหมายให้ครบถ้วน'); return;
             }
@@ -2185,6 +2185,9 @@ function nurseApp() {
                 this.focusList.push(newItem);
             }
             this.clearFocusForm();
+            
+            // เรียกฟังก์ชันเซฟลง Google Sheets ทันที
+            await this.saveFocusToDB();
         },
 
         editFocus(index) {
@@ -2193,14 +2196,15 @@ function nurseApp() {
             window.scrollTo({ top: 0, behavior: 'smooth' });
         },
 
-        deleteFocus(index) {
+        async deleteFocus(index) {
             if (confirm('ยืนยันการลบรายการปัญหานี้?')) {
                 this.focusList.splice(index, 1);
+                await this.saveFocusToDB(); // เซฟหลังจากลบออกจาก Array
             }
         },
 
         async saveFocusToDB() {
-            this.isLoading = true;
+            // เอา this.isLoading = true ออก เพื่อให้หน้าเว็บไม่กระตุกเวลาบันทึกเบื้องหลัง
             try {
                 const payload = {
                     an: this.selectedPatient.an,
@@ -2210,13 +2214,16 @@ function nurseApp() {
                 };
                 const res = await fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveFocusList', payload }) });
                 const out = await res.json();
+                
                 if(out.status === 'success') {
+                    // แสดงแจ้งเตือนสีเขียวมุมขวาบนเบาๆ ว่าบันทึกสำเร็จ
                     this.showSuccess = true;
-                    this.successMsg = 'บันทึกรายการปัญหาสุขภาพเรียบร้อย';
+                    this.successMsg = 'ซิงค์ข้อมูลลงฐานข้อมูลเรียบร้อย';
                     setTimeout(() => { this.showSuccess = false; }, 3000);
                 }
-            } catch(e) { alert('เกิดข้อผิดพลาดในการบันทึก'); }
-            this.isLoading = false;
+            } catch(e) { 
+                console.error('เกิดข้อผิดพลาดในการบันทึก', e); 
+            }
         },
 
         // --- ระบบ Template ---
@@ -2232,9 +2239,15 @@ function nurseApp() {
                 const payload = { problemName: pName, focus: this.focusForm.focus, goal: this.focusForm.goal };
                 const res = await fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveFocusTemplate', payload }) });
                 const out = await res.json();
+                
                 if(out.status === 'success') {
-                    alert('บันทึก Template สำเร็จ');
+                    // เพิ่มลงใน List Template
                     this.focusTemplates.push({...payload, id: new Date().getTime()});
+                    
+                    // เรียกฟังก์ชันเพิ่มลงตาราง ซึ่งมันจะไปเซฟลง DB ให้อัตโนมัติตามที่เราเพิ่งแก้ไป
+                    await this.addOrUpdateFocus(); 
+                    
+                    alert('บันทึกเป็น Template ใหม่และเพิ่มลงรายการผู้ป่วยเรียบร้อยแล้ว');
                 }
             } catch(e) { alert('เกิดข้อผิดพลาดในการบันทึก Template'); }
             this.isLoading = false;
