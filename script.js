@@ -3106,32 +3106,14 @@ function nurseApp() {
                     const formId = this.activeForms[i].id;
                     if (this.selectedPrintForms.includes(formId)) {
                         
-                        // ** แก้ไข Bug: เช็คชื่อฟังก์ชันที่มีอยู่จริงในระบบก่อนเรียกใช้ **
-                        if (formId === 'assess_initial') {
-                            if (typeof this.printAssessment === 'function') this.printAssessment();
-                            else if (typeof this.printAssessmentInitial === 'function') this.printAssessmentInitial();
-                        }
-                        else if (formId === 'patient_class') {
-                            if (typeof this.printPatientClass === 'function') this.printPatientClass();
-                        }
-                        else if (formId === 'fall_risk') {
-                            if (typeof this.printFallRisk === 'function') this.printFallRisk();
-                        }
-                        else if (formId === 'braden_scale') {
-                            if (typeof this.printBradenScale === 'function') this.printBradenScale();
-                        }
-                        else if (formId === 'patient_edu') {
-                            if (typeof this.printPatientEdu === 'function') this.printPatientEdu();
-                        }
-                        else if (formId === 'focus_list') {
-                            if (typeof this.printFocusList === 'function') this.printFocusList();
-                        }
-                        else if (formId === 'progress_note') {
-                            if (typeof this.printProgressNote === 'function') this.printProgressNote();
-                        }
-                        else if (formId === 'discharge_record') {
-                            if (typeof this.printDischargeRecord === 'function') this.printDischargeRecord();
-                        }
+                        if (formId === 'assess_initial') this.printAssessment();
+                        else if (formId === 'patient_class') this.printClassification();
+                        else if (formId === 'fall_risk') this.printFallRisk();
+                        else if (formId === 'braden_scale') this.printBraden();
+                        else if (formId === 'patient_edu') this.printPatientEdu();
+                        else if (formId === 'focus_list') this.printFocusList();
+                        else if (formId === 'progress_note') this.printProgressNote();
+                        else if (formId === 'discharge_record') this.printDischargeRecord();
                         
                         combinedHtml += interceptedHtml; // เอาหน้ากระดาษมาต่อกัน
                         interceptedHtml = ''; 
