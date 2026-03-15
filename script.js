@@ -3102,8 +3102,8 @@ function nurseApp() {
                 };
 
                 // 3. รันฟังก์ชันพิมพ์เรียงตามลำดับฟอร์มมาตรฐาน
-                for (let i = 0; i < this.forms.length; i++) {
-                    const formId = this.forms[i].id;
+                for (let i = 0; i < this.activeForms.length; i++) {
+                    const formId = this.activeForms[i].id;
                     if (this.selectedPrintForms.includes(formId)) {
                         // เรียกฟังก์ชันพิมพ์เดิมของคุณ โดยมันจะไม่เปิดหน้าต่างใหม่ แต่จะถูกดูดโค้ดเก็บไว้แทน
                         if (formId === 'assess_initial') this.printAssessmentInitial();
