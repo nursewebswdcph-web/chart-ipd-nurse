@@ -2494,7 +2494,7 @@ function nurseApp() {
                     .patient-box-container { display: flex; justify-content: flex-end; width: 100%; }
                     .print-patient-box { 
                         width: 350px; border: 1px solid #000; border-radius: 4px; 
-                        padding: 6px 12px; font-size: 11pt !important; background: #fff; 
+                        padding: 6px 12px; font-size: 8pt !important; background: #fff; 
                     }
                     .print-footer { 
                         width: 100%; text-align: center; font-size: 8pt !important; color: #444; 
@@ -2701,8 +2701,7 @@ function nurseApp() {
                                 ${soieHtml}
                                 <br><br>
                                 <div style="text-align:right; padding-right: 20px;">
-                                    ลงชื่อ.......................................................ผู้บันทึก<br>
-                                    (${item.nurse})<br>
+                                    ลงชื่อ ${item.nurse} ผู้บันทึก<br>
                                     ${item.pos}
                                 </div>
                             </td>
@@ -2718,7 +2717,7 @@ function nurseApp() {
                         </div>
                         <div class="main-title">
                             <div>โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน</div>
-                            <div>บันทึกความก้าวหน้าทางการพยาบาล (Nursing Progress Note)</div>
+                            <div>ใบบันทึกความก้าวหน้าทางการพยาบาล (Nursing Progress Note)</div>
                         </div>
                         <table>
                             <thead>
@@ -2756,20 +2755,20 @@ function nurseApp() {
                     @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap');
                     body { font-family: 'Sarabun', sans-serif; font-size: 11pt; margin: 0; padding: 0; color: #000; background: #525659; }
                     .a4-page { 
-                        width: 210mm; height: 296mm; margin: 10mm auto; 
+                        width: 210mm; height: 296mm; margin: 8mm auto; 
                         padding: 25mm 10mm 45mm 10mm; position: relative; box-sizing: border-box; 
                         background: #fff; page-break-after: always; overflow: hidden;
                     }
                     .print-header-top-right { position: absolute; top: 10mm; right: 10mm; text-align: right; font-size: 8pt; font-weight: bold; line-height: 1.2; }
-                    .main-title { text-align: center; font-weight: bold; font-size: 14pt; margin-bottom: 15px; line-height: 1.4; }
+                    .main-title { text-align: center; font-weight: bold; font-size: 12pt; margin-bottom: 15px; line-height: 1.4; }
                     table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-                    th, td { border: 1px solid #000; padding: 8px; font-size: 11pt !important; vertical-align: top; word-wrap: break-word; }
+                    th, td { border: 1px solid #000; padding: 8px; font-size: 10pt !important; vertical-align: top; word-wrap: break-word; }
                     th { background-color: #eee !important; text-align: center; font-weight: bold; -webkit-print-color-adjust: exact; }
                     
                     /* CSS Footer Fixed Container 100% ตามที่ให้มา */
                     .fixed-footer-container { position: absolute; bottom: 5mm; left: 10mm; right: 10mm; display: flex; flex-direction: column; gap: 10px; }
                     .patient-box-container { display: flex; justify-content: flex-end; width: 100%; }
-                    .print-patient-box { width: 350px; border: 1px solid #000; border-radius: 4px; padding: 6px 12px; font-size: 11pt !important; background: #fff; }
+                    .print-patient-box { width: 350px; border: 1px solid #000; border-radius: 4px; padding: 6px 12px; font-size: 8pt !important; background: #fff; }
                     .print-footer { width: 100%; text-align: center; font-size: 8pt !important; color: #444; border-top: 1px solid #ccc; padding-top: 8px; margin-top: auto; }
 
                     @media print {
