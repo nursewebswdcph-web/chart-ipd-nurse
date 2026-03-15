@@ -1939,19 +1939,18 @@ function nurseApp() {
                     ` },
             
                     // O Section
-                    { id: 'O1', rs: 3, topic: '6. O=Out Patient<br>การดูแลต่อเนื่อง', text: (d) => `- การมาตรวจตามนัด วันที่ <span class="dot-line">${d.text1 || '.............'}</span> สถานที่ <span class="dot-line">${d.text2 || '.............'}</span> การเตรียมตัว <span class="dot-line">${d.text3 || '.............'}</span>` },
-                    { id: 'O1', rs: 0, text: (d) => `
+                    { id: 'O1', rs: 3, topic: '6. O=Out Patient<br>การดูแลต่อเนื่อง', text: (d) => `- การมาตรวจตามนัด วันที่ <span class="dot-line">${d.text1 || '-'}</span> สถานที่ <span class="dot-line">${d.text2 || '-'}</span> การเตรียมตัว <span class="dot-line">${d.text3 || '.............-
                         - แหล่งข้อมูลเครือข่ายหรือแหล่งสนับสนุนทางสังคม:<br>
                         ${['ผู้นำชุมชน', 'อสม.', 'รพ.สต.'].map(opt => `${getCheck('O2', opt)} ${opt}`).join(' ')} 
-                        ${getCheck('O2', 'อื่นๆ')} อื่นๆ ระบุ <span class="dot-line">${this.eduForm.O2.text1 || '...........'}</span>
+                        ${getCheck('O2', 'อื่นๆ')} อื่นๆ ระบุ <span class="dot-line">${this.eduForm.O2.text1 || '-'}</span>
                     ` },
                     { id: 'O1', rs: 0, text: (d) => `<b>- การขอความช่วยเหลือ 1669</b>` },
             
                     // Diet Section
                     { id: 'Diet1', rs: 1, topic: '7. D-Diet<br>การเลือกรับประทานอาหาร', text: (d) => `
                         ความรู้ความเข้าใจด้านอาหารที่เหมาะสมกับสภาวะของโรค:<br>
-                        - อาหารเฉพาะโรค ระบุ <span class="dot-line">${d.text1 || '....................'}</span><br>
-                        - อาหารที่ควรหลีกเลี่ยง <span class="dot-line">${d.text2 || '....................'}</span> อื่นๆ <span class="dot-line">${d.text3 || '....................'}</span>
+                        - อาหารเฉพาะโรค ระบุ <span class="dot-line">${d.text1 || '-'}</span><br>
+                        - อาหารที่ควรหลีกเลี่ยง <span class="dot-line">${d.text2 || '-'}</span> อื่นๆ <span class="dot-line">${d.text3 || '-'}</span>
                     ` }
                 ];
             
@@ -1963,14 +1962,14 @@ function nurseApp() {
                     // ลบ Inline-Style ที่ฟิกซ์ font-size/line-height ออก เพื่อให้ CSS คุมได้ทั้งหมด
                     htmlRows += `
                         <tr>
-                            ${row.rs > 0 ? `<td rowspan="${row.rs}" style="font-weight:bold; width: 18%; background-color:#f8fafc;">${row.topic}</td>` : ''}
-                            <td style="width: 44%;">${row.text(d)}</td>
-                            <td style="width: 12%; text-align:center;">${dateStr}</td>
-                            <td style="width: 13%; text-align:center;">
+                            ${row.rs > 0 ? `<td rowspan="${row.rs}" style="font-weight:bold; width: 15%; background-color:#f8fafc;">${row.topic}</td>` : ''}
+                            <td style="width: 45%;">${row.text(d)}</td>
+                            <td style="width: 10%; text-align:center;">${dateStr}</td>
+                            <td style="width: 15%; text-align:center; font-size: 8px;">
                                 ${d.provider || '.................'}<br>
                                 <span style="color:#666;">${d.pos ? '(' + d.pos + ')' : ''}</span>
                             </td>
-                            <td style="width: 13%; text-align:center;">${d.receiver || '.................'}</td>
+                            <td style="width: 10%; text-align:center;">${d.receiver || '.................'}</td>
                         </tr>
                     `;
                 });
@@ -2021,7 +2020,7 @@ function nurseApp() {
                             font-size: 9pt !important; /* ปรับให้เท่ากับ body หรือเล็กกว่าตามต้องการ */
                             vertical-align: top;
                             word-wrap: break-word;
-                            line-height: 1.2; /* ปรับระยะห่างระหว่างบรรทัดให้แคบลง */
+                            line-height: 1.15; /* ปรับระยะห่างระหว่างบรรทัดให้แคบลง */
                         }
                         
                         th { 
@@ -2043,7 +2042,7 @@ function nurseApp() {
                             border: 1px solid #000; 
                             border-radius: 4px; 
                             padding: 6px 12px;
-                            font-size: 9pt !important; /* ขนาดอักษรเท่าตาราง */
+                            font-size: 8pt !important; /* ขนาดอักษรเท่าตาราง */
                             background: #fff; 
                         }
             
@@ -2063,7 +2062,7 @@ function nurseApp() {
                         @media print {
                             @page { 
                                 size: A4; 
-                                margin: 5mm; /* ลดระยะขอบกระดาษในระบบปรินท์ให้เหลือน้อยที่สุด */
+                                margin: 5mm 0mm 5mm 5mm; /* ลดระยะขอบกระดาษในระบบปรินท์ให้เหลือน้อยที่สุด */
                             }
                             body { -webkit-print-color-adjust: exact; }
                             tr { page-break-inside: avoid; }
@@ -2082,11 +2081,11 @@ function nurseApp() {
                         <table>
                             <thead>
                                 <tr>
-                                    <th style="width:18%">เรื่อง</th>
-                                    <th style="width:44%">คำแนะนำ</th>
-                                    <th style="width:12%">ว/ด/ป ที่ให้</th>
-                                    <th style="width:13%">ผู้ให้คำแนะนำ</th>
-                                    <th style="width:13%">ผู้รับคำแนะนำ</th>
+                                    <th style="width:15%">เรื่อง</th>
+                                    <th style="width:45%">คำแนะนำ</th>
+                                    <th style="width:10%">ว/ด/ป</th>
+                                    <th style="width:15%">ผู้ให้คำแนะนำ</th>
+                                    <th style="width:10%">ผู้รับคำแนะนำ</th>
                                 </tr>
                             </thead>
                             <tbody>${htmlRows}</tbody>
