@@ -2784,48 +2784,33 @@ function nurseApp() {
             `);
             printWindow.document.close();
         },
-        // ==========================================
+        // ------------------------------------------
         // แบบบันทึกการพยาบาลผู้ป่วยจำหน่าย
-        // ==========================================
+        // ------------------------------------------
         defaultDischargeForm() {
             return {
-                date: this.getTodayDateInput(), time: new Date().toTimeString().slice(0, 5),
+                date: this.getTodayDateInput(), exitDate: this.getTodayDateInput(), time: new Date().toTimeString().slice(0, 5),
                 type: '', condition: '', symptom: '',
                 bt: '', pr: '', rr: '', bp: '',
-                d1: false, d2: false, d_other: false, d_other_text: '',
-                m_status: '', m_text: '',
-                e_other: false, e_other_text: '',
-                t_other: false, t_other_text: '',
+                d1: false, d2: false, d3: false, d4: false, d_other: false, d_other_text: '',
+                e1: false, e_other: false, e_other_text: '',
+                t1: false, t2: false, t_other: false, t_other_text: '',
                 h_other: false, h_other_text: '',
-                o_status: '', o_text: '',
-                diet1: false, diet_other: false, diet_text: '',
-                continuousProblem: '',
-                nurseName: this.nurseName || ''
+                diet1: false, diet2: false, diet3: false, diet4: false, diet5: false, diet6: false, diet7: false, diet7_text: '', diet_other: false, diet_text: '',
+                med_status: '', med_text: '',
+                fu_status: '', fu_text: '', wound_care: false, wound_date: '', cont_other: false, cont_text: '',
+                care_loc: '', care_loc_text1: '', care_loc_text2: '', care_loc_text3: '', care_loc_text4: '', care_loc_text5: '',
+                receiverName: '', relation: '', nurseName: this.nurseName || '', pos: this.nursePosition || ''
             };
-        },
-
-        async loadDischargeRecordInit() {
-            this.isLoading = true;
-            try {
-                const res = await fetch(`${this.API_URL}?action=getDischargeRecord&an=${this.selectedPatient.an}`);
-                const data = await res.json();
-                this.dischargeForm = (data && Object.keys(data).length > 0) ? data : this.defaultDischargeForm();
-            } catch (e) { console.error(e); this.dischargeForm = this.defaultDischargeForm(); }
-            this.isLoading = false;
-        },
-
-        async autoSaveDischarge() {
-            try {
-                const payload = { an: this.selectedPatient.an, hn: this.selectedPatient.hn, ward: this.currentWard, formData: this.dischargeForm };
-                await fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveDischargeRecord', payload }) });
-            } catch(e) { console.error(e); }
         },
 
         printDischargeRecord() {
             const d = this.dischargeForm;
             const ck = (val) => val ? '☑' : '☐';
             const rd = (val, target) => val === target ? '☑' : '☐';
-            const dateStr = d.date ? this.formatThaiDateShort(d.date) : '.......................................';
+            const d1Str = d.date ? this.formatThaiDateShort(d.date) : '..............................';
+            const d2Str = d.exitDate ? this.formatThaiDateShort(d.exitDate) : '..............................';
+            const tStr = d.time || '..............';
 
             const printWindow = window.open('', '_blank');
             printWindow.document.write(`
@@ -2843,15 +2828,15 @@ function nurseApp() {
                     .print-header-top-right { position: absolute; top: 10mm; right: 10mm; text-align: right; font-size: 8px; line-height: 1.2; }
                     .main-title { text-align: center; font-weight: bold; font-size: 14pt; margin-bottom: 10px; line-height: 1.4; }
                     
-                    .content-section { font-size: 11pt; line-height: 1.6; margin-bottom: 10px; }
+                    .content-section { font-size: 11pt; line-height: 1.5; margin-bottom: 8px; }
                     .indent { padding-left: 20px; }
-                    .dot-line { border-bottom: 1px dotted #000; display: inline-block; min-width: 50px; }
+                    .dot-line { border-bottom: 1px dotted #000; display: inline-block; min-width: 40px; }
                     
-                    .vs-box { display: flex; justify-content: space-around; font-weight: bold; margin: 10px 0; }
-                    .edu-box { border: 1px solid #000; padding: 10px; margin-top: 10px; }
+                    .vs-box { display: flex; justify-content: space-around; font-weight: bold; margin: 5px 0 10px 0; }
+                    .edu-box { border: 1px solid #000; padding: 10px; margin-top: 5px; margin-bottom: 10px; }
                     .edu-title { text-align: center; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 5px; margin-bottom: 5px; }
 
-                    /* CSS Footer Fixed Container ตามที่ระบุ */
+                    /* CSS Footer Fixed Container */
                     .fixed-footer-container { position: absolute; bottom: 5mm; left: 10mm; right: 10mm; display: flex; flex-direction: column; gap: 10px; }
                     .patient-box-container { display: flex; justify-content: flex-end; width: 100%; }
                     .print-patient-box { width: max-content; border: 1px solid #000; border-radius: 4px; padding: 6px 12px; font-size: 8pt !important; background: #fff; }
@@ -2877,11 +2862,11 @@ function nurseApp() {
                     </div>
 
                     <div class="content-section">
-                        <b>วันที่จำหน่าย</b> วันที่ / เวลาที่ออกจากโรงพยาบาล <span class="dot-line">${dateStr}</span> เวลา <span class="dot-line">${d.time || '........'}</span> น.
+                        <b>วันที่จำหน่าย</b> <span class="dot-line" style="min-width:80px;">${d1Str}</span> <b>วันที่ออกจากโรงพยาบาล</b> <span class="dot-line" style="min-width:80px;">${d2Str}</span> <b>เวลา</b> <span class="dot-line">${tStr}</span> น.
                     </div>
 
-                    <div class="content-section flex">
-                        <div style="width: 150px;"><b>ประเภทการจำหน่าย</b></div>
+                    <div class="content-section flex" style="display:flex;">
+                        <div style="width: 140px;"><b>ประเภทการจำหน่าย</b></div>
                         <div style="flex: 1;">
                             ${rd(d.type, 'แพทย์อนุญาต')} แพทย์อนุญาต &nbsp;&nbsp;
                             ${rd(d.type, 'ปฏิเสธการรักษา')} ปฏิเสธการรักษา &nbsp;&nbsp;
@@ -2892,8 +2877,8 @@ function nurseApp() {
                         </div>
                     </div>
 
-                    <div class="content-section flex">
-                        <div style="width: 150px;"><b>สภาพการจำหน่าย</b></div>
+                    <div class="content-section flex" style="display:flex;">
+                        <div style="width: 140px;"><b>สภาพการจำหน่าย</b></div>
                         <div style="flex: 1;">
                             ${rd(d.condition, 'หายสนิท')} หายสนิท &nbsp;&nbsp;
                             ${rd(d.condition, 'ดีขึ้น')} ดีขึ้น &nbsp;&nbsp;
@@ -2902,15 +2887,15 @@ function nurseApp() {
                     </div>
 
                     <div class="content-section">
-                        <b>สรุปอาการและอาการแสดงผู้ป่วยก่อนจำหน่าย</b><br>
-                        <div style="min-height: 40px; border-bottom: 1px dotted #ccc; line-height: 1.8;">${d.symptom ? d.symptom.replace(/\n/g, '<br>') : ''}</div>
+                        <b>สรุปอาการและอาการแสดงผู้ป่วยจำหน่าย</b><br>
+                        <div style="min-height: 35px; border-bottom: 1px dotted #ccc; line-height: 1.6;">${d.symptom ? d.symptom.replace(/\n/g, '<br>') : ''}</div>
                     </div>
 
                     <div class="vs-box content-section">
-                        <span>BT <span class="dot-line" style="min-width:40px; text-align:center;">${d.bt || ''}</span> °C</span>
-                        <span>PR <span class="dot-line" style="min-width:40px; text-align:center;">${d.pr || ''}</span> /min</span>
-                        <span>RR <span class="dot-line" style="min-width:40px; text-align:center;">${d.rr || ''}</span> /min</span>
-                        <span>BP <span class="dot-line" style="min-width:60px; text-align:center;">${d.bp || ''}</span> mmHg</span>
+                        <span>BT <span class="dot-line" style="min-width:30px; text-align:center;">${d.bt || ''}</span> °C</span>
+                        <span>PR <span class="dot-line" style="min-width:30px; text-align:center;">${d.pr || ''}</span> /min</span>
+                        <span>RR <span class="dot-line" style="min-width:30px; text-align:center;">${d.rr || ''}</span> /min</span>
+                        <span>BP <span class="dot-line" style="min-width:50px; text-align:center;">${d.bp || ''}</span> mmHg</span>
                     </div>
 
                     <div class="edu-box">
@@ -2918,46 +2903,70 @@ function nurseApp() {
                         
                         <b>1. D (Disease)</b> ความรู้เรื่องโรค การสังเกต อาการผิดปกติที่ควรมาพบแพทย์<br>
                         <div class="indent">
-                            ${ck(d.d1)} มีไข้สูง แผลบวมแดง มีหนอง &nbsp;&nbsp;
-                            ${ck(d.d2)} ซึม ความรู้สึกตัวเปลี่ยน หายใจหอบมากขึ้น &nbsp;&nbsp;
-                            ${ck(d.d_other)} อื่นๆ <span class="dot-line">${d.d_other_text || '.............................'}</span>
+                            ${ck(d.d1)} มีไข้สูง &nbsp;&nbsp; ${ck(d.d2)} แผลบวมแดง มีหนอง &nbsp;&nbsp; ${ck(d.d3)} ซึม ความรู้สึกตัวเปลี่ยน &nbsp;&nbsp; ${ck(d.d4)} หายใจหอบมากขึ้น &nbsp;&nbsp; ${ck(d.d_other)} อื่นๆ <span class="dot-line">${d.d_other_text || '................'}</span>
                         </div>
 
-                        <b>2. M (Medication)</b> ความรู้เกี่ยวกับยา ฤทธิ์ของยา วัตถุประสงค์การใช้ยา วิธีการใช้ ขนาด ปริมาณ จำนวนครั้ง ระยะเวลาที่ใช้ ข้อระวังในการใช้ยา ภาวะแทรกซ้อนต่าง ๆ ข้อห้ามสำหรับการใช้ยา การเก็บรักษายา อาการแพ้ยาถ้ามีผื่น บวม ให้หยุดยา แล้วกลับมาพบแพทย์<br>
-                        <div class="indent">
-                            ${rd(d.m_status, 'ได้ครบ')} ได้ครบ &nbsp;&nbsp;
-                            ${rd(d.m_status, 'ได้ไม่ครบ')} ได้ไม่ครบ กรณีไม่ครบระบุ <span class="dot-line">${d.m_text || '.............................'}</span>
-                        </div>
+                        <b>2. M (Medication)</b> <span style="font-weight:normal;">ความรู้เกี่ยวกับยา ฤทธิ์ของยา วัตถุประสงค์การใช้ยา วิธีการใช้ ขนาด ปริมาณ จำนวนครั้ง ระยะเวลาที่ใช้ ข้อระวังในการใช้ยา ภาวะแทรกซ้อนต่าง ๆ ข้อห้ามสำหรับการใช้ยา การเก็บรักษายา อาการแพ้ยาถ้ามีผื่น บวม ให้หยุดยา แล้วกลับมาพบแพทย์</span><br>
 
-                        <b>3. E (Environment)</b> การจัดสิ่งแวดล้อมสถานที่สะอาด อากาศถ่ายเทได้สะดวก<br>
-                        <div class="indent">${ck(d.e_other)} อื่นๆ <span class="dot-line">${d.e_other_text || '...................................................'}</span></div>
+                        <b>3. E (Environment)</b><br>
+                        <div class="indent">${ck(d.e1)} การจัดสิ่งแวดล้อมสถานที่สะอาด อากาศถ่ายเทได้สะดวก &nbsp;&nbsp; ${ck(d.e_other)} อื่นๆ <span class="dot-line">${d.e_other_text || '.............................'}</span></div>
 
-                        <b>4. T (Treatment)</b> แนะนำเรื่อง การทำความสะอาดร่างกาย การทำแผล<br>
-                        <div class="indent">${ck(d.t_other)} อื่นๆ <span class="dot-line">${d.t_other_text || '...................................................'}</span></div>
+                        <b>4. T (Treatment)</b> แนะนำเรื่อง<br>
+                        <div class="indent">${ck(d.t1)} การทำความสะอาดร่างกาย &nbsp;&nbsp; ${ck(d.t2)} การทำแผล &nbsp;&nbsp; ${ck(d.t_other)} อื่นๆ <span class="dot-line">${d.t_other_text || '.............................'}</span></div>
 
                         <b>5. H (Health)</b> แนะนำการออกกำลังกายอย่างเหมาะสม การพักผ่อนให้เพียงพอ<br>
-                        <div class="indent">${ck(d.h_other)} อื่นๆ <span class="dot-line">${d.h_other_text || '...................................................'}</span></div>
+                        <div class="indent">${ck(d.h_other)} อื่นๆ <span class="dot-line">${d.h_other_text || '.............................................................'}</span></div>
 
-                        <b>6. O (Outpatient refer)</b> การมาตรวจตามนัด แหล่งประโยชน์ในชุมชน เช่น รพ.สต. โรงพยาบาล และการใช้บริการ 1669<br>
-                        <div class="indent">
-                            ${rd(d.o_status, 'ไม่มี F/U')} ไม่มี F/U &nbsp;&nbsp;
-                            ${rd(d.o_status, 'มีนัด F/U')} มีนัด F/U <span class="dot-line">${d.o_text || '...................................................'}</span>
-                        </div>
+                        <b>6. O (Outpatient refer)</b> <span style="font-weight:normal;">การมาตรวจตามนัด แหล่งประโยชน์ในชุมชน เช่น รพ.สต. โรงพยาบาล และการใช้บริการ 1669</span><br>
 
-                        <b>7. D (Diet)</b> อาหารที่เหมาะสม<br>
+                        <b>7. D (Diet)</b> อาหารที่เหมาะสม มีประโยชน์<br>
                         <div class="indent">
-                            ${ck(d.diet1)} หลีกเลี่ยงอาหารที่มีไขมันสูง งดผักผลไม้ &nbsp;&nbsp;
-                            ${ck(d.diet_other)} อื่นๆ <span class="dot-line">${d.diet_text || '...................................................'}</span>
+                            ${ck(d.diet1)} อาหารครบ 5 หมู่ &nbsp;&nbsp; ${ck(d.diet2)} อาหารอ่อน &nbsp;&nbsp; ${ck(d.diet3)} สุกสะอาด &nbsp;&nbsp; ${ck(d.diet4)} เนื้อ นม ไข่ ผักผลไม้<br>
+                            ${ck(d.diet5)} หลีกเลี่ยงอาหารที่มีไขมันสูง &nbsp;&nbsp; ${ck(d.diet6)} งดผักผลไม้ &nbsp;&nbsp; ${ck(d.diet7)} อาหารเฉพาะโรค <span class="dot-line">${d.diet7_text || '..........'}</span> &nbsp;&nbsp; ${ck(d.diet_other)} อื่นๆ <span class="dot-line">${d.diet_text || '..........'}</span>
                         </div>
                     </div>
 
-                    <div class="content-section" style="margin-top: 15px;">
+                    <div class="content-section">
+                        <b>ยา / เวชภัณฑ์ / และอุปกรณ์ที่ใช้ในการดูแลตนเองหลังจำหน่าย</b><br>
+                        <div class="indent">
+                            ${rd(d.med_status, 'ได้ครบ')} ได้ครบ &nbsp;&nbsp; 
+                            ${rd(d.med_status, 'ได้ไม่ครบ')} ได้ไม่ครบ กรณีได้ไม่ครบ ระบุ <span class="dot-line">${d.med_text || '...................................................'}</span>
+                        </div>
+                    </div>
+
+                    <div class="content-section">
                         <b>ปัญหาที่ต้องดูแลต่อเนื่อง</b><br>
-                        <div style="min-height: 40px; border-bottom: 1px dotted #ccc; line-height: 1.8;">${d.continuousProblem ? d.continuousProblem.replace(/\n/g, '<br>') : ''}</div>
+                        <div class="indent" style="line-height: 1.8;">
+                            ${rd(d.fu_status, 'ไม่มี F/U')} ไม่มี F/U &nbsp;&nbsp; 
+                            ${rd(d.fu_status, 'มีนัด F/U')} มีนัด F/U <span class="dot-line">${d.fu_text || '...........................................'}</span><br>
+                            ${ck(d.wound_care)} ล้างแผลสถานพยาบาลใกล้บ้านทุกวัน ตัดไหมสถานพยาบาลใกล้บ้านวันที่ <span class="dot-line">${d.wound_date || '........................'}</span><br>
+                            ${ck(d.cont_other)} อื่นๆ <span class="dot-line">${d.cont_text || '...................................................'}</span>
+                        </div>
                     </div>
 
-                    <div style="text-align: right; margin-top: 30px; margin-right: 40px; font-weight: bold;">
-                        พยาบาลผู้จำหน่าย <span class="dot-line" style="min-width: 150px; text-align: center;">${d.nurseName || '...........................................'}</span>
+                    <div class="content-section">
+                        <b>สถานที่รับดูแลต่อ</b><br>
+                        <div class="indent">
+                            ${rd(d.care_loc, 'รพศ.')} รพศ. <span class="dot-line">${d.care_loc_text1 || '..........'}</span> &nbsp;&nbsp;
+                            ${rd(d.care_loc, 'รพท.')} รพท. <span class="dot-line">${d.care_loc_text2 || '..........'}</span> &nbsp;&nbsp;
+                            ${rd(d.care_loc, 'รพช.')} รพช. <span class="dot-line">${d.care_loc_text3 || '..........'}</span> &nbsp;&nbsp;
+                            ${rd(d.care_loc, 'รพ.สต.')} รพ.สต. <span class="dot-line">${d.care_loc_text4 || '..........'}</span> &nbsp;&nbsp;
+                            ${rd(d.care_loc, 'อื่นๆ')} อื่นๆ <span class="dot-line">${d.care_loc_text5 || '..........'}</span>
+                        </div>
+                    </div>
+
+                    <div class="content-section" style="margin-top: 15px; display: flex; justify-content: space-between;">
+                        <div>
+                            <b>ชื่อผู้ป่วยรับกลับ</b> <span class="dot-line" style="min-width: 150px; text-align: center;">${d.receiverName || ''}</span> 
+                            <b>เกี่ยวข้องเป็น</b> <span class="dot-line" style="min-width: 80px; text-align: center;">${d.relation || ''}</span>
+                        </div>
+                    </div>
+
+                    <div class="content-section" style="margin-top: 5px; display: flex; justify-content: space-between;">
+                        <div>
+                            <b>พยาบาลผู้จำหน่าย</b> <span class="dot-line" style="min-width: 150px; text-align: center;">${d.nurseName || ''}</span> 
+                            <b>ตำแหน่ง</b> <span class="dot-line" style="min-width: 120px; text-align: center;">${d.pos || ''}</span>
+                        </div>
                     </div>
 
                     <div class="fixed-footer-container">
