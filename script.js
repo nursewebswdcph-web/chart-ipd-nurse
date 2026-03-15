@@ -1939,13 +1939,13 @@ function nurseApp() {
                     ` },
             
                     // O Section
-                    { id: 'O1', rs: 3, topic: '6. O=Out Patient<br>การดูแลต่อเนื่อง', text: (d) => `- การมาตรวจตามนัด วันที่ <span class="dot-line">${d.text1 || '-'}</span> สถานที่ <span class="dot-line">${d.text2 || '-'}</span> การเตรียมตัว <span class="dot-line">${d.text3 || '.............'}</span><br>
-                            - แหล่งข้อมูลเครือข่ายหรือแหล่งสนับสนุนทางสังคม:<br>
-                            ${['ผู้นำชุมชน', 'อสม.', 'รพ.สต.'].map(opt => `${getCheck('O2', opt)} ${opt}`).join(' ')} 
-                            ${getCheck('O2', 'อื่นๆ')} อื่นๆ ระบุ <span class="dot-line">${this.eduForm.O2.text1 || '-'}</span>
+                    { id: 'O1', rs: 2, topic: '6. O=Out Patient<br>การดูแลต่อเนื่อง', text: (d) => `- การมาตรวจตามนัด วันที่ <span class="dot-line">${d.text1 || '-'}</span> สถานที่ <span class="dot-line">${d.text2 || '-'}</span> การเตรียมตัว <span class="dot-line">${d.text3 || '.............'}</span><br>
+                        - แหล่งข้อมูลเครือข่ายหรือแหล่งสนับสนุนทางสังคม:<br>
+                        ${['ผู้นำชุมชน', 'อสม.', 'รพ.สต.'].map(opt => `${getCheck('O2', opt)} ${opt}`).join(' ')} 
+                        ${getCheck('O2', 'อื่นๆ')} อื่นๆ ระบุ <span class="dot-line">${this.eduForm.O2?.text1 || '-'}</span>
                     ` },
                     { id: 'O1', rs: 0, text: (d) => `<b>- การขอความช่วยเหลือ 1669</b>` },
-            
+                    
                     // Diet Section
                     { id: 'Diet1', rs: 1, topic: '7. D-Diet<br>การเลือกรับประทานอาหาร', text: (d) => `
                         ความรู้ความเข้าใจด้านอาหารที่เหมาะสมกับสภาวะของโรค:<br>
@@ -1964,8 +1964,8 @@ function nurseApp() {
                         <tr>
                             ${row.rs > 0 ? `<td rowspan="${row.rs}" style="font-weight:bold; width: 15%; background-color:#f8fafc;">${row.topic}</td>` : ''}
                             <td style="width: 45%;">${row.text(d)}</td>
-                            <td style="width: 10%; text-align:center;">${dateStr}</td>
-                            <td style="width: 15%; text-align:center; font-size: 8px;">
+                            <td style="width: 8%; text-align:center;">${dateStr}</td>
+                            <td style="width: 18%; text-align:center; font-size: 6px;">
                                 ${d.provider || '.................'}<br>
                                 <span style="color:#666;">${d.pos ? '(' + d.pos + ')' : ''}</span>
                             </td>
@@ -2080,8 +2080,8 @@ function nurseApp() {
                                 <tr>
                                     <th style="width:15%">เรื่อง</th>
                                     <th style="width:45%">คำแนะนำ</th>
-                                    <th style="width:10%">ว/ด/ป</th>
-                                    <th style="width:15%">ผู้ให้คำแนะนำ</th>
+                                    <th style="width:8%">ว/ด/ป</th>
+                                    <th style="width:18%">ผู้ให้คำแนะนำ</th>
                                     <th style="width:10%">ผู้รับคำแนะนำ</th>
                                 </tr>
                             </thead>
