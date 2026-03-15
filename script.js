@@ -54,7 +54,20 @@ function nurseApp() {
         showFocusTemplateModal: false,
         searchFocusTemplate: '',
         focusModal: { show: false, type: '', msg: '', input: '', index: -1 },
+
+        progressNotes: [],
+        nursingTemplates: [],
+        pnForm: { id: '', date: '', shift: 'เช้า (08.00-16.00)', time: '', focus: '', s: '', o: '', i: '', e: '', nurse: '', pos: '', addToFocusList: false },
+        editingProgressIndex: -1,
+        showNurseListForProgress: false,
         
+        showProgressTemplateModal: false,
+        searchProgressTemplate: '',
+
+        showReProblemModal: false,
+        searchReProblem: '',
+        showCreateTemplateModal: false,
+        newTemplateForm: { templateName: '', focus: '', s: '', o: '', i: '', e: '' },
                 
         isSidebarCollapsed: false, // สถานะการพับ Sidebar
         
@@ -161,6 +174,16 @@ function nurseApp() {
             if (!this.searchFocusTemplate) return this.focusTemplates;
             const q = this.searchFocusTemplate.toLowerCase();
             return this.focusTemplates.filter(t => t.problemName && t.problemName.toLowerCase().includes(q));
+        },
+        get filteredProgressTemplates() {
+            if (!this.searchProgressTemplate) return this.nursingTemplates;
+            const q = this.searchProgressTemplate.toLowerCase();
+            return this.nursingTemplates.filter(t => t.focus && t.focus.toLowerCase().includes(q));
+        },
+        get filteredReProblems() {
+            if (!this.searchReProblem) return this.progressNotes;
+            const q = this.searchReProblem.toLowerCase();
+            return this.progressNotes.filter(p => p.focus && p.focus.toLowerCase().includes(q));
         },
 
         async loadInitialData() {
@@ -554,7 +577,8 @@ function nurseApp() {
                     await this.loadBraden(this.selectedPatient.an);
                 } else if (form.id === 'patient_edu') {
                     await this.loadPatientEdu(this.selectedPatient.an);
-                } else if (form.id === 'focus_list') { 
+                } else if (form.id === 'focus_list') {
+                } else if (form.id === 'progress_note') {
                 }
             } catch (e) {
                 console.error("Error switching form:", e);
@@ -2148,12 +2172,17 @@ function nurseApp() {
         // เมื่อกดปุ่ม "ตกลง" ใน Modal
         async executeFocusModal() {
             if (this.focusModal.type === 'confirm') {
-                // ยืนยันการลบ
+                // ------------------------------------------------
+                // 1. ยืนยันการลบ Focus List
+                // ------------------------------------------------
                 this.focusList.splice(this.focusModal.index, 1);
                 this.focusModal.show = false;
                 await this.saveFocusToDB();
+                
             } else if (this.focusModal.type === 'prompt') {
-                // ยืนยันการเซฟ Template
+                // ------------------------------------------------
+                // 2. ยืนยันการเซฟ Template (Focus List)
+                // ------------------------------------------------
                 if (!this.focusModal.input.trim()) {
                     this.focusAlert('กรุณาระบุชื่อ Template'); return;
                 }
@@ -2171,10 +2200,56 @@ function nurseApp() {
                         await this.addOrUpdateFocus(); 
                         this.focusAlert('บันทึกเป็น Template ใหม่และเพิ่มลงตารางเรียบร้อยแล้ว');
                     }
-                } catch(e) { this.focusAlert('เกิดข้อผิดพลาดในการบันทึก Template'); }
+                } catch(e) { 
+                    this.focusAlert('เกิดข้อผิดพลาดในการบันทึก Template'); 
+                }
                 this.isLoading = false;
+                
+            } else if (this.focusModal.type === 'confirm_progress') {
+                // ------------------------------------------------
+                // 3. ยืนยันการลบ Nursing Progress Note
+                // ------------------------------------------------
+                this.progressNotes.splice(this.focusModal.index, 1);
+                this.focusModal.show = false;
+                await this.saveProgressToDB();
+                
+            } else if (this.focusModal.type === 'prompt_progress') {
+                // ------------------------------------------------
+                // 4. ยืนยันการเซฟ Template (Nursing Progress Note)
+                // ------------------------------------------------
+                if (!this.focusModal.input.trim()) {
+                    this.focusAlert('กรุณาระบุชื่อ Template'); return;
+                }
+                const pName = this.focusModal.input.trim();
+                this.focusModal.show = false;
+                this.isLoading = true;
+                
+                try {
+                    const payload = { 
+                        templateName: pName, 
+                        focus: this.pnForm.focus, 
+                        s: this.pnForm.s, 
+                        o: this.pnForm.o, 
+                        i: this.pnForm.i, 
+                        e: this.pnForm.e 
+                    };
+                    const res = await fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveNursingTemplate', payload }) });
+                    const out = await res.json();
+                    
+                    if(out.status === 'success') {
+                        this.nursingTemplates.push({...payload, id: new Date().getTime()});
+                        await this.addOrUpdateProgressNote();
+                        this.focusAlert('บันทึก Template และเพิ่มลงตารางเรียบร้อย');
+                    }
+                } catch(e) { 
+                    this.focusAlert('เกิดข้อผิดพลาดในการบันทึก Template Progress Note'); 
+                }
+                this.isLoading = false;
+                
             } else {
-                // ปิด Alert ปกติ
+                // ------------------------------------------------
+                // 5. ปิด Alert ปกติ (ปุ่มตกลงรับทราบเฉยๆ)
+                // ------------------------------------------------
                 this.focusModal.show = false;
             }
         },
@@ -2441,6 +2516,273 @@ function nurseApp() {
                 <script>
                     window.onload = () => { setTimeout(() => { window.print(); window.close(); }, 500); }
                 </script>
+            </body>
+            </html>
+            `);
+            printWindow.document.close();
+        },
+        // ==========================================
+        // ฟังก์ชันสำหรับ Nursing Progress Note
+        // ==========================================
+        async loadProgressNotesInit() {
+            this.isLoading = true;
+            try {
+                // ดึง Note ของผู้ป่วย
+                const res = await fetch(`${this.API_URL}?action=getNursingNotes&an=${this.selectedPatient.an}`);
+                this.progressNotes = await res.json() || [];
+                
+                // ดึง Template กลาง
+                const resT = await fetch(`${this.API_URL}?action=getNursingTemplates`);
+                this.nursingTemplates = await resT.json() || [];
+                
+                // ตรวจสอบ Focus List เผื่อมีการสั่งซิงค์ข้ามไฟล์
+                if (!this.focusList || this.focusList.length === 0) {
+                    const resF = await fetch(`${this.API_URL}?action=getFocusList&an=${this.selectedPatient.an}`);
+                    this.focusList = await resF.json() || [];
+                }
+
+                this.clearProgressForm();
+            } catch (e) { console.error(e); }
+            this.isLoading = false;
+        },
+
+        clearProgressForm() {
+            this.pnForm = { 
+                id: '', date: this.getTodayDateInput(), shift: 'เช้า (08.00-16.00)', 
+                time: new Date().toTimeString().slice(0, 5), 
+                focus: '', s: '', o: '', i: '', e: '', 
+                nurse: this.nurseName, pos: this.nursePosition, 
+                addToFocusList: false 
+            };
+            this.editingProgressIndex = -1;
+        },
+
+        async addOrUpdateProgressNote() {
+            if (!this.pnForm.focus || (!this.pnForm.s && !this.pnForm.o && !this.pnForm.i && !this.pnForm.e)) {
+                this.focusAlert('กรุณากรอก FOCUS และรายละเอียดอย่างน้อย 1 ช่อง (S,O,I,E)'); return;
+            }
+            
+            const newItem = { ...this.pnForm, id: this.pnForm.id || new Date().getTime().toString() };
+            
+            if (this.editingProgressIndex > -1) {
+                this.progressNotes[this.editingProgressIndex] = newItem;
+            } else {
+                this.progressNotes.push(newItem);
+            }
+
+            // --- ซิงค์เข้า Focus List อัตโนมัติ ---
+            if (this.pnForm.addToFocusList) {
+                // เช็คว่ามีปัญหาชื่อเดียวกันใน Focus List ไหม
+                const exist = this.focusList.find(f => f.focus === this.pnForm.focus);
+                if (!exist) {
+                    this.focusList.push({
+                        id: new Date().getTime().toString(),
+                        focus: this.pnForm.focus,
+                        goal: '-',
+                        startDate: this.pnForm.date,
+                        endDate: ''
+                    });
+                    // เซฟ Focus List ขึ้น DB ทันที
+                    const pF = { an: this.selectedPatient.an, hn: this.selectedPatient.hn, ward: this.currentWard, focusData: this.focusList };
+                    fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveFocusList', payload: pF }) });
+                }
+            }
+
+            this.clearProgressForm();
+            await this.saveProgressToDB();
+        },
+
+        async deleteProgressNote(index) {
+            this.focusModal = { show: true, type: 'confirm_progress', msg: 'ยืนยันการลบบันทึกพยาบาลนี้?', input: '', index: index };
+        },
+
+        async saveProgressToDB() {
+            try {
+                const payload = { an: this.selectedPatient.an, hn: this.selectedPatient.hn, ward: this.currentWard, noteData: this.progressNotes };
+                await fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveNursingNotes', payload }) });
+                
+                this.showSuccess = true; this.successMsg = 'ซิงค์ข้อมูลลงฐานข้อมูลเรียบร้อย';
+                setTimeout(() => { this.showSuccess = false; }, 3000);
+            } catch(e) { console.error(e); }
+        },
+
+        editProgressNote(index) {
+            this.pnForm = { ...this.progressNotes[index], addToFocusList: false };
+            this.editingProgressIndex = index;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        },
+
+        // --- ระบบ Template & Re-Problem ---
+        async saveProgressAsTemplate() {
+            if (!this.pnForm.focus) { this.focusAlert('กรุณากรอก FOCUS ก่อนสร้าง Template'); return; }
+            this.focusModal = { show: true, type: 'prompt_progress', msg: 'ตั้งชื่อ Template นี้ (เช่น ชื่อโรค/อาการ):', input: '', index: -1 };
+        },
+
+        openProgressTemplateModal() { this.searchProgressTemplate = ''; this.showProgressTemplateModal = true; },
+        selectProgressTemplate(t) {
+            this.pnForm.focus = t.focus; this.pnForm.s = t.s; this.pnForm.o = t.o; this.pnForm.i = t.i; this.pnForm.e = t.e;
+            this.showProgressTemplateModal = false;
+        },
+
+        openReProblemModal() { this.searchReProblem = ''; this.showReProblemModal = true; },
+        selectReProblem(p) {
+            this.pnForm.focus = p.focus; this.pnForm.s = p.s; this.pnForm.o = p.o; this.pnForm.i = p.i; this.pnForm.e = p.e;
+            this.showReProblemModal = false;
+        },
+        // เปิดหน้าต่างสร้าง Template ใหม่ (ฟอร์มเปล่า)
+        openCreateTemplateModal() {
+            this.newTemplateForm = { templateName: '', focus: '', s: '', o: '', i: '', e: '' };
+            this.showCreateTemplateModal = true;
+        },
+
+        // เซฟ Template ใหม่เข้าคลังอย่างเดียว (ไม่ลงตารางคนไข้)
+        async saveIndependentTemplate() {
+            if (!this.newTemplateForm.templateName || !this.newTemplateForm.focus) {
+                this.focusAlert('กรุณากรอกชื่อ Template และ FOCUS ให้ครบถ้วน'); 
+                return;
+            }
+            
+            this.isLoading = true;
+            try {
+                const payload = { ...this.newTemplateForm };
+                const res = await fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveNursingTemplate', payload }) });
+                const out = await res.json();
+                
+                if (out.status === 'success') {
+                    // ยัดลง Array เพื่อให้กดใช้ได้เลยไม่ต้องรีเฟรช
+                    this.nursingTemplates.push({...payload, id: new Date().getTime()});
+                    this.showCreateTemplateModal = false;
+                    this.focusAlert('สร้าง Template ใหม่สำเร็จ (บันทึกเข้าคลังเรียบร้อยแล้ว)');
+                }
+            } catch (e) { 
+                this.focusAlert('เกิดข้อผิดพลาดในการบันทึก Template'); 
+            }
+            this.isLoading = false;
+        },
+        
+        printProgressNote() {
+            if (!this.progressNotes || this.progressNotes.length === 0) {
+                this.focusAlert('ยังไม่มีข้อมูลสำหรับพิมพ์'); return;
+            }
+
+            const itemsPerPage = 2; // บังคับหน้าละ 2 รายการตามข้อกำหนด
+            const pages = [];
+            for (let i = 0; i < this.progressNotes.length; i += itemsPerPage) {
+                pages.push(this.progressNotes.slice(i, i + itemsPerPage));
+            }
+            const totalPages = pages.length;
+
+            let htmlPages = '';
+            
+            pages.forEach((pageItems, pageIndex) => {
+                let htmlRows = '';
+                pageItems.forEach((item, idx) => {
+                    const dateStr = item.date ? this.formatThaiDateShort(item.date) : '';
+                    // ตัดเอาเฉพาะเวลาเวร เช่น "เช้า (08.00-16.00)" -> "08.00-16.00"
+                    const shiftMatch = item.shift.match(/\(([^)]+)\)/);
+                    const shiftTime = shiftMatch ? shiftMatch[1] : item.shift;
+                    
+                    // สร้างเนื้อหา SOIE ให้เว้นบรรทัด
+                    let soieHtml = '';
+                    if(item.s) soieHtml += `<b>S:</b> ${item.s.replace(/\n/g, '<br>')}<br>`;
+                    if(item.o) soieHtml += `<b>O:</b> ${item.o.replace(/\n/g, '<br>')}<br>`;
+                    if(item.i) soieHtml += `<b>I:</b> ${item.i.replace(/\n/g, '<br>')}<br>`;
+                    if(item.e) soieHtml += `<b>E:</b> ${item.e.replace(/\n/g, '<br>')}<br>`;
+                    
+                    // เส้นขีดคั่นระหว่างปัญหา (ถ้าไม่ใช่รายการสุดท้ายของหน้า)
+                    const borderBottom = (idx === 0 && pageItems.length === 2) ? 'border-bottom: 2px solid #000;' : '';
+
+                    htmlRows += `
+                        <tr style="${borderBottom}">
+                            <td style="text-align:center;">${dateStr}<br>${shiftTime}</td>
+                            <td style="text-align:center;">${item.time}</td>
+                            <td style="font-weight:bold;">${item.focus.replace(/\n/g, '<br>')}</td>
+                            <td>
+                                ${soieHtml}
+                                <br><br>
+                                <div style="text-align:right; padding-right: 20px;">
+                                    ลงชื่อ.......................................................ผู้บันทึก<br>
+                                    (${item.nurse})<br>
+                                    ${item.pos}
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                htmlPages += `
+                    <div class="a4-page">
+                        <div class="print-header-top-right">
+                            <div>Echart-ipd-nurse</div>
+                            <div>FR-IPD-006 หน้า ${pageIndex + 1}/${totalPages}</div>
+                        </div>
+                        <div class="main-title">
+                            <div>โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน</div>
+                            <div>บันทึกความก้าวหน้าทางการพยาบาล (Nursing Progress Note)</div>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width: 15%;">DATE / SHIFT</th>
+                                    <th style="width: 10%;">Actual Time</th>
+                                    <th style="width: 25%;">FOCUS / PROBLEM</th>
+                                    <th style="width: 50%;">Nursing Progress Note</th>
+                                </tr>
+                            </thead>
+                            <tbody>${htmlRows}</tbody>
+                        </table>
+                        <div class="fixed-footer-container">
+                            <div class="patient-box-container">
+                                <div class="print-patient-box">
+                                    <div><b>ชื่อ-สกุล:</b> ${this.selectedPatient?.name || '-'} &nbsp; <b>อายุ:</b> ${this.selectedPatient?.ageDisplay || '-'}</div>
+                                    <div><b>HN:</b> ${this.selectedPatient?.hn || '-'} &nbsp; <b>AN:</b> ${this.selectedPatient?.an || '-'}</div>                
+                                    <div><b>แพทย์:</b> ${this.selectedPatient?.doctor || '-'} &nbsp; <b>ตึก:</b> ${this.currentWard || '-'} &nbsp; <b>เตียง:</b> ${this.selectedPatient?.bed || '-'}</div>
+                                </div>
+                            </div>
+                            <div class="print-footer">
+                                เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | โปรแกรมบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+            <html>
+            <head>
+                <title>Print Nursing Progress Note</title>
+                <style>
+                    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap');
+                    body { font-family: 'Sarabun', sans-serif; font-size: 11pt; margin: 0; padding: 0; color: #000; background: #525659; }
+                    .a4-page { 
+                        width: 210mm; height: 296mm; margin: 10mm auto; 
+                        padding: 25mm 10mm 45mm 10mm; position: relative; box-sizing: border-box; 
+                        background: #fff; page-break-after: always; overflow: hidden;
+                    }
+                    .print-header-top-right { position: absolute; top: 10mm; right: 10mm; text-align: right; font-size: 8pt; font-weight: bold; line-height: 1.2; }
+                    .main-title { text-align: center; font-weight: bold; font-size: 14pt; margin-bottom: 15px; line-height: 1.4; }
+                    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+                    th, td { border: 1px solid #000; padding: 8px; font-size: 11pt !important; vertical-align: top; word-wrap: break-word; }
+                    th { background-color: #eee !important; text-align: center; font-weight: bold; -webkit-print-color-adjust: exact; }
+                    
+                    /* CSS Footer Fixed Container 100% ตามที่ให้มา */
+                    .fixed-footer-container { position: absolute; bottom: 5mm; left: 10mm; right: 10mm; display: flex; flex-direction: column; gap: 10px; }
+                    .patient-box-container { display: flex; justify-content: flex-end; width: 100%; }
+                    .print-patient-box { width: 350px; border: 1px solid #000; border-radius: 4px; padding: 6px 12px; font-size: 11pt !important; background: #fff; }
+                    .print-footer { width: 100%; text-align: center; font-size: 8pt !important; color: #444; border-top: 1px solid #ccc; padding-top: 8px; margin-top: auto; }
+
+                    @media print {
+                        @page { size: A4; margin: 0; }
+                        body { background: #fff; -webkit-print-color-adjust: exact; }
+                        .a4-page { margin: 0; box-shadow: none; border: none; }
+                        .a4-page:last-child { page-break-after: auto; }
+                    }
+                </style>
+            </head>
+            <body>
+                ${htmlPages}
+                <script>window.onload = () => { setTimeout(() => { window.print(); window.close(); }, 500); }</script>
             </body>
             </html>
             `);
