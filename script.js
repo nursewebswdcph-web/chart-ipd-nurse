@@ -1965,7 +1965,7 @@ function nurseApp() {
                             ${row.rs > 0 ? `<td rowspan="${row.rs}" style="font-weight:bold; width: 15%; background-color:#f8fafc;">${row.topic}</td>` : ''}
                             <td style="width: 45%;">${row.text(d)}</td>
                             <td style="width: 8%; text-align:center;">${dateStr}</td>
-                            <td style="width: 20%; text-align:center; font-size: 6px;">
+                            <td style="width: 22%; text-align:center; font-size: 6px;">
                                 ${d.provider || '.................'}<br>
                                 <span style="color:#666;">${d.pos ? '(' + d.pos + ')' : ''}</span>
                             </td>
@@ -2090,7 +2090,7 @@ function nurseApp() {
                                     <th style="width:15%">เรื่อง</th>
                                     <th style="width:45%">คำแนะนำ</th>
                                     <th style="width:8%">ว/ด/ป</th>
-                                    <th style="width:20%">ผู้ให้คำแนะนำ</th>
+                                    <th style="width:22%">ผู้ให้คำแนะนำ</th>
                                     <th style="width:10%">ผู้รับคำแนะนำ</th>
                                 </tr>
                             </thead>
