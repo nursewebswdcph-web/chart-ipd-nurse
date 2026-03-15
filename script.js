@@ -2782,7 +2782,7 @@ function nurseApp() {
                     /* CSS Footer Fixed Container 100% ตามที่ให้มา */
                     .fixed-footer-container { position: absolute; bottom: 5mm; left: 10mm; right: 10mm; display: flex; flex-direction: column; gap: 10px; }
                     .patient-box-container { display: flex; justify-content: flex-end; width: 100%; }
-                    .print-patient-box { width: 350px; border: 1px solid #000; border-radius: 4px; padding: 6px 12px; font-size: 8pt !important; background: #fff; }
+                    .print-patient-box { width: max-content; border: 1px solid #000; border-radius: 4px; padding: 6px 12px; font-size: 8pt !important; background: #fff; }
                     .print-footer { width: 100%; text-align: center; font-size: 8pt !important; color: #444; border-top: 1px solid #ccc; padding-top: 8px; margin-top: auto; }
 
                     @media print {
