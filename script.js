@@ -2904,7 +2904,7 @@ function nurseApp() {
                     </div>
 
                     <div class="content-section">
-                        <b>วันที่จำหน่าย</b> <span class="dot-line" style="min-width:80px;">${d1Str}</span> <b>วันที่ออกจากโรงพยาบาล</b> <span class="dot-line" style="min-width:80px;">${d2Str}</span> <b>เวลา</b> <span class="dot-line">${tStr}</span> น.
+                        <b>วันที่จำหน่าย</b> <span class="dot-line" style="min-width:80px;">${d1Str}|| ''</span> <b>วันที่ออกจากโรงพยาบาล</b> <span class="dot-line" style="min-width:80px;">${d2Str}|| ''</span> <b>เวลา</b> <span class="dot-line">${tStr}|| ''</span> น.
                     </div>
 
                     <div class="content-section flex" style="display:flex;">
@@ -2913,7 +2913,7 @@ function nurseApp() {
                             ${rd(d.type, 'แพทย์อนุญาต')} แพทย์อนุญาต &nbsp;&nbsp;
                             ${rd(d.type, 'ปฏิเสธการรักษา')} ปฏิเสธการรักษา &nbsp;&nbsp;
                             ${rd(d.type, 'หนีกลับ')} หนีกลับ &nbsp;&nbsp;
-                            ${rd(d.type, 'REFER')} REFER &nbsp;&nbsp;
+                            ${rd(d.type, 'REFER')} REFER &nbsp;&nbsp;<br>
                             ${rd(d.type, 'ตายไม่มีการชันสูตร')} ตายไม่มีการชันสูตร &nbsp;&nbsp;
                             ${rd(d.type, 'ตายมีการชันสูตร')} ตายมีการชันสูตร
                         </div>
@@ -2945,26 +2945,26 @@ function nurseApp() {
                         
                         <b>1. D (Disease)</b> ความรู้เรื่องโรค การสังเกต อาการผิดปกติที่ควรมาพบแพทย์<br>
                         <div class="indent">
-                            ${ck(d.d1)} มีไข้สูง &nbsp;&nbsp; ${ck(d.d2)} แผลบวมแดง มีหนอง &nbsp;&nbsp; ${ck(d.d3)} ซึม ความรู้สึกตัวเปลี่ยน &nbsp;&nbsp; ${ck(d.d4)} หายใจหอบมากขึ้น &nbsp;&nbsp; ${ck(d.d_other)} อื่นๆ <span class="dot-line">${d.d_other_text || '................'}</span>
+                            ${ck(d.d1)} มีไข้สูง &nbsp;&nbsp; ${ck(d.d2)} แผลบวมแดง มีหนอง &nbsp;&nbsp; ${ck(d.d3)} ซึม ความรู้สึกตัวเปลี่ยน &nbsp;&nbsp; ${ck(d.d4)} หายใจหอบมากขึ้น &nbsp;&nbsp; ${ck(d.d_other)} อื่นๆ <span class="dot-line">${d.d_other_text || ''}</span>
                         </div>
 
                         <b>2. M (Medication)</b> <span style="font-weight:normal;">ความรู้เกี่ยวกับยา ฤทธิ์ของยา วัตถุประสงค์การใช้ยา วิธีการใช้ ขนาด ปริมาณ จำนวนครั้ง ระยะเวลาที่ใช้ ข้อระวังในการใช้ยา ภาวะแทรกซ้อนต่าง ๆ ข้อห้ามสำหรับการใช้ยา การเก็บรักษายา อาการแพ้ยาถ้ามีผื่น บวม ให้หยุดยา แล้วกลับมาพบแพทย์</span><br>
 
                         <b>3. E (Environment)</b><br>
-                        <div class="indent">${ck(d.e1)} การจัดสิ่งแวดล้อมสถานที่สะอาด อากาศถ่ายเทได้สะดวก &nbsp;&nbsp; ${ck(d.e_other)} อื่นๆ <span class="dot-line">${d.e_other_text || '.............................'}</span></div>
+                        <div class="indent">${ck(d.e1)} การจัดสิ่งแวดล้อมสถานที่สะอาด อากาศถ่ายเทได้สะดวก &nbsp;&nbsp; ${ck(d.e_other)} อื่นๆ <span class="dot-line">${d.e_other_text || ''}</span></div>
 
                         <b>4. T (Treatment)</b> แนะนำเรื่อง<br>
-                        <div class="indent">${ck(d.t1)} การทำความสะอาดร่างกาย &nbsp;&nbsp; ${ck(d.t2)} การทำแผล &nbsp;&nbsp; ${ck(d.t_other)} อื่นๆ <span class="dot-line">${d.t_other_text || '.............................'}</span></div>
+                        <div class="indent">${ck(d.t1)} การทำความสะอาดร่างกาย &nbsp;&nbsp; ${ck(d.t2)} การทำแผล &nbsp;&nbsp; ${ck(d.t_other)} อื่นๆ <span class="dot-line">${d.t_other_text || ''}</span></div>
 
                         <b>5. H (Health)</b> แนะนำการออกกำลังกายอย่างเหมาะสม การพักผ่อนให้เพียงพอ<br>
-                        <div class="indent">${ck(d.h_other)} อื่นๆ <span class="dot-line">${d.h_other_text || '.............................................................'}</span></div>
+                        <div class="indent">${ck(d.h_other)} อื่นๆ <span class="dot-line">${d.h_other_text || ''}</span></div>
 
                         <b>6. O (Outpatient refer)</b> <span style="font-weight:normal;">การมาตรวจตามนัด แหล่งประโยชน์ในชุมชน เช่น รพ.สต. โรงพยาบาล และการใช้บริการ 1669</span><br>
 
                         <b>7. D (Diet)</b> อาหารที่เหมาะสม มีประโยชน์<br>
                         <div class="indent">
                             ${ck(d.diet1)} อาหารครบ 5 หมู่ &nbsp;&nbsp; ${ck(d.diet2)} อาหารอ่อน &nbsp;&nbsp; ${ck(d.diet3)} สุกสะอาด &nbsp;&nbsp; ${ck(d.diet4)} เนื้อ นม ไข่ ผักผลไม้<br>
-                            ${ck(d.diet5)} หลีกเลี่ยงอาหารที่มีไขมันสูง &nbsp;&nbsp; ${ck(d.diet6)} งดผักผลไม้ &nbsp;&nbsp; ${ck(d.diet7)} อาหารเฉพาะโรค <span class="dot-line">${d.diet7_text || '..........'}</span> &nbsp;&nbsp; ${ck(d.diet_other)} อื่นๆ <span class="dot-line">${d.diet_text || '..........'}</span>
+                            ${ck(d.diet5)} หลีกเลี่ยงอาหารที่มีไขมันสูง &nbsp;&nbsp; ${ck(d.diet6)} งดผักผลไม้ &nbsp;&nbsp; ${ck(d.diet7)} อาหารเฉพาะโรค <span class="dot-line">${d.diet7_text || ''}</span> &nbsp;&nbsp; ${ck(d.diet_other)} อื่นๆ <span class="dot-line">${d.diet_text || ''}</span>
                         </div>
                     </div>
 
@@ -2972,7 +2972,7 @@ function nurseApp() {
                         <b>ยา / เวชภัณฑ์ / และอุปกรณ์ที่ใช้ในการดูแลตนเองหลังจำหน่าย</b><br>
                         <div class="indent">
                             ${rd(d.med_status, 'ได้ครบ')} ได้ครบ &nbsp;&nbsp; 
-                            ${rd(d.med_status, 'ได้ไม่ครบ')} ได้ไม่ครบ กรณีได้ไม่ครบ ระบุ <span class="dot-line">${d.med_text || '...................................................'}</span>
+                            ${rd(d.med_status, 'ได้ไม่ครบ')} ได้ไม่ครบ กรณีได้ไม่ครบ ระบุ <span class="dot-line">${d.med_text || ''}</span>
                         </div>
                     </div>
 
@@ -2980,34 +2980,34 @@ function nurseApp() {
                         <b>ปัญหาที่ต้องดูแลต่อเนื่อง</b><br>
                         <div class="indent" style="line-height: 1.8;">
                             ${rd(d.fu_status, 'ไม่มี F/U')} ไม่มี F/U &nbsp;&nbsp; 
-                            ${rd(d.fu_status, 'มีนัด F/U')} มีนัด F/U <span class="dot-line">${d.fu_text || '...........................................'}</span><br>
-                            ${ck(d.wound_care)} ล้างแผลสถานพยาบาลใกล้บ้านทุกวัน ตัดไหมสถานพยาบาลใกล้บ้านวันที่ <span class="dot-line">${d.wound_date || '........................'}</span><br>
-                            ${ck(d.cont_other)} อื่นๆ <span class="dot-line">${d.cont_text || '...................................................'}</span>
+                            ${rd(d.fu_status, 'มีนัด F/U')} มีนัด F/U <span class="dot-line">${d.fu_text || ''}</span><br>
+                            ${ck(d.wound_care)} ล้างแผลสถานพยาบาลใกล้บ้านทุกวัน ตัดไหมสถานพยาบาลใกล้บ้านวันที่ <span class="dot-line">${d.wound_date || ''}</span><br>
+                            ${ck(d.cont_other)} อื่นๆ <span class="dot-line">${d.cont_text || ''}</span>
                         </div>
                     </div>
 
                     <div class="content-section">
                         <b>สถานที่รับดูแลต่อ</b><br>
                         <div class="indent">
-                            ${rd(d.care_loc, 'รพศ.')} รพศ. <span class="dot-line">${d.care_loc_text1 || '..........'}</span> &nbsp;&nbsp;
-                            ${rd(d.care_loc, 'รพท.')} รพท. <span class="dot-line">${d.care_loc_text2 || '..........'}</span> &nbsp;&nbsp;
-                            ${rd(d.care_loc, 'รพช.')} รพช. <span class="dot-line">${d.care_loc_text3 || '..........'}</span> &nbsp;&nbsp;
-                            ${rd(d.care_loc, 'รพ.สต.')} รพ.สต. <span class="dot-line">${d.care_loc_text4 || '..........'}</span> &nbsp;&nbsp;
-                            ${rd(d.care_loc, 'อื่นๆ')} อื่นๆ <span class="dot-line">${d.care_loc_text5 || '..........'}</span>
+                            ${rd(d.care_loc, 'รพศ.')} รพศ. <span class="dot-line">${d.care_loc_text1 || ''}</span> &nbsp;&nbsp;
+                            ${rd(d.care_loc, 'รพท.')} รพท. <span class="dot-line">${d.care_loc_text2 || ''}</span> &nbsp;&nbsp;
+                            ${rd(d.care_loc, 'รพช.')} รพช. <span class="dot-line">${d.care_loc_text3 || ''}</span> &nbsp;&nbsp;
+                            ${rd(d.care_loc, 'รพ.สต.')} รพ.สต. <span class="dot-line">${d.care_loc_text4 || ''}</span> &nbsp;&nbsp;
+                            ${rd(d.care_loc, 'อื่นๆ')} อื่นๆ <span class="dot-line">${d.care_loc_text5 || ''}</span>
                         </div>
                     </div>
 
                     <div class="content-section" style="margin-top: 15px; display: flex; justify-content: space-between;">
                         <div>
-                            <b>ชื่อผู้ป่วยรับกลับ</b> <span class="dot-line" style="min-width: 150px; text-align: center;">${d.receiverName || ''}</span> 
-                            <b>เกี่ยวข้องเป็น</b> <span class="dot-line" style="min-width: 80px; text-align: center;">${d.relation || ''}</span>
+                            <b>ชื่อผู้รับผู้ป่วยกลับ</b> <span class="dot-line" style="min-width: 300px; text-align: center;">${d.receiverName || ''}</span> 
+                            <b>เกี่ยวข้องเป็น</b> <span class="dot-line" style="min-width: 100px; text-align: center;">${d.relation || ''}</span>
                         </div>
                     </div>
 
                     <div class="content-section" style="margin-top: 5px; display: flex; justify-content: space-between;">
                         <div>
-                            <b>พยาบาลผู้จำหน่าย</b> <span class="dot-line" style="min-width: 150px; text-align: center;">${d.nurseName || ''}</span> 
-                            <b>ตำแหน่ง</b> <span class="dot-line" style="min-width: 120px; text-align: center;">${d.pos || ''}</span>
+                            <b>พยาบาลผู้จำหน่าย</b> <span class="dot-line" style="min-width: 300px; text-align: center;">${d.nurseName || ''}</span> 
+                            <b>ตำแหน่ง</b> <span class="dot-line" style="min-width: 100px; text-align: center;">${d.pos || ''}</span>
                         </div>
                     </div>
 
