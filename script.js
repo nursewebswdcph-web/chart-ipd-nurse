@@ -2842,6 +2842,9 @@ function nurseApp() {
                 this.isLoading = false;
             }
         },
+        autoSaveDischarge() {
+            // ไม่ต้องทำงานอัตโนมัติแล้ว
+        },
 
         printDischargeRecord() {
             const d = this.dischargeForm;
