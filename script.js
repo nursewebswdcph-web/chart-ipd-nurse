@@ -69,7 +69,10 @@ function nurseApp() {
         showCreateTemplateModal: false,
         newTemplateForm: { templateName: '', focus: '', s: '', o: '', i: '', e: '' },
         pnForm: { id: '', date: '', shift: 'เช้า (08.00-16.00)', time: '', focus: '', s: '', o: '', i: '', e: '', eTime: '', nurse: '', pos: '', addToFocusList: false },
-                
+
+        dischargeForm: {},
+        showNurseListForDischarge: false,
+        
         isSidebarCollapsed: false, // สถานะการพับ Sidebar
         
         activeForms: [
@@ -580,6 +583,7 @@ function nurseApp() {
                     await this.loadPatientEdu(this.selectedPatient.an);
                 } else if (form.id === 'focus_list') {
                 } else if (form.id === 'progress_note') {
+                } else if (form.id === 'discharge_record') {
                 }
             } catch (e) {
                 console.error("Error switching form:", e);
@@ -2774,6 +2778,201 @@ function nurseApp() {
             </head>
             <body>
                 ${htmlPages}
+                <script>window.onload = () => { setTimeout(() => { window.print(); window.close(); }, 500); }</script>
+            </body>
+            </html>
+            `);
+            printWindow.document.close();
+        },
+        // ==========================================
+        // แบบบันทึกการพยาบาลผู้ป่วยจำหน่าย
+        // ==========================================
+        defaultDischargeForm() {
+            return {
+                date: this.getTodayDateInput(), time: new Date().toTimeString().slice(0, 5),
+                type: '', condition: '', symptom: '',
+                bt: '', pr: '', rr: '', bp: '',
+                d1: false, d2: false, d_other: false, d_other_text: '',
+                m_status: '', m_text: '',
+                e_other: false, e_other_text: '',
+                t_other: false, t_other_text: '',
+                h_other: false, h_other_text: '',
+                o_status: '', o_text: '',
+                diet1: false, diet_other: false, diet_text: '',
+                continuousProblem: '',
+                nurseName: this.nurseName || ''
+            };
+        },
+
+        async loadDischargeRecordInit() {
+            this.isLoading = true;
+            try {
+                const res = await fetch(`${this.API_URL}?action=getDischargeRecord&an=${this.selectedPatient.an}`);
+                const data = await res.json();
+                this.dischargeForm = (data && Object.keys(data).length > 0) ? data : this.defaultDischargeForm();
+            } catch (e) { console.error(e); this.dischargeForm = this.defaultDischargeForm(); }
+            this.isLoading = false;
+        },
+
+        async autoSaveDischarge() {
+            try {
+                const payload = { an: this.selectedPatient.an, hn: this.selectedPatient.hn, ward: this.currentWard, formData: this.dischargeForm };
+                await fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveDischargeRecord', payload }) });
+            } catch(e) { console.error(e); }
+        },
+
+        printDischargeRecord() {
+            const d = this.dischargeForm;
+            const ck = (val) => val ? '☑' : '☐';
+            const rd = (val, target) => val === target ? '☑' : '☐';
+            const dateStr = d.date ? this.formatThaiDateShort(d.date) : '.......................................';
+
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+            <html>
+            <head>
+                <title>แบบบันทึกการพยาบาลผู้ป่วยจำหน่าย</title>
+                <style>
+                    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap');
+                    body { font-family: 'Sarabun', sans-serif; font-size: 11pt; margin: 0; padding: 0; color: #000; background: #525659; }
+                    .a4-page { 
+                        width: 210mm; height: 296mm; margin: 10mm auto; 
+                        padding: 15mm 12mm 45mm 12mm; position: relative; box-sizing: border-box; 
+                        background: #fff; page-break-after: always; overflow: hidden;
+                    }
+                    .print-header-top-right { position: absolute; top: 10mm; right: 10mm; text-align: right; font-size: 8px; line-height: 1.2; }
+                    .main-title { text-align: center; font-weight: bold; font-size: 14pt; margin-bottom: 10px; line-height: 1.4; }
+                    
+                    .content-section { font-size: 11pt; line-height: 1.6; margin-bottom: 10px; }
+                    .indent { padding-left: 20px; }
+                    .dot-line { border-bottom: 1px dotted #000; display: inline-block; min-width: 50px; }
+                    
+                    .vs-box { display: flex; justify-content: space-around; font-weight: bold; margin: 10px 0; }
+                    .edu-box { border: 1px solid #000; padding: 10px; margin-top: 10px; }
+                    .edu-title { text-align: center; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 5px; margin-bottom: 5px; }
+
+                    /* CSS Footer Fixed Container ตามที่ระบุ */
+                    .fixed-footer-container { position: absolute; bottom: 5mm; left: 10mm; right: 10mm; display: flex; flex-direction: column; gap: 10px; }
+                    .patient-box-container { display: flex; justify-content: flex-end; width: 100%; }
+                    .print-patient-box { width: max-content; border: 1px solid #000; border-radius: 4px; padding: 6px 12px; font-size: 8pt !important; background: #fff; }
+                    .print-footer { width: 100%; text-align: center; font-size: 8pt !important; color: #444; border-top: 1px solid #ccc; padding-top: 8px; margin-top: auto; }
+
+                    @media print {
+                        @page { size: A4; margin: 0; }
+                        body { background: #fff; -webkit-print-color-adjust: exact; }
+                        .a4-page { margin: 0; box-shadow: none; border: none; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="a4-page">
+                    <div class="print-header-top-right">
+                        <div>Echart-ipd-nurse</div>
+                        <div>FR-IPD-007</div>
+                    </div>
+
+                    <div class="main-title">
+                        แบบบันทึกการพยาบาลผู้ป่วยจำหน่าย<br>
+                        โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
+                    </div>
+
+                    <div class="content-section">
+                        <b>วันที่จำหน่าย</b> วันที่ / เวลาที่ออกจากโรงพยาบาล <span class="dot-line">${dateStr}</span> เวลา <span class="dot-line">${d.time || '........'}</span> น.
+                    </div>
+
+                    <div class="content-section flex">
+                        <div style="width: 150px;"><b>ประเภทการจำหน่าย</b></div>
+                        <div style="flex: 1;">
+                            ${rd(d.type, 'แพทย์อนุญาต')} แพทย์อนุญาต &nbsp;&nbsp;
+                            ${rd(d.type, 'ปฏิเสธการรักษา')} ปฏิเสธการรักษา &nbsp;&nbsp;
+                            ${rd(d.type, 'หนีกลับ')} หนีกลับ &nbsp;&nbsp;
+                            ${rd(d.type, 'REFER')} REFER &nbsp;&nbsp;
+                            ${rd(d.type, 'ตายไม่มีการชันสูตร')} ตายไม่มีการชันสูตร &nbsp;&nbsp;
+                            ${rd(d.type, 'ตายมีการชันสูตร')} ตายมีการชันสูตร
+                        </div>
+                    </div>
+
+                    <div class="content-section flex">
+                        <div style="width: 150px;"><b>สภาพการจำหน่าย</b></div>
+                        <div style="flex: 1;">
+                            ${rd(d.condition, 'หายสนิท')} หายสนิท &nbsp;&nbsp;
+                            ${rd(d.condition, 'ดีขึ้น')} ดีขึ้น &nbsp;&nbsp;
+                            ${rd(d.condition, 'ไม่ดีขึ้น')} ไม่ดีขึ้น
+                        </div>
+                    </div>
+
+                    <div class="content-section">
+                        <b>สรุปอาการและอาการแสดงผู้ป่วยก่อนจำหน่าย</b><br>
+                        <div style="min-height: 40px; border-bottom: 1px dotted #ccc; line-height: 1.8;">${d.symptom ? d.symptom.replace(/\n/g, '<br>') : ''}</div>
+                    </div>
+
+                    <div class="vs-box content-section">
+                        <span>BT <span class="dot-line" style="min-width:40px; text-align:center;">${d.bt || ''}</span> °C</span>
+                        <span>PR <span class="dot-line" style="min-width:40px; text-align:center;">${d.pr || ''}</span> /min</span>
+                        <span>RR <span class="dot-line" style="min-width:40px; text-align:center;">${d.rr || ''}</span> /min</span>
+                        <span>BP <span class="dot-line" style="min-width:60px; text-align:center;">${d.bp || ''}</span> mmHg</span>
+                    </div>
+
+                    <div class="edu-box">
+                        <div class="edu-title">การสอนสุขศึกษา / คำแนะนำ / การให้ข้อมูล</div>
+                        
+                        <b>1. D (Disease)</b> ความรู้เรื่องโรค การสังเกต อาการผิดปกติที่ควรมาพบแพทย์<br>
+                        <div class="indent">
+                            ${ck(d.d1)} มีไข้สูง แผลบวมแดง มีหนอง &nbsp;&nbsp;
+                            ${ck(d.d2)} ซึม ความรู้สึกตัวเปลี่ยน หายใจหอบมากขึ้น &nbsp;&nbsp;
+                            ${ck(d.d_other)} อื่นๆ <span class="dot-line">${d.d_other_text || '.............................'}</span>
+                        </div>
+
+                        <b>2. M (Medication)</b> ความรู้เกี่ยวกับยา ฤทธิ์ของยา วัตถุประสงค์การใช้ยา วิธีการใช้ ขนาด ปริมาณ จำนวนครั้ง ระยะเวลาที่ใช้ ข้อระวังในการใช้ยา ภาวะแทรกซ้อนต่าง ๆ ข้อห้ามสำหรับการใช้ยา การเก็บรักษายา อาการแพ้ยาถ้ามีผื่น บวม ให้หยุดยา แล้วกลับมาพบแพทย์<br>
+                        <div class="indent">
+                            ${rd(d.m_status, 'ได้ครบ')} ได้ครบ &nbsp;&nbsp;
+                            ${rd(d.m_status, 'ได้ไม่ครบ')} ได้ไม่ครบ กรณีไม่ครบระบุ <span class="dot-line">${d.m_text || '.............................'}</span>
+                        </div>
+
+                        <b>3. E (Environment)</b> การจัดสิ่งแวดล้อมสถานที่สะอาด อากาศถ่ายเทได้สะดวก<br>
+                        <div class="indent">${ck(d.e_other)} อื่นๆ <span class="dot-line">${d.e_other_text || '...................................................'}</span></div>
+
+                        <b>4. T (Treatment)</b> แนะนำเรื่อง การทำความสะอาดร่างกาย การทำแผล<br>
+                        <div class="indent">${ck(d.t_other)} อื่นๆ <span class="dot-line">${d.t_other_text || '...................................................'}</span></div>
+
+                        <b>5. H (Health)</b> แนะนำการออกกำลังกายอย่างเหมาะสม การพักผ่อนให้เพียงพอ<br>
+                        <div class="indent">${ck(d.h_other)} อื่นๆ <span class="dot-line">${d.h_other_text || '...................................................'}</span></div>
+
+                        <b>6. O (Outpatient refer)</b> การมาตรวจตามนัด แหล่งประโยชน์ในชุมชน เช่น รพ.สต. โรงพยาบาล และการใช้บริการ 1669<br>
+                        <div class="indent">
+                            ${rd(d.o_status, 'ไม่มี F/U')} ไม่มี F/U &nbsp;&nbsp;
+                            ${rd(d.o_status, 'มีนัด F/U')} มีนัด F/U <span class="dot-line">${d.o_text || '...................................................'}</span>
+                        </div>
+
+                        <b>7. D (Diet)</b> อาหารที่เหมาะสม<br>
+                        <div class="indent">
+                            ${ck(d.diet1)} หลีกเลี่ยงอาหารที่มีไขมันสูง งดผักผลไม้ &nbsp;&nbsp;
+                            ${ck(d.diet_other)} อื่นๆ <span class="dot-line">${d.diet_text || '...................................................'}</span>
+                        </div>
+                    </div>
+
+                    <div class="content-section" style="margin-top: 15px;">
+                        <b>ปัญหาที่ต้องดูแลต่อเนื่อง</b><br>
+                        <div style="min-height: 40px; border-bottom: 1px dotted #ccc; line-height: 1.8;">${d.continuousProblem ? d.continuousProblem.replace(/\n/g, '<br>') : ''}</div>
+                    </div>
+
+                    <div style="text-align: right; margin-top: 30px; margin-right: 40px; font-weight: bold;">
+                        พยาบาลผู้จำหน่าย <span class="dot-line" style="min-width: 150px; text-align: center;">${d.nurseName || '...........................................'}</span>
+                    </div>
+
+                    <div class="fixed-footer-container">
+                        <div class="patient-box-container">
+                            <div class="print-patient-box">
+                                <div><b>ชื่อ-สกุล:</b> ${this.selectedPatient?.name || '-'} &nbsp; <b>อายุ:</b> ${this.selectedPatient?.ageDisplay || '-'}</div>
+                                <div><b>HN:</b> ${this.selectedPatient?.hn || '-'} &nbsp; <b>AN:</b> ${this.selectedPatient?.an || '-'}</div>                
+                                <div><b>แพทย์:</b> ${this.selectedPatient?.doctor || '-'} &nbsp; <b>ตึก:</b> ${this.currentWard || '-'} &nbsp; <b>เตียง:</b> ${this.selectedPatient?.bed || '-'}</div>
+                            </div>
+                        </div>
+                        <div class="print-footer">
+                            เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | โปรแกรมบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
+                        </div>
+                    </div>
+                </div>
                 <script>window.onload = () => { setTimeout(() => { window.print(); window.close(); }, 500); }</script>
             </body>
             </html>
