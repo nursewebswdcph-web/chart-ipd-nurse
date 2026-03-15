@@ -3051,7 +3051,6 @@ function nurseApp() {
         async printCombinedDocuments() {
             if (!this.selectedPatient) return;
             if (this.selectedPrintForms.length === 0) {
-                // เปลี่ยนจาก alert() เป็น Custom Dialog
                 this.dialog = { show: true, type: 'alert', title: 'แจ้งเตือน', msg: 'กรุณาเลือกเอกสารอย่างน้อย 1 รายการเพื่อพิมพ์' };
                 return;
             }
@@ -3124,7 +3123,6 @@ function nurseApp() {
                 window.open = originalOpen;
 
                 if (!combinedHtml.trim()) {
-                    // เปลี่ยนจาก alert() เป็น Custom Dialog
                     this.dialog = { show: true, type: 'alert', title: 'ไม่พบข้อมูล', msg: 'ไม่พบข้อมูลในเอกสารที่เลือกสำหรับพิมพ์' };
                     return;
                 }
@@ -3132,17 +3130,17 @@ function nurseApp() {
                 // 5. สร้างหน้าต่าง Print รวม
                 const finalPrintWindow = window.open('', '_blank');
                 
-                // --- เพิ่มการเช็คว่าเบราว์เซอร์บล็อคหน้าต่าง Pop-up หรือไม่ ---
-                if (!finalPrintWindow) {
+                // ===== ดักจับเบราว์เซอร์บล็อค Pop-up =====
+                if (!finalPrintWindow || finalPrintWindow === null) {
                     this.dialog = { 
                         show: true, 
                         type: 'alert', 
-                        title: 'หน้าต่างพิมพ์ถูกบล็อค', 
-                        msg: 'เบราว์เซอร์บล็อคการเปิดหน้าต่างใหม่ กรุณากดปุ่ม "อนุญาตป๊อปอัป (Pop-ups allowed)" ที่มุมขวาบนของช่อง URL แล้วกดพิมพ์ใหม่อีกครั้ง' 
+                        title: 'หน้าต่างถูกบล็อค', 
+                        msg: 'เบราว์เซอร์บล็อคหน้าต่างเอกสาร! กรุณาคลิก "อนุญาตป๊อปอัป (Pop-ups allowed)" ที่มุมขวาบนของช่อง URL (รูปกากบาทสีแดง) แล้วกดพิมพ์ใหม่อีกครั้ง' 
                     };
-                    return;
+                    return; // <--- ใส่ return ตรงนี้สำคัญมาก เพื่อหยุดไม่ให้มันทำงานโค้ดด้านล่างต่อ
                 }
-                // ---------------------------------------------------
+                // =======================================
 
                 const docTitle = `EChartIPD_${this.selectedPatient.an}`;
                 
@@ -3155,7 +3153,7 @@ function nurseApp() {
                         body { font-family: 'Sarabun', sans-serif; font-size: 11pt; margin: 0; padding: 0; color: #000; background: #525659; }
                         
                         .a4-page { 
-                            width: 210mm; height: 296mm; margin: 8mm auto; 
+                            width: 210mm; height: 296mm; margin: 10mm auto; 
                             padding: 15mm 12mm 45mm 12mm; position: relative; box-sizing: border-box; 
                             background: #fff; page-break-after: always; overflow: hidden;
                         }
@@ -3199,7 +3197,6 @@ function nurseApp() {
 
             } catch (error) {
                 console.error("Combined Print Error:", error);
-                // เปลี่ยนจาก alert() เป็น Custom Dialog
                 this.dialog = { show: true, type: 'alert', title: 'เกิดข้อผิดพลาด', msg: 'ระบบขัดข้องขณะรวมเอกสาร กรุณาลองใหม่อีกครั้ง' };
             } finally {
                 this.isLoading = false;
