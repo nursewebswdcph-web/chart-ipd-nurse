@@ -2028,15 +2028,24 @@ function nurseApp() {
                             text-align: center;
                             -webkit-print-color-adjust: exact; 
                         } 
+                        /* 2. บังคับให้กล่องข้อมูลผู้ป่วยและ Footer อยู่ล่างสุดของทุกหน้า */
+                        .fixed-footer-container {
+                            position: fixed;
+                            bottom: 5mm; /* ระยะห่างจากขอบล่างของกระดาษ */
+                            left: 10mm;
+                            right: 10mm;
+                            display: flex;
+                            flex-direction: column;
+                            gap: 10px;
+                        }
             
                         /* กล่องข้อมูลผู้ป่วย - เปลี่ยนจาก Fixed เป็น Flex ปกติ เพื่อไม่ให้ทับเนื้อหา */
                         .patient-box-container {
                             display: flex;
                             justify-content: flex-end;
-                            margin-top: 10px;
-                            margin-bottom: 10px;
+                            width: 100%;
                         }
-            
+                                    
                         .print-patient-box { 
                             width: 350px;
                             border: 1px solid #000; 
@@ -2088,16 +2097,18 @@ function nurseApp() {
                             <tbody>${htmlRows}</tbody>
                         </table>
             
-                        <div class="patient-box-container">
-                            <div class="print-patient-box">
-                                <div><b>ชื่อ-สกุล:</b> ${this.selectedPatient?.name || '-'} &nbsp; <b>อายุ:</b> ${this.selectedPatient?.ageDisplay || '-'}</div>
-                                <div><b>HN:</b> ${this.selectedPatient?.hn || '-'} &nbsp; <b>AN:</b> ${this.selectedPatient?.an || '-'}</div>                
-                                <div><b>แพทย์:</b> ${this.selectedPatient?.doctor || '-'} &nbsp; <b>ตึก:</b> ${this.currentWard || '-'} &nbsp; <b>เตียง:</b> ${this.selectedPatient?.bed || '-'}</div>
+                        <div class="fixed-footer-container">
+                            <div class="patient-box-container">
+                                <div class="print-patient-box">
+                                    <div><b>ชื่อ-สกุล:</b> ${this.selectedPatient?.name || '-'} &nbsp; <b>อายุ:</b> ${this.selectedPatient?.ageDisplay || '-'}</div>
+                                    <div><b>HN:</b> ${this.selectedPatient?.hn || '-'} &nbsp; <b>AN:</b> ${this.selectedPatient?.an || '-'}</div>                
+                                    <div><b>แพทย์:</b> ${this.selectedPatient?.doctor || '-'} &nbsp; <b>ตึก:</b> ${this.currentWard || '-'} &nbsp; <b>เตียง:</b> ${this.selectedPatient?.bed || '-'}</div>
+                                </div>
                             </div>
-                        </div>
-            
-                        <div class="print-footer">
-                            เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | โปรแกรมบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
+                        
+                            <div class="print-footer">
+                                เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | โปรแกรมบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
+                            </div>
                         </div>
                     </div>
             
