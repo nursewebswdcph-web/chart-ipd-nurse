@@ -3051,7 +3051,9 @@ function nurseApp() {
         async printCombinedDocuments() {
             if (!this.selectedPatient) return;
             if (this.selectedPrintForms.length === 0) {
-                alert('กรุณาเลือกเอกสารอย่างน้อย 1 รายการ'); return;
+                // เปลี่ยนจาก alert() เป็น Custom Dialog
+                this.dialog = { show: true, type: 'alert', title: 'แจ้งเตือน', msg: 'กรุณาเลือกเอกสารอย่างน้อย 1 รายการเพื่อพิมพ์' };
+                return;
             }
 
             this.isLoading = true;
@@ -3088,10 +3090,8 @@ function nurseApp() {
                     return {
                         document: {
                             write: function(htmlStr) {
-                                // ดึงเฉพาะโค้ดที่อยู่ระหว่าง <body>...</body> ของแต่ละฟอร์ม
                                 const bodyMatch = htmlStr.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
                                 if (bodyMatch && bodyMatch[1]) {
-                                    // ถอด <script> ของฟอร์มย่อยออก เพื่อไม่ให้มันสั่ง print ทับซ้อนกัน
                                     let cleanHtml = bodyMatch[1].replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
                                     interceptedHtml += cleanHtml;
                                 }
@@ -3105,15 +3105,33 @@ function nurseApp() {
                 for (let i = 0; i < this.activeForms.length; i++) {
                     const formId = this.activeForms[i].id;
                     if (this.selectedPrintForms.includes(formId)) {
-                        // เรียกฟังก์ชันพิมพ์เดิมของคุณ โดยมันจะไม่เปิดหน้าต่างใหม่ แต่จะถูกดูดโค้ดเก็บไว้แทน
-                        if (formId === 'assess_initial') this.printAssessmentInitial();
-                        else if (formId === 'patient_class') this.printPatientClass();
-                        else if (formId === 'fall_risk') this.printFallRisk();
-                        else if (formId === 'braden_scale') this.printBradenScale();
-                        else if (formId === 'patient_edu') this.printPatientEdu();
-                        else if (formId === 'focus_list') this.printFocusList();
-                        else if (formId === 'progress_note') this.printProgressNote();
-                        else if (formId === 'discharge_record') this.printDischargeRecord();
+                        
+                        // ** แก้ไข Bug: เช็คชื่อฟังก์ชันที่มีอยู่จริงในระบบก่อนเรียกใช้ **
+                        if (formId === 'assess_initial') {
+                            if (typeof this.printAssessment === 'function') this.printAssessment();
+                            else if (typeof this.printAssessmentInitial === 'function') this.printAssessmentInitial();
+                        }
+                        else if (formId === 'patient_class') {
+                            if (typeof this.printPatientClass === 'function') this.printPatientClass();
+                        }
+                        else if (formId === 'fall_risk') {
+                            if (typeof this.printFallRisk === 'function') this.printFallRisk();
+                        }
+                        else if (formId === 'braden_scale') {
+                            if (typeof this.printBradenScale === 'function') this.printBradenScale();
+                        }
+                        else if (formId === 'patient_edu') {
+                            if (typeof this.printPatientEdu === 'function') this.printPatientEdu();
+                        }
+                        else if (formId === 'focus_list') {
+                            if (typeof this.printFocusList === 'function') this.printFocusList();
+                        }
+                        else if (formId === 'progress_note') {
+                            if (typeof this.printProgressNote === 'function') this.printProgressNote();
+                        }
+                        else if (formId === 'discharge_record') {
+                            if (typeof this.printDischargeRecord === 'function') this.printDischargeRecord();
+                        }
                         
                         combinedHtml += interceptedHtml; // เอาหน้ากระดาษมาต่อกัน
                         interceptedHtml = ''; 
@@ -3124,10 +3142,12 @@ function nurseApp() {
                 window.open = originalOpen;
 
                 if (!combinedHtml.trim()) {
-                    alert('ไม่พบข้อมูลเอกสารสำหรับพิมพ์'); return;
+                    // เปลี่ยนจาก alert() เป็น Custom Dialog
+                    this.dialog = { show: true, type: 'alert', title: 'ไม่พบข้อมูล', msg: 'ไม่พบข้อมูลในเอกสารที่เลือกสำหรับพิมพ์' };
+                    return;
                 }
 
-                // 5. สร้างหน้าต่าง Print รวม (ใส่ Style กลางที่ใช้ร่วมกันในทุกฟอร์ม)
+                // 5. สร้างหน้าต่าง Print รวม
                 const finalPrintWindow = window.open('', '_blank');
                 const docTitle = `EChartIPD_${this.selectedPatient.an}`;
                 
@@ -3139,7 +3159,6 @@ function nurseApp() {
                         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap');
                         body { font-family: 'Sarabun', sans-serif; font-size: 11pt; margin: 0; padding: 0; color: #000; background: #525659; }
                         
-                        /* Layout พื้นฐานของกระดาษ A4 */
                         .a4-page { 
                             width: 210mm; height: 296mm; margin: 10mm auto; 
                             padding: 15mm 12mm 45mm 12mm; position: relative; box-sizing: border-box; 
@@ -3148,7 +3167,6 @@ function nurseApp() {
                         .print-header-top-right { position: absolute; top: 10mm; right: 10mm; text-align: right; font-size: 8pt; font-weight: bold; line-height: 1.2; }
                         .main-title { text-align: center; font-weight: bold; font-size: 14pt; margin-bottom: 15px; line-height: 1.4; }
                         
-                        /* Table & Helper Styles */
                         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
                         th, td { border: 1px solid #000; padding: 8px; font-size: 11pt !important; vertical-align: top; word-wrap: break-word; }
                         th { background-color: #eee !important; text-align: center; font-weight: bold; -webkit-print-color-adjust: exact; }
@@ -3186,7 +3204,8 @@ function nurseApp() {
 
             } catch (error) {
                 console.error("Combined Print Error:", error);
-                alert('เกิดข้อผิดพลาดในการรวมเอกสาร');
+                // เปลี่ยนจาก alert() เป็น Custom Dialog
+                this.dialog = { show: true, type: 'alert', title: 'เกิดข้อผิดพลาด', msg: 'ระบบขัดข้องขณะรวมเอกสาร กรุณาลองใหม่อีกครั้ง' };
             } finally {
                 this.isLoading = false;
             }
