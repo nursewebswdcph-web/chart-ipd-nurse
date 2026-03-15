@@ -53,6 +53,7 @@ function nurseApp() {
         editingFocusIndex: -1,
         showFocusTemplateModal: false,
         searchFocusTemplate: '',
+        focusModal: { show: false, type: '', msg: '', input: '', index: -1 },
         
                 
         isSidebarCollapsed: false, // สถานะการพับ Sidebar
@@ -2140,6 +2141,43 @@ function nurseApp() {
         // ==========================================
         // ฟังก์ชันสำหรับ Focus List
         // ==========================================
+        // ฟังก์ชันช่วยเหลือสำหรับแสดง Modal
+        focusAlert(msg) {
+            this.focusModal = { show: true, type: 'alert', msg: msg, input: '', index: -1 };
+        },
+        // เมื่อกดปุ่ม "ตกลง" ใน Modal
+        async executeFocusModal() {
+            if (this.focusModal.type === 'confirm') {
+                // ยืนยันการลบ
+                this.focusList.splice(this.focusModal.index, 1);
+                this.focusModal.show = false;
+                await this.saveFocusToDB();
+            } else if (this.focusModal.type === 'prompt') {
+                // ยืนยันการเซฟ Template
+                if (!this.focusModal.input.trim()) {
+                    this.focusAlert('กรุณาระบุชื่อ Template'); return;
+                }
+                const pName = this.focusModal.input;
+                this.focusModal.show = false;
+                this.isLoading = true;
+                
+                try {
+                    const payload = { problemName: pName, focus: this.focusForm.focus, goal: this.focusForm.goal };
+                    const res = await fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveFocusTemplate', payload }) });
+                    const out = await res.json();
+                    
+                    if(out.status === 'success') {
+                        this.focusTemplates.push({...payload, id: new Date().getTime()});
+                        await this.addOrUpdateFocus(); 
+                        this.focusAlert('บันทึกเป็น Template ใหม่และเพิ่มลงตารางเรียบร้อยแล้ว');
+                    }
+                } catch(e) { this.focusAlert('เกิดข้อผิดพลาดในการบันทึก Template'); }
+                this.isLoading = false;
+            } else {
+                // ปิด Alert ปกติ
+                this.focusModal.show = false;
+            }
+        },
         async loadFocusListInit() {
             this.isLoading = true;
             try {
@@ -2168,25 +2206,19 @@ function nurseApp() {
 
         async addOrUpdateFocus() {
             if (!this.focusForm.focus || !this.focusForm.goal) {
-                alert('กรุณากรอกปัญหาและเป้าหมายให้ครบถ้วน'); return;
+                this.focusAlert('กรุณากรอกปัญหาและเป้าหมายให้ครบถ้วน'); return;
             }
             
             const newItem = {
                 id: this.focusForm.id || new Date().getTime().toString(),
-                focus: this.focusForm.focus,
-                goal: this.focusForm.goal,
-                startDate: this.focusForm.startDate,
-                endDate: this.focusForm.endDate
+                focus: this.focusForm.focus, goal: this.focusForm.goal,
+                startDate: this.focusForm.startDate, endDate: this.focusForm.endDate
             };
 
-            if (this.editingFocusIndex > -1) {
-                this.focusList[this.editingFocusIndex] = newItem;
-            } else {
-                this.focusList.push(newItem);
-            }
-            this.clearFocusForm();
+            if (this.editingFocusIndex > -1) { this.focusList[this.editingFocusIndex] = newItem; } 
+            else { this.focusList.push(newItem); }
             
-            // เรียกฟังก์ชันเซฟลง Google Sheets ทันที
+            this.clearFocusForm();
             await this.saveFocusToDB();
         },
 
@@ -2197,10 +2229,8 @@ function nurseApp() {
         },
 
         async deleteFocus(index) {
-            if (confirm('ยืนยันการลบรายการปัญหานี้?')) {
-                this.focusList.splice(index, 1);
-                await this.saveFocusToDB(); // เซฟหลังจากลบออกจาก Array
-            }
+            // เรียก Modal ยืนยันการลบ
+            this.focusModal = { show: true, type: 'confirm', msg: 'ยืนยันการลบรายการปัญหานี้?', input: '', index: index };
         },
 
         async saveFocusToDB() {
@@ -2228,29 +2258,20 @@ function nurseApp() {
 
         // --- ระบบ Template ---
         async saveAsNewTemplate() {
+            // เช็คว่ากรอกข้อมูลหรือยัง ถ้ายังให้เรียก focusAlert (Custom Modal แบบแจ้งเตือน)
             if (!this.focusForm.focus || !this.focusForm.goal) {
-                alert('กรุณากรอกปัญหาและเป้าหมายเพื่อสร้าง Template'); return;
+                this.focusAlert('กรุณากรอกปัญหาและเป้าหมายเพื่อสร้าง Template'); 
+                return;
             }
-            const pName = prompt("ตั้งชื่อให้รายการปัญหานี้ (Problem Name):");
-            if (!pName) return;
-
-            this.isLoading = true;
-            try {
-                const payload = { problemName: pName, focus: this.focusForm.focus, goal: this.focusForm.goal };
-                const res = await fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveFocusTemplate', payload }) });
-                const out = await res.json();
-                
-                if(out.status === 'success') {
-                    // เพิ่มลงใน List Template
-                    this.focusTemplates.push({...payload, id: new Date().getTime()});
-                    
-                    // เรียกฟังก์ชันเพิ่มลงตาราง ซึ่งมันจะไปเซฟลง DB ให้อัตโนมัติตามที่เราเพิ่งแก้ไป
-                    await this.addOrUpdateFocus(); 
-                    
-                    alert('บันทึกเป็น Template ใหม่และเพิ่มลงรายการผู้ป่วยเรียบร้อยแล้ว');
-                }
-            } catch(e) { alert('เกิดข้อผิดพลาดในการบันทึก Template'); }
-            this.isLoading = false;
+            
+            // เปิด Custom Modal แบบ prompt ให้ตั้งชื่อ Template
+            this.focusModal = { 
+                show: true, 
+                type: 'prompt', 
+                msg: 'ตั้งชื่อให้รายการปัญหานี้ (Problem Name):', 
+                input: '', 
+                index: -1 
+            };
         },
 
         selectFocusTemplate(t) {
@@ -2296,7 +2317,7 @@ function nurseApp() {
                         top: 10mm;
                         right: 10mm;
                         text-align: right;
-                        font-size: 10pt;
+                        font-size: 8pt;
                         font-weight: bold;
                         line-height: 1.2;
                     }
@@ -2329,13 +2350,13 @@ function nurseApp() {
                         border: 1px solid #000; 
                         border-radius: 4px; 
                         padding: 6px 12px;
-                        font-size: 11pt !important; 
+                        font-size: 10pt !important; 
                         background: #fff; 
                     }
                     .print-footer { 
                         width: 100%; 
                         text-align: center;
-                        font-size: 9pt !important; 
+                        font-size: 8pt !important; 
                         color: #444; 
                         border-top: 1px solid #ccc; 
                         padding-top: 8px; 
@@ -2365,8 +2386,8 @@ function nurseApp() {
                         <thead>
                             <tr>
                                 <th style="width: 8%;">ลำดับที่<br>ปัญหา</th>
-                                <th style="width: 34%;">ปัญหา (Focus/Problem)</th>
-                                <th style="width: 34%;">เป้าหมาย (Goal/Out comes)</th>
+                                <th style="width: 34%;">ปัญหา<br>(Focus/Problem)</th>
+                                <th style="width: 34%;">เป้าหมาย<br>(Goal/Out comes)</th>
                                 <th style="width: 12%;">วันที่พบ<br>ปัญหา</th>
                                 <th style="width: 12%;">วันที่สิ้นสุด<br>ปัญหา</th>
                             </tr>
