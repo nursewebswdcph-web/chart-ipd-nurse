@@ -1939,10 +1939,10 @@ function nurseApp() {
                     ` },
             
                     // O Section
-                    { id: 'O1', rs: 3, topic: '6. O=Out Patient<br>การดูแลต่อเนื่อง', text: (d) => `- การมาตรวจตามนัด วันที่ <span class="dot-line">${d.text1 || '-'}</span> สถานที่ <span class="dot-line">${d.text2 || '-'}</span> การเตรียมตัว <span class="dot-line">${d.text3 || '.............-
-                        - แหล่งข้อมูลเครือข่ายหรือแหล่งสนับสนุนทางสังคม:<br>
-                        ${['ผู้นำชุมชน', 'อสม.', 'รพ.สต.'].map(opt => `${getCheck('O2', opt)} ${opt}`).join(' ')} 
-                        ${getCheck('O2', 'อื่นๆ')} อื่นๆ ระบุ <span class="dot-line">${this.eduForm.O2.text1 || '-'}</span>
+                    { id: 'O1', rs: 3, topic: '6. O=Out Patient<br>การดูแลต่อเนื่อง', text: (d) => `- การมาตรวจตามนัด วันที่ <span class="dot-line">${d.text1 || '-'}</span> สถานที่ <span class="dot-line">${d.text2 || '-'}</span> การเตรียมตัว <span class="dot-line">${d.text3 || '.............'}</span><br>
+                            - แหล่งข้อมูลเครือข่ายหรือแหล่งสนับสนุนทางสังคม:<br>
+                            ${['ผู้นำชุมชน', 'อสม.', 'รพ.สต.'].map(opt => `${getCheck('O2', opt)} ${opt}`).join(' ')} 
+                            ${getCheck('O2', 'อื่นๆ')} อื่นๆ ระบุ <span class="dot-line">${this.eduForm.O2.text1 || '-'}</span>
                     ` },
                     { id: 'O1', rs: 0, text: (d) => `<b>- การขอความช่วยเหลือ 1669</b>` },
             
