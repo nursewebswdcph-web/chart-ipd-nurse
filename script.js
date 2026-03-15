@@ -2294,21 +2294,75 @@ function nurseApp() {
         // --- ระบบพิมพ์ Focus List ---
         printFocusList() {
             if (!this.focusList || this.focusList.length === 0) {
-                alert('ยังไม่มีข้อมูลสำหรับพิมพ์'); return;
+                this.focusAlert('ยังไม่มีข้อมูลสำหรับพิมพ์'); return;
             }
 
-            let htmlRows = '';
-            this.focusList.forEach((item, index) => {
-                const startStr = item.startDate ? this.formatThaiDateShort(item.startDate) : '-';
-                const endStr = item.endDate ? this.formatThaiDateShort(item.endDate) : '-';
-                htmlRows += `
-                    <tr>
-                        <td style="text-align:center;">${index + 1}</td>
-                        <td style="white-space: pre-line;">${item.focus || '-'}</td>
-                        <td style="white-space: pre-line;">${item.goal || '-'}</td>
-                        <td style="text-align:center;">${startStr}</td>
-                        <td style="text-align:center;">${endStr}</td>
-                    </tr>
+            // จัดกลุ่มรายการหน้าละ 8 ข้อ เพื่อไม่ให้ล้นหน้ากระดาษ
+            const itemsPerPage = 8; 
+            const pages = [];
+            for (let i = 0; i < this.focusList.length; i += itemsPerPage) {
+                pages.push(this.focusList.slice(i, i + itemsPerPage));
+            }
+            const totalPages = pages.length;
+
+            let htmlPages = '';
+            
+            // วนลูปสร้างหน้ากระดาษทีละหน้า
+            pages.forEach((pageItems, pageIndex) => {
+                let htmlRows = '';
+                pageItems.forEach((item, idx) => {
+                    const actualIndex = (pageIndex * itemsPerPage) + idx + 1;
+                    const startStr = item.startDate ? this.formatThaiDateShort(item.startDate) : '-';
+                    const endStr = item.endDate ? this.formatThaiDateShort(item.endDate) : '-';
+                    htmlRows += `
+                        <tr>
+                            <td style="text-align:center;">${actualIndex}</td>
+                            <td style="white-space: pre-line;">${item.focus || '-'}</td>
+                            <td style="white-space: pre-line;">${item.goal || '-'}</td>
+                            <td style="text-align:center;">${startStr}</td>
+                            <td style="text-align:center;">${endStr}</td>
+                        </tr>
+                    `;
+                });
+
+                htmlPages += `
+                    <div class="a4-page">
+                        <div class="print-header-top-right">
+                            <div>Echart-ipd-nurse</div>
+                            <div>Focus-List-Form หน้า ${pageIndex + 1}/${totalPages}</div>
+                        </div>
+
+                        <div class="main-title">
+                            <div>โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน</div>
+                            <div>รายการปัญหาสุขภาพทางการพยาบาลของผู้ป่วยตั้งแต่แรกรับจนจำหน่าย (FOCUS LIST)</div>
+                        </div>
+
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width: 8%;">ลำดับที่<br>ปัญหา</th>
+                                    <th style="width: 34%;">ปัญหา<br>(Focus/Problem)</th>
+                                    <th style="width: 34%;">เป้าหมาย<br>(Goal/Out comes)</th>
+                                    <th style="width: 12%;">วันที่พบ<br>ปัญหา</th>
+                                    <th style="width: 12%;">วันที่สิ้นสุด<br>ปัญหา</th>
+                                </tr>
+                            </thead>
+                            <tbody>${htmlRows}</tbody>
+                        </table>
+
+                        <div class="fixed-footer-container">
+                            <div class="patient-box-container">
+                                <div class="print-patient-box">
+                                    <div><b>ชื่อ-สกุล:</b> ${this.selectedPatient?.name || '-'} &nbsp; <b>อายุ:</b> ${this.selectedPatient?.ageDisplay || '-'}</div>
+                                    <div><b>HN:</b> ${this.selectedPatient?.hn || '-'} &nbsp; <b>AN:</b> ${this.selectedPatient?.an || '-'}</div>                
+                                    <div><b>แพทย์:</b> ${this.selectedPatient?.doctor || '-'} &nbsp; <b>ตึก:</b> ${this.currentWard || '-'} &nbsp; <b>เตียง:</b> ${this.selectedPatient?.bed || '-'}</div>
+                                </div>
+                            </div>
+                            <div class="print-footer">
+                                เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | โปรแกรมบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
+                            </div>
+                        </div>
+                    </div>
                 `;
             });
 
@@ -2317,14 +2371,27 @@ function nurseApp() {
             <html>
             <head>
                 <title>Print Focus List</title>
-                <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
                 <style>
-                    body { font-family: 'Sarabun', sans-serif; font-size: 11pt; margin: 0; padding: 0; color: #000; }
-                    .a4-page { width: 210mm; margin: auto; padding: 25mm 10mm 40mm 10mm; position: relative; box-sizing: border-box; }
+                    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap');
                     
-                    /* หัวกระดาษบนขวา (Fixed) */
+                    body { font-family: 'Sarabun', sans-serif; font-size: 11pt; margin: 0; padding: 0; color: #000; background: #525659; }
+                    
+                    /* สร้างกรอบ A4 จำลองที่จับความสูงตายตัว */
+                    .a4-page { 
+                        width: 210mm; 
+                        height: 296mm; /* บังคับความสูงเป็น 1 หน้า A4 เสมอ */
+                        margin: 10mm auto; 
+                        padding: 25mm 10mm 45mm 10mm; 
+                        position: relative; /* สำคัญมาก เพื่อให้ header/footer เกาะตามหน้านี้ */
+                        box-sizing: border-box; 
+                        background: #fff;
+                        page-break-after: always; /* บังคับขึ้นหน้าใหม่เสมอเมื่อหมดหน้า */
+                        overflow: hidden;
+                    }
+                    
+                    /* หัวกระดาษขวาบน (เกาะขอบหน้า .a4-page) */
                     .print-header-top-right {
-                        position: fixed;
+                        position: absolute;
                         top: 10mm;
                         right: 10mm;
                         text-align: right;
@@ -2333,17 +2400,15 @@ function nurseApp() {
                         line-height: 1.2;
                     }
 
-                    /* หัวเรื่องหลัก */
                     .main-title { text-align: center; font-weight: bold; font-size: 14pt; margin-bottom: 15px; line-height: 1.4; }
 
-                    /* ตารางแสดงผล 5 คอลัมน์ */
                     table { width: 100%; border-collapse: collapse; table-layout: fixed; }
                     th, td { border: 1px solid #000; padding: 6px 8px; font-size: 11pt !important; vertical-align: top; word-wrap: break-word; }
                     th { background-color: #eee !important; text-align: center; font-weight: bold; -webkit-print-color-adjust: exact; }
 
-                    /* CSS ส่วนท้ายตามที่ระบุ */
+                    /* กรอบท้ายกระดาษ (เกาะขอบล่างของหน้า .a4-page) */
                     .fixed-footer-container {
-                        position: fixed;
+                        position: absolute; /* เปลี่ยนเป็น absolute ทำให้ไม่ทับตาราง */
                         bottom: 5mm; 
                         left: 10mm;
                         right: 10mm;
@@ -2351,74 +2416,27 @@ function nurseApp() {
                         flex-direction: column;
                         gap: 10px;
                     }
-                    .patient-box-container {
-                        display: flex;
-                        justify-content: flex-end;
-                        width: 100%;
-                    }
+                    .patient-box-container { display: flex; justify-content: flex-end; width: 100%; }
                     .print-patient-box { 
-                        width: 350px;
-                        border: 1px solid #000; 
-                        border-radius: 4px; 
-                        padding: 6px 12px;
-                        font-size: 10pt !important; 
-                        background: #fff; 
+                        width: 350px; border: 1px solid #000; border-radius: 4px; 
+                        padding: 6px 12px; font-size: 11pt !important; background: #fff; 
                     }
                     .print-footer { 
-                        width: 100%; 
-                        text-align: center;
-                        font-size: 8pt !important; 
-                        color: #444; 
-                        border-top: 1px solid #ccc; 
-                        padding-top: 8px; 
-                        margin-top: auto; 
+                        width: 100%; text-align: center; font-size: 8pt !important; color: #444; 
+                        border-top: 1px solid #ccc; padding-top: 8px; margin-top: auto; 
                     }
 
+                    /* ตอนปริ้นให้ตัดขอบเทาออก */
                     @media print {
                         @page { size: A4; margin: 0; }
-                        body { -webkit-print-color-adjust: exact; }
-                        tr { page-break-inside: avoid; }
+                        body { background: #fff; -webkit-print-color-adjust: exact; }
+                        .a4-page { margin: 0; box-shadow: none; border: none; }
+                        .a4-page:last-child { page-break-after: auto; }
                     }
                 </style>
             </head>
             <body>
-                <div class="print-header-top-right">
-                    <div>Echart-ipd-nurse</div>
-                    <div>Focus-List-Form หน้า...</div>
-                </div>
-
-                <div class="a4-page">
-                    <div class="main-title">
-                        <div>โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน</div>
-                        <div>รายการปัญหาสุขภาพทางการพยาบาลของผู้ป่วยตั้งแต่แรกรับจนจำหน่าย (FOCUS LIST)</div>
-                    </div>
-
-                    <table>
-                        <thead>
-                            <tr>
-                                <th style="width: 8%;">ลำดับที่<br>ปัญหา</th>
-                                <th style="width: 34%;">ปัญหา<br>(Focus/Problem)</th>
-                                <th style="width: 34%;">เป้าหมาย<br>(Goal/Out comes)</th>
-                                <th style="width: 12%;">วันที่พบ<br>ปัญหา</th>
-                                <th style="width: 12%;">วันที่สิ้นสุด<br>ปัญหา</th>
-                            </tr>
-                        </thead>
-                        <tbody>${htmlRows}</tbody>
-                    </table>
-                </div>
-
-                <div class="fixed-footer-container">
-                    <div class="patient-box-container">
-                        <div class="print-patient-box">
-                            <div><b>ชื่อ-สกุล:</b> ${this.selectedPatient?.name || '-'} &nbsp; <b>อายุ:</b> ${this.selectedPatient?.ageDisplay || '-'}</div>
-                            <div><b>HN:</b> ${this.selectedPatient?.hn || '-'} &nbsp; <b>AN:</b> ${this.selectedPatient?.an || '-'}</div>                
-                            <div><b>แพทย์:</b> ${this.selectedPatient?.doctor || '-'} &nbsp; <b>ตึก:</b> ${this.currentWard || '-'} &nbsp; <b>เตียง:</b> ${this.selectedPatient?.bed || '-'}</div>
-                        </div>
-                    </div>
-                    <div class="print-footer">
-                        เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | โปรแกรมบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
-                    </div>
-                </div>
+                ${htmlPages}
 
                 <script>
                     window.onload = () => { setTimeout(() => { window.print(); window.close(); }, 500); }
