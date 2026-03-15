@@ -3062,7 +3062,10 @@
                                 </button>
                                 <button @click="clearProgressForm()" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg font-bold hover:bg-slate-300">ล้างข้อมูล</button>
                                 <button @click="saveProgressAsTemplate()" class="px-4 py-2 bg-indigo-500 text-white rounded-lg font-bold shadow-md hover:bg-indigo-600 ml-auto">
-                                    <i class="fa-solid fa-save mr-2"></i>จัดเก็บเป็น Template
+                                    <i class="fa-solid fa-save mr-2"></i>บันทึกและจัดเก็บเป็น Template
+                                </button>
+                                <button @click="openCreateTemplateModal()" class="px-4 py-2 bg-purple-600 text-white rounded-lg font-bold shadow-md hover:bg-purple-700">
+                                    <i class="fa-solid fa-folder-plus mr-2"></i>สร้าง Template ใหม่ 
                                 </button>
                             </div>
                         </div>
@@ -3142,6 +3145,42 @@
                                 </div>
                             </div>
                         </div>
+                        
+                        <div x-show="showCreateTemplateModal" style="display: none;" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
+                            <div @click.away="showCreateTemplateModal = false" class="bg-white rounded-2xl w-full max-w-3xl shadow-2xl overflow-hidden flex flex-col">
+                                <div class="p-4 border-b bg-purple-50 flex justify-between items-center">
+                                    <h3 class="text-lg font-bold text-purple-800"><i class="fa-solid fa-folder-plus mr-2"></i>สร้าง Template Nurse's Note ใหม่</h3>
+                                    <button @click="showCreateTemplateModal = false" class="text-slate-400 hover:text-rose-500"><i class="fa-solid fa-xmark text-xl"></i></button>
+                                </div>
+                                
+                                <div class="p-4 space-y-4 overflow-y-auto max-h-[70vh]">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div class="col-span-1 md:col-span-2">
+                                            <label class="block text-sm font-bold text-slate-700 mb-1">ชื่อ Template (เช่น อาการ/โรค)</label>
+                                            <input type="text" x-model="newTemplateForm.templateName" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-purple-500 font-bold text-purple-700" placeholder="ระบุชื่อ Template...">
+                                        </div>
+                                        <div class="col-span-1 md:col-span-2">
+                                            <label class="block text-sm font-bold text-slate-700 mb-1">FOCUS / PROBLEM</label>
+                                            <input type="text" x-model="newTemplateForm.focus" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-purple-500 font-bold text-rose-600" placeholder="ระบุปัญหา...">
+                                        </div>
+                                        
+                                        <div class="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                            <div><label class="block text-sm font-bold text-slate-700 mb-1">S: Subjective Data</label><textarea x-model="newTemplateForm.s" rows="2" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-purple-500"></textarea></div>
+                                            <div><label class="block text-sm font-bold text-slate-700 mb-1">O: Objective Data</label><textarea x-model="newTemplateForm.o" rows="2" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-purple-500"></textarea></div>
+                                            <div><label class="block text-sm font-bold text-slate-700 mb-1">I: Intervention</label><textarea x-model="newTemplateForm.i" rows="3" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-purple-500"></textarea></div>
+                                            <div><label class="block text-sm font-bold text-slate-700 mb-1">E: Evaluation</label><textarea x-model="newTemplateForm.e" rows="3" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-purple-500"></textarea></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="p-4 border-t bg-slate-50 flex justify-end gap-3">
+                                    <button @click="showCreateTemplateModal = false" class="px-5 py-2 bg-slate-200 text-slate-700 rounded-lg font-bold hover:bg-slate-300">ยกเลิก</button>
+                                    <button @click="saveIndependentTemplate()" class="px-6 py-2 bg-purple-600 text-white rounded-lg font-bold shadow-md hover:bg-purple-700">
+                                        <i class="fa-solid fa-cloud-arrow-up mr-2"></i>บันทึกเข้าคลัง Template
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                 
                         <div x-show="showReProblemModal" style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
                             <div @click.away="showReProblemModal = false" class="bg-white rounded-2xl w-full max-w-3xl max-h-[80vh] flex flex-col shadow-2xl overflow-hidden">
@@ -3169,7 +3208,6 @@
                                 </div>
                             </div>
                         </div>
-                
                     </div>
                 </template>
             </main>
