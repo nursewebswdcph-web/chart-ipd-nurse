@@ -3210,6 +3210,8 @@
                             <h2 class="text-xl font-black text-cyan-700"><i class="fa-solid fa-file-export mr-2"></i>แบบบันทึกการพยาบาลผู้ป่วยจำหน่าย</h2>
                             <div class="flex flex-wrap gap-2">
                                 <button @click="currentForm = null; viewMode = 'detail'" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200">กลับ</button>
+                                <button @click="saveDischargeManual()" class="px-10 py-4 bg-emerald-600 text-white rounded-2xl font-bold text-lg shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all active:scale-95 flex items-center gap-2">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i>บันทึกข้อมูล</button>
                                 <button @click="printDischargeRecord()" class="px-4 py-2 bg-slate-800 text-white rounded-xl font-bold shadow-md hover:bg-slate-900"><i class="fa-solid fa-print mr-2"></i>พิมพ์เอกสาร</button>
                             </div>
                         </div>
@@ -3382,13 +3384,6 @@
                             </div>
                 
                         </div>
-                    </div>
-                    <div class="mt-8 flex justify-center border-t pt-6">
-                        <button @click="saveDischargeManual()" 
-                                class="px-10 py-4 bg-emerald-600 text-white rounded-2xl font-bold text-lg shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all active:scale-95 flex items-center gap-2">
-                            <i class="fa-solid fa-cloud-arrow-up"></i>
-                            บันทึกข้อมูลแบบฟอร์มจำหน่าย
-                        </button>
                     </div>
                 </template>
             </main>
