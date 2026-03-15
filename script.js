@@ -2808,24 +2808,26 @@ function nurseApp() {
             
             this.isLoading = true;
             try {
-                // เตรียมข้อมูลที่จะส่ง
-                const payload = {
-                    action: 'saveDischarge', // ชื่อ action ที่จะไปสั่งใน Apps Script
-                    an: this.selectedPatient.an,
-                    hn: this.selectedPatient.hn,
-                    ward: this.currentWard,
-                    data: JSON.stringify(this.dischargeForm)
+                // จัดรูปแบบให้ตรงกับโครงสร้าง data.action และ data.payload ใน doPost ของคุณ
+                const requestData = {
+                    action: 'saveDischargeRecord', // ตรงกับ case ใน switch
+                    payload: {                     // มัดรวมตัวแปรใส่ payload
+                        an: this.selectedPatient.an,
+                        hn: this.selectedPatient.hn,
+                        ward: this.currentWard,
+                        formData: this.dischargeForm
+                    }
                 };
 
                 const response = await fetch(this.API_URL, {
                     method: 'POST',
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify(requestData)
                 });
                 
                 const result = await response.json();
                 
                 if (result.status === 'success') {
-                    // แสดงแจ้งเตือนว่าบันทึกสำเร็จ (ใช้ dialog ที่คุณมีอยู่แล้ว)
+                    // แสดงแจ้งเตือนสำเร็จ
                     this.dialog = {
                         show: true,
                         type: 'success',
