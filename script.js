@@ -2699,7 +2699,6 @@ function nurseApp() {
                             <td style="font-weight:bold;">${item.focus.replace(/\n/g, '<br>')}</td>
                             <td>
                                 ${soieHtml}
-                                <br><br>
                                 <div style="text-align:right; padding-right: 20px;">
                                     ลงชื่อ ${item.nurse} ผู้บันทึก<br>
                                     ${item.pos}
