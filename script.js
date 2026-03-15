@@ -2722,10 +2722,10 @@ function nurseApp() {
                         <table>
                             <thead>
                                 <tr>
-                                    <th style="width: 15%;">DATE / SHIFT</th>
+                                    <th style="width: 10%;">DATE / SHIFT</th>
                                     <th style="width: 10%;">Actual Time</th>
                                     <th style="width: 25%;">FOCUS / PROBLEM</th>
-                                    <th style="width: 50%;">Nursing Progress Note</th>
+                                    <th style="width: 55%;">Nursing Progress Note</th>
                                 </tr>
                             </thead>
                             <tbody>${htmlRows}</tbody>
