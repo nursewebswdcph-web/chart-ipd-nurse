@@ -45,7 +45,15 @@ function nurseApp() {
                 O3: { checked: false, date: '', provider: '', pos: '', receiver: '' },
                 Diet1: { checked: false, text1: '', text2: '', text3: '', date: '', provider: '', pos: '', receiver: '' }
             };
-        },       
+        },  
+        // สถานะของ Focus List
+        focusList: [],
+        focusTemplates: [],
+        focusForm: { id: '', focus: '', goal: '', startDate: '', endDate: '' },
+        editingFocusIndex: -1,
+        showFocusTemplateModal: false,
+        searchFocusTemplate: '',
+        
                 
         isSidebarCollapsed: false, // สถานะการพับ Sidebar
         
@@ -145,6 +153,13 @@ function nurseApp() {
             if (!term) return this.nurses.slice(0, 20); // แสดง 20 คนแรกถ้ายังไม่พิมพ์
             const q = term.toLowerCase();
             return this.nurses.filter(n => n.name.toLowerCase().includes(q));
+        },
+
+        // กรอง Template ตามคำค้นหา
+        get filteredFocusTemplates() {
+            if (!this.searchFocusTemplate) return this.focusTemplates;
+            const q = this.searchFocusTemplate.toLowerCase();
+            return this.focusTemplates.filter(t => t.problemName && t.problemName.toLowerCase().includes(q));
         },
 
         async loadInitialData() {
@@ -538,6 +553,7 @@ function nurseApp() {
                     await this.loadBraden(this.selectedPatient.an);
                 } else if (form.id === 'patient_edu') {
                     await this.loadPatientEdu(this.selectedPatient.an);
+                } else if (form.id === 'focus_list') { 
                 }
             } catch (e) {
                 console.error("Error switching form:", e);
@@ -2121,5 +2137,251 @@ function nurseApp() {
                 `);
                 pri.document.close();
             },
+        // ==========================================
+        // ฟังก์ชันสำหรับ Focus List
+        // ==========================================
+        async loadFocusListInit() {
+            this.isLoading = true;
+            try {
+                // โหลด List ของคนไข้
+                const res = await fetch(`${this.API_URL}?action=getFocusList&an=${this.selectedPatient.an}`);
+                this.focusList = await res.json() || [];
+                
+                // โหลด Template ทั้งหมด
+                const resT = await fetch(`${this.API_URL}?action=getFocusTemplates`);
+                this.focusTemplates = await resT.json() || [];
+                
+                this.clearFocusForm();
+            } catch (e) { console.error(e); }
+            this.isLoading = false;
+        },
+
+        clearFocusForm() {
+            this.focusForm = { id: '', focus: '', goal: '', startDate: this.getTodayDateInput(), endDate: '' };
+            this.editingFocusIndex = -1;
+        },
+
+        getTodayDateInput() {
+            const d = new Date();
+            return d.toISOString().split('T')[0];
+        },
+
+        addOrUpdateFocus() {
+            if (!this.focusForm.focus || !this.focusForm.goal) {
+                alert('กรุณากรอกปัญหาและเป้าหมายให้ครบถ้วน'); return;
+            }
+            
+            const newItem = {
+                id: this.focusForm.id || new Date().getTime().toString(),
+                focus: this.focusForm.focus,
+                goal: this.focusForm.goal,
+                startDate: this.focusForm.startDate,
+                endDate: this.focusForm.endDate
+            };
+
+            if (this.editingFocusIndex > -1) {
+                this.focusList[this.editingFocusIndex] = newItem;
+            } else {
+                this.focusList.push(newItem);
+            }
+            this.clearFocusForm();
+        },
+
+        editFocus(index) {
+            this.focusForm = { ...this.focusList[index] };
+            this.editingFocusIndex = index;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        },
+
+        deleteFocus(index) {
+            if (confirm('ยืนยันการลบรายการปัญหานี้?')) {
+                this.focusList.splice(index, 1);
+            }
+        },
+
+        async saveFocusToDB() {
+            this.isLoading = true;
+            try {
+                const payload = {
+                    an: this.selectedPatient.an,
+                    hn: this.selectedPatient.hn,
+                    ward: this.currentWard,
+                    focusData: this.focusList
+                };
+                const res = await fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveFocusList', payload }) });
+                const out = await res.json();
+                if(out.status === 'success') {
+                    this.showSuccess = true;
+                    this.successMsg = 'บันทึกรายการปัญหาสุขภาพเรียบร้อย';
+                    setTimeout(() => { this.showSuccess = false; }, 3000);
+                }
+            } catch(e) { alert('เกิดข้อผิดพลาดในการบันทึก'); }
+            this.isLoading = false;
+        },
+
+        // --- ระบบ Template ---
+        async saveAsNewTemplate() {
+            if (!this.focusForm.focus || !this.focusForm.goal) {
+                alert('กรุณากรอกปัญหาและเป้าหมายเพื่อสร้าง Template'); return;
+            }
+            const pName = prompt("ตั้งชื่อให้รายการปัญหานี้ (Problem Name):");
+            if (!pName) return;
+
+            this.isLoading = true;
+            try {
+                const payload = { problemName: pName, focus: this.focusForm.focus, goal: this.focusForm.goal };
+                const res = await fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveFocusTemplate', payload }) });
+                const out = await res.json();
+                if(out.status === 'success') {
+                    alert('บันทึก Template สำเร็จ');
+                    this.focusTemplates.push({...payload, id: new Date().getTime()});
+                }
+            } catch(e) { alert('เกิดข้อผิดพลาดในการบันทึก Template'); }
+            this.isLoading = false;
+        },
+
+        selectFocusTemplate(t) {
+            this.focusForm.focus = t.focus;
+            this.focusForm.goal = t.goal;
+            this.showFocusTemplateModal = false;
+        },
+
+        // --- ระบบพิมพ์ Focus List ---
+        printFocusList() {
+            if (!this.focusList || this.focusList.length === 0) {
+                alert('ยังไม่มีข้อมูลสำหรับพิมพ์'); return;
+            }
+
+            let htmlRows = '';
+            this.focusList.forEach((item, index) => {
+                const startStr = item.startDate ? this.formatThaiDateShort(item.startDate) : '-';
+                const endStr = item.endDate ? this.formatThaiDateShort(item.endDate) : '-';
+                htmlRows += `
+                    <tr>
+                        <td style="text-align:center;">${index + 1}</td>
+                        <td style="white-space: pre-line;">${item.focus || '-'}</td>
+                        <td style="white-space: pre-line;">${item.goal || '-'}</td>
+                        <td style="text-align:center;">${startStr}</td>
+                        <td style="text-align:center;">${endStr}</td>
+                    </tr>
+                `;
+            });
+
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+            <html>
+            <head>
+                <title>Print Focus List</title>
+                <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+                <style>
+                    body { font-family: 'Sarabun', sans-serif; font-size: 11pt; margin: 0; padding: 0; color: #000; }
+                    .a4-page { width: 210mm; margin: auto; padding: 25mm 10mm 40mm 10mm; position: relative; box-sizing: border-box; }
+                    
+                    /* หัวกระดาษบนขวา (Fixed) */
+                    .print-header-top-right {
+                        position: fixed;
+                        top: 10mm;
+                        right: 10mm;
+                        text-align: right;
+                        font-size: 10pt;
+                        font-weight: bold;
+                        line-height: 1.2;
+                    }
+
+                    /* หัวเรื่องหลัก */
+                    .main-title { text-align: center; font-weight: bold; font-size: 14pt; margin-bottom: 15px; line-height: 1.4; }
+
+                    /* ตารางแสดงผล 5 คอลัมน์ */
+                    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+                    th, td { border: 1px solid #000; padding: 6px 8px; font-size: 11pt !important; vertical-align: top; word-wrap: break-word; }
+                    th { background-color: #eee !important; text-align: center; font-weight: bold; -webkit-print-color-adjust: exact; }
+
+                    /* CSS ส่วนท้ายตามที่ระบุ */
+                    .fixed-footer-container {
+                        position: fixed;
+                        bottom: 5mm; 
+                        left: 10mm;
+                        right: 10mm;
+                        display: flex;
+                        flex-direction: column;
+                        gap: 10px;
+                    }
+                    .patient-box-container {
+                        display: flex;
+                        justify-content: flex-end;
+                        width: 100%;
+                    }
+                    .print-patient-box { 
+                        width: 350px;
+                        border: 1px solid #000; 
+                        border-radius: 4px; 
+                        padding: 6px 12px;
+                        font-size: 11pt !important; 
+                        background: #fff; 
+                    }
+                    .print-footer { 
+                        width: 100%; 
+                        text-align: center;
+                        font-size: 9pt !important; 
+                        color: #444; 
+                        border-top: 1px solid #ccc; 
+                        padding-top: 8px; 
+                        margin-top: auto; 
+                    }
+
+                    @media print {
+                        @page { size: A4; margin: 0; }
+                        body { -webkit-print-color-adjust: exact; }
+                        tr { page-break-inside: avoid; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="print-header-top-right">
+                    <div>Echart-ipd-nurse</div>
+                    <div>Focus-List-Form หน้า...</div>
+                </div>
+
+                <div class="a4-page">
+                    <div class="main-title">
+                        <div>โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน</div>
+                        <div>รายการปัญหาสุขภาพทางการพยาบาลของผู้ป่วยตั้งแต่แรกรับจนจำหน่าย (FOCUS LIST)</div>
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 8%;">ลำดับที่<br>ปัญหา</th>
+                                <th style="width: 34%;">ปัญหา (Focus/Problem)</th>
+                                <th style="width: 34%;">เป้าหมาย (Goal/Out comes)</th>
+                                <th style="width: 12%;">วันที่พบ<br>ปัญหา</th>
+                                <th style="width: 12%;">วันที่สิ้นสุด<br>ปัญหา</th>
+                            </tr>
+                        </thead>
+                        <tbody>${htmlRows}</tbody>
+                    </table>
+                </div>
+
+                <div class="fixed-footer-container">
+                    <div class="patient-box-container">
+                        <div class="print-patient-box">
+                            <div><b>ชื่อ-สกุล:</b> ${this.selectedPatient?.name || '-'} &nbsp; <b>อายุ:</b> ${this.selectedPatient?.ageDisplay || '-'}</div>
+                            <div><b>HN:</b> ${this.selectedPatient?.hn || '-'} &nbsp; <b>AN:</b> ${this.selectedPatient?.an || '-'}</div>                
+                            <div><b>แพทย์:</b> ${this.selectedPatient?.doctor || '-'} &nbsp; <b>ตึก:</b> ${this.currentWard || '-'} &nbsp; <b>เตียง:</b> ${this.selectedPatient?.bed || '-'}</div>
+                        </div>
+                    </div>
+                    <div class="print-footer">
+                        เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | โปรแกรมบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
+                    </div>
+                </div>
+
+                <script>
+                    window.onload = () => { setTimeout(() => { window.print(); window.close(); }, 500); }
+                </script>
+            </body>
+            </html>
+            `);
+            printWindow.document.close();
+        },
     };
 }
