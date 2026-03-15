@@ -9,6 +9,8 @@ function nurseApp() {
         isEditing: false,
         nurses: [],
         showNurseListFor: null,
+        showPrintDropdown: false,
+        selectedPrintForms: [],
 
         selectedPatient: null,
         currentForm: null, 
@@ -3042,6 +3044,152 @@ function nurseApp() {
             </html>
             `);
             printWindow.document.close();
+        },
+        // ==========================================
+        // ฟังก์ชัน พิมพ์เอกสารรวมหลายฟอร์ม
+        // ==========================================
+        async printCombinedDocuments() {
+            if (!this.selectedPatient) return;
+            if (this.selectedPrintForms.length === 0) {
+                alert('กรุณาเลือกเอกสารอย่างน้อย 1 รายการ'); return;
+            }
+
+            this.isLoading = true;
+            this.showPrintDropdown = false; // ปิดกล่องเมนู
+            let combinedHtml = '';
+
+            try {
+                // 1. สั่งโหลดข้อมูลเบื้องหลังเตรียมไว้ (เฉพาะฟอร์มที่ถูกติ๊กเลือก)
+                if (this.selectedPrintForms.includes('assess_initial')) await this.loadAssessmentData(this.selectedPatient.an);
+                if (this.selectedPrintForms.includes('patient_class')) await this.loadClassifications(this.selectedPatient.an);
+                if (this.selectedPrintForms.includes('fall_risk')) await this.loadFallRisk(this.selectedPatient.an);
+                if (this.selectedPrintForms.includes('braden_scale')) await this.loadBraden(this.selectedPatient.an);
+                if (this.selectedPrintForms.includes('patient_edu')) await this.loadPatientEdu(this.selectedPatient.an);
+                if (this.selectedPrintForms.includes('focus_list')) {
+                    const resF = await fetch(`${this.API_URL}?action=getFocusList&an=${this.selectedPatient.an}`);
+                    this.focusList = await resF.json() || [];
+                }
+                if (this.selectedPrintForms.includes('progress_note')) {
+                    const resN = await fetch(`${this.API_URL}?action=getNursingNotes&an=${this.selectedPatient.an}`);
+                    let notes = await resN.json() || [];
+                    this.progressNotes = notes.sort((a, b) => Number(b.id) - Number(a.id));
+                }
+                if (this.selectedPrintForms.includes('discharge_record')) {
+                    const resD = await fetch(`${this.API_URL}?action=getDischargeRecord&an=${this.selectedPatient.an}`);
+                    const data = await resD.json();
+                    this.dischargeForm = (data && Object.keys(data).length > 0) ? data : this.defaultDischargeForm();
+                }
+
+                // 2. เทคนิค Intercept: สกัดเอาเฉพาะเนื้อหา HTML จากฟังก์ชันพิมพ์ย่อยมารวมกัน
+                const originalOpen = window.open;
+                let interceptedHtml = '';
+                
+                window.open = function() {
+                    return {
+                        document: {
+                            write: function(htmlStr) {
+                                // ดึงเฉพาะโค้ดที่อยู่ระหว่าง <body>...</body> ของแต่ละฟอร์ม
+                                const bodyMatch = htmlStr.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+                                if (bodyMatch && bodyMatch[1]) {
+                                    // ถอด <script> ของฟอร์มย่อยออก เพื่อไม่ให้มันสั่ง print ทับซ้อนกัน
+                                    let cleanHtml = bodyMatch[1].replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+                                    interceptedHtml += cleanHtml;
+                                }
+                            },
+                            close: function() {}
+                        }
+                    };
+                };
+
+                // 3. รันฟังก์ชันพิมพ์เรียงตามลำดับฟอร์มมาตรฐาน
+                for (let i = 0; i < this.forms.length; i++) {
+                    const formId = this.forms[i].id;
+                    if (this.selectedPrintForms.includes(formId)) {
+                        // เรียกฟังก์ชันพิมพ์เดิมของคุณ โดยมันจะไม่เปิดหน้าต่างใหม่ แต่จะถูกดูดโค้ดเก็บไว้แทน
+                        if (formId === 'assess_initial') this.printAssessmentInitial();
+                        else if (formId === 'patient_class') this.printPatientClass();
+                        else if (formId === 'fall_risk') this.printFallRisk();
+                        else if (formId === 'braden_scale') this.printBradenScale();
+                        else if (formId === 'patient_edu') this.printPatientEdu();
+                        else if (formId === 'focus_list') this.printFocusList();
+                        else if (formId === 'progress_note') this.printProgressNote();
+                        else if (formId === 'discharge_record') this.printDischargeRecord();
+                        
+                        combinedHtml += interceptedHtml; // เอาหน้ากระดาษมาต่อกัน
+                        interceptedHtml = ''; 
+                    }
+                }
+
+                // 4. คืนค่าการทำงานของ window ให้เป็นปกติ
+                window.open = originalOpen;
+
+                if (!combinedHtml.trim()) {
+                    alert('ไม่พบข้อมูลเอกสารสำหรับพิมพ์'); return;
+                }
+
+                // 5. สร้างหน้าต่าง Print รวม (ใส่ Style กลางที่ใช้ร่วมกันในทุกฟอร์ม)
+                const finalPrintWindow = window.open('', '_blank');
+                const docTitle = `EChartIPD_${this.selectedPatient.an}`;
+                
+                finalPrintWindow.document.write(`
+                <html>
+                <head>
+                    <title>${docTitle}</title>
+                    <style>
+                        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap');
+                        body { font-family: 'Sarabun', sans-serif; font-size: 11pt; margin: 0; padding: 0; color: #000; background: #525659; }
+                        
+                        /* Layout พื้นฐานของกระดาษ A4 */
+                        .a4-page { 
+                            width: 210mm; height: 296mm; margin: 10mm auto; 
+                            padding: 15mm 12mm 45mm 12mm; position: relative; box-sizing: border-box; 
+                            background: #fff; page-break-after: always; overflow: hidden;
+                        }
+                        .print-header-top-right { position: absolute; top: 10mm; right: 10mm; text-align: right; font-size: 8pt; font-weight: bold; line-height: 1.2; }
+                        .main-title { text-align: center; font-weight: bold; font-size: 14pt; margin-bottom: 15px; line-height: 1.4; }
+                        
+                        /* Table & Helper Styles */
+                        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+                        th, td { border: 1px solid #000; padding: 8px; font-size: 11pt !important; vertical-align: top; word-wrap: break-word; }
+                        th { background-color: #eee !important; text-align: center; font-weight: bold; -webkit-print-color-adjust: exact; }
+                        
+                        .fixed-footer-container { position: absolute; bottom: 5mm; left: 10mm; right: 10mm; display: flex; flex-direction: column; gap: 10px; }
+                        .patient-box-container { display: flex; justify-content: flex-end; width: 100%; }
+                        .print-patient-box { width: max-content; border: 1px solid #000; border-radius: 4px; padding: 6px 12px; font-size: 8pt !important; background: #fff; }
+                        .print-footer { width: 100%; text-align: center; font-size: 8pt !important; color: #444; border-top: 1px solid #ccc; padding-top: 8px; margin-top: auto; }
+                        
+                        .content-section { font-size: 11pt; line-height: 1.5; margin-bottom: 8px; }
+                        .indent { padding-left: 20px; }
+                        .dot-line { border-bottom: 1px dotted #000; display: inline-block; min-width: 40px; }
+                        .vs-box { display: flex; justify-content: space-around; font-weight: bold; margin: 5px 0 10px 0; }
+                        .edu-box { border: 1px solid #000; padding: 10px; margin-top: 5px; margin-bottom: 10px; }
+                        .edu-title { text-align: center; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 5px; margin-bottom: 5px; }
+
+                        @media print {
+                            @page { size: A4; margin: 0; }
+                            body { background: #fff; -webkit-print-color-adjust: exact; }
+                            .a4-page { margin: 0; box-shadow: none; border: none; }
+                            .a4-page:last-child { page-break-after: auto; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${combinedHtml}
+                    <script>
+                        document.title = "${docTitle}";
+                        window.onload = () => { setTimeout(() => { window.print(); window.close(); }, 800); }
+                    </script>
+                </body>
+                </html>
+                `);
+                finalPrintWindow.document.close();
+
+            } catch (error) {
+                console.error("Combined Print Error:", error);
+                alert('เกิดข้อผิดพลาดในการรวมเอกสาร');
+            } finally {
+                this.isLoading = false;
+            }
         },
     };
 }
