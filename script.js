@@ -2669,10 +2669,20 @@ function nurseApp() {
                 this.focusAlert('ยังไม่มีข้อมูลสำหรับพิมพ์'); return;
             }
 
+            // 1. คัดลอกข้อมูลและสั่งเรียงลำดับใหม่เฉพาะสำหรับพิมพ์ (เรียงเก่าไปใหม่ ตามวันที่และเวลา)
+            const sortedNotesForPrint = [...this.progressNotes].sort((a, b) => {
+                // นำวันที่และเวลามาต่อกันเพื่อเปรียบเทียบ เช่น "2026-03-10T08:00"
+                const dateTimeA = new Date(`${a.date}T${a.time || '00:00'}`).getTime();
+                const dateTimeB = new Date(`${b.date}T${b.time || '00:00'}`).getTime();
+                return dateTimeA - dateTimeB; // เรียงจากน้อยไปมาก (เก่าไปใหม่)
+            });
+
             const itemsPerPage = 2; // บังคับหน้าละ 2 รายการตามข้อกำหนด
             const pages = [];
-            for (let i = 0; i < this.progressNotes.length; i += itemsPerPage) {
-                pages.push(this.progressNotes.slice(i, i + itemsPerPage));
+            
+            // 2. ใช้ sortedNotesForPrint แทน this.progressNotes ในการจัดหน้า
+            for (let i = 0; i < sortedNotesForPrint.length; i += itemsPerPage) {
+                pages.push(sortedNotesForPrint.slice(i, i + itemsPerPage));
             }
             const totalPages = pages.length;
 
