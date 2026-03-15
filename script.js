@@ -2803,6 +2803,19 @@ function nurseApp() {
                 receiverName: '', relation: '', nurseName: this.nurseName || '', pos: this.nursePosition || ''
             };
         },
+        async loadDischargeRecordInit() {
+            this.isLoading = true;
+            try {
+                const res = await fetch(`${this.API_URL}?action=getDischargeRecord&an=${this.selectedPatient.an}`);
+                const data = await res.json();
+                // ถ้ามีข้อมูลเดิมให้ดึงมาแสดง ถ้าไม่มีให้ใช้ฟอร์มเปล่า
+                this.dischargeForm = (data && Object.keys(data).length > 0) ? data : this.defaultDischargeForm();
+            } catch (e) { 
+                console.error(e); 
+                this.dischargeForm = this.defaultDischargeForm(); 
+            }
+            this.isLoading = false;
+        },
         async saveDischargeManual() {
             if (!this.selectedPatient) return;
             
