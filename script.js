@@ -3131,6 +3131,19 @@ function nurseApp() {
 
                 // 5. สร้างหน้าต่าง Print รวม
                 const finalPrintWindow = window.open('', '_blank');
+                
+                // --- เพิ่มการเช็คว่าเบราว์เซอร์บล็อคหน้าต่าง Pop-up หรือไม่ ---
+                if (!finalPrintWindow) {
+                    this.dialog = { 
+                        show: true, 
+                        type: 'alert', 
+                        title: 'หน้าต่างพิมพ์ถูกบล็อค', 
+                        msg: 'เบราว์เซอร์บล็อคการเปิดหน้าต่างใหม่ กรุณากดปุ่ม "อนุญาตป๊อปอัป (Pop-ups allowed)" ที่มุมขวาบนของช่อง URL แล้วกดพิมพ์ใหม่อีกครั้ง' 
+                    };
+                    return;
+                }
+                // ---------------------------------------------------
+
                 const docTitle = `EChartIPD_${this.selectedPatient.an}`;
                 
                 finalPrintWindow.document.write(`
@@ -3142,7 +3155,7 @@ function nurseApp() {
                         body { font-family: 'Sarabun', sans-serif; font-size: 11pt; margin: 0; padding: 0; color: #000; background: #525659; }
                         
                         .a4-page { 
-                            width: 210mm; height: 296mm; margin: 10mm auto; 
+                            width: 210mm; height: 296mm; margin: 8mm auto; 
                             padding: 15mm 12mm 45mm 12mm; position: relative; box-sizing: border-box; 
                             background: #fff; page-break-after: always; overflow: hidden;
                         }
