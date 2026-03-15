@@ -2839,6 +2839,122 @@
                         </div>
                     </div>
                 </template>
+                <template x-if="currentForm?.id === 'focus_list'">
+                    <div x-init="loadFocusListInit()" class="space-y-4 pb-10">
+                        
+                        <div class="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-cyan-200 sticky top-0 z-30 gap-4">
+                            <h2 class="text-xl font-black text-cyan-700"><i class="fa-solid fa-list-check mr-2"></i>รายการปัญหาสุขภาพ (Focus List)</h2>
+                            <div class="flex flex-wrap gap-2">
+                                <button @click="currentForm = null; viewMode = 'detail'" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200">กลับ</button>
+                                <button @click="printFocusList()" class="px-4 py-2 bg-slate-800 text-white rounded-xl font-bold shadow-md hover:bg-slate-900"><i class="fa-solid fa-print mr-2"></i>พิมพ์เอกสาร</button>
+                            </div>
+                        </div>
+                
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-lg font-bold text-slate-700">เพิ่ม/แก้ไข รายการปัญหา</h3>
+                                <button @click="showFocusTemplateModal = true" class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold shadow-sm hover:bg-indigo-700 text-sm">
+                                    <i class="fa-solid fa-magnifying-glass mr-2"></i>เลือกจาก Template
+                                </button>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="col-span-1 md:col-span-2">
+                                    <label class="block text-sm font-bold text-slate-700 mb-1">1. ปัญหา (Focus/Problem)</label>
+                                    <textarea x-model="focusForm.focus" rows="2" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-cyan-500" placeholder="ระบุปัญหา..."></textarea>
+                                </div>
+                                <div class="col-span-1 md:col-span-2">
+                                    <label class="block text-sm font-bold text-slate-700 mb-1">2. เป้าหมาย (Goal/Outcomes)</label>
+                                    <textarea x-model="focusForm.goal" rows="2" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-cyan-500" placeholder="ระบุเป้าหมาย..."></textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-700 mb-1">3. วันที่พบปัญหา</label>
+                                    <input type="date" x-model="focusForm.startDate" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-cyan-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-700 mb-1">4. วันที่สิ้นสุดปัญหา</label>
+                                    <input type="date" x-model="focusForm.endDate" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-cyan-500">
+                                </div>
+                            </div>
+                
+                            <div class="mt-4 flex flex-wrap gap-2">
+                                <button @click="addOrUpdateFocus()" class="px-6 py-2 bg-cyan-600 text-white rounded-lg font-bold shadow-md hover:bg-cyan-700">
+                                    <i class="fa-solid fa-plus mr-2"></i>บันทึกลงตาราง
+                                </button>
+                                <button @click="clearFocusForm()" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg font-bold hover:bg-slate-300">ล้างข้อมูล</button>
+                                <button @click="saveAsNewTemplate()" class="px-4 py-2 bg-emerald-500 text-white rounded-lg font-bold shadow-md hover:bg-emerald-600 ml-auto">
+                                    <i class="fa-solid fa-save mr-2"></i>จัดเก็บเป็น Template ใหม่
+                                </button>
+                            </div>
+                        </div>
+                
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 overflow-x-auto">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-lg font-bold text-slate-700">รายการปัญหาสุขภาพของผู้ป่วย</h3>
+                                <button @click="saveFocusToDB()" class="px-6 py-2 bg-rose-600 text-white rounded-xl font-bold shadow-md hover:bg-rose-700 animate-pulse">
+                                    <i class="fa-solid fa-cloud-arrow-up mr-2"></i>บันทึกข้อมูลทั้งหมดขึ้นระบบ
+                                </button>
+                            </div>
+                            
+                            <table class="w-full text-sm border-collapse border border-slate-300 min-w-[800px]">
+                                <thead class="bg-slate-100 text-slate-700">
+                                    <tr>
+                                        <th class="p-3 border border-slate-300 w-[5%] text-center">ลำดับ</th>
+                                        <th class="p-3 border border-slate-300 w-[30%] text-left">ปัญหา (Focus/Problem)</th>
+                                        <th class="p-3 border border-slate-300 w-[35%] text-left">เป้าหมาย (Goal/Outcomes)</th>
+                                        <th class="p-3 border border-slate-300 w-[15%] text-center">วันที่พบ - สิ้นสุด</th>
+                                        <th class="p-3 border border-slate-300 w-[15%] text-center">จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template x-for="(item, index) in focusList" :key="item.id">
+                                        <tr class="hover:bg-slate-50 transition">
+                                            <td class="p-3 border border-slate-300 text-center font-bold" x-text="index + 1"></td>
+                                            <td class="p-3 border border-slate-300 whitespace-pre-line" x-text="item.focus"></td>
+                                            <td class="p-3 border border-slate-300 whitespace-pre-line" x-text="item.goal"></td>
+                                            <td class="p-3 border border-slate-300 text-center">
+                                                <div class="text-emerald-600 font-bold" x-text="formatThaiDateShort(item.startDate)"></div>
+                                                <div class="text-rose-500 text-xs" x-text="item.endDate ? 'ถึง ' + formatThaiDateShort(item.endDate) : '-'"></div>
+                                            </td>
+                                            <td class="p-3 border border-slate-300 text-center">
+                                                <button @click="editFocus(index)" class="px-2 py-1 bg-amber-100 text-amber-700 rounded hover:bg-amber-200 mr-1" title="แก้ไข"><i class="fa-solid fa-pen"></i></button>
+                                                <button @click="deleteFocus(index)" class="px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200" title="ลบ"><i class="fa-solid fa-trash"></i></button>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                    <tr x-show="focusList.length === 0">
+                                        <td colspan="5" class="p-4 text-center text-slate-500 italic">ยังไม่มีรายการปัญหา</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                
+                        <div x-show="showFocusTemplateModal" style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                            <div @click.away="showFocusTemplateModal = false" class="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl overflow-hidden">
+                                <div class="p-4 border-b bg-indigo-50 flex justify-between items-center">
+                                    <h3 class="text-lg font-bold text-indigo-800"><i class="fa-solid fa-book-medical mr-2"></i>เลือกจาก Template</h3>
+                                    <button @click="showFocusTemplateModal = false" class="text-slate-400 hover:text-rose-500"><i class="fa-solid fa-xmark text-xl"></i></button>
+                                </div>
+                                <div class="p-4 border-b">
+                                    <input type="text" x-model="searchFocusTemplate" placeholder="ค้นหาชื่อรายการปัญหา..." class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-indigo-500">
+                                </div>
+                                <div class="p-4 overflow-y-auto flex-1 bg-slate-50">
+                                    <div class="space-y-2">
+                                        <template x-for="t in filteredFocusTemplates" :key="t.id">
+                                            <div @click="selectFocusTemplate(t)" class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm hover:border-indigo-400 hover:shadow-md cursor-pointer transition">
+                                                <h4 class="font-bold text-indigo-700 mb-1" x-text="t.problemName"></h4>
+                                                <div class="text-xs text-slate-600 line-clamp-2"><b>ปัญหา:</b> <span x-text="t.focus"></span></div>
+                                                <div class="text-xs text-slate-600 line-clamp-2"><b>เป้าหมาย:</b> <span x-text="t.goal"></span></div>
+                                            </div>
+                                        </template>
+                                        <div x-show="filteredFocusTemplates.length === 0" class="text-center text-slate-500 py-4">ไม่พบ Template ที่ค้นหา</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                
+                    </div>
+                </template>
             </main>
         </div>
     </div>
