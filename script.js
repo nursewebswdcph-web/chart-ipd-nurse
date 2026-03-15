@@ -1898,8 +1898,8 @@ function nurseApp() {
             
                 // ชุดข้อมูลสำหรับวนลูปสร้างตาราง (ตามเงื่อนไข 100%)
                 const rowsDef = [
-                    { id: 'D1', rs: 1, topic: '1.D=Diagnosis<br>การให้ความรู้เรื่องโรค', text: (d) => `ให้ความรู้เรื่องโรคที่เป็นอยู่ถึงสาเหตุ อาการ การปฏิบัติตัว ระบุ <span class="dot-line">${d.text1 || '...........................................'}</span>` },
-                    { id: 'M1', rs: 1, topic: '2.M=Medicine<br>การให้ความรู้เรื่องยา', text: (d) => `- ชนิดของยา <span class="dot-line">${d.text1 || '..................'}</span><br>- ฤทธิ์ของยา / ผลข้างเคียง <span class="dot-line">${d.text2 || '..................'}</span>` },
+                    { id: 'D1', rs: 1, topic: '1.D=Diagnosis<br>การให้ความรู้เรื่องโรค', text: (d) => `ให้ความรู้เรื่องโรคที่เป็นอยู่ถึงสาเหตุ อาการ การปฏิบัติตัว ระบุ <span class="dot-line">${d.text1 || '-'}</span>` },
+                    { id: 'M1', rs: 1, topic: '2.M=Medicine<br>การให้ความรู้เรื่องยา', text: (d) => `- ชนิดของยา <span class="dot-line">${d.text1 || '-'}</span><br>- ฤทธิ์ของยา / ผลข้างเคียง <span class="dot-line">${d.text2 || '-'}</span>` },
                     
                     // E Section
                     { id: 'E1', rs: 2, topic: '3.E=Environment & Economic<br>การให้ความรู้ด้านสิ่งแวดล้อมและสภาวะเศรษฐกิจ', text: (d) => `
@@ -1915,8 +1915,8 @@ function nurseApp() {
                     { id: 'T1', rs: 3, topic: '4.T=Treatment<br>แนวทางการรักษาพยาบาล', text: (d) => `
                         - แนวทางการรักษาพยาบาล ได้แก่:<br>
                         ${['การรักษาด้วยยา', 'การให้สารน้ำ', 'ให้เลือด'].map(opt => `${getCheck('T1', opt)} ${opt}`).join(' ')} 
-                        ${getCheck('T1', 'การผ่าตัด/หัตถการ')} ผ่าตัด/หัตถการ ระบุ <span class="dot-line">${d.text1 || '.......'}</span> 
-                        ${getCheck('T1', 'อื่นๆ')} อื่นๆ ระบุ <span class="dot-line">${d.text2 || '.......'}</span>
+                        ${getCheck('T1', 'การผ่าตัด/หัตถการ')} ผ่าตัด/หัตถการ ระบุ <span class="dot-line">${d.text1 || '-'}</span> 
+                        ${getCheck('T1', 'อื่นๆ')} อื่นๆ ระบุ <span class="dot-line">${d.text2 || '-'}</span>
                     ` },
                     { id: 'T1', rs: 0, text: (d) => `
                         - สาธิตวิธีการดูแลตนเองในเรื่อง:<br>
@@ -1939,12 +1939,11 @@ function nurseApp() {
                     ` },
             
                     // O Section
-                    { id: 'O1', rs: 2, topic: '6. O=Out Patient<br>การดูแลต่อเนื่อง', text: (d) => `- การมาตรวจตามนัด วันที่ <span class="dot-line">${d.text1 || '-'}</span> สถานที่ <span class="dot-line">${d.text2 || '-'}</span> การเตรียมตัว <span class="dot-line">${d.text3 || '.............'}</span><br>
+                    { id: 'O1', rs: 1, topic: '6. O=Out Patient<br>การดูแลต่อเนื่อง', text: (d) => `- การมาตรวจตามนัด วันที่ <span class="dot-line">${d.text1 || '-'}</span> <br>สถานที่ <span class="dot-line">${d.text2 || '-'}</span> <br>การเตรียมตัว <span class="dot-line">${d.text3 || '.............'}</span><br>
                         - แหล่งข้อมูลเครือข่ายหรือแหล่งสนับสนุนทางสังคม:<br>
                         ${['ผู้นำชุมชน', 'อสม.', 'รพ.สต.'].map(opt => `${getCheck('O2', opt)} ${opt}`).join(' ')} 
-                        ${getCheck('O2', 'อื่นๆ')} อื่นๆ ระบุ <span class="dot-line">${this.eduForm.O2?.text1 || '-'}</span>
-                    ` },
-                    { id: 'O1', rs: 0, text: (d) => `<b>- การขอความช่วยเหลือ 1669</b>` },
+                        ${getCheck('O2', 'อื่นๆ')} อื่นๆ ระบุ <span class="dot-line">${this.eduForm.O2?.text1 || '-'}</span><br>- การขอความช่วยเหลือ 1669
+                    ` },            
                     
                     // Diet Section
                     { id: 'Diet1', rs: 1, topic: '7. D-Diet<br>การเลือกรับประทานอาหาร', text: (d) => `
