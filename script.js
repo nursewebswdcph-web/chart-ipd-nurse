@@ -2087,14 +2087,7 @@ function nurseApp() {
                             width: 100%;
                         }
                                     
-                        .print-patient-box { 
-                            width: 350px;
-                            border: 1px solid #000; 
-                            border-radius: 4px; 
-                            padding: 6px 12px;
-                            font-size: 8pt !important; /* ขนาดอักษรเท่าตาราง */
-                            background: #fff; 
-                        }
+                        .print-patient-box { width: max-content; border: 1px solid #000; border-radius: 4px; padding: 6px 12px; font-size: 8pt !important; background: #fff; }
             
                         /* Footer ท้ายกระดาษ - เปลี่ยนจาก Fixed เป็น Margin Auto เพื่อให้อยู่ท้ายเนื้อหาพอดี */
                         .print-footer { 
@@ -2493,10 +2486,7 @@ function nurseApp() {
                         gap: 10px;
                     }
                     .patient-box-container { display: flex; justify-content: flex-end; width: 100%; }
-                    .print-patient-box { 
-                        width: 350px; border: 1px solid #000; border-radius: 4px; 
-                        padding: 6px 12px; font-size: 8pt !important; background: #fff; 
-                    }
+                    .print-patient-box { width: max-content; border: 1px solid #000; border-radius: 4px; padding: 6px 12px; font-size: 8pt !important; background: #fff; }
                     .print-footer { 
                         width: 100%; text-align: center; font-size: 8pt !important; color: #444; 
                         border-top: 1px solid #ccc; padding-top: 8px; margin-top: auto; 
