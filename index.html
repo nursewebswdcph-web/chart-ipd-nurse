@@ -3051,15 +3051,15 @@
                                     <div><label class="block text-sm font-bold text-slate-700 mb-1">S: Subjective Data</label><textarea x-model="pnForm.s" rows="2" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-cyan-500"></textarea></div>
                                     <div><label class="block text-sm font-bold text-slate-700 mb-1">O: Objective Data</label><textarea x-model="pnForm.o" rows="2" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-cyan-500"></textarea></div>
                                     <div><label class="block text-sm font-bold text-slate-700 mb-1">I: Intervention</label><textarea x-model="pnForm.i" rows="3" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-cyan-500"></textarea></div>
-                                    <div class="flex flex-col">
-                                        <div class="flex justify-between items-end mb-1">
-                                            <label class="block text-sm font-bold text-slate-700">E: Evaluation</label>
+                                    <div class="mt-2 bg-white border border-slate-200 rounded p-2">
+                                        <div class="flex justify-between items-center mb-1">
+                                            <b class="text-sm text-slate-700">E: Evaluation</b>
                                             <div class="flex items-center gap-2">
-                                                <span class="text-[11px] text-slate-500 font-bold">เวลาประเมินผล:</span>
-                                                <input type="time" x-model="pnForm.eTime" class="border border-slate-300 rounded p-1 text-xs outline-none focus:border-cyan-500">
+                                                <span class="text-[10px] text-slate-500">เวลาประเมินผล:</span>
+                                                <input type="time" x-model="item.eTime" @change="saveProgressToDB()" class="border border-slate-300 rounded px-1 py-0.5 text-xs outline-none focus:border-cyan-500">
                                             </div>
                                         </div>
-                                        <textarea x-model="pnForm.e" rows="3" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-cyan-500 flex-1"></textarea>
+                                        <textarea x-model="item.e" @change="saveProgressToDB()" rows="2" class="w-full border border-slate-300 rounded p-1 text-xs outline-none focus:border-cyan-500"></textarea>
                                     </div>
                                 </div>
                             </div>
