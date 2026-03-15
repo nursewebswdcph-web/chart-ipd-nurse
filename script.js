@@ -2631,12 +2631,19 @@ function nurseApp() {
                 this.focusAlert('ยังไม่มีข้อมูลสำหรับพิมพ์'); return;
             }
 
-            // 1. คัดลอกข้อมูลและสั่งเรียงลำดับใหม่เฉพาะสำหรับพิมพ์ (เรียงเก่าไปใหม่ ตามวันที่และเวลา)
+            // 1. คัดลอกข้อมูลและสั่งเรียงลำดับใหม่เฉพาะสำหรับพิมพ์
             const sortedNotesForPrint = [...this.progressNotes].sort((a, b) => {
-                // นำวันที่และเวลามาต่อกันเพื่อเปรียบเทียบ เช่น "2026-03-10T08:00"
                 const dateTimeA = new Date(`${a.date}T${a.time || '00:00'}`).getTime();
                 const dateTimeB = new Date(`${b.date}T${b.time || '00:00'}`).getTime();
-                return dateTimeA - dateTimeB; // เรียงจากน้อยไปมาก (เก่าไปใหม่)
+                
+                // หากวันที่และเวลา Actual Time เท่ากันเป๊ะ
+                if (dateTimeA === dateTimeB) {
+                    // ให้เรียงตาม ID (ซึ่งก็คือเวลาที่กดบันทึกข้อมูล) จากเก่าไปใหม่
+                    return Number(a.id) - Number(b.id);
+                }
+                
+                // เรียงตามวันที่และเวลา Actual Time (เก่าไปใหม่)
+                return dateTimeA - dateTimeB; 
             });
 
             const itemsPerPage = 2; // บังคับหน้าละ 2 รายการตามข้อกำหนด
