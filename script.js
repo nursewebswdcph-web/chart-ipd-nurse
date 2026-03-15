@@ -2221,6 +2221,17 @@ function nurseApp() {
             this.clearFocusForm();
             await this.saveFocusToDB();
         },
+        // ฟังก์ชันสำหรับกดสิ้นสุดปัญหาแบบรวดเร็ว
+        async endFocus(index) {
+            // ดึงวันที่ปัจจุบันมาใส่ในช่อง endDate ของรายการที่เลือก
+            this.focusList[index].endDate = this.getTodayDateInput();
+            
+            // สั่งซิงค์ข้อมูลขึ้นฐานข้อมูลทันที
+            await this.saveFocusToDB();
+            
+            // แสดงแจ้งเตือนสำเร็จ
+            this.focusAlert('ลงวันที่สิ้นสุดปัญหาเป็นวันนี้เรียบร้อยแล้ว');
+        },
 
         editFocus(index) {
             this.focusForm = { ...this.focusList[index] };
