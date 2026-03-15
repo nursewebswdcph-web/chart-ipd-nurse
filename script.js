@@ -2904,7 +2904,7 @@ function nurseApp() {
                     </div>
 
                     <div class="content-section">
-                        <b>วันที่จำหน่าย</b> <span class="dot-line" style="min-width:80px;">${d1Str}|| ''</span> <b>วันที่ออกจากโรงพยาบาล</b> <span class="dot-line" style="min-width:80px;">${d2Str}|| ''</span> <b>เวลา</b> <span class="dot-line">${tStr}|| ''</span> น.
+                        <b>วันที่จำหน่าย</b> <span class="dot-line" style="min-width:80px;">${d1Str}</span> <b>วันที่ออกจากโรงพยาบาล</b> <span class="dot-line" style="min-width:80px;">${d2Str}</span> <b>เวลา</b> <span class="dot-line">${tStr}</span> น.
                     </div>
 
                     <div class="content-section flex" style="display:flex;">
@@ -3007,7 +3007,7 @@ function nurseApp() {
                     <div class="content-section" style="margin-top: 5px; display: flex; justify-content: space-between;">
                         <div>
                             <b>พยาบาลผู้จำหน่าย</b> <span class="dot-line" style="min-width: 300px; text-align: center;">${d.nurseName || ''}</span> 
-                            <b>ตำแหน่ง</b> <span class="dot-line" style="min-width: 100px; text-align: center;">${d.pos || ''}</span>
+                            <b>ตำแหน่ง</b> <span class="dot-line" style="min-width: 120px; text-align: center;">${d.pos || ''}</span>
                         </div>
                     </div>
 
