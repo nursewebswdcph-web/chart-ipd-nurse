@@ -3203,6 +3203,134 @@
                         </div>
                     </div>
                 </template>
+                <template x-if="currentForm?.id === 'discharge_record'">
+                    <div x-init="loadDischargeRecordInit()" class="space-y-4 pb-10">
+                        
+                        <div class="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-cyan-200 sticky top-0 z-30 gap-4">
+                            <h2 class="text-xl font-black text-cyan-700"><i class="fa-solid fa-file-export mr-2"></i>แบบบันทึกการพยาบาลผู้ป่วยจำหน่าย</h2>
+                            <div class="flex flex-wrap gap-2">
+                                <span class="flex items-center text-xs text-emerald-600 font-bold bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+                                    <i class="fa-solid fa-cloud-arrow-up mr-1"></i>ระบบบันทึกอัตโนมัติ
+                                </span>
+                                <button @click="currentForm = null; viewMode = 'detail'" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200">กลับ</button>
+                                <button @click="printDischargeRecord()" class="px-4 py-2 bg-slate-800 text-white rounded-xl font-bold shadow-md hover:bg-slate-900"><i class="fa-solid fa-print mr-2"></i>พิมพ์เอกสาร</button>
+                            </div>
+                        </div>
+                
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 text-sm">
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">วันที่จำหน่าย</label>
+                                    <input type="date" x-model="dischargeForm.date" @change="autoSaveDischarge()" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-cyan-500">
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">เวลาที่ออกจากโรงพยาบาล (น.)</label>
+                                    <input type="time" x-model="dischargeForm.time" @change="autoSaveDischarge()" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-cyan-500">
+                                </div>
+                                
+                                <div class="col-span-1 md:col-span-2">
+                                    <label class="block font-bold text-slate-700 mb-2">ประเภทการจำหน่าย</label>
+                                    <div class="flex flex-wrap gap-4">
+                                        <template x-for="type in ['แพทย์อนุญาต', 'ปฏิเสธการรักษา', 'หนีกลับ', 'REFER', 'ตายไม่มีการชันสูตร', 'ตายมีการชันสูตร']">
+                                            <label class="flex items-center gap-2 cursor-pointer">
+                                                <input type="radio" x-model="dischargeForm.type" :value="type" @change="autoSaveDischarge()" class="w-4 h-4 text-cyan-600"> <span x-text="type"></span>
+                                            </label>
+                                        </template>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-span-1 md:col-span-2">
+                                    <label class="block font-bold text-slate-700 mb-2">สภาพการจำหน่าย</label>
+                                    <div class="flex flex-wrap gap-4">
+                                        <template x-for="cond in ['หายสนิท', 'ดีขึ้น', 'ไม่ดีขึ้น']">
+                                            <label class="flex items-center gap-2 cursor-pointer">
+                                                <input type="radio" x-model="dischargeForm.condition" :value="cond" @change="autoSaveDischarge()" class="w-4 h-4 text-cyan-600"> <span x-text="cond"></span>
+                                            </label>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+                
+                            <div class="mb-6 space-y-4">
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">สรุปอาการและอาการแสดงผู้ป่วยก่อนจำหน่าย</label>
+                                    <textarea x-model="dischargeForm.symptom" @change="autoSaveDischarge()" rows="3" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-cyan-500"></textarea>
+                                </div>
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 bg-rose-50 p-4 rounded-xl border border-rose-100">
+                                    <div class="flex items-center gap-2"><b>BT:</b> <input type="number" step="0.1" x-model="dischargeForm.bt" @change="autoSaveDischarge()" class="w-16 p-1 border rounded text-center"> °C</div>
+                                    <div class="flex items-center gap-2"><b>PR:</b> <input type="number" x-model="dischargeForm.pr" @change="autoSaveDischarge()" class="w-16 p-1 border rounded text-center"> /min</div>
+                                    <div class="flex items-center gap-2"><b>RR:</b> <input type="number" x-model="dischargeForm.rr" @change="autoSaveDischarge()" class="w-16 p-1 border rounded text-center"> /min</div>
+                                    <div class="flex items-center gap-2"><b>BP:</b> <input type="text" x-model="dischargeForm.bp" @change="autoSaveDischarge()" class="w-20 p-1 border rounded text-center" placeholder="120/80"> mmHg</div>
+                                </div>
+                            </div>
+                
+                            <div class="mb-6 border border-slate-300 rounded-xl overflow-hidden">
+                                <div class="bg-slate-200 p-2 font-bold text-center">การสอนสุขศึกษา / คำแนะนำ / การให้ข้อมูล</div>
+                                <div class="p-4 space-y-4 bg-white">
+                                    <div>
+                                        <div class="font-bold text-rose-700">1. D (Disease) ความรู้เรื่องโรค การสังเกต อาการผิดปกติที่ควรมาพบแพทย์</div>
+                                        <div class="pl-4 flex flex-wrap gap-4 mt-1">
+                                            <label class="flex items-center gap-2"><input type="checkbox" x-model="dischargeForm.d1" @change="autoSaveDischarge()"> มีไข้สูง แผลบวมแดง มีหนอง</label>
+                                            <label class="flex items-center gap-2"><input type="checkbox" x-model="dischargeForm.d2" @change="autoSaveDischarge()"> ซึม ความรู้สึกตัวเปลี่ยน หายใจหอบมากขึ้น</label>
+                                            <label class="flex items-center gap-2"><input type="checkbox" x-model="dischargeForm.d_other" @change="autoSaveDischarge()"> อื่นๆ <input type="text" x-model="dischargeForm.d_other_text" @change="autoSaveDischarge()" class="border-b border-slate-400 outline-none w-48 px-1"></label>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-rose-700">2. M (Medication) ความรู้เกี่ยวกับยา ฤทธิ์ของยา วัตถุประสงค์การใช้ยา วิธีการใช้ ขนาด ปริมาณ จำนวนครั้ง ระยะเวลาที่ใช้ ข้อระวังในการใช้ยา ภาวะแทรกซ้อนต่าง ๆ ข้อห้ามสำหรับการใช้ยา การเก็บรักษายา อาการแพ้ยาถ้ามีผื่น บวม ให้หยุดยา แล้วกลับมาพบแพทย์</div>
+                                        <div class="pl-4 flex flex-wrap gap-4 mt-1">
+                                            <label class="flex items-center gap-2"><input type="radio" x-model="dischargeForm.m_status" value="ได้ครบ" @change="autoSaveDischarge()"> ได้ครบ</label>
+                                            <label class="flex items-center gap-2"><input type="radio" x-model="dischargeForm.m_status" value="ได้ไม่ครบ" @change="autoSaveDischarge()"> ได้ไม่ครบ กรณีไม่ครบระบุ <input type="text" x-model="dischargeForm.m_text" @change="autoSaveDischarge()" class="border-b border-slate-400 outline-none w-48 px-1"></label>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-rose-700">3. E (Environment) การจัดสิ่งแวดล้อมสถานที่สะอาด อากาศถ่ายเทได้สะดวก</div>
+                                        <div class="pl-4 mt-1"><label class="flex items-center gap-2"><input type="checkbox" x-model="dischargeForm.e_other" @change="autoSaveDischarge()"> อื่นๆ <input type="text" x-model="dischargeForm.e_other_text" @change="autoSaveDischarge()" class="border-b border-slate-400 outline-none w-64 px-1"></label></div>
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-rose-700">4. T (Treatment) แนะนำเรื่อง การทำความสะอาดร่างกาย การทำแผล</div>
+                                        <div class="pl-4 mt-1"><label class="flex items-center gap-2"><input type="checkbox" x-model="dischargeForm.t_other" @change="autoSaveDischarge()"> อื่นๆ <input type="text" x-model="dischargeForm.t_other_text" @change="autoSaveDischarge()" class="border-b border-slate-400 outline-none w-64 px-1"></label></div>
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-rose-700">5. H (Health) แนะนำการออกกำลังกายอย่างเหมาะสม การพักผ่อนให้เพียงพอ</div>
+                                        <div class="pl-4 mt-1"><label class="flex items-center gap-2"><input type="checkbox" x-model="dischargeForm.h_other" @change="autoSaveDischarge()"> อื่นๆ <input type="text" x-model="dischargeForm.h_other_text" @change="autoSaveDischarge()" class="border-b border-slate-400 outline-none w-64 px-1"></label></div>
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-rose-700">6. O (Outpatient refer) การมาตรวจตามนัด แหล่งประโยชน์ในชุมชน เช่น รพ.สต. โรงพยาบาล และการใช้บริการ 1669</div>
+                                        <div class="pl-4 flex flex-wrap gap-4 mt-1">
+                                            <label class="flex items-center gap-2"><input type="radio" x-model="dischargeForm.o_status" value="ไม่มี F/U" @change="autoSaveDischarge()"> ไม่มี F/U</label>
+                                            <label class="flex items-center gap-2"><input type="radio" x-model="dischargeForm.o_status" value="มีนัด F/U" @change="autoSaveDischarge()"> มีนัด F/U <input type="text" x-model="dischargeForm.o_text" @change="autoSaveDischarge()" class="border-b border-slate-400 outline-none w-64 px-1"></label>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-rose-700">7. D (Diet) อาหารที่เหมาะสม</div>
+                                        <div class="pl-4 flex flex-wrap gap-4 mt-1">
+                                            <label class="flex items-center gap-2"><input type="checkbox" x-model="dischargeForm.diet1" @change="autoSaveDischarge()"> หลีกเลี่ยงอาหารที่มีไขมันสูง งดผักผลไม้</label>
+                                            <label class="flex items-center gap-2"><input type="checkbox" x-model="dischargeForm.diet_other" @change="autoSaveDischarge()"> อื่นๆ <input type="text" x-model="dischargeForm.diet_text" @change="autoSaveDischarge()" class="border-b border-slate-400 outline-none w-48 px-1"></label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="col-span-1 md:col-span-2">
+                                    <label class="block font-bold text-slate-700 mb-1">ปัญหาที่ต้องดูแลต่อเนื่อง</label>
+                                    <textarea x-model="dischargeForm.continuousProblem" @change="autoSaveDischarge()" rows="2" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-cyan-500"></textarea>
+                                </div>
+                                <div class="relative">
+                                    <label class="block font-bold text-slate-700 mb-1">พยาบาลผู้จำหน่าย</label>
+                                    <input type="text" x-model="dischargeForm.nurseName" @focus="showNurseListForDischarge = true" placeholder="ค้นหาชื่อพยาบาล..." @change="autoSaveDischarge()" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-cyan-500">
+                                    <div x-show="showNurseListForDischarge" @click.away="showNurseListForDischarge = false" class="absolute left-0 top-full mt-1 w-full bg-white border shadow-xl z-50 max-h-40 overflow-y-auto rounded-lg">
+                                        <template x-for="n in filteredNursesEdu(dischargeForm.nurseName)" :key="n.name">
+                                            <div @click="dischargeForm.nurseName = n.name; showNurseListForDischarge = false; autoSaveDischarge()" class="p-2 hover:bg-cyan-50 cursor-pointer text-sm border-b" x-text="n.name"></div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+                
+                        </div>
+                    </div>
+                </template>
             </main>
         </div>
     </div>
