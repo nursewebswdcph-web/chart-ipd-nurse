@@ -2530,7 +2530,10 @@ function nurseApp() {
             try {
                 // ดึง Note ของผู้ป่วย
                 const res = await fetch(`${this.API_URL}?action=getNursingNotes&an=${this.selectedPatient.an}`);
-                this.progressNotes = await res.json() || [];
+                let notes = await res.json() || [];
+                
+                // สั่งเรียงลำดับจาก "ใหม่ล่าสุด" ไป "เก่า" (อิงจาก ID ที่ตั้งเป็น Timestamp ไว้)
+                this.progressNotes = notes.sort((a, b) => Number(b.id) - Number(a.id));
                 
                 // ดึง Template กลาง
                 const resT = await fetch(`${this.API_URL}?action=getNursingTemplates`);
@@ -2568,7 +2571,7 @@ function nurseApp() {
             if (this.editingProgressIndex > -1) {
                 this.progressNotes[this.editingProgressIndex] = newItem;
             } else {
-                this.progressNotes.push(newItem);
+                this.progressNotes.unshift(newItem);
             }
 
             // --- ซิงค์เข้า Focus List อัตโนมัติ ---
@@ -2679,31 +2682,37 @@ function nurseApp() {
                 let htmlRows = '';
                 pageItems.forEach((item, idx) => {
                     const dateStr = item.date ? this.formatThaiDateShort(item.date) : '';
-                    // ตัดเอาเฉพาะเวลาเวร เช่น "เช้า (08.00-16.00)" -> "08.00-16.00"
+                    // ตัดเอาเฉพาะเวลาเวร
                     const shiftMatch = item.shift.match(/\(([^)]+)\)/);
                     const shiftTime = shiftMatch ? shiftMatch[1] : item.shift;
                     
-                    // สร้างเนื้อหา SOIE ให้เว้นบรรทัด
-                    let soieHtml = '';
-                    if(item.s) soieHtml += `<b>S:</b> ${item.s.replace(/\n/g, '<br>')}<br>`;
-                    if(item.o) soieHtml += `<b>O:</b> ${item.o.replace(/\n/g, '<br>')}<br>`;
-                    if(item.i) soieHtml += `<b>I:</b> ${item.i.replace(/\n/g, '<br>')}<br>`;
-                    if(item.e) {
-                        // ถ้ามีการลงเวลา E ให้แสดง [เวลา xx.xx น.] 
-                        const eTimeStr = item.eTime ? `<span style="font-size: 10pt; color: #444;"> ${item.eTime} น. </span>` : '';
-                        soieHtml += `<b>E:</b> ${eTimeStr}${item.e.replace(/\n/g, '<br>')}<br>`;
-                    }
+                    // 1. แยกเนื้อหา S, O, I ออกมาไว้ชุดแรก
+                    let soiHtml = '';
+                    if(item.s) soiHtml += `<b>S:</b> ${item.s.replace(/\n/g, '<br>')}<br>`;
+                    if(item.o) soiHtml += `<b>O:</b> ${item.o.replace(/\n/g, '<br>')}<br>`;
+                    if(item.i) soiHtml += `<b>I:</b> ${item.i.replace(/\n/g, '<br>')}<br>`;
                     
-                    // เส้นขีดคั่นระหว่างปัญหา (ถ้าไม่ใช่รายการสุดท้ายของหน้า)
-                    const borderBottom = (idx === 0 && pageItems.length === 2) ? 'border-bottom: 2px solid #000;' : '';
+                    // 2. แยกเนื้อหา E ออกมาไว้ชุดสอง
+                    let eHtml = '';
+                    if(item.e) eHtml += `<b>E:</b> ${item.e.replace(/\n/g, '<br>')}<br>`;
+                    
+                    // เส้นขีดคั่นระหว่างปัญหา (หนาขึ้นเพื่อแบ่งให้ชัดเจน)
+                    const borderBottom = (idx === 0 && pageItems.length === 2) ? 'border-bottom: 2px solid #000 !important;' : '';
 
+                    // 3. สร้าง HTML โดยแบ่งเป็น 2 แถว (ใช้ Rowspan)
                     htmlRows += `
-                        <tr style="${borderBottom}">
-                            <td style="text-align:center;">${dateStr}<br>${shiftTime}</td>
-                            <td style="text-align:center;">${item.time}</td>
-                            <td style="font-weight:bold;">${item.focus.replace(/\n/g, '<br>')}</td>
-                            <td>
-                                ${soieHtml}
+                        <tr>
+                            <td rowspan="2" style="text-align:center; ${borderBottom}">${dateStr}<br>${shiftTime}</td>
+                            <td style="text-align:center; border-bottom: 0 !important; padding-bottom: 2px;">${item.time || ''}</td>
+                            <td rowspan="2" style="font-weight:bold; ${borderBottom}">${item.focus ? item.focus.replace(/\n/g, '<br>') : '-'}</td>
+                            <td style="border-bottom: 0 !important; padding-bottom: 2px;">
+                                ${soiHtml}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="text-align:center; border-top: 0 !important; padding-top: 4px; ${borderBottom}"><b>${item.eTime || ''}</b></td>
+                            <td style="border-top: 0 !important; padding-top: 4px; ${borderBottom}">
+                                ${eHtml}
                                 <br>
                                 <div style="text-align:right; padding-right: 20px;">
                                     ลงชื่อ ${item.nurse} ผู้บันทึก<br>
