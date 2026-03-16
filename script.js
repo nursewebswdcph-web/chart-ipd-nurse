@@ -3209,20 +3209,24 @@ function nurseApp() {
             try {
                 const response = await fetch(this.API_URL, {
                     method: 'POST',
+                    redirect: 'follow', // <--- เพิ่มบรรทัดนี้ให้รองรับการ Redirect ของ Google
+                    headers: {
+                        "Content-Type": "text/plain;charset=utf-8", // <--- เพิ่ม Header นี้เพื่อหลีกเลี่ยง CORS Preflight
+                    },
                     body: JSON.stringify({
                         action: 'dischargePatient',
                         an: this.selectedPatient.an
                     })
                 });
+                
                 const res = await response.json();
 
                 if (res.status === 'success') {
-                    // ปิด Modal และเคลียร์การเลือกผู้ป่วย
                     this.showDischargeConfirm = false; 
                     this.selectedPatient = null;
                     
-                    // TODO: ถ้ามีฟังก์ชันดึงข้อมูลผู้ป่วยใหม่ ให้เอาคอมเมนต์บรรทัดล่างออกและเปลี่ยนชื่อให้ตรง
-                    // await this.fetchPatients(); 
+                    // หากมีฟังก์ชันสำหรับโหลดข้อมูลผู้ป่วยใหม่ ให้เอาคอมเมนต์บรรทัดล่างนี้ออกครับ
+                    // await this.loadPatients(); 
                     
                     this.dialog = { show: true, type: 'alert', title: 'สำเร็จ', msg: 'จำหน่ายผู้ป่วยและย้ายข้อมูลเรียบร้อยแล้ว' };
                 } else {
