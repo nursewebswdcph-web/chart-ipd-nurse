@@ -3207,12 +3207,9 @@ function nurseApp() {
 
             this.isLoading = true;
             try {
+                // ลบส่วน headers และ redirect ออก ใช้รูปแบบพื้นฐานที่สุด
                 const response = await fetch(this.API_URL, {
                     method: 'POST',
-                    redirect: 'follow', // <--- เพิ่มบรรทัดนี้ให้รองรับการ Redirect ของ Google
-                    headers: {
-                        "Content-Type": "text/plain;charset=utf-8", // <--- เพิ่ม Header นี้เพื่อหลีกเลี่ยง CORS Preflight
-                    },
                     body: JSON.stringify({
                         action: 'dischargePatient',
                         an: this.selectedPatient.an
@@ -3225,16 +3222,16 @@ function nurseApp() {
                     this.showDischargeConfirm = false; 
                     this.selectedPatient = null;
                     
-                    // หากมีฟังก์ชันสำหรับโหลดข้อมูลผู้ป่วยใหม่ ให้เอาคอมเมนต์บรรทัดล่างนี้ออกครับ
+                    // หากมีฟังก์ชันสำหรับโหลดข้อมูลผู้ป่วยใหม่ ให้เอาคอมเมนต์บรรทัดล่างนี้ออก
                     // await this.loadPatients(); 
                     
                     this.dialog = { show: true, type: 'alert', title: 'สำเร็จ', msg: 'จำหน่ายผู้ป่วยและย้ายข้อมูลเรียบร้อยแล้ว' };
                 } else {
-                    this.dialog = { show: true, type: 'alert', title: 'ข้อผิดพลาด', msg: res.message };
+                    this.dialog = { show: true, type: 'alert', title: 'ข้อผิดพลาดจากระบบ', msg: res.message };
                 }
             } catch (error) {
                 console.error("Discharge Error:", error);
-                this.dialog = { show: true, type: 'alert', title: 'เกิดข้อผิดพลาด', msg: 'ไม่สามารถติดต่อเซิร์ฟเวอร์เพื่อจำหน่ายผู้ป่วยได้' };
+                this.dialog = { show: true, type: 'alert', title: 'เกิดข้อผิดพลาด', msg: 'ไม่สามารถติดต่อเซิร์ฟเวอร์เพื่อจำหน่ายผู้ป่วยได้ (CORS / Network Error)' };
             } finally {
                 this.isLoading = false;
             }
