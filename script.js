@@ -3207,7 +3207,7 @@ function nurseApp() {
 
             this.isLoading = true;
             try {
-                // ลบส่วน headers และ redirect ออก ใช้รูปแบบพื้นฐานที่สุด
+                // ลบ headers ออกเพื่อแก้ปัญหา CORS
                 const response = await fetch(this.API_URL, {
                     method: 'POST',
                     body: JSON.stringify({
@@ -3219,13 +3219,27 @@ function nurseApp() {
                 const res = await response.json();
 
                 if (res.status === 'success') {
+                    // 1. ปิด Popup ยืนยันการจำหน่าย
                     this.showDischargeConfirm = false; 
+                    
+                    // 2. เคลียร์ผู้ป่วยที่เลือกไว้ เพื่อให้หน้าเว็บริเซ็ตออกจากหน้ารายละเอียด
                     this.selectedPatient = null;
                     
-                    // หากมีฟังก์ชันสำหรับโหลดข้อมูลผู้ป่วยใหม่ ให้เอาคอมเมนต์บรรทัดล่างนี้ออก
-                    // await this.loadPatients(); 
+                    // 3. บังคับเปลี่ยนโหมดการแสดงผลกลับไปเป็นหน้ารายการ (ตารางรายชื่อ)
+                    this.viewMode = 'list'; 
                     
-                    this.dialog = { show: true, type: 'alert', title: 'สำเร็จ', msg: 'จำหน่ายผู้ป่วยและย้ายข้อมูลเรียบร้อยแล้ว' };
+                    // 4. โหลดข้อมูลตารางผู้ป่วยใหม่จาก Backend
+                    // **หมายเหตุ: หากฟังก์ชันดึงข้อมูลของคุณไม่ได้ชื่อ fetchPatients() ให้เปลี่ยนชื่อตรงนี้ให้ตรงกับของคุณ เช่น loadPatients() หรือ getPatients()**
+                    if (typeof this.fetchPatients === 'function') {
+                        await this.fetchPatients(); 
+                    } else if (typeof this.loadPatients === 'function') {
+                        await this.loadPatients();
+                    } else if (typeof this.getPatients === 'function') {
+                        await this.getPatients();
+                    }
+                    
+                    // 5. แสดงข้อความแจ้งเตือนว่าสำเร็จ
+                    this.dialog = { show: true, type: 'alert', title: 'สำเร็จ', msg: 'จำหน่ายผู้ป่วยและย้ายข้อมูลเรียบร้อยแล้ว โหลดรายชื่อใหม่สำเร็จ' };
                 } else {
                     this.dialog = { show: true, type: 'alert', title: 'ข้อผิดพลาดจากระบบ', msg: res.message };
                 }
