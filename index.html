@@ -289,7 +289,7 @@
                                         </div>
                                     </td>
                                     <td class="p-4 text-center">
-                                        <div class="text-[11px] text-slate-400 mb-1" x-text="p.date"></div>
+                                        <div class="text-[11px] text-slate-400 mb-1" x-text="formatThaiDate(p.date)"></div>
                                         <div class="bg-slate-200 px-3 py-1 rounded-lg inline-block font-black text-slate-700 text-[12px]" x-text="calculateLOS(p.date) + ' วัน'"></div>
                                     </td>
                                     <td class="p-4 text-right pr-8">
@@ -380,13 +380,22 @@
                         </div>
                     </div>
                 </div>
-                <button @click="viewMode = 'list'" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 px-8 rounded-2xl transition-all">
-                    <i class="fa-solid fa-arrow-left mr-2"></i> กลับหน้ารวม
-                </button>
-                <button @click="selectedPatient ? (selectedPatient.isDischarged ? viewMode = 'history' : viewMode = 'list') : viewMode = 'list'; selectedPatient = null;" 
-                        class="...">
-                    <i class="fa-solid fa-arrow-left mr-2"></i> ย้อนกลับ
-                </button>
+                
+                <div>
+                    <button x-show="!selectedPatient?.isDischarged" 
+                            x-cloak
+                            @click="viewMode = 'list'; selectedPatient = null;" 
+                            class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 px-8 rounded-2xl transition-all flex items-center">
+                        <i class="fa-solid fa-arrow-left mr-2"></i> กลับหน้ารวม
+                    </button>
+            
+                    <button x-show="selectedPatient?.isDischarged" 
+                            x-cloak
+                            @click="viewMode = 'history'; selectedPatient = null;" 
+                            class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 px-8 rounded-2xl transition-all flex items-center">
+                        <i class="fa-solid fa-arrow-left mr-2"></i> ย้อนกลับ
+                    </button>
+                </div>
             </div>
         
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -396,7 +405,7 @@
                             <i class="fa-solid fa-file-medical text-indigo-500"></i> ข้อมูลการ Admit
                         </h4>
                         <div class="space-y-4 text-sm font-bold">
-                            <div class="flex justify-between border-b pb-2"><span class="text-slate-400">วันที่รับ:</span><span x-text="selectedPatient?.date"></span></div>
+                            <div class="flex justify-between border-b pb-2"><span class="text-slate-400">วันที่รับ:</span><span x-text="formatThaiDate(selectedPatient?.date)"></span></div>
                             <div class="flex justify-between border-b pb-2"><span class="text-slate-400">แผนก:</span><span x-text="selectedPatient?.dept"></span></div>
                             <div class="flex justify-between border-b pb-2"><span class="text-slate-400">แพทย์:</span><span class="text-indigo-600" x-text="selectedPatient?.doctor"></span></div>
                             <div class="mt-4">
