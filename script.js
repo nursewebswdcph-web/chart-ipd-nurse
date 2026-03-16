@@ -154,10 +154,10 @@ function nurseApp() {
 
         get filteredPatients() {
             return this.patients.filter(p => 
-                String(p.hn || '').toLowerCase().includes(String(this.searchHN || '').toLowerCase()) &&
-                String(p.an || '').toLowerCase().includes(String(this.searchAN || '').toLowerCase()) &&
-                String(p.name || '').toLowerCase().includes(String(this.searchName || '').toLowerCase()) &&
-                String(p.doctor || '').toLowerCase().includes(String(this.searchDoc || '').toLowerCase())
+                (p.hn || '').toLowerCase().includes(this.searchHN.toLowerCase()) &&
+                (p.an || '').toLowerCase().includes(this.searchAN.toLowerCase()) &&
+                (p.name || '').toLowerCase().includes(this.searchName.toLowerCase()) &&
+                (p.doctor || '').toLowerCase().includes(this.searchDoc.toLowerCase())
             );
         },
         get filteredNurses() {
