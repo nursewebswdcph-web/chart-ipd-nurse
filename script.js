@@ -11,6 +11,7 @@ function nurseApp() {
         showNurseListFor: null,
         showPrintDropdown: false,
         selectedPrintForms: [],
+        showDischargeConfirm: false,
 
         selectedPatient: null,
         currentForm: null, 
@@ -3202,8 +3203,39 @@ function nurseApp() {
                 this.isLoading = false;
             }
         },
-        async confirmDischargePatient() {
+        aasync executeDischargePatient() {
             if (!this.selectedPatient) return;
+
+            this.isLoading = true;
+            try {
+                const response = await fetch(this.API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'dischargePatient',
+                        an: this.selectedPatient.an
+                    })
+                });
+                const res = await response.json();
+
+                if (res.status === 'success') {
+                    // ปิด Modal และเคลียร์การเลือกผู้ป่วย
+                    this.showDischargeConfirm = false; 
+                    this.selectedPatient = null;
+                    
+                    // เรียกฟังก์ชันโหลดข้อมูลผู้ป่วยใหม่ที่หน้าเว็บ (ปรับชื่อฟังก์ชันดึงข้อมูลตามที่คุณใช้งานจริง)
+                    // await this.loadPatients(); 
+                    
+                    this.dialog = { show: true, type: 'alert', title: 'สำเร็จ', msg: 'จำหน่ายผู้ป่วยและย้ายข้อมูลเรียบร้อยแล้ว' };
+                } else {
+                    this.dialog = { show: true, type: 'alert', title: 'ข้อผิดพลาด', msg: res.message };
+                }
+            } catch (error) {
+                console.error("Discharge Error:", error);
+                this.dialog = { show: true, type: 'alert', title: 'เกิดข้อผิดพลาด', msg: 'ไม่สามารถติดต่อเซิร์ฟเวอร์เพื่อจำหน่ายผู้ป่วยได้' };
+            } finally {
+                this.isLoading = false;
+            }
+        },
 
             // ใช้ confirm พื้นฐาน หรือถ้าคุณมี Custom Dialog อยู่แล้วสามารถปรับใช้ได้
             const isConfirmed = confirm(`ยืนยันการจำหน่ายผู้ป่วย: ${this.selectedPatient.name} ออกจากระบบ?\n\n* ข้อมูลจะถูกย้ายจากชีตผู้ป่วยปัจจุบันไปเก็บในชีตประวัติ (RegistryHistory)`);
