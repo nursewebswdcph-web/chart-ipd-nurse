@@ -16,6 +16,7 @@ function nurseApp() {
         searchHistoryDate: new Date().toISOString().split('T')[0], // วันนี้
         searchHistoryMonth: new Date().toISOString().slice(0, 7),  // เดือนนี้
         dischargedPatients: [],
+        showUndoDischargeConfirm: false, // สำหรับเปิด/ปิด Popup ยกเลิกจำหน่าย
 
         selectedPatient: null,
         currentForm: null, 
@@ -3300,9 +3301,7 @@ function nurseApp() {
         async executeUndoDischarge() {
             if (!this.selectedPatient) return;
             
-            const isConfirm = confirm(`ยืนยันการยกเลิกจำหน่าย และนำรายชื่อผู้ป่วยกลับเข้าทะเบียน?`);
-            if (!isConfirm) return;
-
+            // ลบส่วน const isConfirm = confirm(...) ออก
             this.isLoading = true;
             try {
                 const response = await fetch(this.API_URL, {
@@ -3313,31 +3312,21 @@ function nurseApp() {
                     })
                 });
                 const res = await response.json();
-
+        
                 if (res.status === 'success') {
-                    // 1. เคลียร์ข้อมูลผู้ป่วยเพื่อปิดหน้ารายละเอียด
+                    this.showUndoDischargeConfirm = false; // ปิด Modal ยืนยัน
                     this.selectedPatient = null;
-                    
-                    // 2. บังคับเปลี่ยนหน้าจอ (ViewMode) กลับมาที่หน้าทะเบียนปัจจุบัน (list)
                     this.viewMode = 'list'; 
                     
-                    // 3. เรียกฟังก์ชันดึงรายชื่อผู้ป่วยปัจจุบันมาโหลดตารางใหม่
-                    if (typeof this.fetchPatients === 'function') {
-                        await this.fetchPatients(); 
-                    } else if (typeof this.loadPatients === 'function') {
-                        await this.loadPatients();
-                    } else if (typeof this.getPatients === 'function') {
-                        await this.getPatients();
-                    }
-
-                    // 4. แสดงข้อความแจ้งเตือน
+                    if (typeof this.fetchPatients === 'function') await this.fetchPatients(); 
+                    else if (typeof this.loadPatients === 'function') await this.loadPatients();
+        
                     this.dialog = { show: true, type: 'alert', title: 'สำเร็จ', msg: 'ยกเลิกจำหน่ายผู้ป่วยเรียบร้อย นำชื่อกลับเข้าทะเบียนแล้ว' };
                 } else {
                     this.dialog = { show: true, type: 'alert', title: 'เกิดข้อผิดพลาด', msg: res.message };
                 }
             } catch (error) {
                 console.error("Undo Discharge Error:", error);
-                this.dialog = { show: true, type: 'alert', title: 'เกิดข้อผิดพลาด', msg: 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้' };
             } finally {
                 this.isLoading = false;
             }
