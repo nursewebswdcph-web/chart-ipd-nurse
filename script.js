@@ -12,6 +12,10 @@ function nurseApp() {
         showPrintDropdown: false,
         selectedPrintForms: [],
         showDischargeConfirm: false,
+        searchHistoryType: 'date', 
+        searchHistoryDate: new Date().toISOString().split('T')[0], // วันนี้
+        searchHistoryMonth: new Date().toISOString().slice(0, 7),  // เดือนนี้
+        dischargedPatients: [],
 
         selectedPatient: null,
         currentForm: null, 
@@ -3246,6 +3250,83 @@ function nurseApp() {
             } catch (error) {
                 console.error("Discharge Error:", error);
                 this.dialog = { show: true, type: 'alert', title: 'เกิดข้อผิดพลาด', msg: 'ไม่สามารถติดต่อเซิร์ฟเวอร์เพื่อจำหน่ายผู้ป่วยได้ (CORS / Network Error)' };
+            } finally {
+                this.isLoading = false;
+            }
+        },
+        async fetchDischargedPatients() {
+            this.isLoading = true;
+            this.dischargedPatients = [];
+            try {
+                const response = await fetch(this.API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'searchDischargedPatients',
+                        payload: { 
+                            ward: this.currentWard,
+                            searchType: this.searchHistoryType,
+                            searchDate: this.searchHistoryDate,
+                            searchMonth: this.searchHistoryMonth
+                        }
+                    })
+                });
+                const res = await response.json();
+                if (res.status === 'success') {
+                    this.dischargedPatients = res.data;
+                    if (this.dischargedPatients.length === 0) {
+                        this.dialog = { show: true, type: 'alert', title: 'ไม่พบข้อมูล', msg: 'ไม่มีผู้ป่วยจำหน่ายในวันที่/เดือนที่เลือก' };
+                    }
+                } else {
+                    this.dialog = { show: true, type: 'alert', title: 'ข้อผิดพลาด', msg: res.message };
+                }
+            } catch (error) {
+                console.error("Fetch History Error:", error);
+            } finally {
+                this.isLoading = false;
+            }
+        },
+
+        async executeUndoDischarge() {
+            if (!this.selectedPatient) return;
+            
+            const isConfirm = confirm(`ยืนยันการยกเลิกจำหน่าย และนำรายชื่อผู้ป่วยกลับเข้าทะเบียน?`);
+            if (!isConfirm) return;
+
+            this.isLoading = true;
+            try {
+                const response = await fetch(this.API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'undoDischargePatient',
+                        an: this.selectedPatient.an || this.selectedPatient.AN
+                    })
+                });
+                const res = await response.json();
+
+                if (res.status === 'success') {
+                    // 1. เคลียร์ข้อมูลผู้ป่วยเพื่อปิดหน้ารายละเอียด
+                    this.selectedPatient = null;
+                    
+                    // 2. บังคับเปลี่ยนหน้าจอ (ViewMode) กลับมาที่หน้าทะเบียนปัจจุบัน (list)
+                    this.viewMode = 'list'; 
+                    
+                    // 3. เรียกฟังก์ชันดึงรายชื่อผู้ป่วยปัจจุบันมาโหลดตารางใหม่
+                    if (typeof this.fetchPatients === 'function') {
+                        await this.fetchPatients(); 
+                    } else if (typeof this.loadPatients === 'function') {
+                        await this.loadPatients();
+                    } else if (typeof this.getPatients === 'function') {
+                        await this.getPatients();
+                    }
+
+                    // 4. แสดงข้อความแจ้งเตือน
+                    this.dialog = { show: true, type: 'alert', title: 'สำเร็จ', msg: 'ยกเลิกจำหน่ายผู้ป่วยเรียบร้อย นำชื่อกลับเข้าทะเบียนแล้ว' };
+                } else {
+                    this.dialog = { show: true, type: 'alert', title: 'เกิดข้อผิดพลาด', msg: res.message };
+                }
+            } catch (error) {
+                console.error("Undo Discharge Error:", error);
+                this.dialog = { show: true, type: 'alert', title: 'เกิดข้อผิดพลาด', msg: 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้' };
             } finally {
                 this.isLoading = false;
             }
