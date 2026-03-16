@@ -3272,12 +3272,21 @@ function nurseApp() {
                 });
                 const res = await response.json();
                 if (res.status === 'success') {
-                    this.dischargedPatients = res.data;
+                    // ปรับแต่งข้อมูลให้รองรับหน้า Detail
+                    this.dischargedPatients = res.data.map(p => {
+                        return {
+                            ...p,
+                            an: p.an || p.AN,   // รองรับทั้งตัวเล็กและตัวใหญ่
+                            hn: p.hn || p.HN,
+                            name: p.name || p.Name,
+                            bed: p.bed || p.Bed || 'จำหน่ายแล้ว',
+                            isDischarged: true  // ย้ำสถานะว่าคือคนไข้จำหน่าย
+                        };
+                    });
+                    
                     if (this.dischargedPatients.length === 0) {
                         this.dialog = { show: true, type: 'alert', title: 'ไม่พบข้อมูล', msg: 'ไม่มีผู้ป่วยจำหน่ายในวันที่/เดือนที่เลือก' };
                     }
-                } else {
-                    this.dialog = { show: true, type: 'alert', title: 'ข้อผิดพลาด', msg: res.message };
                 }
             } catch (error) {
                 console.error("Fetch History Error:", error);
