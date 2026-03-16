@@ -3272,15 +3272,17 @@ function nurseApp() {
                 });
                 const res = await response.json();
                 if (res.status === 'success') {
-                    // ปรับแต่งข้อมูลให้รองรับหน้า Detail
+                    // ปรับแต่งข้อมูลให้ตรงกับที่หน้า Detail ต้องการ
                     this.dischargedPatients = res.data.map(p => {
                         return {
                             ...p,
-                            an: p.an || p.AN,   // รองรับทั้งตัวเล็กและตัวใหญ่
+                            // บังคับให้เป็นตัวพิมพ์เล็กตามชื่อคอลัมน์ในชีต
+                            an: p.an || p.AN,
                             hn: p.hn || p.HN,
                             name: p.name || p.Name,
                             bed: p.bed || p.Bed || 'จำหน่ายแล้ว',
-                            isDischarged: true  // ย้ำสถานะว่าคือคนไข้จำหน่าย
+                            dx: p.dx || p.DX || p.diagnosis || p.Diagnosis || '-', 
+                            isDischarged: true 
                         };
                     });
                     
