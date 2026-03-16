@@ -3202,5 +3202,43 @@ function nurseApp() {
                 this.isLoading = false;
             }
         },
+        async confirmDischargePatient() {
+            if (!this.selectedPatient) return;
+
+            // ใช้ confirm พื้นฐาน หรือถ้าคุณมี Custom Dialog อยู่แล้วสามารถปรับใช้ได้
+            const isConfirmed = confirm(`ยืนยันการจำหน่ายผู้ป่วย: ${this.selectedPatient.name} ออกจากระบบ?\n\n* ข้อมูลจะถูกย้ายจากชีตผู้ป่วยปัจจุบันไปเก็บในชีตประวัติ (RegistryHistory)`);
+            
+            if (!isConfirmed) return;
+
+            this.isLoading = true;
+            try {
+                const response = await fetch(this.API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'dischargePatient',
+                        an: this.selectedPatient.an
+                    })
+                });
+                const res = await response.json();
+
+                if (res.status === 'success') {
+                    // 1. เคลียร์ข้อมูลที่เลือก เพื่อปิดหน้ารายละเอียดผู้ป่วยอัตโนมัติ
+                    this.selectedPatient = null;
+                    
+                    // 2. เรียกฟังก์ชันดึงรายชื่อผู้ป่วยของคุณใหม่ เพื่อให้หน้าเว็บลบชื่อออก
+                    // (ให้เปลี่ยน 'loadPatients' เป็นชื่อฟังก์ชันที่คุณใช้ดึงรายชื่อจาก API เช่น getPatients หรือ fetchPatients)
+                    // await this.loadPatients(); 
+                    
+                    this.dialog = { show: true, type: 'alert', title: 'สำเร็จ', msg: 'จำหน่ายผู้ป่วยออกจากระบบและย้ายข้อมูลเรียบร้อยแล้ว' };
+                } else {
+                    this.dialog = { show: true, type: 'alert', title: 'ข้อผิดพลาด', msg: res.message };
+                }
+            } catch (error) {
+                console.error("Discharge Error:", error);
+                this.dialog = { show: true, type: 'alert', title: 'เกิดข้อผิดพลาด', msg: 'ไม่สามารถติดต่อเซิร์ฟเวอร์เพื่อจำหน่ายผู้ป่วยได้' };
+            } finally {
+                this.isLoading = false;
+            }
+        },
     };
 }
