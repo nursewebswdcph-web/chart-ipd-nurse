@@ -3239,7 +3239,7 @@ function nurseApp() {
                     }
                     
                     // 5. แสดงข้อความแจ้งเตือนว่าสำเร็จ
-                    this.dialog = { show: true, type: 'alert', title: 'สำเร็จ', msg: 'จำหน่ายผู้ป่วยและย้ายข้อมูลเรียบร้อยแล้ว โหลดรายชื่อใหม่สำเร็จ' };
+                    this.dialog = { show: true, type: 'alert', title: 'สำเร็จ', msg: 'จำหน่ายผู้ป่วยเรียบร้อยแล้ว' };
                 } else {
                     this.dialog = { show: true, type: 'alert', title: 'ข้อผิดพลาดจากระบบ', msg: res.message };
                 }
