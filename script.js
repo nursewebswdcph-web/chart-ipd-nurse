@@ -60,7 +60,6 @@ function nurseApp() {
 
         progressNotes: [],
         nursingTemplates: [],
-        pnForm: { id: '', date: '', shift: 'เช้า (08.00-16.00)', time: '', focus: '', s: '', o: '', i: '', e: '', nurse: '', pos: '', addToFocusList: false },
         editingProgressIndex: -1,
         showNurseListForProgress: false,
         
