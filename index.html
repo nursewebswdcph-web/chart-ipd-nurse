@@ -3674,14 +3674,13 @@
                     <label class="block text-[10px] font-black text-slate-400 mb-1.5 ml-1 uppercase">การวินิจฉัยโรคเบื้องต้น (Initial Diagnosis)</label>
                     <input type="text" x-model="form.dx" class="w-full bg-white border-2 border-slate-100 rounded-xl p-3 text-sm font-black text-indigo-800 focus:border-indigo-500 outline-none uppercase">
                 </div>
-            </div>
-
-            <div class="flex justify-end gap-3 pt-6 shrink-0 border-t border-slate-100">
-                <button type="button" @click="showAdmitModal = false" class="px-8 py-4 rounded-2xl border-2 border-slate-100 text-slate-400 font-bold hover:bg-slate-50 transition-all text-sm">ยกเลิก</button>
-                <button type="submit" class="px-16 py-4 rounded-2xl bg-emerald-600 text-white font-black text-sm shadow-xl shadow-emerald-100 hover:bg-emerald-700 transition-all active:scale-95">
-                    <i class="fa-solid fa-cloud-arrow-up mr-2"></i>
-                    <span x-text="isEditing ? 'บันทึกการแก้ไขข้อมูล' : 'ยืนยันการรับ Admission'"></span>
-                </button>
+                <div class="flex justify-end gap-3 pt-6 shrink-0 border-t border-slate-100">
+                    <button type="button" @click="showAdmitModal = false" class="px-8 py-4 rounded-2xl border-2 border-slate-100 text-slate-400 font-bold hover:bg-slate-50 transition-all text-sm">ยกเลิก</button>
+                    <button type="submit" class="px-16 py-4 rounded-2xl bg-emerald-600 text-white font-black text-sm shadow-xl shadow-emerald-100 hover:bg-emerald-700 transition-all active:scale-95">
+                        <i class="fa-solid fa-cloud-arrow-up mr-2"></i>
+                        <span x-text="isEditing ? 'บันทึกการแก้ไขข้อมูล' : 'ยืนยันการรับ Admission'"></span>
+                    </button>
+                </div>
             </div>
         </form>
     </div>
