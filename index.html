@@ -2802,10 +2802,10 @@
                                             </label>
                                         </td>
                                         <td class="p-2 border border-slate-300 text-center"><input type="date" x-model="eduForm.D1.date" :disabled="!isEduEditing" class="w-full bg-transparent text-center text-xs"></td>
-                                        <td class="p-2 border border-slate-300 text-center relative">
-                                            <input type="text" x-model="eduForm.D1.provider" @focus="showNurseListFor = 'D1'" :disabled="!isEduEditing" class="w-full text-center border-b outline-none text-xs" placeholder="ค้นชื่อ...">
+                                        <td class="p-2 border border-slate-300 text-center relative" @click.away="if(showNurseListFor === 'D1') showNurseListFor = null">
+                                            <input type="text" x-model="eduForm.D1.provider" @focus="showNurseListFor = 'D1'" @input="showNurseListFor = 'D1'" :disabled="!isEduEditing" class="w-full text-center border-b outline-none text-xs" placeholder="ค้นชื่อ...">
                                             <div class="text-[10px] text-cyan-600 font-bold h-4" x-text="eduForm.D1.pos"></div>
-                                            <div x-show="showNurseListFor === 'D1'" @click.away="showNurseListFor = null" class="absolute left-0 top-full w-full bg-white border shadow-xl z-50 max-h-40 overflow-y-auto">
+                                            <div x-show="showNurseListFor === 'D1'" class="absolute left-0 top-full w-full bg-white border shadow-xl z-50 max-h-40 overflow-y-auto">
                                                 <template x-for="n in filteredNursesEdu(eduForm.D1.provider)" :key="n.name">
                                                     <div @click="eduForm.D1.provider = n.name; eduForm.D1.pos = n.position; showNurseListFor = null" class="p-2 hover:bg-cyan-50 cursor-pointer text-left text-xs border-b" x-text="n.name"></div>
                                                 </template>
@@ -2821,10 +2821,10 @@
                                             <div class="flex items-center gap-2"><span class="w-24">-ฤทธิ์ของยา / ผลข้างเคียง</span> <input type="text" x-model="eduForm.M1.text2" :disabled="!isEduEditing" class="flex-1 border-b outline-none"></div>
                                         </td>
                                         <td class="p-2 border border-slate-300 text-center"><input type="date" x-model="eduForm.M1.date" :disabled="!isEduEditing" class="w-full text-center text-xs"></td>
-                                        <td class="p-2 border border-slate-300 text-center relative">
-                                            <input type="text" x-model="eduForm.M1.provider" @focus="showNurseListFor = 'M1'" :disabled="!isEduEditing" class="w-full text-center border-b outline-none text-xs" placeholder="ค้นชื่อ...">
+                                        <td class="p-2 border border-slate-300 text-center relative" @click.away="if(showNurseListFor === 'M1') showNurseListFor = null">
+                                            <input type="text" x-model="eduForm.M1.provider" @focus="showNurseListFor = 'M1'" @input="showNurseListFor = 'M1'" :disabled="!isEduEditing" class="w-full text-center border-b outline-none text-xs" placeholder="ค้นชื่อ...">
                                             <div class="text-[10px] text-cyan-600 font-bold h-4" x-text="eduForm.M1.pos"></div>
-                                            <div x-show="showNurseListFor === 'M1'" @click.away="showNurseListFor = null" class="absolute left-0 top-full w-full bg-white border shadow-xl z-50 max-h-40 overflow-y-auto">
+                                            <div x-show="showNurseListFor === 'M1'" class="absolute left-0 top-full w-full bg-white border shadow-xl z-50 max-h-40 overflow-y-auto">
                                                 <template x-for="n in filteredNursesEdu(eduForm.M1.provider)" :key="n.name">
                                                     <div @click="eduForm.M1.provider = n.name; eduForm.M1.pos = n.position; showNurseListFor = null" class="p-2 hover:bg-cyan-50 cursor-pointer text-left text-xs border-b" x-text="n.name"></div>
                                                 </template>
@@ -2844,10 +2844,10 @@
                                             </div>
                                         </td>
                                         <td rowspan="2" class="p-2 border border-slate-300 text-center align-top"><input type="date" x-model="eduForm.E1.date" :disabled="!isEduEditing" class="w-full text-center text-xs"></td>
-                                        <td rowspan="2" class="p-2 border border-slate-300 text-center align-top relative">
-                                            <input type="text" x-model="eduForm.E1.provider" @focus="showNurseListFor = 'E1'" :disabled="!isEduEditing" class="w-full text-center border-b outline-none text-xs" placeholder="ค้นชื่อ...">
+                                        <td rowspan="2" class="p-2 border border-slate-300 text-center align-top relative" @click.away="if(showNurseListFor === 'E1') showNurseListFor = null">
+                                            <input type="text" x-model="eduForm.E1.provider" @focus="showNurseListFor = 'E1'" @input="showNurseListFor = 'E1'" :disabled="!isEduEditing" class="w-full text-center border-b outline-none text-xs" placeholder="ค้นชื่อ...">
                                             <div class="text-[10px] text-cyan-600 font-bold h-4" x-text="eduForm.E1.pos"></div>
-                                            <div x-show="showNurseListFor === 'E1'" @click.away="showNurseListFor = null" class="absolute left-0 top-full w-full bg-white border shadow-xl z-50 max-h-40 overflow-y-auto">
+                                            <div x-show="showNurseListFor === 'E1'" class="absolute left-0 top-full w-full bg-white border shadow-xl z-50 max-h-40 overflow-y-auto">
                                                 <template x-for="n in filteredNursesEdu(eduForm.E1.provider)" :key="n.name">
                                                     <div @click="eduForm.E1.provider = n.name; eduForm.E1.pos = n.position; showNurseListFor = null" class="p-2 hover:bg-cyan-50 cursor-pointer text-left text-xs border-b" x-text="n.name"></div>
                                                 </template>
@@ -2883,10 +2883,10 @@
                                             </div>
                                         </td>
                                         <td rowspan="3" class="p-2 border border-slate-300 text-center align-top"><input type="date" x-model="eduForm.T1.date" :disabled="!isEduEditing" class="w-full text-center text-xs"></td>
-                                        <td rowspan="3" class="p-2 border border-slate-300 text-center align-top relative">
-                                            <input type="text" x-model="eduForm.T1.provider" @focus="showNurseListFor = 'T1'" :disabled="!isEduEditing" class="w-full text-center border-b outline-none text-xs" placeholder="ค้นชื่อ...">
+                                        <td rowspan="3" class="p-2 border border-slate-300 text-center align-top relative" @click.away="if(showNurseListFor === 'T1') showNurseListFor = null">
+                                            <input type="text" x-model="eduForm.T1.provider" @focus="showNurseListFor = 'T1'" @input="showNurseListFor = 'T1'" :disabled="!isEduEditing" class="w-full text-center border-b outline-none text-xs" placeholder="ค้นชื่อ...">
                                             <div class="text-[10px] text-cyan-600 font-bold h-4" x-text="eduForm.T1.pos"></div>
-                                            <div x-show="showNurseListFor === 'T1'" @click.away="showNurseListFor = null" class="absolute left-0 top-full w-full bg-white border shadow-xl z-50 max-h-40 overflow-y-auto">
+                                            <div x-show="showNurseListFor === 'T1'" class="absolute left-0 top-full w-full bg-white border shadow-xl z-50 max-h-40 overflow-y-auto">
                                                 <template x-for="n in filteredNursesEdu(eduForm.T1.provider)" :key="n.name">
                                                     <div @click="eduForm.T1.provider = n.name; eduForm.T1.pos = n.position; showNurseListFor = null" class="p-2 hover:bg-cyan-50 cursor-pointer text-left text-xs border-b" x-text="n.name"></div>
                                                 </template>
@@ -2930,10 +2930,10 @@
                                             </div>
                                         </td>
                                         <td class="p-2 border border-slate-300 text-center"><input type="date" x-model="eduForm.H1.date" :disabled="!isEduEditing" class="w-full text-center text-xs"></td>
-                                        <td class="p-2 border border-slate-300 text-center relative">
-                                            <input type="text" x-model="eduForm.H1.provider" @focus="showNurseListFor = 'H1'" :disabled="!isEduEditing" class="w-full text-center border-b outline-none text-xs" placeholder="ค้นชื่อ...">
+                                        <td class="p-2 border border-slate-300 text-center relative" @click.away="if(showNurseListFor === 'H1') showNurseListFor = null">
+                                            <input type="text" x-model="eduForm.H1.provider" @focus="showNurseListFor = 'H1'" @input="showNurseListFor = 'H1'" :disabled="!isEduEditing" class="w-full text-center border-b outline-none text-xs" placeholder="ค้นชื่อ...">
                                             <div class="text-[10px] text-cyan-600 font-bold h-4" x-text="eduForm.H1.pos"></div>
-                                            <div x-show="showNurseListFor === 'H1'" @click.away="showNurseListFor = null" class="absolute left-0 top-full w-full bg-white border shadow-xl z-50 max-h-40 overflow-y-auto">
+                                            <div x-show="showNurseListFor === 'H1'" class="absolute left-0 top-full w-full bg-white border shadow-xl z-50 max-h-40 overflow-y-auto">
                                                 <template x-for="n in filteredNursesEdu(eduForm.H1.provider)" :key="n.name">
                                                     <div @click="eduForm.H1.provider = n.name; eduForm.H1.pos = n.position; showNurseListFor = null" class="p-2 hover:bg-cyan-50 cursor-pointer text-left text-xs border-b" x-text="n.name"></div>
                                                 </template>
@@ -2952,10 +2952,10 @@
                                             </div>
                                         </td>
                                         <td rowspan="3" class="p-2 border border-slate-300 text-center align-top"><input type="date" x-model="eduForm.O1.date" :disabled="!isEduEditing" class="w-full text-center text-xs"></td>
-                                        <td rowspan="3" class="p-2 border border-slate-300 text-center align-top relative">
-                                            <input type="text" x-model="eduForm.O1.provider" @focus="showNurseListFor = 'O1'" :disabled="!isEduEditing" class="w-full text-center border-b outline-none text-xs" placeholder="ค้นชื่อ...">
+                                        <td rowspan="3" class="p-2 border border-slate-300 text-center align-top relative" @click.away="if(showNurseListFor === 'O1') showNurseListFor = null">
+                                            <input type="text" x-model="eduForm.O1.provider" @focus="showNurseListFor = 'O1'" @input="showNurseListFor = 'O1'" :disabled="!isEduEditing" class="w-full text-center border-b outline-none text-xs" placeholder="ค้นชื่อ...">
                                             <div class="text-[10px] text-cyan-600 font-bold h-4" x-text="eduForm.O1.pos"></div>
-                                            <div x-show="showNurseListFor === 'O1'" @click.away="showNurseListFor = null" class="absolute left-0 top-full w-full bg-white border shadow-xl z-50 max-h-40 overflow-y-auto">
+                                            <div x-show="showNurseListFor === 'O1'" class="absolute left-0 top-full w-full bg-white border shadow-xl z-50 max-h-40 overflow-y-auto">
                                                 <template x-for="n in filteredNursesEdu(eduForm.O1.provider)" :key="n.name">
                                                     <div @click="eduForm.O1.provider = n.name; eduForm.O1.pos = n.position; showNurseListFor = null" class="p-2 hover:bg-cyan-50 cursor-pointer text-left text-xs border-b" x-text="n.name"></div>
                                                 </template>
@@ -2988,10 +2988,10 @@
                                             <div class="flex items-center gap-2"><span>อื่นๆ</span> <input type="text" x-model="eduForm.Diet1.text3" :disabled="!isEduEditing" class="flex-1 border-b outline-none"></div>
                                         </td>
                                         <td class="p-2 border border-slate-300 text-center"><input type="date" x-model="eduForm.Diet1.date" :disabled="!isEduEditing" class="w-full text-center text-xs"></td>
-                                        <td class="p-2 border border-slate-300 text-center relative">
-                                            <input type="text" x-model="eduForm.Diet1.provider" @focus="showNurseListFor = 'Diet1'" :disabled="!isEduEditing" class="w-full text-center border-b outline-none text-xs" placeholder="ค้นชื่อ...">
+                                        <td class="p-2 border border-slate-300 text-center relative" @click.away="if(showNurseListFor === 'Diet1') showNurseListFor = null">
+                                            <input type="text" x-model="eduForm.Diet1.provider" @focus="showNurseListFor = 'Diet1'" @input="showNurseListFor = 'Diet1'" :disabled="!isEduEditing" class="w-full text-center border-b outline-none text-xs" placeholder="ค้นชื่อ...">
                                             <div class="text-[10px] text-cyan-600 font-bold h-4" x-text="eduForm.Diet1.pos"></div>
-                                            <div x-show="showNurseListFor === 'Diet1'" @click.away="showNurseListFor = null" class="absolute left-0 top-full w-full bg-white border shadow-xl z-50 max-h-40 overflow-y-auto">
+                                            <div x-show="showNurseListFor === 'Diet1'" class="absolute left-0 top-full w-full bg-white border shadow-xl z-50 max-h-40 overflow-y-auto">
                                                 <template x-for="n in filteredNursesEdu(eduForm.Diet1.provider)" :key="n.name">
                                                     <div @click="eduForm.Diet1.provider = n.name; eduForm.Diet1.pos = n.position; showNurseListFor = null" class="p-2 hover:bg-cyan-50 cursor-pointer text-left text-xs border-b" x-text="n.name"></div>
                                                 </template>
