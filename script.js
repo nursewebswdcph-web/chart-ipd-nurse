@@ -187,9 +187,19 @@ function nurseApp() {
             return this.focusTemplates.filter(t => t.problemName && t.problemName.toLowerCase().includes(q));
         },
         get filteredProgressTemplates() {
-            if (!this.searchProgressTemplate) return this.nursingTemplates;
+            // 1. ถ้าช่องค้นหาว่างเปล่า ให้ "แสดงรายการทั้งหมด"
+            if (!this.searchProgressTemplate || this.searchProgressTemplate.trim() === '') {
+                return this.nursingTemplates; 
+            }
+            
+            // 2. ถ้ามีการพิมพ์ ให้แปลงเป็นตัวพิมพ์เล็กแล้วค้นหา
             const q = this.searchProgressTemplate.toLowerCase();
-            return this.nursingTemplates.filter(t => t.focus && t.focus.toLowerCase().includes(q));
+            return this.nursingTemplates.filter(t => 
+                (t.templateName && t.templateName.toLowerCase().includes(q)) || 
+                (t.focus && t.focus.toLowerCase().includes(q)) ||
+                (t.s && t.s.toLowerCase().includes(q)) ||
+                (t.o && t.o.toLowerCase().includes(q))
+            );
         },
         get filteredReProblems() {
             if (!this.searchReProblem) return this.progressNotes;
