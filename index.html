@@ -3285,18 +3285,28 @@
                                     <h3 class="text-lg font-bold text-indigo-800">เลือกจาก Template (Nursing Note)</h3>
                                     <button @click="showProgressTemplateModal = false" class="text-slate-400 hover:text-rose-500"><i class="fa-solid fa-xmark text-xl"></i></button>
                                 </div>
+                                
                                 <div class="p-4 border-b">
-                                    <input type="text" x-model="searchProgressTemplate" placeholder="ค้นหาชื่อรายการปัญหา..." class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-indigo-500">
+                                    <input type="text" x-model="searchProgressTemplate" placeholder="ค้นหาชื่อรายการปัญหา, Focus หรือรายละเอียด..." class="w-full border border-slate-300 rounded-lg p-3 outline-none focus:border-indigo-500 shadow-inner">
                                 </div>
+                                
                                 <div class="p-4 overflow-y-auto flex-1 bg-slate-50 space-y-2">
+                                    
+                                    <div x-show="filteredProgressTemplates.length === 0" class="text-center text-slate-400 py-6 font-bold" x-cloak>
+                                        <i class="fa-solid fa-folder-open text-3xl mb-2 opacity-50 block"></i> ไม่พบ Template ที่ค้นหา
+                                    </div>
+                        
                                     <template x-for="t in filteredProgressTemplates" :key="t.id">
-                                        <div @click="selectProgressTemplate(t)" class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm hover:border-indigo-400 cursor-pointer text-xs">
-                                            <h4 class="font-bold text-rose-600 mb-1" x-text="t.focus"></h4>
-                                            <div class="grid grid-cols-2 gap-2 text-slate-600">
-                                                <div><b>S:</b> <span class="line-clamp-1" x-text="t.s"></span></div>
-                                                <div><b>O:</b> <span class="line-clamp-1" x-text="t.o"></span></div>
-                                                <div><b>I:</b> <span class="line-clamp-1" x-text="t.i"></span></div>
-                                                <div><b>E:</b> <span class="line-clamp-1" x-text="t.e"></span></div>
+                                        <div @click="selectProgressTemplate(t)" class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm hover:border-indigo-400 hover:shadow-md cursor-pointer transition-all text-xs">
+                                            <div class="flex justify-between items-start mb-1">
+                                                <h4 class="font-bold text-rose-600 text-sm" x-text="t.focus"></h4>
+                                                <span class="text-[10px] bg-slate-100 text-slate-500 px-2 py-1 rounded-lg border border-slate-200" x-text="t.templateName || 'Template'"></span>
+                                            </div>
+                                            <div class="grid grid-cols-2 gap-2 text-slate-600 mt-2">
+                                                <div><b class="text-indigo-900">S:</b> <span class="line-clamp-1" x-text="t.s"></span></div>
+                                                <div><b class="text-indigo-900">O:</b> <span class="line-clamp-1" x-text="t.o"></span></div>
+                                                <div><b class="text-indigo-900">I:</b> <span class="line-clamp-1" x-text="t.i"></span></div>
+                                                <div><b class="text-indigo-900">E:</b> <span class="line-clamp-1" x-text="t.e"></span></div>
                                             </div>
                                         </div>
                                     </template>
