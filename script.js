@@ -2856,8 +2856,8 @@ function nurseApp() {
                     .fixed-footer-container { 
                         position: fixed; 
                         bottom: 5mm; 
-                        left: 10mm; 
-                        right: 10mm; 
+                        left: 5mm; 
+                        right: 5mm; 
                         display: flex; 
                         flex-direction: column; 
                         gap: 10px; 
