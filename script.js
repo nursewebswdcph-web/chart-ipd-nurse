@@ -2646,12 +2646,11 @@ function nurseApp() {
             }
             this.isLoading = false;
         },
-        
         printProgressNote() {
             if (!this.progressNotes || this.progressNotes.length === 0) {
                 this.focusAlert('ยังไม่มีข้อมูลสำหรับพิมพ์'); return;
             }
-
+        
             // 1. คัดลอกข้อมูลและสั่งเรียงลำดับใหม่เฉพาะสำหรับพิมพ์
             const sortedNotesForPrint = [...this.progressNotes].sort((a, b) => {
                 const dateTimeA = new Date(`${a.date}T${a.time || '00:00'}`).getTime();
@@ -2666,100 +2665,100 @@ function nurseApp() {
                 // เรียงตามวันที่และเวลา Actual Time (เก่าไปใหม่)
                 return dateTimeA - dateTimeB; 
             });
-
-            const itemsPerPage = 2; // บังคับหน้าละ 2 รายการตามข้อกำหนด
-            const pages = [];
+        
+            let htmlRows = '';
             
-            // 2. ใช้ sortedNotesForPrint แทน this.progressNotes ในการจัดหน้า
-            for (let i = 0; i < sortedNotesForPrint.length; i += itemsPerPage) {
-                pages.push(sortedNotesForPrint.slice(i, i + itemsPerPage));
-            }
-            const totalPages = pages.length;
-
-            let htmlPages = '';
-            
-            pages.forEach((pageItems, pageIndex) => {
-                let htmlRows = '';
-                pageItems.forEach((item, idx) => {
-                    const dateStr = item.date ? this.formatThaiDateShort(item.date) : '';
-                    // ตัดเอาเฉพาะเวลาเวร
-                    const shiftMatch = item.shift.match(/\(([^)]+)\)/);
-                    const shiftTime = shiftMatch ? shiftMatch[1] : item.shift;
-                    
-                    // 1. แยกเนื้อหา S, O, I ออกมาไว้ชุดแรก
-                    let soiHtml = '';
-                    if(item.s) soiHtml += `<b>S:</b> ${item.s.replace(/\n/g, '<br>')}<br>`;
-                    if(item.o) soiHtml += `<b>O:</b> ${item.o.replace(/\n/g, '<br>')}<br>`;
-                    if(item.i) soiHtml += `<b>I:</b> ${item.i.replace(/\n/g, '<br>')}<br>`;
-                    
-                    // 2. แยกเนื้อหา E ออกมาไว้ชุดสอง
-                    let eHtml = '';
-                    if(item.e) eHtml += `<b>E:</b> ${item.e.replace(/\n/g, '<br>')}<br>`;
-                    
-                    // เส้นขีดคั่นระหว่างปัญหา (หนาขึ้นเพื่อแบ่งให้ชัดเจน)
-                    const borderBottom = (idx === 0 && pageItems.length === 2) ? 'border-bottom: 2px solid #000 !important;' : '';
-
-                    // 3. สร้าง HTML โดยแบ่งเป็น 2 แถว (ใช้ Rowspan)
-                    htmlRows += `
-                        <tr>
-                            <td rowspan="2" style="text-align:center; ${borderBottom}">${dateStr}<br>${shiftTime}</td>
-                            <td style="text-align:center; border-bottom: 0 !important; padding-bottom: 2px;">${item.time || ''}</td>
-                            <td rowspan="2" style="font-weight:bold; ${borderBottom}">${item.focus ? item.focus.replace(/\n/g, '<br>') : '-'}</td>
-                            <td style="border-bottom: 0 !important; padding-bottom: 2px;">
-                                ${soiHtml}
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="text-align:center; border-top: 0 !important; padding-top: 4px; ${borderBottom}"><b>${item.eTime || ''}</b></td>
-                            <td style="border-top: 0 !important; padding-top: 4px; ${borderBottom}">
-                                ${eHtml}
-                                <br>
-                                <div style="text-align:right; padding-right: 20px;">
-                                    ลงชื่อ ${item.nurse} ผู้บันทึก<br>
-                                    ${item.pos}
-                                </div>
-                            </td>
-                        </tr>
-                    `;
-                });
-
-                htmlPages += `
-                    <div class="a4-page">
-                        <div class="print-header-top-right">
-                            <div>Echart-ipd-nurse</div>
-                            <div>FR-IPD-006 หน้า ${pageIndex + 1}/${totalPages}</div>
-                        </div>
-                        <div class="main-title">
-                            <div>โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน</div>
-                            <div>ใบบันทึกความก้าวหน้าทางการพยาบาล (Nursing Progress Note)</div>
-                        </div>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th style="width: 15%;">DATE /<br> SHIFT</th>
-                                    <th style="width: 8%;">Actual Time</th>
-                                    <th style="width: 22%;">FOCUS / PROBLEM</th>
-                                    <th style="width: 55%;">Nursing Progress Note</th>
-                                </tr>
-                            </thead>
-                            <tbody>${htmlRows}</tbody>
-                        </table>
-                        <div class="fixed-footer-container">
-                            <div class="patient-box-container">
-                                <div class="print-patient-box">
-                                    <div><b>ชื่อ-สกุล:</b> ${this.selectedPatient?.name || '-'} &nbsp; <b>อายุ:</b> ${this.selectedPatient?.ageDisplay || '-'}</div>
-                                    <div><b>HN:</b> ${this.selectedPatient?.hn || '-'} &nbsp; <b>AN:</b> ${this.selectedPatient?.an || '-'}</div>                
-                                    <div><b>แพทย์:</b> ${this.selectedPatient?.doctor || '-'} &nbsp; <b>ตึก:</b> ${this.currentWard || '-'} &nbsp; <b>เตียง:</b> ${this.selectedPatient?.bed || '-'}</div>
-                                </div>
+            // 2. ไม่ต้องบังคับ 2 รายการต่อหน้าแล้ว ปล่อยให้มันรันไปเรื่อยๆ
+            sortedNotesForPrint.forEach((item, idx) => {
+                const dateStr = item.date ? this.formatThaiDateShort(item.date) : '';
+                const shiftMatch = item.shift.match(/\(([^)]+)\)/);
+                const shiftTime = shiftMatch ? shiftMatch[1] : item.shift;
+                
+                let soiHtml = '';
+                if(item.s) soiHtml += `<b>S:</b> ${item.s.replace(/\n/g, '<br>')}<br>`;
+                if(item.o) soiHtml += `<b>O:</b> ${item.o.replace(/\n/g, '<br>')}<br>`;
+                if(item.i) soiHtml += `<b>I:</b> ${item.i.replace(/\n/g, '<br>')}<br>`;
+                
+                let eHtml = '';
+                if(item.e) eHtml += `<b>E:</b> ${item.e.replace(/\n/g, '<br>')}<br>`;
+                
+                // เส้นขีดคั่นระหว่างปัญหา (ใช้ตลอดทุกรายการเพื่อความชัดเจน)
+                const borderBottom = 'border-bottom: 2px solid #000 !important;';
+        
+                htmlRows += `
+                    <tr style="page-break-inside: avoid;">
+                        <td rowspan="2" style="text-align:center; ${borderBottom}">${dateStr}<br>${shiftTime}</td>
+                        <td style="text-align:center; border-bottom: 0 !important; padding-bottom: 2px;">${item.time || ''}</td>
+                        <td rowspan="2" style="font-weight:bold; ${borderBottom}">${item.focus ? item.focus.replace(/\n/g, '<br>') : '-'}</td>
+                        <td style="border-bottom: 0 !important; padding-bottom: 2px;">
+                            ${soiHtml}
+                        </td>
+                    </tr>
+                    <tr style="page-break-inside: avoid;">
+                        <td style="text-align:center; border-top: 0 !important; padding-top: 4px; ${borderBottom}"><b>${item.eTime || ''}</b></td>
+                        <td style="border-top: 0 !important; padding-top: 4px; ${borderBottom}">
+                            ${eHtml}
+                            <br>
+                            <div style="text-align:right; padding-right: 20px;">
+                                ลงชื่อ ${item.nurse} ผู้บันทึก<br>
+                                ${item.pos}
                             </div>
-                            <div class="print-footer">
-                                เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | โปรแกรมบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
-                            </div>
-                        </div>
-                    </div>
+                        </td>
+                    </tr>
                 `;
             });
-
+        
+            // 3. สร้าง HTML แบบชิ้นเดียว แต่ใช้ <thead> และ <tfoot> มาช่วยคุมหน้ากระดาษ
+            const htmlPage = `
+                <div class="print-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th colspan="4" style="border: none; padding: 0 0 15px 0;">
+                                    <div class="print-header-top-right">
+                                        <div>Echart-ipd-nurse</div>
+                                        <div>FR-IPD-006</div>
+                                    </div>
+                                    <div class="main-title">
+                                        <div>โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน</div>
+                                        <div>ใบบันทึกความก้าวหน้าทางการพยาบาล (Nursing Progress Note)</div>
+                                    </div>
+                                </th>
+                            </tr>
+                            <tr>
+                                <th style="width: 15%;">DATE /<br> SHIFT</th>
+                                <th style="width: 8%;">Actual Time</th>
+                                <th style="width: 22%;">FOCUS / PROBLEM</th>
+                                <th style="width: 55%;">Nursing Progress Note</th>
+                            </tr>
+                        </thead>
+                        
+                        <tbody>${htmlRows}</tbody>
+                        
+                        <tfoot>
+                            <tr>
+                                <td colspan="4" style="border: none; padding: 15px 0 0 0;">
+                                    <div style="height: 60px;"></div>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    
+                    <div class="fixed-footer-container">
+                        <div class="patient-box-container">
+                            <div class="print-patient-box">
+                                <div><b>ชื่อ-สกุล:</b> ${this.selectedPatient?.name || '-'} &nbsp; <b>อายุ:</b> ${this.selectedPatient?.ageDisplay || '-'}</div>
+                                <div><b>HN:</b> ${this.selectedPatient?.hn || '-'} &nbsp; <b>AN:</b> ${this.selectedPatient?.an || '-'}</div> 
+                                <div><b>แพทย์:</b> ${this.selectedPatient?.doctor || '-'} &nbsp; <b>ตึก:</b> ${this.currentWard || '-'} &nbsp; <b>เตียง:</b> ${this.selectedPatient?.bed || '-'}</div>
+                            </div>
+                        </div>
+                        <div class="print-footer">
+                            เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | โปรแกรมบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
+                        </div>
+                    </div>
+                </div>
+            `;
+        
             const printWindow = window.open('', '_blank');
             printWindow.document.write(`
             <html>
@@ -2767,40 +2766,67 @@ function nurseApp() {
                 <title>Print Nursing Progress Note</title>
                 <style>
                     @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap');
-                    body { font-family: 'Sarabun', sans-serif; font-size: 11pt; margin: 0; padding: 0; color: #000; background: #525659; }
-                    .a4-page { 
-                        width: 210mm; height: 296mm; margin: 8mm auto; 
-                        padding: 25mm 10mm 45mm 10mm; position: relative; box-sizing: border-box; 
-                        background: #fff; page-break-after: always; overflow: hidden;
+                    
+                    body { 
+                        font-family: 'Sarabun', sans-serif; 
+                        font-size: 11pt; 
+                        margin: 0; 
+                        padding: 0; 
+                        color: #000; 
+                        background: #fff; 
                     }
-                    .print-header-top-right { position: absolute; top: 10mm; right: 10mm; text-align: right; font-size: 8pt; font-weight: bold; line-height: 1.2; }
-                    .main-title { text-align: center; font-weight: bold; font-size: 12pt; margin-bottom: 15px; line-height: 1.4; }
+                    
+                    .print-container { 
+                        width: 100%; 
+                        max-width: 210mm; /* ความกว้างกระดาษ A4 */
+                        margin: 0 auto; 
+                        padding: 10mm; 
+                        box-sizing: border-box; 
+                        position: relative;
+                    }
+                    
+                    .print-header-top-right { text-align: right; font-size: 8pt; font-weight: bold; line-height: 1.2; position: absolute; right: 10mm; top: 10mm; }
+                    .main-title { text-align: center; font-weight: bold; font-size: 12pt; margin-bottom: 5px; line-height: 1.4; }
+                    
                     table { width: 100%; border-collapse: collapse; table-layout: fixed; }
                     th, td { border: 1px solid #000; padding: 8px; font-size: 10pt !important; vertical-align: top; word-wrap: break-word; }
                     th { background-color: #eee !important; text-align: center; font-weight: bold; -webkit-print-color-adjust: exact; }
                     
-                    /* CSS Footer Fixed Container 100% ตามที่ให้มา */
-                    .fixed-footer-container { position: absolute; bottom: 5mm; left: 10mm; right: 10mm; display: flex; flex-direction: column; gap: 10px; }
+                    /* CSS ป้องกันการตัดหน้ากลางแถว */
+                    tr { page-break-inside: avoid; }
+                    
+                    /* CSS Footer Fixed Container - ถูกตั้งค่าให้ปริ้นต์อยู่ล่างสุดเสมอ */
+                    .fixed-footer-container { 
+                        position: fixed; 
+                        bottom: 5mm; 
+                        left: 10mm; 
+                        right: 10mm; 
+                        display: flex; 
+                        flex-direction: column; 
+                        gap: 10px; 
+                    }
+                    
                     .patient-box-container { display: flex; justify-content: flex-end; width: 100%; }
                     .print-patient-box { width: max-content; border: 1px solid #000; border-radius: 4px; padding: 6px 12px; font-size: 8pt !important; background: #fff; }
                     .print-footer { width: 100%; text-align: center; font-size: 8pt !important; color: #444; border-top: 1px solid #ccc; padding-top: 8px; margin-top: auto; }
-
+        
                     @media print {
-                        @page { size: A4; margin: 0; }
-                        body { background: #fff; -webkit-print-color-adjust: exact; }
-                        .a4-page { margin: 0; box-shadow: none; border: none; }
-                        .a4-page:last-child { page-break-after: auto; }
+                        @page { size: A4; margin: 10mm; } /* ปรับ Margin ของกระดาษ A4 */
+                        body { -webkit-print-color-adjust: exact; }
+                        .print-container { padding: 0; }
+                        /* ซ่อนส่วนบนขวาที่ซ้ำซ้อน ถ้าระบบพรินต์ใส่ Header มาให้แล้ว */
+                        .print-header-top-right { position: static; text-align: right; margin-bottom: 10px; }
                     }
                 </style>
             </head>
             <body>
-                ${htmlPages}
+                ${htmlPage}
                 <script>window.onload = () => { setTimeout(() => { window.print(); window.close(); }, 500); }</script>
             </body>
             </html>
             `);
             printWindow.document.close();
-        },
+        }
         // ------------------------------------------
         // แบบบันทึกการพยาบาลผู้ป่วยจำหน่าย
         // ------------------------------------------
