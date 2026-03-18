@@ -2838,7 +2838,7 @@
                                         <td class="p-3 border border-slate-300">
                                             <div class="font-bold text-xs mb-1">- การดำรงชีวิตที่เหมาะสมกับสภาวะของโรค (เลือกได้มากกว่า 1)</div>
                                             <div class="grid grid-cols-2 gap-x-4 gap-y-1">
-                                                <template x-for="opt in ['การจัดการโภชนาการที่เหมาะสม', 'การออกกำลังกายที่สม่ำเสมอ', 'การใช้ยาและการปฏิบัติตามแผนการรักษา', 'การป้องกันภาวะแทรกซ้อนและการดูแลตนเอง']">
+                                                <template x-for="opt in ['การจัดการโภชนาการที่เหมาะสม', 'การออกกำลังกายที่สม่ำเสมอ', 'การใช้ยาและการปฏิบัติตามแผนการรักษา', 'การป้องกันภาวะแทรกซ้อนและการดูแลตนเอง']" :key="opt">
                                                     <label class="flex items-center gap-1 text-[11px]"><input type="checkbox" :value="opt" x-model="eduForm.E1.options" :disabled="!isEduEditing"> <span x-text="opt"></span></label>
                                                 </template>
                                             </div>
@@ -2859,7 +2859,7 @@
                                         <td class="p-3 border border-slate-300">
                                             <div class="font-bold text-xs mb-1">- ผู้ป่วยจำเป็นที่จะต้องได้รับการดูแลช่วยเหลือในเรื่อง (เลือกได้มากกว่า 1)</div>
                                             <div class="grid grid-cols-1 gap-1">
-                                                <template x-for="opt in ['การสนับสนุนการมีส่วนร่วมของครอบครัวในการดูแลผู้ป่วย', 'การช่วยเหลือด้านสภาวะเศรษฐกิจ', 'ปัญหาด้านสิทธิ์การรักษา']">
+                                                <template x-for="opt in ['การสนับสนุนการมีส่วนร่วมของครอบครัวในการดูแลผู้ป่วย', 'การช่วยเหลือด้านสภาวะเศรษฐกิจ', 'ปัญหาด้านสิทธิ์การรักษา']" :key="opt">
                                                     <label class="flex items-center gap-1 text-[11px]"><input type="checkbox" :value="opt" x-model="eduForm.E2.options" :disabled="!isEduEditing"> <span x-text="opt"></span></label>
                                                 </template>
                                             </div>
@@ -2871,7 +2871,7 @@
                                         <td class="p-3 border border-slate-300">
                                             <div class="font-bold text-xs mb-1">- แนวทางการรักษาพยาบาล (เลือกได้มากกว่า 1)</div>
                                             <div class="grid grid-cols-3 gap-1 text-[11px]">
-                                                <template x-for="opt in ['การรักษาด้วยยา', 'การให้สารน้ำ', 'ให้เลือด']">
+                                                <template x-for="opt in ['การรักษาด้วยยา', 'การให้สารน้ำ', 'ให้เลือด']" :key="opt">
                                                     <label class="flex items-center gap-1"><input type="checkbox" :value="opt" x-model="eduForm.T1.options" :disabled="!isEduEditing"> <span x-text="opt"></span></label>
                                                 </template>
                                             </div>
@@ -2898,7 +2898,7 @@
                                         <td class="p-3 border border-slate-300">
                                             <div class="font-bold text-xs mb-1">- สาธิตวิธีการดูแลตนเองในเรื่อง (เลือกได้มากกว่า 1)</div>
                                             <div class="flex flex-wrap gap-4 text-[11px]">
-                                                <template x-for="opt in ['การให้อาหารทางสายยาง', 'การดูแลแผล']">
+                                                <template x-for="opt in ['การให้อาหารทางสายยาง', 'การดูแลแผล']" :key="opt">
                                                     <label class="flex items-center gap-1"><input type="checkbox" :value="opt" x-model="eduForm.T2.options" :disabled="!isEduEditing"> <span x-text="opt"></span></label>
                                                 </template>
                                                 <div class="flex items-center gap-1">
@@ -2912,7 +2912,7 @@
                                         <td class="p-3 border border-slate-300">
                                             <div class="font-bold text-xs mb-1">- ความสำคัญในการดูแลสุขภาพและการปฏิบัติตัวที่ถูกต้อง (เลือกได้มากกว่า 1)</div>
                                             <div class="grid grid-cols-2 gap-1 text-[11px]">
-                                                <template x-for="opt in ['รับประทานยาให้ถูกขนาด ถูกเวลา และต่อเนื่อง', 'ควบคุมและเลือกทานอาหารตามคำแนะนำเฉพาะโรค', 'ออกกำลังกายอย่างสม่ำเสมอและเหมาะสมกับสภาพร่างกาย', 'ตรวจวัด น้ำตาล ความดัน และ สังเกตอาการผิดปกติ', 'งด การสูบบุหรี่ และเครื่องดื่มแอลกอฮอล์ทุกชนิด', 'สังเกตและ ดูแลบาดแผลหรืออาการผิดปกติ']">
+                                                <template x-for="opt in ['รับประทานยาให้ถูกขนาด ถูกเวลา และต่อเนื่อง', 'ควบคุมและเลือกทานอาหารตามคำแนะนำเฉพาะโรค', 'ออกกำลังกายอย่างสม่ำเสมอและเหมาะสมกับสภาพร่างกาย', 'ตรวจวัด น้ำตาล ความดัน และ สังเกตอาการผิดปกติ', 'งด การสูบบุหรี่ และเครื่องดื่มแอลกอฮอล์ทุกชนิด', 'สังเกตและ ดูแลบาดแผลหรืออาการผิดปกติ']" :key="opt">
                                                     <label class="flex items-center gap-1"><input type="checkbox" :value="opt" x-model="eduForm.T3.options" :disabled="!isEduEditing"> <span x-text="opt"></span></label>
                                                 </template>
                                             </div>
@@ -2924,7 +2924,7 @@
                                         <td class="p-3 border border-slate-300">
                                             <div class="font-bold text-xs mb-1">- ความรู้เรื่องการลดปัจจัยเสี่ยงต่อการเกิดโรคของผู้ป่วย (เลือกได้มากกว่า 1)</div>
                                             <div class="grid grid-cols-2 gap-1 text-[11px]">
-                                                <template x-for="opt in ['ควบคุมอาหารตามหลักโภชนาการ ออกกำลังกายสม่ำเสมอ', 'งด การสูบบุหรี่ และเครื่องดื่มแอลกอฮอล์ทุกชนิด', 'จัดการความเครียด/พักผ่อนให้เพียงพอ', 'ใช้ยาตามแผนการรักษา อย่างเคร่งครัด', 'หลีกเลี่ยงความเสี่ยงต่อการติดเชื้อ']">
+                                                <template x-for="opt in ['ควบคุมอาหารตามหลักโภชนาการ ออกกำลังกายสม่ำเสมอ', 'งด การสูบบุหรี่ และเครื่องดื่มแอลกอฮอล์ทุกชนิด', 'จัดการความเครียด/พักผ่อนให้เพียงพอ', 'ใช้ยาตามแผนการรักษา อย่างเคร่งครัด', 'หลีกเลี่ยงความเสี่ยงต่อการติดเชื้อ']" :key="opt">
                                                     <label class="flex items-center gap-1"><input type="checkbox" :value="opt" x-model="eduForm.H1.options" :disabled="!isEduEditing"> <span x-text="opt"></span></label>
                                                 </template>
                                             </div>
@@ -2967,7 +2967,7 @@
                                         <td class="p-3 border border-slate-300">
                                             <div class="font-bold text-xs mb-1">- แหล่งข้อมูลเครือข่ายหรือแหล่งสนับสนุนทางสังคม (เลือกได้มากกว่า 1)</div>
                                             <div class="flex flex-wrap gap-4 text-[11px]">
-                                                <template x-for="opt in ['ผู้นำชุมชน', 'อสม.', 'รพ.สต.']">
+                                                <template x-for="opt in ['ผู้นำชุมชน', 'อสม.', 'รพ.สต.']" :key="opt">
                                                     <label class="flex items-center gap-1"><input type="checkbox" :value="opt" x-model="eduForm.O2.options" :disabled="!isEduEditing"> <span x-text="opt"></span></label>
                                                 </template>
                                                 <div class="flex items-center gap-1">
