@@ -1634,18 +1634,39 @@ function nurseApp() {
                 console.error("Date Setup Error", e);
             }
 
-            const payload = { ...this.bradenForm, an: this.selectedPatient.an, hn: this.selectedPatient.hn, ward: this.currentWard };
+            // ✅ เพิ่ม isSummaryOnly: true เพื่อสั่งให้ Backend นำข้อมูลไปอัปเดตบรรทัดล่าสุดของ AN นี้
+            const payload = { 
+                ...this.bradenForm, 
+                an: this.selectedPatient?.an || this.selectedPatient?.AN, 
+                hn: this.selectedPatient?.hn || this.selectedPatient?.HN, 
+                ward: this.currentWard,
+                isSummaryOnly: true 
+            };
+
             try {
-                const res = await fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveBradenScale', payload }) });
+                const res = await fetch(this.API_URL, { 
+                    method: 'POST', 
+                    body: JSON.stringify({ action: 'saveBradenScale', payload }) 
+                });
                 const out = await res.json();
+                
                 if(out.status === 'success') {
                     this.showSuccess = true; 
-                    this.successMsg = 'บันทึกสรุปการเกิดแผลกดทับเรียบร้อย';
+                    this.successMsg = 'บันทึกสรุปการเกิดแผลกดทับลงในข้อมูลล่าสุดเรียบร้อย';
                     setTimeout(() => { this.showSuccess = false; }, 3000);
-                    this.loadBraden(this.selectedPatient.an);
+                    
+                    // โหลดข้อมูลใหม่เพื่อให้หน้าประวัติอัปเดต
+                    if(typeof this.loadBraden === 'function') {
+                        this.loadBraden(payload.an);
+                    } else if(typeof this.loadBradenHistory === 'function') {
+                        this.loadBradenHistory(payload.an);
+                    }
+                } else {
+                    alert('เกิดข้อผิดพลาด: ' + (out.message || 'ไม่สามารถบันทึกได้'));
                 }
             } catch(e) { 
-                alert('เกิดข้อผิดพลาดในการบันทึก'); 
+                console.error("Save Summary Error:", e);
+                alert('เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์'); 
             } finally {
                 this.isLoading = false;
             }
