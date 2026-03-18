@@ -2026,13 +2026,12 @@ function nurseApp() {
                     { id: 'T1', rs: 0, text: (d) => `
                         - สาธิตวิธีการดูแลตนเองในเรื่อง:<br>
                         ${['การให้อาหารทางสายยาง', 'การดูแลแผล'].map(opt => `${getCheck('T2', opt)} ${opt}`).join(' ')} 
-                        ${getCheck('T2', 'อื่นๆ')} อื่นๆ ระบุ <span class="dot-line">${this.eduForm.T2.text1 || '................'}</span>
+                        ${getCheck('T2', 'อื่นๆ')} อื่นๆ ระบุ <span class="dot-line">${this.eduForm?.T2?.text1 || '................'}</span>
                     ` },
                     { id: 'T1', rs: 0, text: (d) => `
-                        - ความสำคัญในการดูแลสุขภาพและการปฏิบัติตัวที่ถูกต้อง ได้แก่:<br>
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 2px;">
-                            ${['รับประทานยาให้ถูกขนาด ถูกเวลา และต่อเนื่อง', 'ควบคุมและเลือกทานอาหารตามคำแนะนำเฉพาะโรค', 'ออกกำลังกายอย่างสม่ำเสมอและเหมาะสมกับสภาพร่างกาย', 'ตรวจวัด น้ำตาล ความดัน และ สังเกตอาการผิดปกติ', 'งด การสูบบุหรี่ และเครื่องดื่มแอลกอฮอล์ทุกชนิด', 'สังเกตและ ดูแลบาดแผลหรืออาการผิดปกติ'].map(opt => `<span>${getCheck('T3', opt)} ${opt}</span>`).join('')}
-                        </div>
+                        - สาธิตวิธีการดูแลตนเองในเรื่อง:<br>
+                        ${['การให้อาหารทางสายยาง', 'การดูแลแผล'].map(opt => `${getCheck('T2', opt)} ${opt}`).join(' ')} 
+                        ${getCheck('T2', 'อื่นๆ')} อื่นๆ ระบุ <span class="dot-line">${this.eduForm?.T2?.text1 || '................'}</span>
                     ` },
             
                     // H Section
@@ -2044,10 +2043,13 @@ function nurseApp() {
                     ` },
             
                     // O Section
-                    { id: 'O1', rs: 1, topic: '6. O=Out Patient<br>การดูแลต่อเนื่อง', text: (d) => `- การมาตรวจตามนัด วันที่ <span class="dot-line">${d.text1 || '-'}</span> <br>สถานที่ <span class="dot-line">${d.text2 || '-'}</span> <br>การเตรียมตัว <span class="dot-line">${d.text3 || '.............'}</span><br>
+                    { id: 'O1', rs: 1, topic: '6. O=Out Patient<br>การดูแลต่อเนื่อง', text: (d) => `
+                        - การมาตรวจตามนัด วันที่ <span class="dot-line">${d.text1 || '-'}</span> <br>
+                        สถานที่ <span class="dot-line">${d.text2 || '-'}</span> <br>
+                        การเตรียมตัว <span class="dot-line">${d.text3 || '.............'}</span><br>
                         - แหล่งข้อมูลเครือข่ายหรือแหล่งสนับสนุนทางสังคม:<br>
                         ${['ผู้นำชุมชน', 'อสม.', 'รพ.สต.'].map(opt => `${getCheck('O2', opt)} ${opt}`).join(' ')} 
-                        ${getCheck('O2', 'อื่นๆ')} อื่นๆ ระบุ <span class="dot-line">${this.eduForm.O2?.text1 || '-'}</span><br>- การขอความช่วยเหลือ 1669
+                        ${getCheck('O2', 'อื่นๆ')
                     ` },            
                     
                     // Diet Section
