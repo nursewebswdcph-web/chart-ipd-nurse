@@ -2838,9 +2838,10 @@
                                         <td class="p-3 border border-slate-300">
                                             <div class="font-bold text-xs mb-1">- การดำรงชีวิตที่เหมาะสมกับสภาวะของโรค (เลือกได้มากกว่า 1)</div>
                                             <div class="grid grid-cols-2 gap-x-4 gap-y-1">
-                                                <template x-for="opt in ['การจัดการโภชนาการที่เหมาะสม', 'การออกกำลังกายที่สม่ำเสมอ', 'การใช้ยาและการปฏิบัติตามแผนการรักษา', 'การป้องกันภาวะแทรกซ้อนและการดูแลตนเอง']" :key="opt">
-                                                    <label class="flex items-center gap-1 text-[11px]"><input type="checkbox" :value="opt" x-model="eduForm.E1.options" :disabled="!isEduEditing"> <span x-text="opt"></span></label>
-                                                </template>
+                                                    <label class="flex items-center gap-1 text-[11px]"><input type="checkbox" value="การจัดการโภชนาการที่เหมาะสม" x-model="eduForm.E1.options" :disabled="!isEduEditing"> <span>การจัดการโภชนาการที่เหมาะสม</span></label>
+                                                    <label class="flex items-center gap-1 text-[11px]"><input type="checkbox" value="การออกกำลังกายที่สม่ำเสมอ" x-model="eduForm.E1.options" :disabled="!isEduEditing"> <span>การออกกำลังกายที่สม่ำเสมอ</span></label>
+                                                    <label class="flex items-center gap-1 text-[11px]"><input type="checkbox" value="การใช้ยาและการปฏิบัติตามแผนการรักษา" x-model="eduForm.E1.options" :disabled="!isEduEditing"> <span>การใช้ยาและการปฏิบัติตามแผนการรักษา</span></label>
+                                                    <label class="flex items-center gap-1 text-[11px]"><input type="checkbox" value="การป้องกันภาวะแทรกซ้อนและการดูแลตนเอง" x-model="eduForm.E1.options" :disabled="!isEduEditing"> <span>การป้องกันภาวะแทรกซ้อนและการดูแลตนเอง</span></label>
                                             </div>
                                         </td>
                                         <td rowspan="2" class="p-2 border border-slate-300 text-center align-top"><input type="date" x-model="eduForm.E1.date" :disabled="!isEduEditing" class="w-full text-center text-xs"></td>
@@ -2859,9 +2860,9 @@
                                         <td class="p-3 border border-slate-300">
                                             <div class="font-bold text-xs mb-1">- ผู้ป่วยจำเป็นที่จะต้องได้รับการดูแลช่วยเหลือในเรื่อง (เลือกได้มากกว่า 1)</div>
                                             <div class="grid grid-cols-1 gap-1">
-                                                <template x-for="opt in ['การสนับสนุนการมีส่วนร่วมของครอบครัวในการดูแลผู้ป่วย', 'การช่วยเหลือด้านสภาวะเศรษฐกิจ', 'ปัญหาด้านสิทธิ์การรักษา']" :key="opt">
-                                                    <label class="flex items-center gap-1 text-[11px]"><input type="checkbox" :value="opt" x-model="eduForm.E2.options" :disabled="!isEduEditing"> <span x-text="opt"></span></label>
-                                                </template>
+                                                <label class="flex items-center gap-1 text-[11px]"><input type="checkbox" value="การสนับสนุนการมีส่วนร่วมของครอบครัวในการดูแลผู้ป่วย" x-model="eduForm.E2.options" :disabled="!isEduEditing"> <span>การสนับสนุนการมีส่วนร่วมของครอบครัวในการดูแลผู้ป่วย</span></label>
+                                                <label class="flex items-center gap-1 text-[11px]"><input type="checkbox" value="การช่วยเหลือด้านสภาวะเศรษฐกิจ" x-model="eduForm.E2.options" :disabled="!isEduEditing"> <span>การช่วยเหลือด้านสภาวะเศรษฐกิจ</span></label>
+                                                <label class="flex items-center gap-1 text-[11px]"><input type="checkbox" value="ปัญหาด้านสิทธิ์การรักษา" x-model="eduForm.E2.options" :disabled="!isEduEditing"> <span>ปัญหาด้านสิทธิ์การรักษา</span></label>
                                             </div>
                                         </td>
                                     </tr>
@@ -2871,14 +2872,31 @@
                                         <td class="p-3 border border-slate-300">
                                             <div class="font-bold text-xs mb-1">- แนวทางการรักษาพยาบาล (เลือกได้มากกว่า 1)</div>
                                             <div class="grid grid-cols-3 gap-1 text-[11px]">
-                                                <template x-for="opt in ['การรักษาด้วยยา', 'การให้สารน้ำ', 'ให้เลือด']" :key="opt">
-                                                    <label class="flex items-center gap-1"><input type="checkbox" :value="opt" x-model="eduForm.T1.options" :disabled="!isEduEditing"> <span x-text="opt"></span></label>
-                                                </template>
+                                                <label class="flex items-center gap-1">
+                                                    <input type="checkbox" value="การรักษาด้วยยา" x-model="eduForm.T1.options" :disabled="!isEduEditing"> 
+                                                    <span>การรักษาด้วยยา</span>
+                                                </label>
+                                                <label class="flex items-center gap-1">
+                                                    <input type="checkbox" value="การให้สารน้ำ" x-model="eduForm.T1.options" :disabled="!isEduEditing"> 
+                                                    <span>การให้สารน้ำ</span>
+                                                </label>
+                                                <label class="flex items-center gap-1">
+                                                    <input type="checkbox" value="ให้เลือด" x-model="eduForm.T1.options" :disabled="!isEduEditing"> 
+                                                    <span>ให้เลือด</span>
+                                                </label>
                                             </div>
+                                        
                                             <div class="flex items-center gap-1 text-[11px] mt-1">
-                                                <label class="flex items-center gap-1"><input type="checkbox" value="การผ่าตัด/หัตถการ" x-model="eduForm.T1.options" :disabled="!isEduEditing"> การผ่าตัด/หัตถการ ระบุ</label>
+                                                <label class="flex items-center gap-1">
+                                                    <input type="checkbox" value="การผ่าตัด/หัตถการ" x-model="eduForm.T1.options" :disabled="!isEduEditing"> 
+                                                    <span>การผ่าตัด/หัตถการ ระบุ</span>
+                                                </label>
                                                 <input type="text" x-model="eduForm.T1.text1" :disabled="!isEduEditing" class="border-b flex-1 outline-none">
-                                                <label class="flex items-center gap-1 ml-2"><input type="checkbox" value="อื่นๆ" x-model="eduForm.T1.options" :disabled="!isEduEditing"> อื่นๆ ระบุ</label>
+                                        
+                                                <label class="flex items-center gap-1 ml-2">
+                                                    <input type="checkbox" value="อื่นๆ" x-model="eduForm.T1.options" :disabled="!isEduEditing"> 
+                                                    <span>อื่นๆ ระบุ</span>
+                                                </label>
                                                 <input type="text" x-model="eduForm.T1.text2" :disabled="!isEduEditing" class="border-b flex-1 outline-none">
                                             </div>
                                         </td>
@@ -2898,11 +2916,21 @@
                                         <td class="p-3 border border-slate-300">
                                             <div class="font-bold text-xs mb-1">- สาธิตวิธีการดูแลตนเองในเรื่อง (เลือกได้มากกว่า 1)</div>
                                             <div class="flex flex-wrap gap-4 text-[11px]">
-                                                <template x-for="opt in ['การให้อาหารทางสายยาง', 'การดูแลแผล']" :key="opt">
-                                                    <label class="flex items-center gap-1"><input type="checkbox" :value="opt" x-model="eduForm.T2.options" :disabled="!isEduEditing"> <span x-text="opt"></span></label>
-                                                </template>
+                                                <label class="flex items-center gap-1">
+                                                    <input type="checkbox" value="การให้อาหารทางสายยาง" x-model="eduForm.T2.options" :disabled="!isEduEditing"> 
+                                                    <span>การให้อาหารทางสายยาง</span>
+                                                </label>
+                                            
+                                                <label class="flex items-center gap-1">
+                                                    <input type="checkbox" value="การดูแลแผล" x-model="eduForm.T2.options" :disabled="!isEduEditing"> 
+                                                    <span>การดูแลแผล</span>
+                                                </label>
+                                            
                                                 <div class="flex items-center gap-1">
-                                                    <label class="flex items-center gap-1"><input type="checkbox" value="อื่นๆ" x-model="eduForm.T2.options" :disabled="!isEduEditing"> อื่นๆ ระบุ</label>
+                                                    <label class="flex items-center gap-1">
+                                                        <input type="checkbox" value="อื่นๆ" x-model="eduForm.T2.options" :disabled="!isEduEditing"> 
+                                                        <span>อื่นๆ ระบุ</span>
+                                                    </label>
                                                     <input type="text" x-model="eduForm.T2.text1" :disabled="!isEduEditing" class="border-b w-32 outline-none">
                                                 </div>
                                             </div>
@@ -2912,9 +2940,12 @@
                                         <td class="p-3 border border-slate-300">
                                             <div class="font-bold text-xs mb-1">- ความสำคัญในการดูแลสุขภาพและการปฏิบัติตัวที่ถูกต้อง (เลือกได้มากกว่า 1)</div>
                                             <div class="grid grid-cols-2 gap-1 text-[11px]">
-                                                <template x-for="opt in ['รับประทานยาให้ถูกขนาด ถูกเวลา และต่อเนื่อง', 'ควบคุมและเลือกทานอาหารตามคำแนะนำเฉพาะโรค', 'ออกกำลังกายอย่างสม่ำเสมอและเหมาะสมกับสภาพร่างกาย', 'ตรวจวัด น้ำตาล ความดัน และ สังเกตอาการผิดปกติ', 'งด การสูบบุหรี่ และเครื่องดื่มแอลกอฮอล์ทุกชนิด', 'สังเกตและ ดูแลบาดแผลหรืออาการผิดปกติ']" :key="opt">
-                                                    <label class="flex items-center gap-1"><input type="checkbox" :value="opt" x-model="eduForm.T3.options" :disabled="!isEduEditing"> <span x-text="opt"></span></label>
-                                                </template>
+                                                <label class="flex items-center gap-1"><input type="checkbox" value="รับประทานยาให้ถูกขนาด ถูกเวลา และต่อเนื่อง" x-model="eduForm.T3.options" :disabled="!isEduEditing"> <span>รับประทานยาให้ถูกขนาด ถูกเวลา และต่อเนื่อง</span></label>
+                                                <label class="flex items-center gap-1"><input type="checkbox" value="ควบคุมและเลือกทานอาหารตามคำแนะนำเฉพาะโรค" x-model="eduForm.T3.options" :disabled="!isEduEditing"> <span>ควบคุมและเลือกทานอาหารตามคำแนะนำเฉพาะโรค</span></label>
+                                                <label class="flex items-center gap-1"><input type="checkbox" value="ออกกำลังกายอย่างสม่ำเสมอและเหมาะสมกับสภาพร่างกาย" x-model="eduForm.T3.options" :disabled="!isEduEditing"> <span>ออกกำลังกายอย่างสม่ำเสมอและเหมาะสมกับสภาพร่างกาย</span></label>
+                                                <label class="flex items-center gap-1"><input type="checkbox" value="ตรวจวัด น้ำตาล ความดัน และ สังเกตอาการผิดปกติ" x-model="eduForm.T3.options" :disabled="!isEduEditing"> <span>ตรวจวัด น้ำตาล ความดัน และ สังเกตอาการผิดปกติ</span></label>
+                                                <label class="flex items-center gap-1"><input type="checkbox" value="งด การสูบบุหรี่ และเครื่องดื่มแอลกอฮอล์ทุกชนิด" x-model="eduForm.T3.options" :disabled="!isEduEditing"> <span>งด การสูบบุหรี่ และเครื่องดื่มแอลกอฮอล์ทุกชนิด</span></label>
+                                                <label class="flex items-center gap-1"><input type="checkbox" value="สังเกตและ ดูแลบาดแผลหรืออาการผิดปกติ" x-model="eduForm.T3.options" :disabled="!isEduEditing"> <span>สังเกตและ ดูแลบาดแผลหรืออาการผิดปกติ</span></label>
                                             </div>
                                         </td>
                                     </tr>
@@ -2924,9 +2955,11 @@
                                         <td class="p-3 border border-slate-300">
                                             <div class="font-bold text-xs mb-1">- ความรู้เรื่องการลดปัจจัยเสี่ยงต่อการเกิดโรคของผู้ป่วย (เลือกได้มากกว่า 1)</div>
                                             <div class="grid grid-cols-2 gap-1 text-[11px]">
-                                                <template x-for="opt in ['ควบคุมอาหารตามหลักโภชนาการ ออกกำลังกายสม่ำเสมอ', 'งด การสูบบุหรี่ และเครื่องดื่มแอลกอฮอล์ทุกชนิด', 'จัดการความเครียด/พักผ่อนให้เพียงพอ', 'ใช้ยาตามแผนการรักษา อย่างเคร่งครัด', 'หลีกเลี่ยงความเสี่ยงต่อการติดเชื้อ']" :key="opt">
-                                                    <label class="flex items-center gap-1"><input type="checkbox" :value="opt" x-model="eduForm.H1.options" :disabled="!isEduEditing"> <span x-text="opt"></span></label>
-                                                </template>
+                                                <label class="flex items-center gap-1"><input type="checkbox" value="ควบคุมอาหารตามหลักโภชนาการ ออกกำลังกายสม่ำเสมอ" x-model="eduForm.H1.options" :disabled="!isEduEditing"> <span>ควบคุมอาหารตามหลักโภชนาการ ออกกำลังกายสม่ำเสมอ</span></label>
+                                                <label class="flex items-center gap-1"><input type="checkbox" value="งด การสูบบุหรี่ และเครื่องดื่มแอลกอฮอล์ทุกชนิด" x-model="eduForm.H1.options" :disabled="!isEduEditing"> <span>งด การสูบบุหรี่ และเครื่องดื่มแอลกอฮอล์ทุกชนิด</span></label>
+                                                <label class="flex items-center gap-1"><input type="checkbox" value="จัดการความเครียด/พักผ่อนให้เพียงพอ" x-model="eduForm.H1.options" :disabled="!isEduEditing"> <span>จัดการความเครียด/พักผ่อนให้เพียงพอ</span></label>
+                                                <label class="flex items-center gap-1"><input type="checkbox" value="ใช้ยาตามแผนการรักษา อย่างเคร่งครัด" x-model="eduForm.H1.options" :disabled="!isEduEditing"> <span>ใช้ยาตามแผนการรักษา อย่างเคร่งครัด</span></label>
+                                                <label class="flex items-center gap-1"><input type="checkbox" value="หลีกเลี่ยงความเสี่ยงต่อการติดเชื้อ" x-model="eduForm.H1.options" :disabled="!isEduEditing"> <span>หลีกเลี่ยงความเสี่ยงต่อการติดเชื้อ</span></label>
                                             </div>
                                         </td>
                                         <td class="p-2 border border-slate-300 text-center"><input type="date" x-model="eduForm.H1.date" :disabled="!isEduEditing" class="w-full text-center text-xs"></td>
@@ -2967,9 +3000,9 @@
                                         <td class="p-3 border border-slate-300">
                                             <div class="font-bold text-xs mb-1">- แหล่งข้อมูลเครือข่ายหรือแหล่งสนับสนุนทางสังคม (เลือกได้มากกว่า 1)</div>
                                             <div class="flex flex-wrap gap-4 text-[11px]">
-                                                <template x-for="opt in ['ผู้นำชุมชน', 'อสม.', 'รพ.สต.']" :key="opt">
-                                                    <label class="flex items-center gap-1"><input type="checkbox" :value="opt" x-model="eduForm.O2.options" :disabled="!isEduEditing"> <span x-text="opt"></span></label>
-                                                </template>
+                                                <label class="flex items-center gap-1"><input type="checkbox" value="ผู้นำชุมชน" x-model="eduForm.O2.options" :disabled="!isEduEditing"> <span>ผู้นำชุมชน</span></label>
+                                                <label class="flex items-center gap-1"><input type="checkbox" value="อสม." x-model="eduForm.O2.options" :disabled="!isEduEditing"> <span>อสม.</span></label>
+                                                <label class="flex items-center gap-1"><input type="checkbox" value="รพ.สต." x-model="eduForm.O2.options" :disabled="!isEduEditing"> <span>รพ.สต.</span></label>
                                                 <div class="flex items-center gap-1">
                                                     <label class="flex items-center gap-1"><input type="checkbox" value="อื่นๆ" x-model="eduForm.O2.options" :disabled="!isEduEditing"> อื่นๆ ระบุ</label>
                                                     <input type="text" x-model="eduForm.O2.text1" :disabled="!isEduEditing" class="border-b w-32 outline-none">
