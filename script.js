@@ -2699,12 +2699,16 @@ function nurseApp() {
         
             // 1. คัดลอกข้อมูลและสั่งเรียงลำดับใหม่เฉพาะสำหรับพิมพ์
             const sortedNotesForPrint = [...this.progressNotes].sort((a, b) => {
-                const dateTimeA = new Date(`${a.date}T${a.time || '00:00'}`).getTime();
-                const dateTimeB = new Date(`${b.date}T${b.time || '00:00'}`).getTime();
+                // จัดการกรณีเวลาเป็นค่าว่างให้เป็น 00:00 เพื่อไม่ให้ Date Error
+                const timeA = a.time || '00:00';
+                const timeB = b.time || '00:00';
+                
+                const dateTimeA = new Date(`${a.date}T${timeA}`).getTime();
+                const dateTimeB = new Date(`${b.date}T${timeB}`).getTime();
                 
                 // หากวันที่และเวลา Actual Time เท่ากันเป๊ะ
                 if (dateTimeA === dateTimeB) {
-                    // ให้เรียงตาม ID (ซึ่งก็คือเวลาที่กดบันทึกข้อมูล) จากเก่าไปใหม่
+                    // ให้เรียงตาม ID (เวลาที่กดบันทึก) จากเก่าไปใหม่ (ค่าน้อยไปค่ามาก)
                     return Number(a.id) - Number(b.id);
                 }
                 
@@ -2754,10 +2758,16 @@ function nurseApp() {
                 `;
             });
         
-            // 3. สร้าง HTML แบบชิ้นเดียว แต่ใช้ <thead> และ <tfoot> มาช่วยคุมหน้ากระดาษ
+            // 3. สร้าง HTML แบบชิ้นเดียว
             const htmlPage = `
                 <div class="print-container">
                     <table>
+                        <colgroup>
+                            <col style="width: 15%;">
+                            <col style="width: 8%;">
+                            <col style="width: 22%;">
+                            <col style="width: 55%;">
+                        </colgroup>
                         <thead>
                             <tr>
                                 <th colspan="4" style="border: none; padding: 0 0 15px 0;">
@@ -2772,10 +2782,10 @@ function nurseApp() {
                                 </th>
                             </tr>
                             <tr>
-                                <th style="width: 15%;">DATE /<br> SHIFT</th>
-                                <th style="width: 8%;">Actual Time</th>
-                                <th style="width: 22%;">FOCUS / PROBLEM</th>
-                                <th style="width: 55%;">Nursing Progress Note</th>
+                                <th>DATE /<br> SHIFT</th>
+                                <th>Actual Time</th>
+                                <th>FOCUS / PROBLEM</th>
+                                <th>Nursing Progress Note</th>
                             </tr>
                         </thead>
                         
@@ -2836,7 +2846,8 @@ function nurseApp() {
                     
                     table { width: 100%; border-collapse: collapse; table-layout: fixed; }
                     th, td { border: 1px solid #000; padding: 8px; font-size: 10pt !important; vertical-align: top; word-wrap: break-word; }
-                    th { background-color: #eee !important; text-align: center; font-weight: bold; -webkit-print-color-adjust: exact; }
+                    /* ✅ นำพื้นหลังสีเทาออก ให้เหลือแค่ตรงกลางและตัวหนา */
+                    th { text-align: center; font-weight: bold; }
                     
                     /* CSS ป้องกันการตัดหน้ากลางแถว */
                     tr { page-break-inside: avoid; }
@@ -2872,7 +2883,7 @@ function nurseApp() {
             </html>
             `);
             printWindow.document.close();
-        },
+        }
         // ------------------------------------------
         // แบบบันทึกการพยาบาลผู้ป่วยจำหน่าย
         // ------------------------------------------
