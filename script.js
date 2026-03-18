@@ -2389,7 +2389,7 @@ function nurseApp() {
                     <div class="a4-page">
                         <div class="print-header-top-right">
                             <div>Echart-ipd-nurse</div>
-                            <div>Focus-List-Form หน้า ${pageIndex + 1}/${totalPages}</div>
+                            <div>FR-IPD-005 หน้า ${pageIndex + 1}/${totalPages}</div>
                         </div>
 
                         <div class="main-title">
