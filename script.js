@@ -1961,8 +1961,7 @@ function nurseApp() {
             }
             
             this.isLoading = false;
-        }
-    
+        },    
             async savePatientEdu() {
                 this.isLoading = true;
                 try {
