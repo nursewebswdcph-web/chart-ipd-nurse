@@ -1923,39 +1923,43 @@ function nurseApp() {
         async loadPatientEdu(an) {
             this.isLoading = true;
             this.isEduEditing = false; // ปิดโหมดแก้ไขไว้เสมอตอนเริ่มเปิด
+            
             try {
                 const res = await fetch(`${this.API_URL}?action=getPatientEdu&an=${an}`);
                 const data = await res.json();
                 
                 // ใช้ค่า Default เป็นฐาน ป้องกัน error กรณีก่อนหน้ามีข้อบกพร่อง
                 const base = this.defaultEduForm();
+                
                 if (data && Object.keys(data).length > 0) {
                     this.eduForm = { ...base, ...data };
                     
-                    // --- โค้ดส่วนที่เพิ่ม: แปลง String ที่ดึงจากชีต ให้กลับเป็น Array เพื่อแยก Checkbox ---
+                    // --- เพิ่มการเช็คและแปลง String กลับเป็น Array สำหรับ Checkbox ---
                     const ensureArray = (val) => {
                         if (!val) return [];
                         if (Array.isArray(val)) return val;
+                        // ถ้าเป็นข้อความ ให้แยกด้วยลูกน้ำ (,) ตัดช่องว่าง และลบค่าว่างทิ้ง
                         return String(val).split(',').map(item => item.trim()).filter(Boolean);
                     };
-
-                    // บังคับให้ options ทุกตัวกลับมาเป็น Array 
-                    if (this.eduForm.E1) this.eduForm.E1.options = ensureArray(this.eduForm.E1.options);
-                    if (this.eduForm.E2) this.eduForm.E2.options = ensureArray(this.eduForm.E2.options);
-                    if (this.eduForm.T1) this.eduForm.T1.options = ensureArray(this.eduForm.T1.options);
-                    if (this.eduForm.T2) this.eduForm.T2.options = ensureArray(this.eduForm.T2.options);
-                    if (this.eduForm.T3) this.eduForm.T3.options = ensureArray(this.eduForm.T3.options);
-                    if (this.eduForm.H1) this.eduForm.H1.options = ensureArray(this.eduForm.H1.options);
-                    if (this.eduForm.O2) this.eduForm.O2.options = ensureArray(this.eduForm.O2.options);
-                    // ----------------------------------------------------------------------
-
+        
+                    // บังคับให้ options ของทุกข้อเป็น Array เสมอ
+                    if(this.eduForm.E1) this.eduForm.E1.options = ensureArray(this.eduForm.E1.options);
+                    if(this.eduForm.E2) this.eduForm.E2.options = ensureArray(this.eduForm.E2.options);
+                    if(this.eduForm.T1) this.eduForm.T1.options = ensureArray(this.eduForm.T1.options);
+                    if(this.eduForm.T2) this.eduForm.T2.options = ensureArray(this.eduForm.T2.options);
+                    if(this.eduForm.T3) this.eduForm.T3.options = ensureArray(this.eduForm.T3.options);
+                    if(this.eduForm.H1) this.eduForm.H1.options = ensureArray(this.eduForm.H1.options);
+                    if(this.eduForm.O2) this.eduForm.O2.options = ensureArray(this.eduForm.O2.options);
+                    // ---------------------------------------------------------
+                    
                 } else {
                     this.eduForm = base;
                 }
             } catch (e) { 
-                console.error("Load Edu Error:", e); 
+                console.error(e); 
                 this.eduForm = this.defaultEduForm();
             }
+            
             this.isLoading = false;
         },    
             async savePatientEdu() {
