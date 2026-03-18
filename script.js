@@ -2868,7 +2868,7 @@ function nurseApp() {
                     .print-footer { width: 100%; text-align: center; font-size: 8pt !important; color: #444; border-top: 1px solid #ccc; padding-top: 8px; margin-top: auto; }
         
                     @media print {
-                        @page { size: A4; margin: 10mm; } /* ปรับ Margin ของกระดาษ A4 */
+                        @page { size: A4; margin: 8mm; } /* ปรับ Margin ของกระดาษ A4 */
                         body { -webkit-print-color-adjust: exact; }
                         .print-container { padding: 0; }
                         /* ซ่อนส่วนบนขวาที่ซ้ำซ้อน ถ้าระบบพรินต์ใส่ Header มาให้แล้ว */
