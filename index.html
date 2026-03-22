@@ -476,21 +476,32 @@
                             </div>
                         </div>
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                            
-                            <button @click="openNursingChart(selectedPatient)" class="group bg-white border border-slate-200 p-6 rounded-[2rem] text-left shadow-sm hover:shadow-xl hover:bg-gradient-to-br hover:from-indigo-600 hover:to-blue-700 transition-all duration-300 relative overflow-hidden hover:-translate-y-1">
+    
+                            <button x-show="isAdult" @click="openNursingChart(selectedPatient)" class="group bg-white border border-slate-200 p-6 rounded-[2rem] text-left shadow-sm hover:shadow-xl hover:bg-gradient-to-br hover:from-indigo-600 hover:to-blue-700 transition-all duration-300 relative overflow-hidden hover:-translate-y-1">
                                 <i class="fa-solid fa-clipboard-check absolute -right-4 -bottom-4 text-slate-100 group-hover:text-white/10 text-8xl rotate-12 transition-colors duration-300"></i>
                                 <span class="relative z-10 text-slate-400 group-hover:text-indigo-100 text-[10px] font-black tracking-widest uppercase transition-colors duration-300">FR-IPD-004</span>
                                 <h5 class="relative z-10 text-slate-700 group-hover:text-white text-lg font-black mt-1 transition-colors duration-300">แบบประเมินประวัติและ<br>สมรรถนะแรกรับ</h5>
                             </button>
+                        
+                            <button x-show="!isAdult" @click="openNursingChart(selectedPatient); currentForm = activeForms.find(f => f.id === 'assess_initial_ped'); viewMode = 'chart'" class="group bg-white border border-slate-200 p-6 rounded-[2rem] text-left shadow-sm hover:shadow-xl hover:bg-gradient-to-br hover:from-pink-500 hover:to-rose-600 transition-all duration-300 relative overflow-hidden hover:-translate-y-1">
+                                <i class="fa-solid fa-baby absolute -right-4 -bottom-4 text-slate-100 group-hover:text-white/10 text-8xl rotate-12 transition-colors duration-300"></i>
+                                <span class="relative z-10 text-slate-400 group-hover:text-pink-100 text-[10px] font-black tracking-widest uppercase transition-colors duration-300">FR-PED-001</span>
+                                <h5 class="relative z-10 text-slate-700 group-hover:text-white text-lg font-black mt-1 transition-colors duration-300">แบบประเมินสภาพ<br>ผู้ป่วยเด็กแรกรับ</h5>
+                            </button>
                             
                             <template x-for="f in activeForms.slice(1)" :key="f.id">
-                                <button @click="selectedPatient = selectedPatient; currentForm = f; viewMode = 'chart'" class="group bg-white border border-slate-200 p-6 rounded-[2rem] text-left shadow-sm hover:shadow-xl hover:bg-gradient-to-br hover:from-indigo-600 hover:to-blue-700 transition-all duration-300 relative overflow-hidden hover:-translate-y-1">
+                                <button x-show="
+                                        (isAdult && !['assess_initial_ped', 'patient_class_ped'].includes(f.id)) || 
+                                        (!isAdult && !['assess_initial', 'patient_class', 'fall_risk', 'braden_scale'].includes(f.id))
+                                    "
+                                    @click="selectedPatient = selectedPatient; currentForm = f; viewMode = 'chart'; if(f.id === 'patient_class_ped') loadClassifications(selectedPatient.an);" 
+                                    class="group bg-white border border-slate-200 p-6 rounded-[2rem] text-left shadow-sm hover:shadow-xl hover:bg-gradient-to-br hover:from-indigo-600 hover:to-blue-700 transition-all duration-300 relative overflow-hidden hover:-translate-y-1">
                                     <i :class="f.icon ? 'fa-solid ' + f.icon : 'fa-solid fa-file-medical'" class="absolute -right-4 -bottom-4 text-slate-100 group-hover:text-white/10 text-8xl rotate-12 transition-colors duration-300"></i>
                                     <span class="relative z-10 text-slate-400 group-hover:text-indigo-100 text-[10px] font-black tracking-widest uppercase transition-colors duration-300" x-text="f.id"></span>
                                     <h5 class="relative z-10 text-slate-700 group-hover:text-white text-lg font-black mt-1 transition-colors duration-300" x-text="f.title"></h5>
                                 </button>
                             </template>
-
+                        
                         </div>
                     </div>
                 </div>
