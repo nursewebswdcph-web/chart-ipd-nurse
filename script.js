@@ -1365,28 +1365,30 @@ function nurseApp() {
 
         // 3. ระบบพิมพ์เอกสารเด็ก A4
         printPedClassRecord() {
-            // 🔴 แก้ไขจุดที่ 1: เปลี่ยนตัวแปรตัวพิมพ์ใหญ่ให้เป็นตัวพิมพ์เล็กให้ตรงกับ API (เช่น classHistoryPed เป็น classhistoryped)
+            // 1. ตรวจสอบข้อมูล
             if (!this.classHistoryPed || this.classHistoryPed.length === 0) {
                 return this.showAlert('แจ้งเตือน', 'ยังไม่มีประวัติการประเมินเพื่อพิมพ์');
             }
-
+        
             const p = this.selectedPatient;
+            const wardName = this.currentWard || '-';
             
-            // 🔴 แก้ไขจุดที่ 2: เปลี่ยน d.date และ d.shift ให้เป็นตัวพิมพ์เล็กทั้งหมด (d.date, d.shift)
-            const shiftOrder = { 'เช้า': 1, 'บ่าย': 2, 'ดึก': 3 };
+            // 2. จัดเรียงข้อมูลตามวันที่ และเรียงเวร (ดึก -> เช้า -> บ่าย)
+            const shiftOrder = { 'ดึก': 1, 'เช้า': 2, 'บ่าย': 3 };
             const sortedData = [...this.classHistoryPed].sort((a, b) => {
                 const dateA = new Date(a.date).getTime();
                 const dateB = new Date(b.date).getTime();
                 if (dateA !== dateB) return dateA - dateB;
                 return (shiftOrder[a.shift] || 9) - (shiftOrder[b.shift] || 9);
             });
-
-            const columnsPerPage = 7;
+        
+            // 3. ตั้งค่าหน้ากระดาษ (15 คอลัมน์ต่อหน้า = 5 วัน)
+            const columnsPerPage = 15;
             const pages = [];
             for (let i = 0; i < sortedData.length; i += columnsPerPage) {
                 pages.push(sortedData.slice(i, i + columnsPerPage));
             }
-
+        
             const topics = [
                 { id: 'item1', title: '1.1 การดูดนมและรับประทานอาหาร' },
                 { id: 'item2', title: '1.2 การดูแลสุขอนามัยส่วนบุคคล' },
@@ -1397,142 +1399,136 @@ function nurseApp() {
                 { id: 'item7', title: '2.3 การช่วยเหลือด้านการหายใจ' },
                 { id: 'item8', title: '3.1 สภาพอาการทั่วไป' },
                 { id: 'item9', title: '3.2 การสังเกตสัญญาณชีพและเครื่องวัดอื่นๆ' },
-                { id: 'item10', title: '4. การสอนและการประคับประคองจิตใจ (ผู้ป่วยเด็กและครอบครัว)' }
+                { id: 'item10', title: '4. การสอนและการประคับประคองจิตใจ' }
             ];
-
+        
             let printContent = `
             <html>
             <head>
-                <title>แบบบันทึกการจำแนกประเภทผู้ป่วยเด็ก</title>
+                <title>Print Classification Ped</title>
                 <style>
-                    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700;900&display=swap');
-                    body { font-family: 'Sarabun', sans-serif; font-size: 10pt; margin: 0; padding: 0; color: #000; }
-                    .a4-page { width: 210mm; height: 296mm; margin: 0 auto; padding: 15mm 15mm 25mm 15mm; position: relative; box-sizing: border-box; page-break-after: always; }
-                    .header-right { position: absolute; top: 10mm; right: 15mm; text-align: right; font-size: 8pt; font-weight: bold; line-height: 1.2; }
-                    .main-title { text-align: center; font-weight: 900; font-size: 14pt; margin-top: 10px; margin-bottom: 15px; }
+                    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap');
+                    body { font-family: 'Sarabun', sans-serif; font-size: 9pt; margin: 0; padding: 0; }
+                    .a4-page { width: 297mm; height: 210mm; margin: 0 auto; padding: 10mm; position: relative; box-sizing: border-box; page-break-after: always; background: white; }
+                    .header-info { text-align: center; margin-bottom: 10px; }
+                    .header-title-1 { font-size: 14pt; font-weight: bold; }
+                    .header-title-2 { font-size: 12pt; font-weight: bold; }
+                    .admit-info { text-align: center; margin-bottom: 10px; font-size: 10pt; }
                     
-                    table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 9.5pt; }
-                    th, td { border: 1px solid #000; padding: 4px 6px; text-align: center; vertical-align: middle; }
-                    th { background-color: #f8f9fa; font-weight: bold; }
-                    .text-left { text-align: left; }
-                    .bg-gray { background-color: #e9ecef; font-weight: bold; text-align: left; }
+                    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+                    th, td { border: 1px solid #000; padding: 2px; text-align: center; overflow: hidden; }
+                    .col-title { width: 180px; text-align: left; padding-left: 5px; font-weight: bold; }
+                    .bg-gray { background-color: #eee; font-weight: bold; text-align: left; padding-left: 5px; }
                     
-                    .fixed-footer-container { position: absolute; bottom: 5mm; left: 15mm; right: 15mm; display: flex; flex-direction: column; gap: 8px; }
-                    .patient-box-container { display: flex; justify-content: flex-end; width: 100%; }
-                    .print-patient-box { width: max-content; border: 1px solid #000; border-radius: 4px; padding: 6px 12px; font-size: 9pt !important; background: #fff; }
+                    .footer-container { position: absolute; bottom: 10mm; left: 10mm; right: 10mm; }
+                    .patient-box { border: 1px solid #000; padding: 8px; border-radius: 5px; display: inline-block; float: right; font-size: 9pt; }
+                    .system-footer { clear: both; font-size: 8pt; color: #666; margin-top: 10px; border-top: 1px solid #ccc; padding-top: 5px; }
                     
-                    @media print {
-                        @page { size: A4; margin: 0; }
-                        body { background: #fff; -webkit-print-color-adjust: exact; }
+                    @media print { 
+                        body { background: none; }
+                        .a4-page { margin: 0; border: none; }
                     }
                 </style>
             </head>
             <body>`;
-
+        
             pages.forEach((pageData, pageIndex) => {
                 printContent += `
                 <div class="a4-page">
-                    <div class="header-right">
-                        <div>Echart-ipd-nurse</div>
-                        <div>Classification-PED-Form หน้า ${pageIndex + 1}</div>
+                    <div style="float:right; font-size:8pt;">หน้า ${pageIndex + 1}/${pages.length}</div>
+                    <div class="header-info">
+                        <div class="header-title-1">แบบบันทึกการจำแนกประเภทผู้ป่วยเด็ก หอผู้ป่วย ${wardName}</div>
+                        <div class="header-title-2">กลุ่มการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน</div>
                     </div>
-                    
-                    <div class="main-title">แบบบันทึกการจำแนกประเภทผู้ป่วยเด็ก โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน</div>
-                    
+        
+                    <div class="admit-info">
+                        วันที่รับใหม่: <b>${this.formatThaiDateShort(p?.admitDate) || '-'}</b> &nbsp;&nbsp;&nbsp; 
+                        วันที่จำหน่าย: <b>${this.formatThaiDateShort(this.savedAssessmentPed?.dischargeDate) || '-'}</b>
+                    </div>
+        
                     <table>
                         <thead>
                             <tr>
-                                <th class="text-left" style="width: 35%;">วันที่ประเมิน</th>
-                                ${pageData.map(d => `<th>${this.formatThaiDateShort(d.date)}</th>`).join('')}
+                                <th class="col-title">วันที่ประเมิน</th>
+                                ${pageData.map(d => `<th style="font-size:8pt;">${this.formatThaiDateShort(d.date)}</th>`).join('')}
                                 ${Array(columnsPerPage - pageData.length).fill('<th></th>').join('')}
                             </tr>
                             <tr>
-                                <th class="text-left">เวร (เช้า/บ่าย/ดึก)</th>
-                                ${pageData.map(d => `<th>${d.shift}</th>`).join('')}
+                                <th class="col-title">เวร</th>
+                                ${pageData.map(d => `<th style="font-size:8pt;">${d.shift}</th>`).join('')}
                                 ${Array(columnsPerPage - pageData.length).fill('<th></th>').join('')}
                             </tr>
                         </thead>
                         <tbody>
-                            <tr><td colspan="${columnsPerPage + 1}" class="bg-gray">1. การดูแลเกี่ยวกับกิจวัตรประจำวัน</td></tr>
+                            <tr><td class="bg-gray" colspan="${columnsPerPage + 1}">1. การดูแลเกี่ยวกับกิจวัตรประจำวัน</td></tr>
                             ${topics.slice(0, 4).map(t => `
                             <tr>
-                                <td class="text-left">${t.title}</td>
+                                <td class="col-title">${t.title}</td>
                                 ${pageData.map(d => `<td>${(JSON.parse(d.formdata || '{}')[t.id]) || '-'}</td>`).join('')}
                                 ${Array(columnsPerPage - pageData.length).fill('<td></td>').join('')}
                             </tr>`).join('')}
-
-                            <tr><td colspan="${columnsPerPage + 1}" class="bg-gray">2. การได้รับยาและการปฏิบัติการพยาบาล</td></tr>
+                            
+                            <tr><td class="bg-gray" colspan="${columnsPerPage + 1}">2. การได้รับยาและการปฏิบัติการพยาบาล</td></tr>
                             ${topics.slice(4, 7).map(t => `
                             <tr>
-                                <td class="text-left">${t.title}</td>
+                                <td class="col-title">${t.title}</td>
                                 ${pageData.map(d => `<td>${(JSON.parse(d.formdata || '{}')[t.id]) || '-'}</td>`).join('')}
                                 ${Array(columnsPerPage - pageData.length).fill('<td></td>').join('')}
                             </tr>`).join('')}
-
-                            <tr><td colspan="${columnsPerPage + 1}" class="bg-gray">3. การประเมินสภาพอาการการสังเกตสัญญาณชีพและเครื่องตรวจวัดต่างๆ</td></tr>
+        
+                            <tr><td class="bg-gray" colspan="${columnsPerPage + 1}">3. การประเมินสภาพอาการ/สัญญาณชีพ</td></tr>
                             ${topics.slice(7, 9).map(t => `
                             <tr>
-                                <td class="text-left">${t.title}</td>
+                                <td class="col-title">${t.title}</td>
                                 ${pageData.map(d => `<td>${(JSON.parse(d.formdata || '{}')[t.id]) || '-'}</td>`).join('')}
                                 ${Array(columnsPerPage - pageData.length).fill('<td></td>').join('')}
                             </tr>`).join('')}
-
-                            <tr><td colspan="${columnsPerPage + 1}" class="bg-gray text-left">${topics[9].title}</td></tr>
+        
+                            <tr><td class="bg-gray" colspan="${columnsPerPage + 1}">4. การสอนและการประคับประคองจิตใจ</td></tr>
                             <tr>
-                                <td class="text-left">คะแนนส่วนที่ 4</td>
+                                <td class="col-title">คะแนนส่วนที่ 4</td>
                                 ${pageData.map(d => `<td>${(JSON.parse(d.formdata || '{}')[topics[9].id]) || '-'}</td>`).join('')}
                                 ${Array(columnsPerPage - pageData.length).fill('<td></td>').join('')}
                             </tr>
-
-                            <tr>
-                                <th class="text-left">รวมคะแนน (10 ข้อ)</th>
-                                ${pageData.map(d => `<th>${d.score}</th>`).join('')}
-                                ${Array(columnsPerPage - pageData.length).fill('<th></th>').join('')}
+                            
+                            <tr style="font-weight:bold; background:#f9f9f9;">
+                                <td class="col-title">รวมคะแนน</td>
+                                ${pageData.map(d => `<td>${d.score}</td>`).join('')}
+                                ${Array(columnsPerPage - pageData.length).fill('<td></td>').join('')}
                             </tr>
-                            <tr>
-                                <th class="text-left">ประเภทผู้ป่วย (Type 1-5)</th>
+                            <tr style="font-weight:bold;">
+                                <td class="col-title">ประเภทผู้ป่วย (Type 1-5)</td>
                                 ${pageData.map(d => {
-                                    // 🔴 แก้ไขจุดที่ 3: ดึงประเภทโดยใช้ d.classtype ตัวพิมพ์เล็ก
-                                    const typeMatch = String(d.classtype || '').match(/ประเภท\s*(\d)/);
-                                    const typeNum = typeMatch ? typeMatch[1] : '-';
-                                    return `<th>Type ${typeNum}</th>`;
+                                    const typeNum = String(d.classtype || '').match(/\d/)?.[0] || '-';
+                                    return `<td>Type ${typeNum}</td>`;
                                 }).join('')}
-                                ${Array(columnsPerPage - pageData.length).fill('<th></th>').join('')}
+                                ${Array(columnsPerPage - pageData.length).fill('<td></td>').join('')}
                             </tr>
                             <tr>
-                                <th class="text-left">ผู้ประเมิน</th>
-                                ${pageData.map(d => `<td style="font-size:8pt;">${d.assessor}</td>`).join('')}
+                                <td class="col-title">ผู้ประเมิน (ชื่อ-สกุล)</td>
+                                ${pageData.map(d => `<td style="font-size:7pt; word-break:break-all;">${d.assessor}</td>`).join('')}
                                 ${Array(columnsPerPage - pageData.length).fill('<td></td>').join('')}
                             </tr>
                         </tbody>
                     </table>
-
-                    <div style="font-size: 8.5pt; line-height: 1.4; margin-top:10px;">
-                        <b>เกณฑ์การจำแนกประเภท:</b> &nbsp;&nbsp; 
-                        <b>ประเภท 5 หนักมาก (Need ICU):</b> 34-40 คะแนน | 
-                        <b>ประเภท 4 หนัก (Modified Intensive Care) :</b> 28-33 คะแนน | 
-                        <b>ประเภท 3 หนักปานกลาง (Intensive Care):</b> 22-27 คะแนน | 
-                        <b>ประเภท 2 เจ็บป่วยเล็กน้อย (Minimum Care) :</b> 16-21 คะแนน | 
-                        <b>ประเภท 1 ผู้ป่วยพักฟื้น (Self Care) :</b> ไม่เกิน 15 คะแนน
-                    </div>
-
-                    <div class="fixed-footer-container">
-                        <div class="patient-box-container">
-                            <div class="print-patient-box">
-                                <div><b>ชื่อ-สกุล:</b> ${p?.name || '-'} &nbsp; <b>อายุ:</b> ${p?.ageDisplay || '-'}</div>
-                                <div><b>HN:</b> ${p?.hn || '-'} &nbsp; <b>AN:</b> ${p?.an || '-'}</div>                
-                                <div><b>แพทย์เจ้าของไข้:</b> ${p?.doctor || '-'} &nbsp; <b>ตึก:</b> ${p?.ward || this.currentWard || '-'} &nbsp; <b>เตียง:</b> ${p?.bed || '-'}</div>
-                            </div>
+        
+                    <div class="footer-container">
+                        <div class="patient-box">
+                            <b>ชื่อ-สกุล:</b> ${p?.name || '-'} &nbsp; <b>อายุ:</b> ${p?.ageDisplay || '-'} <br>
+                            <b>HN:</b> ${p?.hn || '-'} &nbsp; <b>AN:</b> ${p?.an || '-'} &nbsp; <b>เตียง:</b> ${p?.bed || '-'}
+                        </div>
+                        <div class="system-footer">
+                            เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | ระบบบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
                         </div>
                     </div>
                 </div>`;
             });
-
+        
             printContent += `
                 <script>window.onload = () => { setTimeout(() => { window.print(); window.close(); }, 500); }</script>
             </body>
             </html>`;
-            
+        
             const printWindow = window.open('', '_blank');
             printWindow.document.write(printContent);
             printWindow.document.close();
