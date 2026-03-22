@@ -1207,18 +1207,18 @@ function nurseApp() {
         },
         // คำนวณคะแนนเด็กจาก Array 10 ช่อง
         calcPedScores(scoreArr) {
-            if (!scoreArr || !Array.isArray(scoreArr) || scoreArr.length === 0) return { total: '', category: '' };
+            if (!scoreArr || !Array.isArray(scoreArr)) return { total: '', category: '' };
             let total = 0;
-            let hasValue = false;
+            let count = 0;
             scoreArr.forEach(val => {
                 const num = parseInt(val);
                 if (!isNaN(num)) {
                     total += num;
-                    hasValue = true;
+                    count++;
                 }
             });
             
-            if (!hasValue) return { total: '', category: '' };
+            if (count === 0) return { total: '', category: '' };
             
             let cat = '';
             if (total >= 34) cat = 'ประเภท 5';
@@ -1232,20 +1232,37 @@ function nurseApp() {
 
         // บันทึกคะแนนเด็ก (แยก Shift)
         async savePedShiftClassification(date, shift) {
+            // 1. เช็คความปลอดภัยก่อนว่ามีคนไข้ที่เลือกอยู่จริงไหม
+            if (!this.selectedPatient || (!this.selectedPatient.an && !this.selectedPatient.AN)) {
+                this.showAlert('Error', 'ไม่พบข้อมูลเลข AN ของผู้ป่วย กรุณาปิดและเปิดชาร์ตใหม่อีกครั้ง');
+                return;
+            }
+
+            // ดึงค่า AN ออกมาแบบชัวร์ๆ (รองรับทั้งตัวเล็กตัวใหญ่)
+            const currentAN = this.selectedPatient.an || this.selectedPatient.AN;
+
+            // 2. เช็คข้อมูลใน Grid
             const cell = this.gridData[date]?.[shift];
-            if (!cell || !cell.scores.some(s => s)) return this.showAlert('แจ้งเตือน', 'กรุณากรอกคะแนนอย่างน้อย 1 ช่อง');
+            if (!cell || !cell.scores || !cell.scores.some(s => s !== '' && s !== null)) {
+                this.showAlert('แจ้งเตือน', 'กรุณากรอกคะแนนอย่างน้อย 1 ช่องในเวร' + shift);
+                return;
+            }
             
             const result = this.calcPedScores(cell.scores);
-            if (!result.total) return this.showAlert('แจ้งเตือน', 'กรุณากรอกคะแนนให้ถูกต้อง');
+            if (!result.total) {
+                this.showAlert('แจ้งเตือน', 'ข้อมูลคะแนนไม่ถูกต้อง');
+                return;
+            }
             
+            // 3. จัดการชื่อผู้ประเมิน
             let finalAssessor = cell.assessor || this.searchNurse || this.nurseName || '';
             if (!finalAssessor) {
-                finalAssessor = prompt("กรุณาลงชื่อพยาบาลผู้ประเมิน:");
+                finalAssessor = prompt("กรุณาลงชื่อพยาบาลผู้ประเมิน สำหรับเวร " + shift + ":");
                 if (!finalAssessor) return;
                 cell.assessor = finalAssessor;
             }
 
-            // จัดรูปแบบ Data ให้เข้ากับ Backend ของเด็ก
+            // 4. เตรียมข้อมูลส่งไป Backend (แปลง Array เป็น Object ตามที่ชีตต้องการ)
             const formDataObj = {
                 item1: cell.scores[0] || '', item2: cell.scores[1] || '', item3: cell.scores[2] || '', item4: cell.scores[3] || '',
                 item5: cell.scores[4] || '', item6: cell.scores[5] || '', item7: cell.scores[6] || '',
@@ -1253,15 +1270,15 @@ function nurseApp() {
             };
 
             const payload = {
-                an: this.selectedPatient?.an,
-                ward: this.currentWard,
-                bed: this.selectedPatient?.bed,
+                an: currentAN,
+                ward: this.currentWard || this.selectedPatient.ward || '',
+                bed: this.selectedPatient.bed || '',
                 date: date,
                 shift: shift,
                 score: result.total,
                 classType: result.category,
                 assessor: finalAssessor,
-                formData: formDataObj // ส่งเป็น Object กลับไปให้เซิร์ฟเวอร์
+                formData: formDataObj
             };
             
             this.isLoading = true;
@@ -1275,12 +1292,14 @@ function nurseApp() {
                 if (res.status === 'success') {
                     this.showSuccess = true;
                     this.successMsg = `บันทึกเวร${shift} วันที่ ${this.formatThaiDateShort(date)} สำเร็จ`;
-                    setTimeout(() => this.showSuccess = false, 3000);
+                    setTimeout(() => this.showSuccess = false, 2000);
+                    // ไม่ต้องโหลดใหม่ทั้งหน้า แค่แสดง Success ก็พอ
                 } else {
                     this.showAlert('Error', res.message);
                 }
             } catch (e) {
-                this.showAlert('Error', e.message);
+                console.error("Save Ped Class Error:", e);
+                this.showAlert('Error', 'การส่งข้อมูลล้มเหลว: ' + e.message);
             } finally {
                 this.isLoading = false;
             }
