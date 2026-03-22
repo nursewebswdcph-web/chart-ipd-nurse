@@ -9,6 +9,8 @@ function nurseApp() {
         isEditing: false,
         nurses: [],
         showNurseListFor: null,
+        nurseName: '', 
+        nursePosition: '',
         showPrintDropdown: false,
         selectedPrintForms: [],
         showDischargeConfirm: false,
@@ -330,25 +332,32 @@ function nurseApp() {
                         if (formElement && !this.savedAssessment) {
                             formElement.reset(); 
                             
-                            // --- ดักจับแก้ปัญหา Error เวลา 1899-12-30 ---
-                            let cleanTime = patient.time || '';
+                            // --- ดักจับแก้ปัญหาตัวพิมพ์เล็ก-ใหญ่ และ Error 1899-12-30 ---
+                            const p = patient;
+                            let rawTime = p.time || p.Time || p.admitTime || p.AdmitTime || '';
+                            let rawDate = p.date || p.Date || p.admitDate || p.AdmitDate || '';
+                            let rFrom = p.receivedFrom || p.ReceivedFrom || p.received_from || p.admittedFrom || '';
+                            let refFrom = p.referFrom || p.ReferFrom || p.refer_from || p.Refer || '';
+                            let ccStr = p.cc || p.CC || p.chiefComplaint || '';
+                            let piStr = p.pi || p.PI || p.presentIllness || '';
+    
+                            let cleanTime = rawTime;
                             if (String(cleanTime).includes('T')) {
                                 cleanTime = String(cleanTime).split('T')[1].substring(0, 5);
                             } else if (String(cleanTime).includes('1899')) {
                                 cleanTime = ''; 
                             }
-
-                            let cleanDate = patient.date || '';
+    
+                            let cleanDate = rawDate;
                             if (String(cleanDate).includes('T')) cleanDate = String(cleanDate).split('T')[0];
-                            // ---------------------------------------
-
+    
                             const fields = {
                                 'AdmitDate': cleanDate,
                                 'AdmitTime': cleanTime,
-                                'AdmittedFrom': patient.receivedFrom,
-                                'Refer': patient.referFrom,
-                                'ChiefComplaint': patient.cc,
-                                'PresentIllness': patient.pi
+                                'AdmittedFrom': rFrom,
+                                'Refer': refFrom,
+                                'ChiefComplaint': ccStr,
+                                'PresentIllness': piStr
                             };
                             
                             Object.entries(fields).forEach(([id, val]) => {
@@ -453,26 +462,36 @@ function nurseApp() {
                     });
                 } else {
                     this.savedAssessmentPed = null;
-                    // Auto-fill ข้อมูลแรกรับและที่อยู่ตาม Requirement ข้อ 1, 4, 5, 10.4
+                    // Auto-fill ข้อมูลแรกรับและที่อยู่ตาม Requirement
                     this.$nextTick(() => {
                         const formElement = document.getElementById('assessment-form-ped');
                         if (formElement) {
                             formElement.reset(); 
-                            let cleanTime = this.selectedPatient?.time || '';
+                            
+                            // --- ดักจับตัวพิมพ์เล็ก/ใหญ่ เพื่อให้ดึงข้อมูลได้ 100% ---
+                            const p = this.selectedPatient;
+                            let rawTime = p.time || p.Time || p.admitTime || p.AdmitTime || '';
+                            let rawDate = p.date || p.Date || p.admitDate || p.AdmitDate || '';
+                            let rFrom = p.receivedFrom || p.ReceivedFrom || p.received_from || p.admittedFrom || p.AdmittedFrom || '';
+                            let refFrom = p.referFrom || p.ReferFrom || p.refer_from || p.Refer || '';
+                            let ccStr = p.cc || p.CC || p.chiefComplaint || '';
+                            let piStr = p.pi || p.PI || p.presentIllness || '';
+
+                            let cleanTime = rawTime;
                             if (String(cleanTime).includes('T')) cleanTime = String(cleanTime).split('T')[1].substring(0, 5); 
                             else if (String(cleanTime).includes('1899')) cleanTime = ''; 
                             
-                            let cleanDate = this.selectedPatient?.date || '';
+                            let cleanDate = rawDate;
                             if (String(cleanDate).includes('T')) cleanDate = String(cleanDate).split('T')[0];
                             
                             const fields = {
                                 'ped_AdmitDate': cleanDate,
                                 'ped_AdmitTime': cleanTime,
-                                'ped_AdmittedFrom': this.selectedPatient?.receivedFrom,
-                                'ped_Refer': this.selectedPatient?.referFrom,
-                                'ped_CC': this.selectedPatient?.cc,
-                                'ped_PI': this.selectedPatient?.pi,
-                                'ped_AddressHome': this.selectedPatient?.address || '' // ดึงที่อยู่
+                                'ped_AdmittedFrom': rFrom,
+                                'ped_Refer': refFrom,
+                                'ped_CC': ccStr,
+                                'ped_PI': piStr,
+                                'ped_AddressHome': p.address || p.Address || p.addressHome || '' 
                             };
                             Object.entries(fields).forEach(([id, val]) => {
                                 if (formElement.elements[id]) formElement.elements[id].value = val || '';
@@ -615,27 +634,61 @@ function nurseApp() {
             this.isEditing = true;
             
             try {
-                // คัดลอกข้อมูลจากคนไข้ที่เลือกมาใส่ฟอร์ม
-                this.form = { ...this.selectedPatient };
+                const p = this.selectedPatient;
                 
-                // จัดการรูปแบบวันเกิดให้แสดงผลในช่องกรอก (ถ้ามีข้อมูล)
-                if (this.selectedPatient.dob) {
-                    const dateObj = new Date(this.selectedPatient.dob);
-                    const d = String(dateObj.getDate()).padStart(2, '0');
-                    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-                    const y = dateObj.getFullYear() + 543;
-                    this.form.dobInput = `${d}/${m}/${y}`;
+                // 1. ดักจับตัวพิมพ์เล็ก-ใหญ่ และจัดการรูปแบบข้อมูล
+                let rawTime = p.time || p.Time || p.admitTime || p.AdmitTime || '';
+                let rawDate = p.date || p.Date || p.admitDate || p.AdmitDate || '';
+                let bedVal = p.bed || p.Bed || '';
+                
+                // 2. จัดการรูปแบบเวลาให้อยู่ในฟอร์แมต HH:mm เพื่อให้ช่อง type="time" แสดงผลได้
+                if (String(rawTime).includes('1899')) {
+                    rawTime = '';
+                } else if (String(rawTime).includes('T')) {
+                    rawTime = String(rawTime).split('T')[1].substring(0, 5);
+                }
+
+                // 3. จัดการรูปแบบวันที่ให้อยู่ในฟอร์แมต YYYY-MM-DD
+                if (String(rawDate).includes('T')) {
+                    rawDate = String(rawDate).split('T')[0];
+                }
+
+                // 4. คัดลอกข้อมูลและบังคับแปลงชื่อคอลัมน์ให้ตรงกับ x-model ใน HTML
+                this.form = { 
+                    ...p,
+                    bed: bedVal,
+                    time: rawTime,
+                    date: rawDate,
+                    receivedFrom: p.receivedFrom || p.ReceivedFrom || p.received_from || '',
+                    referFrom: p.referFrom || p.ReferFrom || p.refer_from || p.Refer || '',
+                    address: p.address || p.Address || p.addressHome || '',
+                    cc: p.cc || p.CC || p.chiefComplaint || '',
+                    pi: p.pi || p.PI || p.presentIllness || ''
+                };
+                
+                // 5. จัดการรูปแบบวันเกิดให้แสดงผลในช่องกรอก (แปลงเป็น พ.ศ.)
+                if (p.dob || p.DOB) {
+                    const dateObj = new Date(p.dob || p.DOB);
+                    if (!isNaN(dateObj)) {
+                        const d = String(dateObj.getDate()).padStart(2, '0');
+                        const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+                        const y = dateObj.getFullYear() + 543;
+                        this.form.dobInput = `${d}/${m}/${y}`;
+                    }
                 }
         
-                // โหลดเตียงว่าง และเพิ่มเตียงปัจจุบันของคนไข้เข้าไปในตัวเลือกด้วย
+                // 6. โหลดเตียงว่าง และเพิ่มเตียงปัจจุบันของคนไข้เข้าไปในตัวเลือก
                 const res = await fetch(`${this.API_URL}?action=getBeds&ward=${this.currentWard}`);
-                this.availableBeds = await res.json();
-                if (!this.availableBeds.includes(this.selectedPatient.bed)) {
-                    this.availableBeds.unshift(this.selectedPatient.bed);
+                let fetchedBeds = await res.json();
+                this.availableBeds = Array.isArray(fetchedBeds) ? fetchedBeds : [];
+                
+                if (bedVal && !this.availableBeds.includes(bedVal)) {
+                    this.availableBeds.unshift(bedVal);
                 }
                 
                 this.showAdmitModal = true;
             } catch (e) {
+                console.error("Edit Form Error:", e);
                 this.showAlert("Error", "ไม่สามารถโหลดข้อมูลเพื่อแก้ไขได้");
             } finally {
                 this.isLoading = false;
