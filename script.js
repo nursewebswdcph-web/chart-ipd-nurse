@@ -1104,6 +1104,49 @@ function nurseApp() {
                 this.isLoading = false;
             }
         },
+        async saveShiftClassification(date, shift) {
+            const cell = this.getGridCell(date, shift);
+            
+            // ตรวจสอบว่ามีการกรอกข้อมูลหรือยัง
+            if (!cell.scores.some(s => s !== "" && s !== null)) {
+                this.dialog = { show: true, type: 'alert', title: 'แจ้งเตือน', msg: 'กรุณากรอกคะแนนก่อนบันทึก' };
+                return;
+            }
+        
+            this.isLoading = true;
+            try {
+                const scoresResult = this.calcScores(cell.scores);
+                const payload = {
+                    action: 'saveClassificationSingle', // เรียกฟังก์ชันใหม่ที่บันทึกแถวเดียว
+                    an: this.selectedPatient.an,
+                    hn: this.selectedPatient.hn,
+                    ward: this.currentWard,
+                    evalDate: date,
+                    shift: shift,
+                    q1: cell.scores[0], q2: cell.scores[1], q3: cell.scores[2], q4: cell.scores[3],
+                    q5: cell.scores[4], q6: cell.scores[5], q7: cell.scores[6], q8: cell.scores[7],
+                    total: scoresResult.total,
+                    category: scoresResult.category,
+                    assessor: cell.assessor
+                };
+        
+                const response = await fetch(this.API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                const res = await response.json();
+        
+                if (res.status === 'success') {
+                    this.dialog = { show: true, type: 'alert', title: 'สำเร็จ', msg: `บันทึกข้อมูลเวร ${shift} ของวันที่ ${date} เรียบร้อยแล้ว` };
+                } else {
+                    throw new Error(res.message);
+                }
+            } catch (e) {
+                this.dialog = { show: true, type: 'alert', title: 'เกิดข้อผิดพลาด', msg: e.message };
+            } finally {
+                this.isLoading = false;
+            }
+        }
 
         // วันที่แบบย่อสำหรับใส่หัวตาราง
         formatThaiDateShort(dateStr) {
