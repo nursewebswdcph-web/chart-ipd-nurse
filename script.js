@@ -22,7 +22,8 @@ function nurseApp() {
         isAdult: true,
         currentForm: null, 
         showAssessmentPreview: false, 
-        savedAssessment: null,    
+        savedAssessment: null,
+        savedAssessmentPed: null,
         showBradenModal: false,
         showBradenGuidelineModal: false,
         showBradenSummaryModal: false,
@@ -294,16 +295,17 @@ function nurseApp() {
             this.isLoading = true;
             this.selectedPatient = patient;
             
-            // 1. ตรวจสอบกลุ่มอายุทันทีที่กดปุ่ม Chart เพื่อไม่ให้จำค่าคนเก่า
-            const patientAge = patient.age || patient.Age || patient.ageDisplay || "";
+            // 1. ตรวจสอบกลุ่มอายุทันทีที่กดปุ่ม Chart
+            const patientAge = patient.age || patient.Age || patient.ageDisplay || patient.agedisplay || "";
             this.isAdult = this.checkAgeGroup(patientAge);
             
-            // 2. ล้างข้อมูลเก่าของคนไข้คนก่อนหน้าทิ้งทันที
+            // 2. ล้างข้อมูลเก่าของคนไข้คนก่อนหน้าทิ้งให้หมด
             this.savedAssessment = null;
+            this.savedAssessmentPed = null; // ✅ ล้างค่าฟอร์มเด็กด้วย
             this.classHistory = []; 
             this.currentPageIndex = 0;
             
-            // 3. ตั้งค่าหน้าเริ่มต้นให้ตรงกับอายุ (เด็กเปิดฟอร์มเด็ก ผู้ใหญ่เปิดฟอร์มผู้ใหญ่)
+            // 3. ตั้งค่าหน้าเริ่มต้นให้ตรงกับอายุ
             const defaultFormId = this.isAdult ? 'assess_initial' : 'assess_initial_ped';
             this.currentForm = this.activeForms.find(f => f.id === defaultFormId);
             
@@ -311,42 +313,48 @@ function nurseApp() {
             window.scrollTo(0, 0);
 
             try {
-                // โหลดข้อมูล Form มารอไว้พร้อมกัน
-                await Promise.all([
-                    this.loadAssessmentData(patient.an),
-                    this.loadClassifications(patient.an)
-                ]);
+                // ✅ โหลดข้อมูล Form มารอไว้ (แยกผู้ใหญ่กับเด็ก)
+                const promisesToLoad = [this.loadClassifications(patient.an)];
+                if (this.isAdult) {
+                    promisesToLoad.push(this.loadAssessmentData(patient.an));
+                } else {
+                    promisesToLoad.push(this.loadAssessmentPedData(patient.an));
+                }
+
+                await Promise.all(promisesToLoad);
                 
                 this.$nextTick(() => {
-                    // อ้างอิง ID ของฟอร์มให้ตรงกับกลุ่มอายุ
-                    const formElement = document.getElementById(this.isAdult ? 'assessment-form-v2' : 'assessment-form-ped');
-                    if (formElement && !this.savedAssessment) {
-                        formElement.reset(); 
-                        
-                        // --- ดักจับแก้ปัญหา Error เวลา 1899-12-30 ---
-                        let cleanTime = patient.time || '';
-                        if (String(cleanTime).includes('T')) {
-                            cleanTime = String(cleanTime).split('T')[1].substring(0, 5); // ตัดเอาแค่ HH:mm
-                        } else if (String(cleanTime).includes('1899')) {
-                            cleanTime = ''; // ถ้าเจอปี 1899 ให้เคลียร์เป็นช่องว่างเลย
+                    // ✅ ระบบ Auto-fill ข้อมูลแรกรับ (ให้ทำงานเฉพาะผู้ใหญ่ เพราะของเด็กเราใส่ไว้ใน loadAssessmentPedData แล้ว)
+                    if (this.isAdult) {
+                        const formElement = document.getElementById('assessment-form-v2');
+                        if (formElement && !this.savedAssessment) {
+                            formElement.reset(); 
+                            
+                            // --- ดักจับแก้ปัญหา Error เวลา 1899-12-30 ---
+                            let cleanTime = patient.time || '';
+                            if (String(cleanTime).includes('T')) {
+                                cleanTime = String(cleanTime).split('T')[1].substring(0, 5);
+                            } else if (String(cleanTime).includes('1899')) {
+                                cleanTime = ''; 
+                            }
+
+                            let cleanDate = patient.date || '';
+                            if (String(cleanDate).includes('T')) cleanDate = String(cleanDate).split('T')[0];
+                            // ---------------------------------------
+
+                            const fields = {
+                                'AdmitDate': cleanDate,
+                                'AdmitTime': cleanTime,
+                                'AdmittedFrom': patient.receivedFrom,
+                                'Refer': patient.referFrom,
+                                'ChiefComplaint': patient.cc,
+                                'PresentIllness': patient.pi
+                            };
+                            
+                            Object.entries(fields).forEach(([id, val]) => {
+                                if (formElement.elements[id]) formElement.elements[id].value = val || '';
+                            });
                         }
-
-                        let cleanDate = patient.date || '';
-                        if (String(cleanDate).includes('T')) cleanDate = String(cleanDate).split('T')[0];
-                        // ---------------------------------------
-
-                        const fields = {
-                            'AdmitDate': cleanDate,
-                            'AdmitTime': cleanTime,
-                            'AdmittedFrom': patient.receivedFrom,
-                            'Refer': patient.referFrom,
-                            'ChiefComplaint': patient.cc,
-                            'PresentIllness': patient.pi
-                        };
-                        
-                        Object.entries(fields).forEach(([id, val]) => {
-                            if (formElement.elements[id]) formElement.elements[id].value = val || '';
-                        });
                     }
                 });
             } catch (e) {
@@ -399,6 +407,113 @@ function nurseApp() {
                             this.printAssessment();
                         });
                     }
+                }
+            } catch (error) {
+                this.showAlert('Error', 'เกิดข้อผิดพลาด: ' + error.message);
+            } finally {
+                this.isLoading = false;
+            }
+        },
+        async loadAssessmentPedData(an) {
+            this.isLoading = true;
+            try {
+                const response = await fetch(`${this.API_URL}?action=getAssessmentPed&an=${an}`);
+                const data = await response.json();
+        
+                if (data && Object.keys(data).length > 0) {
+                    this.savedAssessmentPed = data;
+                    this.$nextTick(() => {
+                        setTimeout(() => {
+                            const form = document.getElementById('assessment-form-ped');
+                            if (form) {
+                                Object.keys(data).forEach(key => {
+                                    const el = form.elements[key];
+                                    if (!el) return;
+                                    
+                                    if (el.length && el.tagName !== 'SELECT') {
+                                        Array.from(el).forEach(inputNode => {
+                                            if (inputNode.type === 'radio') {
+                                                inputNode.checked = (inputNode.value === data[key]);
+                                            } else if (inputNode.type === 'checkbox') {
+                                                const savedValues = data[key] ? data[key].toString().split(',').map(v => v.trim()) : [];
+                                                inputNode.checked = savedValues.includes(inputNode.value);
+                                            }
+                                        });
+                                    } else {
+                                        if (el.type === 'checkbox') {
+                                            el.checked = (data[key] === 'on' || data[key] === true || data[key] === el.value);
+                                        } else {
+                                            el.value = data[key];
+                                            if (typeof el.dispatchEvent === 'function') el.dispatchEvent(new Event('input')); 
+                                        }
+                                    }
+                                });
+                            }
+                        }, 100);
+                    });
+                } else {
+                    this.savedAssessmentPed = null;
+                    // Auto-fill ข้อมูลแรกรับและที่อยู่ตาม Requirement ข้อ 1, 4, 5, 10.4
+                    this.$nextTick(() => {
+                        const formElement = document.getElementById('assessment-form-ped');
+                        if (formElement) {
+                            formElement.reset(); 
+                            let cleanTime = this.selectedPatient?.time || '';
+                            if (String(cleanTime).includes('T')) cleanTime = String(cleanTime).split('T')[1].substring(0, 5); 
+                            else if (String(cleanTime).includes('1899')) cleanTime = ''; 
+                            
+                            let cleanDate = this.selectedPatient?.date || '';
+                            if (String(cleanDate).includes('T')) cleanDate = String(cleanDate).split('T')[0];
+                            
+                            const fields = {
+                                'ped_AdmitDate': cleanDate,
+                                'ped_AdmitTime': cleanTime,
+                                'ped_AdmittedFrom': this.selectedPatient?.receivedFrom,
+                                'ped_Refer': this.selectedPatient?.referFrom,
+                                'ped_CC': this.selectedPatient?.cc,
+                                'ped_PI': this.selectedPatient?.pi,
+                                'ped_AddressHome': this.selectedPatient?.address || '' // ดึงที่อยู่
+                            };
+                            Object.entries(fields).forEach(([id, val]) => {
+                                if (formElement.elements[id]) formElement.elements[id].value = val || '';
+                            });
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error("Error loading ped assessment:", err);
+                this.savedAssessmentPed = null;
+            } finally {
+                this.isLoading = false;
+            }
+        },
+
+        async saveAssessmentPedData() {
+            const formElement = document.getElementById('assessment-form-ped');
+            if (!formElement) return this.showAlert('Error', 'ไม่พบฟอร์มข้อมูล');
+        
+            const formData = new FormData(formElement);
+            const data = {};
+            formData.forEach((value, key) => {
+                if (!data[key]) { data[key] = value; return; }
+                if (!Array.isArray(data[key])) { data[key] = [data[key]]; }
+                data[key].push(value);
+            });
+        
+            this.isLoading = true;
+            try {
+                const payload = { an: this.selectedPatient?.an, formData: data, ward: this.currentWard, bed: this.selectedPatient?.bed };
+                const res = await fetch(this.API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'saveAssessmentPed', payload: payload })
+                });
+                const result = await res.json();
+                
+                if (result.status === 'success') {
+                    this.successMsg = result.message;
+                    this.showSuccess = true;
+                    setTimeout(() => this.showSuccess = false, 3000);
+                    this.savedAssessmentPed = { ...data };
                 }
             } catch (error) {
                 this.showAlert('Error', 'เกิดข้อผิดพลาด: ' + error.message);
@@ -662,7 +777,7 @@ function nurseApp() {
             if (!p) return;
             this.selectedPatient = p;
             
-            // --- เพิ่มส่วนนี้เพื่อให้ตรวจสอบอายุทุกครั้งที่คลิกดูรายละเอียด ---
+            // --- ตรวจสอบอายุทุกครั้งที่คลิกดูรายละเอียด ---
             const patientAge = p.age || p.Age || p.ageDisplay || p.agedisplay || "";
             this.isAdult = this.checkAgeGroup(patientAge);
             
@@ -676,7 +791,13 @@ function nurseApp() {
             // โหลดข้อมูลประวัติเบื้องต้น
             const an = p.an || p.AN;
             if (an) {
-                this.loadAssessmentData(an);
+                // ✅ แยกการโหลดข้อมูลแรกรับ ตามอายุ (ผู้ใหญ่ / เด็ก)
+                if (this.isAdult) {
+                    this.loadAssessmentData(an);
+                } else {
+                    this.loadAssessmentPedData(an);
+                }
+                
                 this.loadClassifications(an);
                 this.loadFallRisk(an);
                 this.loadBraden(an);
