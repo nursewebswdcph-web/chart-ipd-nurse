@@ -444,24 +444,22 @@ function nurseApp() {
                                         if (el.type === 'checkbox') {
                                             el.checked = (data[key] === 'on' || data[key] === true || data[key] === el.value);
                                         } else {
+                                            // --- ส่วนที่แก้ไขเพื่อดักจับ Error 1899-12-30 ---
                                             let val = data[key];
                                             
-                                            // --- ดักจับแก้ปัญหา 1899-12-30 สำหรับข้อมูลที่ดึงกลับมา ---
-                                            if (val && String(val).includes('1899-12-30')) {
-                                                if (el.type === 'time') {
-                                                    const parts = String(val).split('T');
-                                                    val = parts.length > 1 ? parts[1].substring(0, 5) : '';
-                                                } else {
-                                                    val = ''; 
-                                                }
-                                            } else if (el.type === 'time' && val && String(val).includes('T')) {
-                                                val = String(val).split('T')[1].substring(0, 5);
-                                            } else if (el.type === 'date' && val && String(val).includes('T')) {
+                                            // ถ้าเป็นช่องเวลา (Time) แล้วเจอค่า 1899 ให้ล้างออก หรือตัดเอาเฉพาะเวลา
+                                            if (el.type === 'time' && val && String(val).includes('1899-12-30')) {
+                                                const parts = String(val).split('T');
+                                                val = parts.length > 1 ? parts[1].substring(0, 5) : ''; 
+                                            } 
+                                            // ถ้าเป็นช่องวันที่ (Date) แล้วมี T ต่อท้าย ให้ตัดเอาแค่ YYYY-MM-DD
+                                            else if (el.type === 'date' && val && String(val).includes('T')) {
                                                 val = String(val).split('T')[0];
                                             }
-                                            // ------------------------------------------------
-
+                                            
                                             el.value = val;
+                                            // ---------------------------------------------
+                                    
                                             if (typeof el.dispatchEvent === 'function') {
                                                 el.dispatchEvent(new Event('input')); 
                                             }
@@ -642,20 +640,21 @@ function nurseApp() {
         
         // 1. เพิ่มฟังก์ชันเช็คอายุเด็ก/ผู้ใหญ่
         checkAgeGroup(ageStr) {
-            if (!ageStr) return true; // ถ้าไม่มีข้อมูล ให้ถือว่าเป็นผู้ใหญ่ไว้ก่อน
+            if (!ageStr || ageStr === "undefined") return true; // ถ้าไม่มีข้อมูล ให้ถือว่าเป็นผู้ใหญ่
             
             const StringAge = String(ageStr);
             const match = StringAge.match(/\d+/);
             const ageNum = match ? parseInt(match[0], 10) : 0;
-
+        
             const hasYear = StringAge.includes('ปี');
             const hasMonth = StringAge.includes('เดือน');
             const hasDay = StringAge.includes('วัน');
-
-            // ทารก/เด็กเล็ก (หน่วยเดือนหรือวัน แต่ไม่มีปี)
+        
+            // ถ้ามีคำว่า "เดือน" หรือ "วัน" แต่ไม่มีคำว่า "ปี" ถือว่าเป็นเด็กแน่นอน
             if ((hasMonth || hasDay) && !hasYear) return false; 
-
-            return ageNum > 15; // > 15 คือผู้ใหญ่ (15 ปีพอดี ถือว่าเป็นเด็ก)
+        
+            // ตามที่คุณระบุ: เด็กคือ 0-15 ปี ดังนั้น > 15 คือผู้ใหญ่
+            return ageNum > 15; 
         },
 
         // 2. ปรับปรุงฟังก์ชันเลือกผู้ป่วยให้เช็คอายุก่อนแสดงผล
@@ -663,18 +662,18 @@ function nurseApp() {
             if (!p) return;
             this.selectedPatient = p;
             
-            // ตรวจสอบอายุจากตัวแปรของคนไข้ (รองรับหลายชื่อคอลัมน์)
-            const patientAge = p.age || p.Age || p.ageDisplay || "";
+            // --- เพิ่มส่วนนี้เพื่อให้ตรวจสอบอายุทุกครั้งที่คลิกดูรายละเอียด ---
+            const patientAge = p.age || p.Age || p.ageDisplay || p.agedisplay || "";
             this.isAdult = this.checkAgeGroup(patientAge);
             
-            // เช็คสถานะใน Console เพื่อความชัวร์
-            console.log(`เลือก: ${p.name}, อายุ: ${patientAge}, เป็น: ${this.isAdult ? 'ผู้ใหญ่' : 'เด็ก'}`);
-
+            console.log(`ดูรายละเอียด: ${p.name}, อายุ: ${patientAge}, เป็น: ${this.isAdult ? 'ผู้ใหญ่' : 'เด็ก'}`);
+            // --------------------------------------------------------
+        
             this.viewMode = 'detail';
-            this.currentForm = null; // เคลียร์ฟอร์มเดิมทุกครั้งที่เปลี่ยนคนไข้
+            this.currentForm = null; 
             window.scrollTo({ top: 0, behavior: 'smooth' });
-            
-            // โหลดข้อมูลประวัติฟอร์มต่างๆ เบื้องต้น
+        
+            // โหลดข้อมูลประวัติเบื้องต้น
             const an = p.an || p.AN;
             if (an) {
                 this.loadAssessmentData(an);
