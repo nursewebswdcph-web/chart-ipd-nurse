@@ -541,7 +541,7 @@
                         </div>
                 
                         <nav class="space-y-1.5">
-                            <template x-for="form in activeForms" :key="form.id">                                
+                            <template x-for="form in activeForms" :key="form.id">
                                 <button x-show="
                                         (isAdult && !['assess_initial_ped', 'patient_class_ped'].includes(form.id)) || 
                                         (!isAdult && !['assess_initial', 'patient_class', 'fall_risk', 'braden_scale'].includes(form.id))
@@ -558,9 +558,7 @@
                                             <p class="text-[11px] text-slate-400 mt-1">คลิกเพื่อบันทึกข้อมูล</p>
                                         </div>
                                     </div>
-                            
                                 </button>                            
-                            
                             </template>
                     </div>
                 
