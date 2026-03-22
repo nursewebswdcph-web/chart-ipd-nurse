@@ -1148,20 +1148,16 @@ function nurseApp() {
         async loadClassifications(an) {
             this.isLoading = true;
             try {
+                this.gridData = {}; // ล้างข้อมูลเก่าเสมอ
+                
                 if (this.isAdult) {
-                    // -----------------------------------------
-                    // 1. โหลดข้อมูลการจำแนกประเภทผู้ป่วย "ผู้ใหญ่"
-                    // -----------------------------------------
+                    // โหลดผู้ใหญ่
                     const res = await fetch(`${this.API_URL}?action=getClassifications&an=${an}`);
                     this.classHistory = await res.json();
                     
-                    // ล้างข้อมูลเก่า
-                    this.gridData = {}; 
-                    
-                    // นำข้อมูลจากฐานข้อมูลมาใส่ใน Grid (ใช้รูปแบบเดิมของคุณ 100%)
                     if (this.classHistory && Array.isArray(this.classHistory)) {
                         this.classHistory.forEach(item => {
-                            if (!item.evalDate) return; // ป้องกัน Error หากไม่มีวันที่
+                            if (!item.evalDate) return; 
                             const dKey = typeof this.getLocalYYYYMMDD === 'function' ? this.getLocalYYYYMMDD(item.evalDate) : item.evalDate.split('T')[0];
                             if (!this.gridData[dKey]) this.gridData[dKey] = {};
                             this.gridData[dKey][item.shift] = {
@@ -1171,16 +1167,120 @@ function nurseApp() {
                         });
                     }
                 } else {
-                    // -----------------------------------------
-                    // 2. โหลดข้อมูลการจำแนกประเภทผู้ป่วย "เด็ก"
-                    // -----------------------------------------
+                    // โหลดเด็ก (ใช้โครงสร้างตาราง Grid เหมือนผู้ใหญ่แล้ว)
                     const res = await fetch(`${this.API_URL}?action=getClassificationsPed&an=${an}`);
-                    this.classHistoryPed = await res.json();
+                    const pedHistory = await res.json();
                     
-                    // ของเด็กเราเอา classHistoryPed ไปวนลูปสร้างตาราง (Table) ได้เลย ไม่ต้องแปลงเข้า gridData
+                    if (pedHistory && Array.isArray(pedHistory)) {
+                        pedHistory.forEach(item => {
+                            if (!item.date) return;
+                            const dKey = typeof this.getLocalYYYYMMDD === 'function' ? this.getLocalYYYYMMDD(item.date) : item.date.split('T')[0];
+                            if (!this.gridData[dKey]) this.gridData[dKey] = {};
+                            
+                            // จัดการ Array คะแนนให้อยู่ในรูปแบบเดียวกัน (10 ช่อง)
+                            let parsedScores = [];
+                            try {
+                                if (typeof item.formdata === 'string') {
+                                    const obj = JSON.parse(item.formdata);
+                                    parsedScores = [
+                                        obj.item1, obj.item2, obj.item3, obj.item4, 
+                                        obj.item5, obj.item6, obj.item7, 
+                                        obj.item8, obj.item9, obj.item10
+                                    ];
+                                } else {
+                                    parsedScores = item.scores || [];
+                                }
+                            } catch (e) { parsedScores = []; }
+
+                            this.gridData[dKey][item.shift] = {
+                                scores: parsedScores,
+                                assessor: item.assessor || ''
+                            };
+                        });
+                    }
                 }
             } catch (e) { 
                 console.error("Load Classifications Error:", e); 
+            } finally {
+                this.isLoading = false;
+            }
+        },
+        // คำนวณคะแนนเด็กจาก Array 10 ช่อง
+        calcPedScores(scoreArr) {
+            if (!scoreArr || !Array.isArray(scoreArr) || scoreArr.length === 0) return { total: '', category: '' };
+            let total = 0;
+            let hasValue = false;
+            scoreArr.forEach(val => {
+                const num = parseInt(val);
+                if (!isNaN(num)) {
+                    total += num;
+                    hasValue = true;
+                }
+            });
+            
+            if (!hasValue) return { total: '', category: '' };
+            
+            let cat = '';
+            if (total >= 34) cat = 'ประเภท 5';
+            else if (total >= 28) cat = 'ประเภท 4';
+            else if (total >= 22) cat = 'ประเภท 3';
+            else if (total >= 16) cat = 'ประเภท 2';
+            else if (total > 0) cat = 'ประเภท 1';
+            
+            return { total: total, category: cat };
+        },
+
+        // บันทึกคะแนนเด็ก (แยก Shift)
+        async savePedShiftClassification(date, shift) {
+            const cell = this.gridData[date]?.[shift];
+            if (!cell || !cell.scores.some(s => s)) return this.showAlert('แจ้งเตือน', 'กรุณากรอกคะแนนอย่างน้อย 1 ช่อง');
+            
+            const result = this.calcPedScores(cell.scores);
+            if (!result.total) return this.showAlert('แจ้งเตือน', 'กรุณากรอกคะแนนให้ถูกต้อง');
+            
+            let finalAssessor = cell.assessor || this.searchNurse || this.nurseName || '';
+            if (!finalAssessor) {
+                finalAssessor = prompt("กรุณาลงชื่อพยาบาลผู้ประเมิน:");
+                if (!finalAssessor) return;
+                cell.assessor = finalAssessor;
+            }
+
+            // จัดรูปแบบ Data ให้เข้ากับ Backend ของเด็ก
+            const formDataObj = {
+                item1: cell.scores[0] || '', item2: cell.scores[1] || '', item3: cell.scores[2] || '', item4: cell.scores[3] || '',
+                item5: cell.scores[4] || '', item6: cell.scores[5] || '', item7: cell.scores[6] || '',
+                item8: cell.scores[7] || '', item9: cell.scores[8] || '', item10: cell.scores[9] || ''
+            };
+
+            const payload = {
+                an: this.selectedPatient?.an,
+                ward: this.currentWard,
+                bed: this.selectedPatient?.bed,
+                date: date,
+                shift: shift,
+                score: result.total,
+                classType: result.category,
+                assessor: finalAssessor,
+                formData: formDataObj // ส่งเป็น Object กลับไปให้เซิร์ฟเวอร์
+            };
+            
+            this.isLoading = true;
+            try {
+                const response = await fetch(this.API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'saveClassificationPed', p: payload })
+                });
+                
+                const res = await response.json();
+                if (res.status === 'success') {
+                    this.showSuccess = true;
+                    this.successMsg = `บันทึกเวร${shift} วันที่ ${this.formatThaiDateShort(date)} สำเร็จ`;
+                    setTimeout(() => this.showSuccess = false, 3000);
+                } else {
+                    this.showAlert('Error', res.message);
+                }
+            } catch (e) {
+                this.showAlert('Error', e.message);
             } finally {
                 this.isLoading = false;
             }
