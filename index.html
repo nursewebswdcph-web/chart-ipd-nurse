@@ -541,27 +541,27 @@
                         </div>
                 
                         <nav class="space-y-1.5">
-                            <template x-for="form in activeForms" :key="form.id">
-                                <div x-show="
-                                    (isAdult && !['assess_initial_ped', 'patient_class_ped'].includes(form.id)) || 
-                                    (!isAdult && !['assess_initial', 'patient_class', 'fall_risk', 'braden_scale'].includes(form.id))
-                                ">
+                            <template x-for="form in activeForms" :key="form.id">                                
+                                <button x-show="
+                                        (isAdult && !['assess_initial_ped', 'patient_class_ped'].includes(form.id)) || 
+                                        (!isAdult && !['assess_initial', 'patient_class', 'fall_risk', 'braden_scale'].includes(form.id))
+                                    "
+                                    @click="openNursingChart(selectedPatient); selectForm(form)" 
+                                    class="bg-slate-50 border border-slate-200 p-4 rounded-2xl hover:bg-indigo-50 hover:border-indigo-200 transition-all text-left group w-full">
                                     
-                                    <button @click="openNursingChart(selectedPatient); selectForm(form)" 
-                                            class="bg-slate-50 border border-slate-200 p-4 rounded-2xl hover:bg-indigo-50 hover:border-indigo-200 transition-all text-left group">
-                                        <div class="flex items-center gap-4">
-                                            <div class="w-12 h-12 rounded-xl bg-white shadow-sm flex items-center justify-center text-indigo-500 group-hover:bg-indigo-600 group-hover:text-white transition-all">
-                                                <i class="fa-solid text-xl" :class="form.icon"></i>
-                                            </div>
-                                            <div>
-                                                <h3 class="font-bold text-slate-700 group-hover:text-indigo-700" x-text="form.title"></h3>
-                                                <p class="text-[11px] text-slate-400 mt-1">คลิกเพื่อบันทึกข้อมูล</p>
-                                            </div>
+                                    <div class="flex items-center gap-4">
+                                        <div class="shrink-0 w-12 h-12 rounded-xl bg-white shadow-sm flex items-center justify-center text-indigo-500 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                                            <i class="fa-solid text-xl" :class="form.icon"></i>
                                         </div>
-                                    </button>
+                                        <div>
+                                            <h3 class="font-bold text-slate-700 group-hover:text-indigo-700" x-text="form.title"></h3>
+                                            <p class="text-[11px] text-slate-400 mt-1">คลิกเพื่อบันทึกข้อมูล</p>
+                                        </div>
+                                    </div>
                             
-                                </div> </template>
-                        </nav>
+                                </button>                            
+                            
+                            </template>
                     </div>
                 
                     <div x-show="!isSidebarCollapsed" class="p-6 bg-slate-50 border-t border-slate-100" x-transition>
