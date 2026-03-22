@@ -1170,7 +1170,7 @@ function nurseApp() {
                     // โหลดเด็ก (ใช้โครงสร้างตาราง Grid เหมือนผู้ใหญ่แล้ว)
                     const res = await fetch(`${this.API_URL}?action=getClassificationsPed&an=${an}`);
                     const pedHistory = await res.json();
-                    
+                    this.classHistoryPed = pedHistory;
                     if (pedHistory && Array.isArray(pedHistory)) {
                         pedHistory.forEach(item => {
                             if (!item.date) return;
