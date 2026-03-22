@@ -1511,6 +1511,14 @@ function nurseApp() {
                             </tr>
                         </tbody>
                     </table>
+                    <div style="font-size: 8.5pt; line-height: 1.4; margin-top:10px;">
+                        <b>เกณฑ์การจำแนกประเภท:</b> &nbsp;&nbsp; <br>
+                        <b>ประเภท 5 หนักมาก (Need ICU):</b> 34-40 คะแนน <br>
+                        <b>ประเภท 4 หนัก (Modified Intensive Care) :</b> 28-33 คะแนน <br>
+                        <b>ประเภท 3 หนักปานกลาง (Intensive Care):</b> 22-27 คะแนน <br>
+                        <b>ประเภท 2 เจ็บป่วยเล็กน้อย (Minimum Care) :</b> 16-21 คะแนน <br>
+                        <b>ประเภท 1 ผู้ป่วยพักฟื้น (Self Care) :</b> ไม่เกิน 15 คะแนน
+                    </div>
         
                     <div class="footer-container">
                         <div class="patient-box">
