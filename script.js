@@ -1285,7 +1285,7 @@ function nurseApp() {
             try {
                 const response = await fetch(this.API_URL, {
                     method: 'POST',
-                    body: JSON.stringify({ action: 'saveClassificationPed', p: payload })
+                    body: JSON.stringify({ action: 'saveClassificationPed', payload: payload }) // 
                 });
                 
                 const res = await response.json();
@@ -1343,7 +1343,7 @@ function nurseApp() {
                 
                 const response = await fetch(this.API_URL, {
                     method: 'POST',
-                    body: JSON.stringify({ action: 'saveClassificationPed', p: payload })
+                    body: JSON.stringify({ action: 'saveClassificationPed', payload: payload }) 
                 });
                 
                 const res = await response.json();
