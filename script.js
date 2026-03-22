@@ -3,6 +3,7 @@ function nurseApp() {
         // --- 1. CONFIG & STATE ---
         API_URL: 'https://script.google.com/macros/s/AKfycbxqaydhsgGZKV8hz28qYUzsTVDl7c-DzgFZD9FDzcWE_uCnwIaJryjqiNQ2ggxOYn49/exec',
         isLoading: false,
+        isPrintingPed: false,
         realTimeClock: '',
         currentWard: null,
         viewMode: 'list', 
@@ -3813,5 +3814,435 @@ function nurseApp() {
                 this.isLoading = false;
             }
         },
-    };
+        
+        printPedAssessment() {
+            if (!this.savedAssessmentPed) {
+                this.dialog = { show: true, type: 'alert', title: 'แจ้งเตือน', msg: 'กรุณาบันทึกข้อมูลแบบประเมินอย่างน้อย 1 ครั้งก่อนสั่งพิมพ์' };
+                return;
+            }
+
+            const p = this.selectedPatient;
+            const d = this.savedAssessmentPed;
+
+            // ตัวช่วยแสดงข้อมูล (ถ้าไม่มีให้เป็นจุดไข่ปลา)
+            const v = (field, defaultDot = '.....................') => (d[field] ? d[field] : defaultDot);
+
+            // ตัวช่วยสำหรับ Checkbox/Radio (แสดงไอคอน ☑ หรือ ☐)
+            const ck = (field, val) => {
+                if (!d[field]) return '☐';
+                let isChecked = false;
+                if (Array.isArray(d[field])) isChecked = d[field].includes(val);
+                else if (typeof d[field] === 'string') isChecked = d[field].split(',').map(s=>s.trim()).includes(val);
+                else isChecked = (d[field] === val);
+                return isChecked ? '☑' : '☐';
+            };
+
+            const admitDateThai = p?.date ? this.formatThaiDateShort(p.date) : '-';
+
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+            <html>
+            <head>
+                <title>แบบประเมินสภาพผู้ป่วยเด็กแรกรับ (FR-PED-001)</title>
+                <style>
+                    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700;900&display=swap');
+                    body { font-family: 'Sarabun', sans-serif; font-size: 11pt; margin: 0; padding: 0; color: #000; background: #525659; }
+                    .a4-page { 
+                        width: 210mm; height: 296mm; margin: 8mm auto; 
+                        padding: 15mm 12mm 45mm 12mm; position: relative; box-sizing: border-box; 
+                        background: #fff; page-break-after: always; overflow: hidden;
+                    }
+                    .print-header-top-right { position: absolute; top: 10mm; right: 10mm; text-align: right; font-size: 10pt; font-weight: bold; line-height: 1.2; }
+                    .main-title { text-align: center; font-weight: 900; font-size: 16pt; margin-top: 5mm; margin-bottom: 5mm; }
+                    
+                    .content-section { font-size: 11pt; line-height: 1.4; margin-bottom: 5px; }
+                    .indent { padding-left: 20px; }
+                    .dot-line { border-bottom: 1px dotted #000; display: inline-block; min-width: 30px; }
+                    
+                    /* ตารางสำหรับข้อ 12 */
+                    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 11pt; }
+                    th, td { border: 1px solid #000; padding: 4px; text-align: left; }
+                    th { text-align: center; font-weight: bold; }
+                    .tc { text-align: center; }
+
+                    /* CSS Footer Fixed Container (เหมือนของผู้ใหญ่) */
+                    .fixed-footer-container { position: absolute; bottom: 5mm; left: 10mm; right: 10mm; display: flex; flex-direction: column; gap: 10px; }
+                    .patient-box-container { display: flex; justify-content: flex-end; width: 100%; }
+                    .print-patient-box { width: max-content; border: 1px solid #000; border-radius: 4px; padding: 6px 12px; font-size: 9pt !important; background: #fff; }
+                    .print-footer { width: 100%; text-align: center; font-size: 8pt !important; color: #444; border-top: 1px solid #ccc; padding-top: 8px; margin-top: auto; }
+                    .sign-box { text-align: center; margin-bottom: 15px; font-size: 11pt; }
+
+                    @media print {
+                        @page { size: A4; margin: 0; }
+                        body { background: #fff; -webkit-print-color-adjust: exact; }
+                        .a4-page { margin: 0; box-shadow: none; border: none; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="a4-page">
+                    <div class="print-header-top-right">
+                        <div>Echart-ipd-nurse</div>
+                        <div>FR-PED-001</div>
+                    </div>
+
+                    <div class="main-title">แบบประเมินสภาพผู้ป่วยเด็กแรกรับ</div>
+
+                    <div class="content-section">
+                        <b>1. วันที่รับผู้ป่วย:</b> <span class="dot-line">${v('ped_AdmitDate')}</span> 
+                        <b>เวลา:</b> <span class="dot-line">${v('ped_AdmitTime')}</span> น. 
+                        <b>รับผู้ป่วยจาก:</b> <span class="dot-line" style="min-width:100px;">${v('ped_AdmittedFrom')}</span> 
+                        <b>รับ Refer จาก:</b> <span class="dot-line" style="min-width:100px;">${v('ped_Refer')}</span>
+                    </div>
+
+                    <div class="content-section">
+                        <b>2. มาถึงหอผู้ป่วยโดย:</b> 
+                        ${ck('ped_ArriveBy', 'เดิน')} เดิน &nbsp;
+                        ${ck('ped_ArriveBy', 'รถนั่ง')} รถนั่ง &nbsp;
+                        ${ck('ped_ArriveBy', 'เปลนอน')} เปลนอน &nbsp;
+                        ${ck('ped_ArriveBy', 'อุ้ม')} อุ้ม &nbsp;&nbsp;&nbsp;
+                        <b>ผู้นำส่งโรงพยาบาล:</b> <span class="dot-line" style="min-width:150px;">${v('ped_DeliverBy')}</span>
+                    </div>
+
+                    <div class="content-section">
+                        <b>3. ผู้ให้ข้อมูล:</b> 
+                        ${ck('ped_Informant', 'ผู้ป่วย')} ผู้ป่วย &nbsp;
+                        ${ck('ped_Informant', 'ญาติ')} ญาติ &nbsp;
+                        ${ck('ped_Informant', 'ผู้นำส่ง')} ผู้นำส่ง &nbsp;
+                        ${ck('ped_Informant', 'อื่นๆ')} อื่นๆ ระบุ <span class="dot-line">${v('ped_InformantOther')}</span>
+                    </div>
+
+                    <div class="content-section"><b>4. อาการสำคัญ:</b> <span class="dot-line" style="width: 80%;">${v('ped_CC')}</span></div>
+                    <div class="content-section"><b>5. ประวัติการเจ็บป่วยปัจจุบัน:</b> <span class="dot-line" style="width: 70%;">${v('ped_PI')}</span></div>
+                    <div class="content-section indent"><b>สภาพผู้ป่วยแรกรับ:</b> <span class="dot-line" style="width: 70%;">${v('ped_InitialState')}</span></div>
+                    <div class="content-section indent">
+                        <b>สัญญาณชีพแรกรับ:</b> 
+                        BT <span class="dot-line">${v('ped_BT', '.......')}</span> °C &nbsp;
+                        PR <span class="dot-line">${v('ped_PR', '.......')}</span> /min &nbsp;
+                        RR <span class="dot-line">${v('ped_RR', '.......')}</span> /min &nbsp;
+                        BP <span class="dot-line">${v('ped_BP', '.......')}</span> mmHg &nbsp;
+                        O2sat <span class="dot-line">${v('ped_O2sat', '.......')}</span> %
+                    </div>
+
+                    <div class="content-section" style="margin-top: 10px;"><b>6. การตรวจร่างกาย</b></div>
+                    <div class="content-section indent">
+                        <b>6.1 ระดับความรู้สึกตัว:</b> 
+                        ${ck('ped_Consciousness', 'ดี')} ดี &nbsp;
+                        ${ck('ped_Consciousness', 'สับสน')} สับสน &nbsp;
+                        ${ck('ped_Consciousness', 'ซึม')} ซึม &nbsp;
+                        ${ck('ped_Consciousness', 'ไม่รู้สึกตัว')} ไม่รู้สึกตัว<br>
+                        
+                        <b>6.2 การหายใจ:</b> 
+                        ${ck('ped_Breathing', 'ปกติ')} ปกติ &nbsp;
+                        ${ck('ped_Breathing', 'หอบ')} หอบ &nbsp;
+                        ${ck('ped_Breathing', 'จมูกบาน')} จมูกบาน &nbsp;
+                        ${ck('ped_Breathing', 'อกบุ๋ม')} อกบุ๋ม &nbsp;
+                        ${ck('ped_Breathing', 'หายใจลำบาก')} หายใจลำบาก &nbsp;
+                        ${ck('ped_Breathing', 'ไม่หายใจ')} ไม่หายใจ &nbsp;
+                        ${ck('ped_Breathing', 'อื่นๆ')} อื่นๆ <span class="dot-line">${v('ped_BreathingOther')}</span><br>
+
+                        <b>6.3 การไหลเวียนโลหิต:</b><br>
+                        <span class="indent">- สีผิว:</span> 
+                        ${ck('ped_SkinColor', 'ปกติ')} ปกติ &nbsp;
+                        ${ck('ped_SkinColor', 'ซีด')} ซีด &nbsp;
+                        ${ck('ped_SkinColor', 'ปลายมือปลายเท้าเขียว')} ปลายมือเท้าเขียว &nbsp;
+                        ${ck('ped_SkinColor', 'รอบปากเขียว')} รอบปากเขียว &nbsp;
+                        ${ck('ped_SkinColor', 'เขียวทั้งตัว')} เขียวทั้งตัว &nbsp;
+                        ${ck('ped_SkinColor', 'อื่นๆ')} อื่นๆ <span class="dot-line">${v('ped_SkinColorOther')}</span><br>
+                        <span class="indent">- อาการบวม:</span> 
+                        ${ck('ped_Edema', 'ไม่มี')} ไม่มี &nbsp;
+                        ${ck('ped_Edema', 'มี')} มี บริเวณ <span class="dot-line">${v('ped_EdemaWhere')}</span><br>
+
+                        <b>6.4 ผิวหนัง:</b> 
+                        ${ck('ped_Skin', 'ปกติ')} ปกติ &nbsp;
+                        ${ck('ped_Skin', 'แห้งแตก')} แห้งแตก &nbsp;
+                        ${ck('ped_Skin', 'เขียวช้ำ')} เขียวช้ำ &nbsp;
+                        ${ck('ped_Skin', 'ผื่นคัน')} ผื่นคัน &nbsp;
+                        ${ck('ped_Skin', 'ผื่นแดง')} ผื่นแดง &nbsp;
+                        ${ck('ped_Skin', 'เหลือง')} เหลือง<br>
+
+                        <b>6.5 การติดต่อสื่อสาร:</b><br>
+                        <span class="indent">- หู:</span> 
+                        ${ck('ped_Ear', 'ได้ยิน')} ได้ยิน &nbsp;
+                        ${ck('ped_Ear', 'ไม่ได้ยิน')} ไม่ได้ยิน &nbsp;
+                        ${ck('ped_Ear', 'ใช้อุปกรณ์ช่วยฟัง')} ใช้อุปกรณ์ช่วยฟัง &nbsp;
+                        ${ck('ped_Ear', 'อื่นๆ')} อื่นๆ <span class="dot-line">${v('ped_EarOther')}</span><br>
+                        <span class="indent">- ตา:</span> 
+                        ${ck('ped_Eye', 'เห็น')} เห็น &nbsp;
+                        ${ck('ped_Eye', 'ไม่เห็น')} ไม่เห็น &nbsp;
+                        ${ck('ped_Eye', 'ตาปลอม')} ตาปลอม &nbsp;
+                        ${ck('ped_Eye', 'สวมแว่นตา')} สวมแว่นตา &nbsp;
+                        ${ck('ped_Eye', 'สั้น')} สั้น &nbsp;
+                        ${ck('ped_Eye', 'เอียง')} เอียง
+                    </div>
+
+                    <div class="content-section" style="margin-top: 10px;"><b>7. สภาพจิตใจผู้ป่วยแรกรับ</b></div>
+                    <div class="content-section indent">
+                        <b>7.1 การแสดงออกทางพฤติกรรม:</b> 
+                        ${ck('ped_Behavior', 'กระวนกระวาย')} กระวนกระวาย &nbsp;
+                        ${ck('ped_Behavior', 'เฉยๆ')} เฉยๆ &nbsp;
+                        ${ck('ped_Behavior', 'ไม่สนใจผู้อื่น')} ไม่สนใจผู้อื่น &nbsp;
+                        ${ck('ped_Behavior', 'ถอนหายใจบ่อย')} ถอนหายใจบ่อย<br>
+                        <span class="indent"></span>
+                        ${ck('ped_Behavior', 'ก้าวร้าว')} ก้าวร้าว &nbsp;
+                        ${ck('ped_Behavior', 'ร้องไห้')} ร้องไห้ &nbsp;
+                        ${ck('ped_Behavior', 'เอะอะโวยวาย')} เอะอะโวยวาย &nbsp;
+                        ${ck('ped_Behavior', 'ไม่ให้ความร่วมมือ')} ไม่ให้ความร่วมมือ &nbsp;
+                        ${ck('ped_Behavior', 'ติดหมอน/ผ่าห่ม/ขวดนม/จุกนม')} ติดหมอน/ผ้าห่ม/ขวดนม<br>
+                        <span class="indent"></span>
+                        ${ck('ped_Behavior', 'นอนเปล')} นอนเปล &nbsp;
+                        ${ck('ped_Behavior', 'อื่นๆ')} อื่นๆ <span class="dot-line">${v('ped_BehaviorOther')}</span><br>
+
+                        <b>7.2 การแสดงออกทางอารมณ์:</b> 
+                        ${ck('ped_Emotion', 'โกรธ')} โกรธ &nbsp;
+                        ${ck('ped_Emotion', 'หงุดหงิด')} หงุดหงิด &nbsp;
+                        ${ck('ped_Emotion', 'สีหน้ากังวล')} สีหน้ากังวล &nbsp;
+                        ${ck('ped_Emotion', 'กลัว')} กลัว &nbsp;
+                        ${ck('ped_Emotion', 'ซึม')} ซึม &nbsp;
+                        ${ck('ped_Emotion', 'ไม่แสดงอารมณ์')} ไม่แสดงอารมณ์ &nbsp;
+                        ${ck('ped_Emotion', 'อื่นๆ')} อื่นๆ <span class="dot-line">${v('ped_EmotionOther')}</span><br>
+
+                        <b>7.3 บุคคลที่ต้องการใกล้ชิดมากที่สุด:</b> 
+                        ${ck('ped_ClosestPerson', 'บิดา')} บิดา &nbsp;
+                        ${ck('ped_ClosestPerson', 'มารดา')} มารดา &nbsp;
+                        ${ck('ped_ClosestPerson', 'ญาติ')} ญาติ ระบุ <span class="dot-line">${v('ped_ClosestPersonRelative')}</span> &nbsp;
+                        ${ck('ped_ClosestPerson', 'อื่นๆ')} อื่นๆ <span class="dot-line">${v('ped_ClosestPersonOther')}</span>
+                    </div>
+
+                    <div class="content-section" style="margin-top: 10px;"><b>8. แบบแผนการดำรงชีวิตประจำวัน</b></div>
+                    <div class="content-section indent">
+                        <b>8.1 การเคลื่อนไหวและพัฒนาการ:</b><br>
+                        <span class="indent">- เด็กเล็ก:</span> 
+                        ${ck('ped_MoveSmallChild', 'ชันคอ')} ชันคอ &nbsp;
+                        ${ck('ped_MoveSmallChild', 'คว่ำ')} คว่ำ &nbsp;
+                        ${ck('ped_MoveSmallChild', 'คืบ')} คืบ &nbsp;
+                        ${ck('ped_MoveSmallChild', 'คลาน')} คลาน &nbsp;
+                        ${ck('ped_MoveSmallChild', 'นั่ง')} นั่ง &nbsp;
+                        ${ck('ped_MoveSmallChild', 'ยืน')} ยืน<br>
+                        <span class="indent">- เด็กโต:</span> 
+                        ${ck('ped_MoveBigChild', 'เดินได้เอง')} เดินได้เอง &nbsp;
+                        ${ck('ped_MoveBigChild', 'เดินไม่ได้')} เดินไม่ได้ &nbsp;
+                        ${ck('ped_MoveBigChild', 'ใช้อุปกรณ์ช่วย')} ใช้อุปกรณ์ช่วย ระบุ <span class="dot-line">${v('ped_MoveBigChildTool')}</span><br>
+
+                        <b>8.2 การนอนหลับ:</b> 
+                        - กลางคืน วันละ <span class="dot-line text-center">${v('ped_SleepNight', '.......')}</span> ชั่วโมง &nbsp;&nbsp;&nbsp;
+                        - กลางวัน เวลา: 
+                        ${ck('ped_SleepDay', 'เช้า')} เช้า &nbsp;
+                        ${ck('ped_SleepDay', 'บ่าย')} บ่าย &nbsp;
+                        ${ck('ped_SleepDay', 'ไม่นอน')} ไม่นอน<br>
+
+                        <b>8.3 การรับประทานอาหาร:</b> 
+                        ${ck('ped_EatType', 'รับประทานอาหารเอง')} รับประทานอาหารเอง &nbsp;
+                        ${ck('ped_EatType', 'ป้อน')} ป้อน จำนวน <span class="dot-line text-center">${v('ped_EatFeedCount', '.......')}</span> มื้อ/วัน<br>
+                        <span class="indent">- ประเภทอาหาร:</span> 
+                        ${ck('ped_EatFoodType', 'นมแม่')} นมแม่ &nbsp;
+                        ${ck('ped_EatFoodType', 'นมผสม')} นมผสม &nbsp;
+                        ${ck('ped_EatFoodType', 'ข้าวต้ม')} ข้าวต้ม &nbsp;
+                        ${ck('ped_EatFoodType', 'โจ๊ก')} โจ๊ก &nbsp;
+                        ${ck('ped_EatFoodType', 'อื่นๆ')} อื่นๆ <span class="dot-line">${v('ped_EatFoodTypeOther')}</span><br>
+                        <span class="indent">- ปัญหาในการรับประทานอาหาร:</span> 
+                        ${ck('ped_EatProblem', 'ไม่มี')} ไม่มี &nbsp;
+                        ${ck('ped_EatProblem', 'มี')} มี (
+                            ${ck('ped_EatProblemDetail', 'เคี้ยวลำบาก')} เคี้ยวลำบาก &nbsp;
+                            ${ck('ped_EatProblemDetail', 'กลืนลำบาก')} กลืนลำบาก &nbsp;
+                            ${ck('ped_EatProblemDetail', 'อื่นๆ')} อื่นๆ <span class="dot-line">${v('ped_EatProblemOther')}</span>
+                        )<br>
+                        <span class="indent">- อาหารที่ชอบ ระบุ:</span> <span class="dot-line" style="min-width: 150px;">${v('ped_EatFavorite')}</span> &nbsp;
+                        <span class="indent">- อาหารเฉพาะโรค:</span> 
+                        ${ck('ped_EatSpecific', 'ไม่มี')} ไม่มี &nbsp;
+                        ${ck('ped_EatSpecific', 'มี')} มี ระบุ <span class="dot-line">${v('ped_EatSpecificDetail')}</span><br>
+
+                        <b>8.4 การขับถ่าย:</b> 
+                        ${ck('ped_Excretion', 'ทุกวัน')} ทุกวัน วันละ <span class="dot-line text-center">${v('ped_ExcretionEveryDay', '.......')}</span> ครั้ง &nbsp;
+                        ${ck('ped_Excretion', 'ไม่ทุกวัน')} ไม่ทุกวัน <span class="dot-line text-center">${v('ped_ExcretionNotEveryDay', '.......')}</span> วัน/ครั้ง<br>
+                        <span class="indent">- การใช้ยาระบาย:</span> 
+                        ${ck('ped_Laxative', 'ใช้')} ใช้ &nbsp;
+                        ${ck('ped_Laxative', 'ไม่ใช้')} ไม่ใช้ &nbsp;&nbsp;&nbsp;
+                        <span class="indent">- รูเปิดทางหน้าท้อง:</span> 
+                        ${ck('ped_Stoma', 'มี')} มี &nbsp;
+                        ${ck('ped_Stoma', 'ไม่มี')} ไม่มี<br>
+                        <span class="indent">- ปัสสาวะ:</span> 
+                        ${ck('ped_Urine', 'ปกติ')} ปกติ &nbsp;
+                        ${ck('ped_Urine', 'กลั้นไม่ได้')} กลั้นไม่ได้ &nbsp;
+                        ${ck('ped_Urine', 'ใส่สายสวนปัสสาวะ')} ใส่สายสวนปัสสาวะ &nbsp;
+                        ${ck('ped_Urine', 'รูเปิดทางหน้าท้อง')} รูเปิดทางหน้าท้อง
+                    </div>
+
+                    <div class="fixed-footer-container">
+                        <div class="patient-box-container">
+                            <div class="print-patient-box">
+                                <div><b>ชื่อ-สกุล:</b> ${p?.name || '-'} &nbsp; <b>อายุ:</b> ${p?.ageDisplay || '-'}</div>
+                                <div><b>HN:</b> ${p?.hn || '-'} &nbsp; <b>AN:</b> ${p?.an || '-'}</div>                
+                                <div><b>วันที่รับไว้:</b> ${admitDateThai} &nbsp; <b>ตึก:</b> ${p?.ward || this.currentWard || '-'} &nbsp; <b>เตียง:</b> ${p?.bed || '-'}</div>
+                            </div>
+                        </div>
+                        <div class="print-footer">
+                            เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | โปรแกรมบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
+                        </div>
+                    </div>
+                </div>
+
+
+                <div class="a4-page">
+                    <div class="print-header-top-right">
+                        <div>Echart-ipd-nurse</div>
+                        <div>FR-PED-001</div>
+                    </div>
+
+                    <div style="height: 15mm;"></div>
+
+                    <div class="content-section"><b>9. ประวัติในอดีต</b></div>
+                    <div class="content-section indent">
+                        <b>9.1 ประวัติการตั้งครรภ์และการคลอด:</b> 
+                        บุตรคนที่ <span class="dot-line text-center">${v('ped_PregChildNo', '.......')}</span> 
+                        จำนวนพี่น้อง <span class="dot-line text-center">${v('ped_PregSiblingCount', '.......')}</span> คน 
+                        ANC <span class="dot-line text-center">${v('ped_PregANC', '.......')}</span> ครั้ง<br>
+                        <span class="indent">ผลตรวจโลหิต:</span> 
+                        ${ck('ped_PregBlood', 'ปกติ')} ปกติ &nbsp;
+                        ${ck('ped_PregBlood', 'ไม่ปกติ')} ไม่ปกติ ระบุ <span class="dot-line">${v('ped_PregBloodAbnormal')}</span><br>
+                        
+                        <span class="indent">การตั้งครรภ์:</span> 
+                        ${ck('ped_Pregnancy', 'ครบกำหนด')} ครบกำหนด &nbsp;
+                        ${ck('ped_Pregnancy', 'ไม่ครบกำหนด')} ไม่ครบกำหนด ระบุ <span class="dot-line">${v('ped_PregnancyAbnormal')}</span><br>
+
+                        <span class="indent">การคลอด:</span> 
+                        ${ck('ped_Delivery', 'ปกติ')} ปกติ &nbsp;
+                        ${ck('ped_Delivery', 'ผิดปกติ')} ผิดปกติ ระบุ <span class="dot-line">${v('ped_DeliveryAbnormal')}</span><br>
+
+                        <span class="indent">สถานที่คลอด:</span> <span class="dot-line" style="min-width: 200px;">${v('ped_DeliveryPlace')}</span> &nbsp;&nbsp;
+                        <span>น้ำหนักแรกเกิด:</span> <span class="dot-line text-center">${v('ped_BirthWeight', '.......')}</span> กรัม<br>
+
+                        <div style="margin-top:5px;">
+                            <b>9.2 ภูมิคุ้มกันโรค:</b> 
+                            ${ck('ped_Immunity', 'BCG')} BCG &nbsp;
+                            ${ck('ped_Immunity', 'DTP+OPV')} DTP+OPV ครั้งที่ <span class="dot-line text-center">${v('ped_ImmunityDTP', '.......')}</span> &nbsp;
+                            ${ck('ped_Immunity', 'ญาติจำไม่ได้')} ญาติจำไม่ได้ &nbsp;
+                            ${ck('ped_Immunity', 'อื่นๆ')} อื่นๆ ระบุ <span class="dot-line">${v('ped_ImmunityOther')}</span>
+                        </div>
+
+                        <div style="margin-top:5px;">
+                            <b>9.3 การเจ็บป่วย:</b> 
+                            ${ck('ped_IllnessHistory', 'ไม่มี')} ไม่มี &nbsp;
+                            ${ck('ped_IllnessHistory', 'มี')} มี ระบุ <span class="dot-line">${v('ped_IllnessHistoryDetail')}</span> &nbsp;
+                            ${ck('ped_IllnessHistory', 'ญาติจำไม่ได้')} ญาติจำไม่ได้
+                        </div>
+
+                        <div style="margin-top:5px;">
+                            <b>9.4 การรักษาในโรงพยาบาล:</b> 
+                            ${ck('ped_AdmitHistory', 'ไม่เคย')} ไม่เคย &nbsp;
+                            ${ck('ped_AdmitHistory', 'เคย')} เคย <span class="dot-line text-center">${v('ped_AdmitHistoryCount', '.......')}</span> ครั้ง<br>
+                            <span class="indent">- การผ่าตัด:</span> 
+                            ${ck('ped_SurgeryHistory', 'ไม่เคย')} ไม่เคย &nbsp;
+                            ${ck('ped_SurgeryHistory', 'ญาติจำไม่ได้')} ญาติจำไม่ได้ &nbsp;
+                            ${ck('ped_SurgeryHistory', 'เคย')} เคย ระบุ <span class="dot-line">${v('ped_SurgeryHistoryDetail')}</span> เมื่อ <span class="dot-line">${v('ped_SurgeryHistoryWhen')}</span>
+                        </div>
+
+                        <div style="margin-top:5px;">
+                            <b>9.5 การแพ้ยา หรือสารต่างๆ:</b> 
+                            ${ck('ped_Allergy', 'ไม่ทราบ')} ไม่ทราบ &nbsp;
+                            ${ck('ped_Allergy', 'ไม่มี')} ไม่มี &nbsp;
+                            ${ck('ped_Allergy', 'มี')} มี ระบุ <span class="dot-line" style="min-width: 200px;">${v('ped_AllergyDetail')}</span>
+                        </div>
+                    </div>
+
+                    <div class="content-section" style="margin-top: 10px;"><b>10. สภาพสังคม เศรษฐกิจ และสภาพแวดล้อม</b></div>
+                    <div class="content-section indent">
+                        <b>10.1 อารมณ์ทั่วไป:</b> 
+                        ${ck('ped_SocialEmotion', 'ร่าเริง')} ร่าเริง &nbsp;
+                        ${ck('ped_SocialEmotion', 'เงียบขรึม')} เงียบขรึม &nbsp;
+                        ${ck('ped_SocialEmotion', 'ขี้โมโห')} ขี้โมโห &nbsp;
+                        ${ck('ped_SocialEmotion', 'ขี้อาย')} ขี้อาย &nbsp;
+                        ${ck('ped_SocialEmotion', 'อื่นๆ')} อื่นๆ <span class="dot-line">${v('ped_SocialEmotionOther')}</span><br>
+
+                        <b>10.2 การศึกษา:</b> 
+                        ${ck('ped_Education', 'ยังไม่ได้ศึกษา')} ยังไม่ได้ศึกษา &nbsp;
+                        ${ck('ped_Education', 'อนุบาล')} อนุบาล &nbsp;
+                        ${ck('ped_Education', 'ประถมศึกษา')} ประถมศึกษา &nbsp;
+                        ${ck('ped_Education', 'มัธยมศึกษา')} มัธยมศึกษา &nbsp;
+                        ${ck('ped_Education', 'อื่นๆ')} อื่นๆ <span class="dot-line">${v('ped_EducationOther')}</span><br>
+
+                        <b>10.3 สิ่งแวดล้อม:</b> 
+                        ${ck('ped_Environment', 'ใกล้โรงงาน')} ใกล้โรงงาน &nbsp;
+                        ${ck('ped_Environment', 'ชุมชนแออัด')} ชุมชนแออัด &nbsp;
+                        ${ck('ped_Environment', 'พื้นที่ก่อสร้าง')} พื้นที่ก่อสร้าง &nbsp;
+                        ${ck('ped_Environment', 'ใกล้ตลาด')} ใกล้ตลาด &nbsp;
+                        ${ck('ped_Environment', 'บุคคลในบ้านสูบบุหรี่')} บุคคลในบ้านสูบบุหรี่<br>
+                        <span class="indent"></span>
+                        ${ck('ped_Environment', 'สัตว์เลี้ยง')} สัตว์เลี้ยง ระบุ <span class="dot-line">${v('ped_EnvironmentPet')}</span> &nbsp;
+                        ${ck('ped_Environment', 'อื่นๆ')} อื่นๆ ระบุ <span class="dot-line">${v('ped_EnvironmentOther')}</span><br>
+
+                        <b>10.4 ที่อยู่ของผู้ป่วยในทะเบียนบ้าน:</b> <span class="dot-line" style="width: 70%;">${v('ped_AddressHome')}</span><br>
+
+                        <b>10.5 ที่อยู่ปัจจุบันที่ติดต่อได้ของบิดา มารดา หรือผู้ปกครอง:</b> 
+                        ${ck('ped_AddressCurrent', 'ตามที่อยู่ในทะเบียนบ้าน')} ตามที่อยู่ในทะเบียนบ้าน 
+                        <span class="dot-line" style="min-width: 200px;">${d.ped_AddressCurrent === 'ตามที่อยู่ในทะเบียนบ้าน' ? v('ped_AddressHome', '') : ''}</span> &nbsp;
+                        ${ck('ped_AddressCurrent', 'อื่นๆ')} อื่นๆ ระบุ <span class="dot-line" style="min-width: 150px;">${v('ped_AddressCurrentOther')}</span><br>
+                        <span class="indent"></span>รายได้บิดา <span class="dot-line text-center">${v('ped_IncomeFather', '...................')}</span> บาท/เดือน &nbsp;&nbsp;&nbsp;
+                        รายได้มารดา <span class="dot-line text-center">${v('ped_IncomeMother', '...................')}</span> บาท/เดือน
+                    </div>
+
+                    <div class="content-section" style="margin-top: 10px;">
+                        <b>11. คำแนะนำ:</b> 
+                        ${ck('ped_AdviceTarget', 'ผู้ป่วย')} ผู้ป่วย &nbsp;
+                        ${ck('ped_AdviceTarget', 'ญาติ/บิดา/มารดา')} ญาติ/บิดา/มารดา &nbsp;
+                        ${ck('ped_AdviceTarget', 'ไม่ได้ให้คำแนะนำ')} ไม่ได้ให้คำแนะนำ<br>
+                        <span class="indent">เรื่อง:</span> 
+                        ${ck('ped_AdviceTopics', 'การใช้อุปกรณ์ สถานที่')} การใช้อุปกรณ์ สถานที่ &nbsp;
+                        ${ck('ped_AdviceTopics', 'ระเบียบการเยี่ยม')} ระเบียบการเยี่ยม &nbsp;
+                        ${ck('ped_AdviceTopics', 'การขอความช่วยเหลือ')} การขอความช่วยเหลือ<br>
+                        <span class="indent"></span> 
+                        ${ck('ped_AdviceTopics', 'การลงนามยินยอม')} การลงนามยินยอม &nbsp;
+                        ${ck('ped_AdviceTopics', 'การเก็บของมีค่า')} การเก็บของมีค่า &nbsp;
+                        ${ck('ped_AdviceTopics', 'อื่นๆ')} อื่นๆ ระบุ <span class="dot-line">${v('ped_AdviceTopicsOther')}</span>
+                    </div>
+
+                    <div class="content-section" style="margin-top: 10px;"><b>12. ความสามารถในการปฏิบัติ</b></div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 30%;">ชื่อกิจกรรม</th>
+                                <th style="width: 15%;">ทำได้ทั้งหมด</th>
+                                <th style="width: 15%;">ทำได้บางส่วน</th>
+                                <th style="width: 15%;">ทำไม่ได้เลย</th>
+                                <th style="width: 25%;">ใช้อุปกรณ์ช่วย ระบุ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${['การรับประทานอาหาร', 'การทำความสะอาดปาก/ฟัน', 'การทำความสะอาดร่างกาย', 'การแต่งตัว', 'การขับถ่าย'].map((act, i) => `
+                            <tr>
+                                <td>${i+1}. ${act}</td>
+                                <td class="tc">${ck('ped_Act'+(i+1), 'ทำได้ทั้งหมด')}</td>
+                                <td class="tc">${ck('ped_Act'+(i+1), 'ทำได้บางส่วน')}</td>
+                                <td class="tc">${ck('ped_Act'+(i+1), 'ทำไม่ได้เลย')}</td>
+                                <td>${ck('ped_Act'+(i+1), 'ใช้อุปกรณ์ช่วย')} ${v('ped_Act'+(i+1)+'Tool', '')}</td>
+                            </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+
+                    <div class="fixed-footer-container">
+                        <div class="sign-box">
+                            <p style="margin-top: 8px;">พยาบาลผู้ป่ระเมิน ${v('ped_AssessorName', '.................................................................')} )</p>
+                            <p style="margin-top: 8px;">ตำแหน่ง ${v('ped_AssessorPosition', '................................................')} </p>
+                        </div>
+                        
+                        <div class="patient-box-container">
+                            <div class="print-patient-box">
+                                <div><b>ชื่อ-สกุล:</b> ${p?.name || '-'} &nbsp; <b>อายุ:</b> ${p?.ageDisplay || '-'}</div>
+                                <div><b>HN:</b> ${p?.hn || '-'} &nbsp; <b>AN:</b> ${p?.an || '-'}</div>                
+                                <div><b>วันที่รับไว้:</b> ${admitDateThai} &nbsp; <b>ตึก:</b> ${p?.ward || this.currentWard || '-'} &nbsp; <b>เตียง:</b> ${p?.bed || '-'}</div>
+                            </div>
+                        </div>
+                        <div class="print-footer">
+                            เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | โปรแกรมบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
+                        </div>
+                    </div>
+
+                </div>
+                <script>window.onload = () => { setTimeout(() => { window.print(); window.close(); }, 500); }</script>
+            </body>
+            </html>
+            `);
+            printWindow.document.close();
+        },
 }
