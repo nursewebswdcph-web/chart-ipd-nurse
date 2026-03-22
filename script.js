@@ -109,6 +109,15 @@ function nurseApp() {
             assessor: ''
         },
         classHistory: [],
+        classHistoryPed: [],
+        pedClassForm: {
+            date: new Date().toISOString().split('T')[0],
+            shift: 'เช้า',
+            scores: {},
+            total: 0,
+            type: '',
+            assessor: ''
+        },
         currentPageIndex: 0,
         showClassModal: false, // ควบคุมการเปิด/ปิด Popup ประเมินรอบใหม่
         showClassNurseList: false, // ควบคุม Dropdown ค้นหาชื่อพยาบาล
@@ -1139,23 +1148,275 @@ function nurseApp() {
         async loadClassifications(an) {
             this.isLoading = true;
             try {
-                const res = await fetch(`${this.API_URL}?action=getClassifications&an=${an}`);
-                this.classHistory = await res.json();
+                if (this.isAdult) {
+                    // -----------------------------------------
+                    // 1. โหลดข้อมูลการจำแนกประเภทผู้ป่วย "ผู้ใหญ่"
+                    // -----------------------------------------
+                    const res = await fetch(`${this.API_URL}?action=getClassifications&an=${an}`);
+                    this.classHistory = await res.json();
+                    
+                    // ล้างข้อมูลเก่า
+                    this.gridData = {}; 
+                    
+                    // นำข้อมูลจากฐานข้อมูลมาใส่ใน Grid (ใช้รูปแบบเดิมของคุณ 100%)
+                    if (this.classHistory && Array.isArray(this.classHistory)) {
+                        this.classHistory.forEach(item => {
+                            if (!item.evalDate) return; // ป้องกัน Error หากไม่มีวันที่
+                            const dKey = typeof this.getLocalYYYYMMDD === 'function' ? this.getLocalYYYYMMDD(item.evalDate) : item.evalDate.split('T')[0];
+                            if (!this.gridData[dKey]) this.gridData[dKey] = {};
+                            this.gridData[dKey][item.shift] = {
+                                scores: item.scores ? [...item.scores] : [],
+                                assessor: item.assessor || ''
+                            };
+                        });
+                    }
+                } else {
+                    // -----------------------------------------
+                    // 2. โหลดข้อมูลการจำแนกประเภทผู้ป่วย "เด็ก"
+                    // -----------------------------------------
+                    const res = await fetch(`${this.API_URL}?action=getClassificationsPed&an=${an}`);
+                    this.classHistoryPed = await res.json();
+                    
+                    // ของเด็กเราเอา classHistoryPed ไปวนลูปสร้างตาราง (Table) ได้เลย ไม่ต้องแปลงเข้า gridData
+                }
+            } catch (e) { 
+                console.error("Load Classifications Error:", e); 
+            } finally {
+                this.isLoading = false;
+            }
+        },
+        // 1. คำนวณคะแนนเด็ก
+        calcPedClass() {
+            let total = 0;
+            for (let i = 1; i <= 10; i++) {
+                total += parseInt(this.pedClassForm.scores['item' + i]) || 0;
+            }
+            this.pedClassForm.total = total;
+            
+            let type = '';
+            if (total >= 34) type = 'ประเภท 5 หนักมาก (Need ICU)';
+            else if (total >= 28) type = 'ประเภท 4 หนัก (Modified Intensive Care)';
+            else if (total >= 22) type = 'ประเภท 3 หนักปานกลาง (Intensive Care)';
+            else if (total >= 16) type = 'ประเภท 2 เจ็บป่วยเล็กน้อย (Minimum Care)';
+            else if (total > 0) type = 'ประเภท 1 ผู้ป่วยพักฟื้น (Self Care)';
+            
+            this.pedClassForm.type = type;
+        },
+
+        // 2. บันทึกข้อมูลเด็ก
+        async savePedClass() {
+            if (this.pedClassForm.total === 0) return this.showAlert('แจ้งเตือน', 'กรุณาประเมินคะแนนอย่างน้อย 1 หัวข้อ');
+            if (!this.searchNurse) return this.showAlert('แจ้งเตือน', 'กรุณาลงชื่อพยาบาลผู้ประเมิน');
+            
+            this.isLoading = true;
+            try {
+                const payload = {
+                    an: this.selectedPatient?.an,
+                    ward: this.currentWard,
+                    bed: this.selectedPatient?.bed,
+                    date: this.pedClassForm.date,
+                    shift: this.pedClassForm.shift,
+                    score: this.pedClassForm.total,
+                    classType: this.pedClassForm.type,
+                    assessor: this.searchNurse,
+                    formData: this.pedClassForm.scores
+                };
                 
-                // ล้างข้อมูลเก่า
-                this.gridData = {}; 
-                
-                // นำข้อมูลจากฐานข้อมูลมาใส่ใน Grid
-                this.classHistory.forEach(item => {
-                    const dKey = this.getLocalYYYYMMDD(item.evalDate);
-                    if (!this.gridData[dKey]) this.gridData[dKey] = {};
-                    this.gridData[dKey][item.shift] = {
-                        scores: [...item.scores],
-                        assessor: item.assessor || ''
-                    };
+                const response = await fetch(this.API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'saveClassificationPed', p: payload })
                 });
-            } catch (e) { console.error("Load Error:", e); }
-            this.isLoading = false;
+                
+                const res = await response.json();
+                if (res.status === 'success') {
+                    this.showSuccess = true;
+                    this.successMsg = res.message;
+                    setTimeout(() => this.showSuccess = false, 3000);
+                    this.loadClassifications(this.selectedPatient.an); // โหลดประวัติใหม่มาแสดง
+                    // รีเซ็ตฟอร์มคะแนน
+                    this.pedClassForm.scores = {};
+                    this.calcPedClass();
+                }
+            } catch (e) {
+                this.showAlert('Error', e.message);
+            } finally {
+                this.isLoading = false;
+            }
+        },
+
+        // 3. ระบบพิมพ์เอกสารเด็ก A4
+        printPedClassRecord() {
+            if (!this.classHistoryPed || this.classHistoryPed.length === 0) {
+                return this.showAlert('แจ้งเตือน', 'ยังไม่มีประวัติการประเมินเพื่อพิมพ์');
+            }
+
+            const p = this.selectedPatient;
+            // เรียงลำดับตามวันที่และเวร
+            const shiftOrder = { 'เช้า': 1, 'บ่าย': 2, 'ดึก': 3 };
+            const sortedData = [...this.classHistoryPed].sort((a, b) => {
+                const dateA = new Date(a.date).getTime();
+                const dateB = new Date(b.date).getTime();
+                if (dateA !== dateB) return dateA - dateB;
+                return (shiftOrder[a.shift] || 9) - (shiftOrder[b.shift] || 9);
+            });
+
+            // สร้างตารางข้อมูลดิบ (แบ่งหน้าละ 7 เวร)
+            const columnsPerPage = 7;
+            const pages = [];
+            for (let i = 0; i < sortedData.length; i += columnsPerPage) {
+                pages.push(sortedData.slice(i, i + columnsPerPage));
+            }
+
+            const admitDateThai = p?.date ? this.formatThaiDateShort(p.date) : '-';
+            const topics = [
+                { id: 'item1', title: '1.1 การดูดนมและรับประทานอาหาร' },
+                { id: 'item2', title: '1.2 การดูแลสุขอนามัยส่วนบุคคล' },
+                { id: 'item3', title: '1.3 การขับถ่าย' },
+                { id: 'item4', title: '1.4 การเคลื่อนไหวร่างกายและการออกกำลังกาย' },
+                { id: 'item5', title: '2.1 การได้รับยาและ/หรือ สารน้ำ สารอาหาร' },
+                { id: 'item6', title: '2.2 การปฏิบัติการรักษาพยาบาล' },
+                { id: 'item7', title: '2.3 การช่วยเหลือด้านการหายใจ' },
+                { id: 'item8', title: '3.1 สภาพอาการทั่วไป' },
+                { id: 'item9', title: '3.2 การสังเกตสัญญาณชีพและเครื่องวัดอื่นๆ' },
+                { id: 'item10', title: '4. การสอนและการประคับประคองจิตใจ (ผู้ป่วยเด็กและครอบครัว)' }
+            ];
+
+            let printContent = `
+            <html>
+            <head>
+                <title>แบบบันทึกการจำแนกประเภทผู้ป่วยเด็ก</title>
+                <style>
+                    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700;900&display=swap');
+                    body { font-family: 'Sarabun', sans-serif; font-size: 10pt; margin: 0; padding: 0; color: #000; }
+                    .a4-page { width: 210mm; height: 296mm; margin: 0 auto; padding: 15mm 15mm 25mm 15mm; position: relative; box-sizing: border-box; page-break-after: always; }
+                    .header-right { position: absolute; top: 10mm; right: 15mm; text-align: right; font-size: 8pt; font-weight: bold; line-height: 1.2; }
+                    .main-title { text-align: center; font-weight: 900; font-size: 14pt; margin-top: 10px; margin-bottom: 15px; }
+                    
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 9.5pt; }
+                    th, td { border: 1px solid #000; padding: 4px 6px; text-align: center; vertical-align: middle; }
+                    th { background-color: #f8f9fa; font-weight: bold; }
+                    .text-left { text-align: left; }
+                    .bg-gray { background-color: #e9ecef; font-weight: bold; text-align: left; }
+                    
+                    /* CSS Footer Fixed Container */
+                    .fixed-footer-container { position: absolute; bottom: 5mm; left: 15mm; right: 15mm; display: flex; flex-direction: column; gap: 8px; }
+                    .patient-box-container { display: flex; justify-content: flex-end; width: 100%; }
+                    .print-patient-box { width: max-content; border: 1px solid #000; border-radius: 4px; padding: 6px 12px; font-size: 9pt !important; background: #fff; }
+                    
+                    @media print {
+                        @page { size: A4; margin: 0; }
+                        body { background: #fff; -webkit-print-color-adjust: exact; }
+                    }
+                </style>
+            </head>
+            <body>`;
+
+            pages.forEach((pageData, pageIndex) => {
+                printContent += `
+                <div class="a4-page">
+                    <div class="header-right">
+                        <div>Echart-ipd-nurse</div>
+                        <div>Classification-PED-Form หน้า ${pageIndex + 1}</div>
+                    </div>
+                    
+                    <div class="main-title">แบบบันทึกการจำแนกประเภทผู้ป่วยเด็ก โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน</div>
+                    
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="text-left" style="width: 35%;">วันที่ประเมิน</th>
+                                ${pageData.map(d => `<th>${this.formatThaiDateShort(d.date)}</th>`).join('')}
+                                ${Array(columnsPerPage - pageData.length).fill('<th></th>').join('')}
+                            </tr>
+                            <tr>
+                                <th class="text-left">เวร (เช้า/บ่าย/ดึก)</th>
+                                ${pageData.map(d => `<th>${d.shift}</th>`).join('')}
+                                ${Array(columnsPerPage - pageData.length).fill('<th></th>').join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td colspan="${columnsPerPage + 1}" class="bg-gray">1. การดูแลเกี่ยวกับกิจวัตรประจำวัน</td></tr>
+                            ${topics.slice(0, 4).map(t => `
+                            <tr>
+                                <td class="text-left">${t.title}</td>
+                                ${pageData.map(d => `<td>${(JSON.parse(d.formdata || '{}')[t.id]) || '-'}</td>`).join('')}
+                                ${Array(columnsPerPage - pageData.length).fill('<td></td>').join('')}
+                            </tr>`).join('')}
+
+                            <tr><td colspan="${columnsPerPage + 1}" class="bg-gray">2. การได้รับยาและการปฏิบัติการพยาบาล</td></tr>
+                            ${topics.slice(4, 7).map(t => `
+                            <tr>
+                                <td class="text-left">${t.title}</td>
+                                ${pageData.map(d => `<td>${(JSON.parse(d.formdata || '{}')[t.id]) || '-'}</td>`).join('')}
+                                ${Array(columnsPerPage - pageData.length).fill('<td></td>').join('')}
+                            </tr>`).join('')}
+
+                            <tr><td colspan="${columnsPerPage + 1}" class="bg-gray">3. การประเมินสภาพอาการการสังเกตสัญญาณชีพและเครื่องตรวจวัดต่างๆ</td></tr>
+                            ${topics.slice(7, 9).map(t => `
+                            <tr>
+                                <td class="text-left">${t.title}</td>
+                                ${pageData.map(d => `<td>${(JSON.parse(d.formdata || '{}')[t.id]) || '-'}</td>`).join('')}
+                                ${Array(columnsPerPage - pageData.length).fill('<td></td>').join('')}
+                            </tr>`).join('')}
+
+                            <tr><td colspan="${columnsPerPage + 1}" class="bg-gray text-left">${topics[9].title}</td></tr>
+                            <tr>
+                                <td class="text-left">คะแนนส่วนที่ 4</td>
+                                ${pageData.map(d => `<td>${(JSON.parse(d.formdata || '{}')[topics[9].id]) || '-'}</td>`).join('')}
+                                ${Array(columnsPerPage - pageData.length).fill('<td></td>').join('')}
+                            </tr>
+
+                            <tr>
+                                <th class="text-left">รวมคะแนน (10 ข้อ)</th>
+                                ${pageData.map(d => `<th>${d.score}</th>`).join('')}
+                                ${Array(columnsPerPage - pageData.length).fill('<th></th>').join('')}
+                            </tr>
+                            <tr>
+                                <th class="text-left">ประเภทผู้ป่วย (Type 1-5)</th>
+                                ${pageData.map(d => {
+                                    const typeMatch = String(d.classtype).match(/ประเภท\\s*(\\d)/);
+                                    const typeNum = typeMatch ? typeMatch[1] : '-';
+                                    return `<th>Type ${typeNum}</th>`;
+                                }).join('')}
+                                ${Array(columnsPerPage - pageData.length).fill('<th></th>').join('')}
+                            </tr>
+                            <tr>
+                                <th class="text-left">ผู้ประเมิน</th>
+                                ${pageData.map(d => `<td style="font-size:8pt;">${d.assessor}</td>`).join('')}
+                                ${Array(columnsPerPage - pageData.length).fill('<td></td>').join('')}
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div style="font-size: 8.5pt; line-height: 1.4; margin-top:10px;">
+                        <b>เกณฑ์การจำแนกประเภท:</b> &nbsp;&nbsp; 
+                        <b>ประเภท 5 หนักมาก (Need ICU):</b> 34-40 คะแนน | 
+                        <b>ประเภท 4 หนัก (Modified Intensive Care) :</b> 28-33 คะแนน | 
+                        <b>ประเภท 3 หนักปานกลาง (Intensive Care):</b> 22-27 คะแนน | 
+                        <b>ประเภท 2 เจ็บป่วยเล็กน้อย (Minimum Care) :</b> 16-21 คะแนน | 
+                        <b>ประเภท 1 ผู้ป่วยพักฟื้น (Selfe Care) :</b> ไม่เกิน 15 คะแนน
+                    </div>
+
+                    <div class="fixed-footer-container">
+                        <div class="patient-box-container">
+                            <div class="print-patient-box">
+                                <div><b>ชื่อ-สกุล:</b> ${p?.name || '-'} &nbsp; <b>อายุ:</b> ${p?.ageDisplay || '-'}</div>
+                                <div><b>HN:</b> ${p?.hn || '-'} &nbsp; <b>AN:</b> ${p?.an || '-'}</div>                
+                                <div><b>แพทย์เจ้าของไข้:</b> ${p?.doctor || '-'} &nbsp; <b>ตึก:</b> ${p?.ward || this.currentWard || '-'} &nbsp; <b>เตียง:</b> ${p?.bed || '-'}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            });
+
+            printContent += `
+                <script>window.onload = () => { setTimeout(() => { window.print(); window.close(); }, 500); }</script>
+            </body>
+            </html>`;
+            
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(printContent);
+            printWindow.document.close();
         },
         async saveGridPage() {
             const currentPage = this.classTimeline[this.currentPageIndex];
