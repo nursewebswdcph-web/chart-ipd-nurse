@@ -3824,8 +3824,8 @@ function nurseApp() {
             const p = this.selectedPatient;
             const d = this.savedAssessmentPed;
 
-            // ตัวช่วยแสดงข้อมูล (ถ้าไม่มีให้เป็นจุดไข่ปลา)
-            const v = (field, defaultDot = '.....................') => (d[field] ? d[field] : defaultDot);
+            // ตัวช่วยดึงข้อมูล (ถ้าไม่มีข้อมูล จะคืนค่าเป็นช่องว่าง ไม่ใส่จุดไข่ปลาแล้ว)
+            const v = (field, defaultText = '') => (d[field] ? d[field] : defaultText);
 
             // ตัวช่วยสำหรับ Checkbox/Radio (แสดงไอคอน ☑ หรือ ☐)
             const ck = (field, val) => {
@@ -3837,8 +3837,6 @@ function nurseApp() {
                 return isChecked ? '☑' : '☐';
             };
 
-            const admitDateThai = p?.date ? this.formatThaiDateShort(p.date) : '-';
-
             const printWindow = window.open('', '_blank');
             printWindow.document.write(`
             <html>
@@ -3846,31 +3844,33 @@ function nurseApp() {
                 <title>แบบประเมินสภาพผู้ป่วยเด็กแรกรับ (FR-PED-001)</title>
                 <style>
                     @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700;900&display=swap');
-                    body { font-family: 'Sarabun', sans-serif; font-size: 11pt; margin: 0; padding: 0; color: #000; background: #525659; }
+                    body { font-family: 'Sarabun', sans-serif; margin: 0; padding: 0; color: #000; background: #525659; }
                     .a4-page { 
-                        width: 210mm; height: 296mm; margin: 8mm auto; 
+                        width: 210mm; height: 296mm; margin: 10mm auto; 
                         padding: 15mm 12mm 45mm 12mm; position: relative; box-sizing: border-box; 
                         background: #fff; page-break-after: always; overflow: hidden;
                     }
-                    .print-header-top-right { position: absolute; top: 10mm; right: 10mm; text-align: right; font-size: 10pt; font-weight: bold; line-height: 1.2; }
-                    .main-title { text-align: center; font-weight: 900; font-size: 16pt; margin-top: 5mm; margin-bottom: 5mm; }
+                    .print-header-top-right { position: absolute; top: 10mm; right: 10mm; text-align: right; font-size: 8pt; font-weight: bold; line-height: 1.2; }
+                    .main-title { text-align: center; font-weight: 900; font-size: 15pt; margin-top: 5mm; margin-bottom: 5mm; }
                     
-                    .content-section { font-size: 11pt; line-height: 1.4; margin-bottom: 5px; }
+                    /* ปรับขนาดตัวอักษรลง และเพิ่มระยะบรรทัดตามที่ขอ */
+                    .content-section { font-size: 10pt; line-height: 1.6; margin-bottom: 6px; }
                     .indent { padding-left: 20px; }
-                    .dot-line { border-bottom: 1px dotted #000; display: inline-block; min-width: 30px; }
+                    
+                    /* เส้นประสำหรับกรอกข้อมูล ถ้าไม่มีข้อมูลจะเว้นว่างไว้บนเส้นประ */
+                    .dot-line { border-bottom: 1px dotted #000; display: inline-block; min-width: 30px; min-height: 1em; }
                     
                     /* ตารางสำหรับข้อ 12 */
-                    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 11pt; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 10.5pt; }
                     th, td { border: 1px solid #000; padding: 4px; text-align: left; }
                     th { text-align: center; font-weight: bold; }
                     .tc { text-align: center; }
 
-                    /* CSS Footer Fixed Container (เหมือนของผู้ใหญ่) */
-                    .fixed-footer-container { position: absolute; bottom: 5mm; left: 10mm; right: 10mm; display: flex; flex-direction: column; gap: 10px; }
+                    /* CSS Footer Fixed Container (กรอบคนไข้และส่วนท้าย) */
+                    .fixed-footer-container { position: absolute; bottom: 5mm; left: 10mm; right: 10mm; display: flex; flex-direction: column; gap: 8px; }
                     .patient-box-container { display: flex; justify-content: flex-end; width: 100%; }
                     .print-patient-box { width: max-content; border: 1px solid #000; border-radius: 4px; padding: 6px 12px; font-size: 9pt !important; background: #fff; }
                     .print-footer { width: 100%; text-align: center; font-size: 8pt !important; color: #444; border-top: 1px solid #ccc; padding-top: 8px; margin-top: auto; }
-                    .sign-box { text-align: center; margin-bottom: 15px; font-size: 11pt; }
 
                     @media print {
                         @page { size: A4; margin: 0; }
@@ -3917,11 +3917,11 @@ function nurseApp() {
                     <div class="content-section indent"><b>สภาพผู้ป่วยแรกรับ:</b> <span class="dot-line" style="width: 70%;">${v('ped_InitialState')}</span></div>
                     <div class="content-section indent">
                         <b>สัญญาณชีพแรกรับ:</b> 
-                        BT <span class="dot-line">${v('ped_BT', '.......')}</span> °C &nbsp;
-                        PR <span class="dot-line">${v('ped_PR', '.......')}</span> /min &nbsp;
-                        RR <span class="dot-line">${v('ped_RR', '.......')}</span> /min &nbsp;
-                        BP <span class="dot-line">${v('ped_BP', '.......')}</span> mmHg &nbsp;
-                        O2sat <span class="dot-line">${v('ped_O2sat', '.......')}</span> %
+                        BT <span class="dot-line text-center">${v('ped_BT')}</span> °C &nbsp;
+                        PR <span class="dot-line text-center">${v('ped_PR')}</span> /min &nbsp;
+                        RR <span class="dot-line text-center">${v('ped_RR')}</span> /min &nbsp;
+                        BP <span class="dot-line text-center">${v('ped_BP')}</span> mmHg &nbsp;
+                        O2sat <span class="dot-line text-center">${v('ped_O2sat')}</span> %
                     </div>
 
                     <div class="content-section" style="margin-top: 10px;"><b>6. การตรวจร่างกาย</b></div>
@@ -4025,7 +4025,7 @@ function nurseApp() {
                         ${ck('ped_MoveBigChild', 'ใช้อุปกรณ์ช่วย')} ใช้อุปกรณ์ช่วย ระบุ <span class="dot-line">${v('ped_MoveBigChildTool')}</span><br>
 
                         <b>8.2 การนอนหลับ:</b> 
-                        - กลางคืน วันละ <span class="dot-line text-center">${v('ped_SleepNight', '.......')}</span> ชั่วโมง &nbsp;&nbsp;&nbsp;
+                        - กลางคืน วันละ <span class="dot-line text-center">${v('ped_SleepNight')}</span> ชั่วโมง &nbsp;&nbsp;&nbsp;
                         - กลางวัน เวลา: 
                         ${ck('ped_SleepDay', 'เช้า')} เช้า &nbsp;
                         ${ck('ped_SleepDay', 'บ่าย')} บ่าย &nbsp;
@@ -4033,7 +4033,7 @@ function nurseApp() {
 
                         <b>8.3 การรับประทานอาหาร:</b> 
                         ${ck('ped_EatType', 'รับประทานอาหารเอง')} รับประทานอาหารเอง &nbsp;
-                        ${ck('ped_EatType', 'ป้อน')} ป้อน จำนวน <span class="dot-line text-center">${v('ped_EatFeedCount', '.......')}</span> มื้อ/วัน<br>
+                        ${ck('ped_EatType', 'ป้อน')} ป้อน จำนวน <span class="dot-line text-center">${v('ped_EatFeedCount')}</span> มื้อ/วัน<br>
                         <span class="indent">- ประเภทอาหาร:</span> 
                         ${ck('ped_EatFoodType', 'นมแม่')} นมแม่ &nbsp;
                         ${ck('ped_EatFoodType', 'นมผสม')} นมผสม &nbsp;
@@ -4053,8 +4053,8 @@ function nurseApp() {
                         ${ck('ped_EatSpecific', 'มี')} มี ระบุ <span class="dot-line">${v('ped_EatSpecificDetail')}</span><br>
 
                         <b>8.4 การขับถ่าย:</b> 
-                        ${ck('ped_Excretion', 'ทุกวัน')} ทุกวัน วันละ <span class="dot-line text-center">${v('ped_ExcretionEveryDay', '.......')}</span> ครั้ง &nbsp;
-                        ${ck('ped_Excretion', 'ไม่ทุกวัน')} ไม่ทุกวัน <span class="dot-line text-center">${v('ped_ExcretionNotEveryDay', '.......')}</span> วัน/ครั้ง<br>
+                        ${ck('ped_Excretion', 'ทุกวัน')} ทุกวัน วันละ <span class="dot-line text-center">${v('ped_ExcretionEveryDay')}</span> ครั้ง &nbsp;
+                        ${ck('ped_Excretion', 'ไม่ทุกวัน')} ไม่ทุกวัน <span class="dot-line text-center">${v('ped_ExcretionNotEveryDay')}</span> วัน/ครั้ง<br>
                         <span class="indent">- การใช้ยาระบาย:</span> 
                         ${ck('ped_Laxative', 'ใช้')} ใช้ &nbsp;
                         ${ck('ped_Laxative', 'ไม่ใช้')} ไม่ใช้ &nbsp;&nbsp;&nbsp;
@@ -4073,7 +4073,7 @@ function nurseApp() {
                             <div class="print-patient-box">
                                 <div><b>ชื่อ-สกุล:</b> ${p?.name || '-'} &nbsp; <b>อายุ:</b> ${p?.ageDisplay || '-'}</div>
                                 <div><b>HN:</b> ${p?.hn || '-'} &nbsp; <b>AN:</b> ${p?.an || '-'}</div>                
-                                <div><b>วันที่รับไว้:</b> ${admitDateThai} &nbsp; <b>ตึก:</b> ${p?.ward || this.currentWard || '-'} &nbsp; <b>เตียง:</b> ${p?.bed || '-'}</div>
+                                <div><b>แพทย์เจ้าของไข้:</b> ${p?.doctor || '-'} &nbsp; <b>ตึก:</b> ${p?.ward || this.currentWard || '-'} &nbsp; <b>เตียง:</b> ${p?.bed || '-'}</div>
                             </div>
                         </div>
                         <div class="print-footer">
@@ -4094,9 +4094,9 @@ function nurseApp() {
                     <div class="content-section"><b>9. ประวัติในอดีต</b></div>
                     <div class="content-section indent">
                         <b>9.1 ประวัติการตั้งครรภ์และการคลอด:</b> 
-                        บุตรคนที่ <span class="dot-line text-center">${v('ped_PregChildNo', '.......')}</span> 
-                        จำนวนพี่น้อง <span class="dot-line text-center">${v('ped_PregSiblingCount', '.......')}</span> คน 
-                        ANC <span class="dot-line text-center">${v('ped_PregANC', '.......')}</span> ครั้ง<br>
+                        บุตรคนที่ <span class="dot-line text-center">${v('ped_PregChildNo')}</span> 
+                        จำนวนพี่น้อง <span class="dot-line text-center">${v('ped_PregSiblingCount')}</span> คน 
+                        ANC <span class="dot-line text-center">${v('ped_PregANC')}</span> ครั้ง<br>
                         <span class="indent">ผลตรวจโลหิต:</span> 
                         ${ck('ped_PregBlood', 'ปกติ')} ปกติ &nbsp;
                         ${ck('ped_PregBlood', 'ไม่ปกติ')} ไม่ปกติ ระบุ <span class="dot-line">${v('ped_PregBloodAbnormal')}</span><br>
@@ -4110,12 +4110,12 @@ function nurseApp() {
                         ${ck('ped_Delivery', 'ผิดปกติ')} ผิดปกติ ระบุ <span class="dot-line">${v('ped_DeliveryAbnormal')}</span><br>
 
                         <span class="indent">สถานที่คลอด:</span> <span class="dot-line" style="min-width: 200px;">${v('ped_DeliveryPlace')}</span> &nbsp;&nbsp;
-                        <span>น้ำหนักแรกเกิด:</span> <span class="dot-line text-center">${v('ped_BirthWeight', '.......')}</span> กรัม<br>
+                        <span>น้ำหนักแรกเกิด:</span> <span class="dot-line text-center">${v('ped_BirthWeight')}</span> กรัม<br>
 
                         <div style="margin-top:5px;">
                             <b>9.2 ภูมิคุ้มกันโรค:</b> 
                             ${ck('ped_Immunity', 'BCG')} BCG &nbsp;
-                            ${ck('ped_Immunity', 'DTP+OPV')} DTP+OPV ครั้งที่ <span class="dot-line text-center">${v('ped_ImmunityDTP', '.......')}</span> &nbsp;
+                            ${ck('ped_Immunity', 'DTP+OPV')} DTP+OPV ครั้งที่ <span class="dot-line text-center">${v('ped_ImmunityDTP')}</span> &nbsp;
                             ${ck('ped_Immunity', 'ญาติจำไม่ได้')} ญาติจำไม่ได้ &nbsp;
                             ${ck('ped_Immunity', 'อื่นๆ')} อื่นๆ ระบุ <span class="dot-line">${v('ped_ImmunityOther')}</span>
                         </div>
@@ -4130,7 +4130,7 @@ function nurseApp() {
                         <div style="margin-top:5px;">
                             <b>9.4 การรักษาในโรงพยาบาล:</b> 
                             ${ck('ped_AdmitHistory', 'ไม่เคย')} ไม่เคย &nbsp;
-                            ${ck('ped_AdmitHistory', 'เคย')} เคย <span class="dot-line text-center">${v('ped_AdmitHistoryCount', '.......')}</span> ครั้ง<br>
+                            ${ck('ped_AdmitHistory', 'เคย')} เคย <span class="dot-line text-center">${v('ped_AdmitHistoryCount')}</span> ครั้ง<br>
                             <span class="indent">- การผ่าตัด:</span> 
                             ${ck('ped_SurgeryHistory', 'ไม่เคย')} ไม่เคย &nbsp;
                             ${ck('ped_SurgeryHistory', 'ญาติจำไม่ได้')} ญาติจำไม่ได้ &nbsp;
@@ -4175,10 +4175,10 @@ function nurseApp() {
 
                         <b>10.5 ที่อยู่ปัจจุบันที่ติดต่อได้ของบิดา มารดา หรือผู้ปกครอง:</b> 
                         ${ck('ped_AddressCurrent', 'ตามที่อยู่ในทะเบียนบ้าน')} ตามที่อยู่ในทะเบียนบ้าน 
-                        <span class="dot-line" style="min-width: 200px;">${d.ped_AddressCurrent === 'ตามที่อยู่ในทะเบียนบ้าน' ? v('ped_AddressHome', '') : ''}</span> &nbsp;
+                        <span class="dot-line" style="min-width: 200px;">${d.ped_AddressCurrent === 'ตามที่อยู่ในทะเบียนบ้าน' ? v('ped_AddressHome') : ''}</span> &nbsp;
                         ${ck('ped_AddressCurrent', 'อื่นๆ')} อื่นๆ ระบุ <span class="dot-line" style="min-width: 150px;">${v('ped_AddressCurrentOther')}</span><br>
-                        <span class="indent"></span>รายได้บิดา <span class="dot-line text-center">${v('ped_IncomeFather', '...................')}</span> บาท/เดือน &nbsp;&nbsp;&nbsp;
-                        รายได้มารดา <span class="dot-line text-center">${v('ped_IncomeMother', '...................')}</span> บาท/เดือน
+                        <span class="indent"></span>รายได้บิดา <span class="dot-line text-center">${v('ped_IncomeFather')}</span> บาท/เดือน &nbsp;&nbsp;&nbsp;
+                        รายได้มารดา <span class="dot-line text-center">${v('ped_IncomeMother')}</span> บาท/เดือน
                     </div>
 
                     <div class="content-section" style="margin-top: 10px;">
@@ -4221,16 +4221,16 @@ function nurseApp() {
                     </table>
 
                     <div class="fixed-footer-container">
-                        <div class="sign-box">
-                            <p style="margin-top: 8px;">พยาบาลผู้ป่ระเมิน ${v('ped_AssessorName', '.................................................................')} )</p>
-                            <p style="margin-top: 8px;">ตำแหน่ง ${v('ped_AssessorPosition', '................................................')} </p>
+                        
+                        <div style="text-align: right; margin-bottom: 10px; font-size: 10.5pt; padding-right: 5mm;">
+                            พยาบาลผู้ประเมิน <b>${v('ped_AssessorName')}</b> &nbsp; ตำแหน่ง <b>${v('ped_AssessorPosition')}</b>
                         </div>
                         
                         <div class="patient-box-container">
                             <div class="print-patient-box">
                                 <div><b>ชื่อ-สกุล:</b> ${p?.name || '-'} &nbsp; <b>อายุ:</b> ${p?.ageDisplay || '-'}</div>
                                 <div><b>HN:</b> ${p?.hn || '-'} &nbsp; <b>AN:</b> ${p?.an || '-'}</div>                
-                                <div><b>วันที่รับไว้:</b> ${admitDateThai} &nbsp; <b>ตึก:</b> ${p?.ward || this.currentWard || '-'} &nbsp; <b>เตียง:</b> ${p?.bed || '-'}</div>
+                                <div><b>แพทย์เจ้าของไข้:</b> ${p?.doctor || '-'} &nbsp; <b>ตึก:</b> ${p?.ward || this.currentWard || '-'} &nbsp; <b>เตียง:</b> ${p?.bed || '-'}</div>
                             </div>
                         </div>
                         <div class="print-footer">
