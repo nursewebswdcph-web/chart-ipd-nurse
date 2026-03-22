@@ -1365,12 +1365,14 @@ function nurseApp() {
 
         // 3. ระบบพิมพ์เอกสารเด็ก A4
         printPedClassRecord() {
+            // 🔴 แก้ไขจุดที่ 1: เปลี่ยนตัวแปรตัวพิมพ์ใหญ่ให้เป็นตัวพิมพ์เล็กให้ตรงกับ API (เช่น classHistoryPed เป็น classhistoryped)
             if (!this.classHistoryPed || this.classHistoryPed.length === 0) {
                 return this.showAlert('แจ้งเตือน', 'ยังไม่มีประวัติการประเมินเพื่อพิมพ์');
             }
 
             const p = this.selectedPatient;
-            // เรียงลำดับตามวันที่และเวร
+            
+            // 🔴 แก้ไขจุดที่ 2: เปลี่ยน d.date และ d.shift ให้เป็นตัวพิมพ์เล็กทั้งหมด (d.date, d.shift)
             const shiftOrder = { 'เช้า': 1, 'บ่าย': 2, 'ดึก': 3 };
             const sortedData = [...this.classHistoryPed].sort((a, b) => {
                 const dateA = new Date(a.date).getTime();
@@ -1379,14 +1381,12 @@ function nurseApp() {
                 return (shiftOrder[a.shift] || 9) - (shiftOrder[b.shift] || 9);
             });
 
-            // สร้างตารางข้อมูลดิบ (แบ่งหน้าละ 7 เวร)
             const columnsPerPage = 7;
             const pages = [];
             for (let i = 0; i < sortedData.length; i += columnsPerPage) {
                 pages.push(sortedData.slice(i, i + columnsPerPage));
             }
 
-            const admitDateThai = p?.date ? this.formatThaiDateShort(p.date) : '-';
             const topics = [
                 { id: 'item1', title: '1.1 การดูดนมและรับประทานอาหาร' },
                 { id: 'item2', title: '1.2 การดูแลสุขอนามัยส่วนบุคคล' },
@@ -1417,7 +1417,6 @@ function nurseApp() {
                     .text-left { text-align: left; }
                     .bg-gray { background-color: #e9ecef; font-weight: bold; text-align: left; }
                     
-                    /* CSS Footer Fixed Container */
                     .fixed-footer-container { position: absolute; bottom: 5mm; left: 15mm; right: 15mm; display: flex; flex-direction: column; gap: 8px; }
                     .patient-box-container { display: flex; justify-content: flex-end; width: 100%; }
                     .print-patient-box { width: max-content; border: 1px solid #000; border-radius: 4px; padding: 6px 12px; font-size: 9pt !important; background: #fff; }
@@ -1493,7 +1492,8 @@ function nurseApp() {
                             <tr>
                                 <th class="text-left">ประเภทผู้ป่วย (Type 1-5)</th>
                                 ${pageData.map(d => {
-                                    const typeMatch = String(d.classtype).match(/ประเภท\\s*(\\d)/);
+                                    // 🔴 แก้ไขจุดที่ 3: ดึงประเภทโดยใช้ d.classtype ตัวพิมพ์เล็ก
+                                    const typeMatch = String(d.classtype || '').match(/ประเภท\s*(\d)/);
                                     const typeNum = typeMatch ? typeMatch[1] : '-';
                                     return `<th>Type ${typeNum}</th>`;
                                 }).join('')}
@@ -1513,7 +1513,7 @@ function nurseApp() {
                         <b>ประเภท 4 หนัก (Modified Intensive Care) :</b> 28-33 คะแนน | 
                         <b>ประเภท 3 หนักปานกลาง (Intensive Care):</b> 22-27 คะแนน | 
                         <b>ประเภท 2 เจ็บป่วยเล็กน้อย (Minimum Care) :</b> 16-21 คะแนน | 
-                        <b>ประเภท 1 ผู้ป่วยพักฟื้น (Selfe Care) :</b> ไม่เกิน 15 คะแนน
+                        <b>ประเภท 1 ผู้ป่วยพักฟื้น (Self Care) :</b> ไม่เกิน 15 คะแนน
                     </div>
 
                     <div class="fixed-footer-container">
@@ -1536,7 +1536,7 @@ function nurseApp() {
             const printWindow = window.open('', '_blank');
             printWindow.document.write(printContent);
             printWindow.document.close();
-        },
+        }
         async saveGridPage() {
             const currentPage = this.classTimeline[this.currentPageIndex];
             if (!currentPage) return;
