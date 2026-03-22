@@ -4245,4 +4245,5 @@ function nurseApp() {
             `);
             printWindow.document.close();
         },
+    };
 }
