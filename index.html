@@ -2906,9 +2906,38 @@
                                     <div class="flex justify-end pt-4">
                                         <div class="bg-pink-50 p-4 rounded-xl border border-pink-100 flex items-center gap-3">
                                             <span class="font-bold text-slate-700 text-xs">ชื่อพยาบาลผู้บันทึก:</span>
-                                            <input type="text" name="ped_AssessorName" class="w-40 border border-slate-300 rounded p-1.5 text-xs text-center font-bold text-pink-700" :value="nurseName || ''">
+                                            
+                                            <div class="relative" @click.away="showNurseListFor = null">
+                                                <input type="text" 
+                                                    name="ped_AssessorName" 
+                                                    x-model="searchNurse" 
+                                                    @focus="showNurseListFor = 'ped'" 
+                                                    @input="showNurseListFor = 'ped'"
+                                                    placeholder="พิมพ์เพื่อค้นหา..."
+                                                    autocomplete="off"
+                                                    class="w-48 border border-slate-300 rounded p-1.5 text-xs text-center font-bold text-pink-700 focus:ring-pink-500 focus:border-pink-500">
+                                                
+                                                <ul x-show="showNurseListFor === 'ped'" 
+                                                    x-transition
+                                                    class="absolute bottom-full mb-1 left-0 w-full bg-white border border-slate-200 rounded-lg shadow-xl max-h-40 overflow-y-auto z-50 text-left"
+                                                    x-cloak>
+                                                    <template x-for="n in filteredNurses" :key="n.name">
+                                                        <li @click="
+                                                                searchNurse = n.name; 
+                                                                nursePosition = n.position; 
+                                                                showNurseListFor = null;
+                                                            " 
+                                                            class="px-3 py-2 text-xs hover:bg-pink-50 cursor-pointer border-b border-slate-50 last:border-0">
+                                                            <div class="font-bold text-slate-700" x-text="n.name"></div>
+                                                            <div class="text-[10px] text-slate-500" x-text="n.position"></div>
+                                                        </li>
+                                                    </template>
+                                                    <li x-show="filteredNurses.length === 0" class="px-3 py-2 text-xs text-slate-400 text-center bg-slate-50">ไม่พบรายชื่อ</li>
+                                                </ul>
+                                            </div>
+                        
                                             <span class="font-bold text-slate-700 text-xs">ตำแหน่ง:</span>
-                                            <input type="text" name="ped_AssessorPosition" class="w-32 border border-slate-300 rounded p-1.5 text-xs text-center" :value="nursePosition || ''">
+                                            <input type="text" name="ped_AssessorPosition" x-model="nursePosition" class="w-32 border border-slate-300 rounded p-1.5 text-xs text-center bg-white" readonly>
                                         </div>
                                     </div>
                         
