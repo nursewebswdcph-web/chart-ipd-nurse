@@ -2303,10 +2303,15 @@
                                         <p class="text-[12px] text-slate-500 font-bold mt-1 tracking-wider">โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน</p>
                                     </div>
                                     <div class="flex gap-2">
-                                        <button type="button" @click="viewMode = 'detail'" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 px-5 rounded-xl transition-all text-sm">ยกเลิก</button>
+                                        <button type="button" @click="viewMode = 'detail'" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 px-5 rounded-xl transition-all text-sm hidden sm:block">ยกเลิก</button>
                                         <button type="button" @click="saveAssessmentPedData()" class="bg-pink-600 hover:bg-pink-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition-all active:scale-95 text-sm">
-                                            <i class="fa-solid fa-floppy-disk mr-2"></i> บันทึกข้อมูล
+                                            <i class="fa-solid fa-floppy-disk mr-1"></i> บันทึกข้อมูล
                                         </button>
+                                        
+                                        <button type="button" @click="printPedAssessment()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-5 rounded-xl shadow-md transition-all active:scale-95 text-sm">
+                                            <i class="fa-solid fa-print mr-1"></i> พิมพ์เอกสาร
+                                        </button>                        
+
                                     </div>
                                 </div>
                         
