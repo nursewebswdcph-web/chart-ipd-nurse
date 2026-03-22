@@ -542,27 +542,30 @@
                 
                         <nav class="space-y-1.5">
                             <template x-for="form in activeForms" :key="form.id">
-                                <button @click="selectForm(form)" 
+                                <div x-show="
+                                    (isAdult && !['assess_initial_ped', 'patient_class_ped'].includes(form.id)) || 
+                                    (!isAdult && !['assess_initial', 'patient_class', 'fall_risk', 'braden_scale'].includes(form.id))
+                                ">
+                                    <button @click="selectForm(form)" 
                                         :title="isSidebarCollapsed ? form.title : ''"
-                                        :class="currentForm && currentForm.id === form.id 
-                                                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' 
-                                                : 'text-slate-500 hover:bg-slate-50'" 
-                                        class="w-full rounded-2xl transition-all flex items-center p-3.5 overflow-hidden group">
-                                    
-                                    <div class="shrink-0 w-8 flex justify-center items-center">
-                                        <i class="fa-solid text-lg" :class="form.icon"></i>
-                                    </div>
-                
-                                    <span x-show="!isSidebarCollapsed" 
-                                          x-transition:enter="transition ease-out duration-200"
-                                          x-transition:enter-start="opacity-0 -translate-x-4"
-                                          x-transition:enter-end="opacity-100 translate-x-0"
-                                          class="ml-4 text-[13px] font-bold leading-tight flex-1 whitespace-nowrap" 
-                                          x-text="form.title">
-                                    </span>
-                
-                                    <i x-show="!isSidebarCollapsed" class="fa-solid fa-chevron-right text-[10px] opacity-30 ml-2"></i>
-                                </button>
+                                        :class="currentForm?.id === form.id ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'text-slate-500 hover:bg-slate-50'"
+                                        class="w-full flex items-center p-3.5 rounded-2xl transition-all duration-300 group mb-1 overflow-hidden">  
+                                        
+                                        <div class="shrink-0 w-8 flex justify-center items-center">
+                                            <i class="fa-solid text-lg" :class="form.icon"></i>
+                                        </div>
+                            
+                                        <span x-show="!isSidebarCollapsed" 
+                                              x-transition:enter="transition ease-out duration-200"
+                                              x-transition:enter-start="opacity-0 -translate-x-4"
+                                              x-transition:enter-end="opacity-100 translate-x-0"
+                                              class="ml-4 text-[13px] font-bold leading-tight flex-1 text-left whitespace-nowrap" 
+                                              x-text="form.title">
+                                        </span>
+                            
+                                        <i x-show="!isSidebarCollapsed" class="fa-solid fa-chevron-right text-[10px] opacity-30 ml-2"></i>
+                                    </button>
+                                </div>
                             </template>
                         </nav>
                     </div>
@@ -2274,6 +2277,26 @@
                                             </div>
                                         </div>
                                     </template>
+                                </div>
+                            </div>
+                        </div>
+                        <div x-show="currentForm?.id === 'patient_class_ped'" x-cloak>
+                            <div class="animate-fade-in-up">
+                                <h2 class="text-xl font-black text-pink-600">แบบบันทึกการจำแนกประเภทผู้ป่วยเด็ก</h2>
+                                <p class="text-sm text-slate-500">สำหรับหอผู้ป่วยเด็กและทารก</p>
+                                <div class="bg-white p-10 rounded-3xl border-2 border-dashed border-pink-200 text-center mt-5">
+                                    <i class="fa-solid fa-child-reaching text-5xl text-pink-200 mb-4"></i>
+                                    <p class="text-slate-400 italic">พื้นที่สำหรับแบบบันทึกการจำแนกประเภทผู้ป่วยเด็ก (กำลังดำเนินการ)</p>
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div x-show="currentForm?.id === 'assess_initial_ped'" x-cloak>
+                            <div class="animate-fade-in-up">
+                                <h2 class="text-xl font-black text-pink-600">แบบประเมินสภาพผู้ป่วยเด็กแรกรับ (FR-PED-001)</h2>
+                                <div class="bg-white p-10 rounded-3xl border-2 border-dashed border-pink-200 text-center mt-5">
+                                    <i class="fa-solid fa-file-medical text-5xl text-pink-200 mb-4"></i>
+                                    <p class="text-slate-400 italic">พื้นที่สำหรับฟอร์ม FR-PED-001 (กำลังดำเนินการ)</p>
                                 </div>
                             </div>
                         </div>
