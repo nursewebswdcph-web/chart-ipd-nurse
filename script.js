@@ -19,6 +19,7 @@ function nurseApp() {
         showUndoDischargeConfirm: false, // สำหรับเปิด/ปิด Popup ยกเลิกจำหน่าย
 
         selectedPatient: null,
+        isAdult: true,
         currentForm: null, 
         showAssessmentPreview: false, 
         savedAssessment: null,    
@@ -83,13 +84,18 @@ function nurseApp() {
         isSidebarCollapsed: false, // สถานะการพับ Sidebar
         
         activeForms: [
-            { id: 'assess_initial', title: '1. แบบประเมินประวัติและสมรรถนะผู้ป่วยแรกรับ', icon: 'fa-clipboard-user', isMain: true },
-            { id: 'patient_class', title: '2. แบบบันทึกการจำแนกประเภทผู้ป่วย', icon: 'fa-user-tag', isMain: true },
-            { id: 'fall_risk', title: '3. แบบประเมินความเสี่ยงพลัดตหกล้ม Morse / MAAS', icon: 'fa-person-falling', isMain: true },
-            { id: 'braden_scale', title: '4. แบบประเมินแผลกดทับ (Braden Scale)', icon: 'fa-bed', isMain: true },
-            { id: 'patient_edu', title: '5. แบบบันทึกการให้คำแนะนำระหว่างเข้ารับการรักษาและเมื่อจำหน่าย', icon: 'fa-chalkboard-user', isMain: true },
-            { id: 'focus_list', title: '6. แบบบันทึกรายการปัญหาสุขภาพ (Focus List)', icon: 'fa-list-check', isMain: true },
-            { id: 'progress_note', title: '7. แบบบันทึกความก้าวหน้าทางการพยาบาล Nursing Progress Note', icon: 'fa-notes-medical', isMain: true },
+            { id: 'assess_initial', title: '1. แบบประเมินประวัติและสมรรถนะผู้ป่วยแรกรับ (Adult)', icon: 'fa-clipboard-user', isMain: true },
+            { id: 'assess_initial_ped', title: '1. แบบประเมินสภาพผู้ป่วยเด็กแรกรับ (PED)', icon: 'fa-baby', isMain: true },
+            
+            { id: 'patient_class', title: '2. แบบบันทึกการจำแนกประเภทผู้ป่วย (Adult)', icon: 'fa-user-tag', isMain: true },
+            { id: 'patient_class_ped', title: '2. แบบบันทึกการจำแนกประเภทผู้ป่วยเด็ก', icon: 'fa-children', isMain: true },
+            
+            { id: 'fall_risk', title: '3. แบบประเมินความเสี่ยงพลัดตกหกล้ม Morse / MAAS (Adult)', icon: 'fa-person-falling', isMain: true },
+            { id: 'braden_scale', title: '4. แบบบันทึกการป้องกันดูแลแผลกดทับ Braden Scale (Adult)', icon: 'fa-bed', isMain: true },
+            
+            { id: 'patient_edu', title: '5. แบบบันทึกการให้คำแนะนำ', icon: 'fa-chalkboard-user', isMain: true },
+            { id: 'focus_list', title: '6. Focus List', icon: 'fa-list-check', isMain: true },
+            { id: 'progress_note', title: '7. Nursing Progress Note', icon: 'fa-notes-medical', isMain: true },
             { id: 'discharge_record', title: '8. แบบบันทึกการพยาบาลผู้ป่วยจำหน่าย', icon: 'fa-door-open', isMain: true }
         ],
         classForm: {
@@ -140,6 +146,55 @@ function nurseApp() {
             setInterval(update, 1000);
         },
 
+        // 1. ฟังก์ชันตรวจสอบกลุ่มอายุ (เด็ก 0-15 ปี)
+        checkAgeGroup(ageStr) {
+            if (!ageStr) return true; // ถ้าไม่มีข้อมูล ให้ถือว่าเป็นผู้ใหญ่ไว้ก่อน
+            
+            const ageString = String(ageStr);
+            // ดึงตัวเลขชุดแรกที่เจอ (เช่นจาก "15 ปี 2 เดือน" จะได้ 15)
+            const match = ageString.match(/\d+/);
+            const ageNum = match ? parseInt(match[0], 10) : 0;
+        
+            const hasYear = ageString.includes('ปี');
+            const hasMonth = ageString.includes('เดือน');
+            const hasDay = ageString.includes('วัน');
+        
+            // กรณีเด็กทารก/เด็กเล็ก (หน่วยเป็นเดือนหรือวัน และไม่มีหน่วยปี)
+            if ((hasMonth || hasDay) && !hasYear) {
+                return false; // เป็นกลุ่มเด็ก
+            }
+        
+            // ตามโจทย์: ผู้ป่วยเด็กคืออายุ 0-15 ปี (รวมอายุ 15 ด้วย)
+            // ดังนั้นถ้าอายุมากกว่า 15 ถึงจะเป็นผู้ใหญ่ (isAdult = true)
+            return ageNum > 15;
+        },
+        
+        // 2. ฟังก์ชันเลือกผู้ป่วย (แทนที่ openPatientDetail เดิม)
+        selectPatient(patient) {
+            if (!patient) return;
+            this.selectedPatient = patient;
+            
+            // ตรวจสอบอายุและตั้งค่า isAdult
+            const patientAge = patient.age || patient.Age || "";
+            this.isAdult = this.checkAgeGroup(patientAge);
+            
+            // Debug ตรวจสอบใน Console (กด F12 ดูได้)
+            console.log(`เลือกผู้ป่วย: ${patient.name}, อายุ: ${patientAge}, กลุ่ม: ${this.isAdult ? 'ผู้ใหญ่' : 'เด็ก'}`);
+        
+            this.viewMode = 'detail';
+            this.currentForm = null;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        
+            // โหลดข้อมูลประวัติเบื้องต้น
+            const an = patient.an || patient.AN;
+            if (an) {
+                this.loadAssessmentData(an);
+                this.loadClassifications(an);
+                this.loadFallRisk(an);
+                this.loadBraden(an);
+                this.loadPatientEdu(an);
+            }
+        },
         get patientSummary() {
             if (!this.patients || this.patients.length === 0) return { total: 0, deptStr: 'ยังไม่มีข้อมูลผู้ป่วย' };
             const total = this.patients.length;
