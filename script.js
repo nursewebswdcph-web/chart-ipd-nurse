@@ -294,33 +294,50 @@ function nurseApp() {
             this.isLoading = true;
             this.selectedPatient = patient;
             
-            // 1. ล้างข้อมูลเก่าของคนไข้คนก่อนหน้าทิ้งทันที ป้องกันข้อมูลค้าง
+            // 1. ตรวจสอบกลุ่มอายุทันทีที่กดปุ่ม Chart เพื่อไม่ให้จำค่าคนเก่า
+            const patientAge = patient.age || patient.Age || patient.ageDisplay || "";
+            this.isAdult = this.checkAgeGroup(patientAge);
+            
+            // 2. ล้างข้อมูลเก่าของคนไข้คนก่อนหน้าทิ้งทันที
             this.savedAssessment = null;
             this.classHistory = []; 
             this.currentPageIndex = 0;
             
-            // 2. ตั้งค่าหน้าเริ่มต้นและเปลี่ยนโหมดการแสดงผล
-            this.currentForm = this.activeForms.find(f => f.id === 'assess_initial');
+            // 3. ตั้งค่าหน้าเริ่มต้นให้ตรงกับอายุ (เด็กเปิดฟอร์มเด็ก ผู้ใหญ่เปิดฟอร์มผู้ใหญ่)
+            const defaultFormId = this.isAdult ? 'assess_initial' : 'assess_initial_ped';
+            this.currentForm = this.activeForms.find(f => f.id === defaultFormId);
+            
             this.viewMode = 'chart';
             window.scrollTo(0, 0);
 
             try {
-                // 3. โหลดข้อมูล Form 1 และ Form 2 มารอไว้พร้อมกัน (ใช้ Promise.all เพื่อความเร็ว)
+                // โหลดข้อมูล Form มารอไว้พร้อมกัน
                 await Promise.all([
                     this.loadAssessmentData(patient.an),
                     this.loadClassifications(patient.an)
                 ]);
                 
-                // 4. จัดการ UI ฟอร์มแรกรับหลังจากข้อมูลมาแล้ว
                 this.$nextTick(() => {
-                    const formElement = document.getElementById('assessment-form-v2');
+                    // อ้างอิง ID ของฟอร์มให้ตรงกับกลุ่มอายุ
+                    const formElement = document.getElementById(this.isAdult ? 'assessment-form-v2' : 'assessment-form-ped');
                     if (formElement && !this.savedAssessment) {
-                        formElement.reset(); // ล้างช่องกรอกถ้าเป็นคนไข้ใหม่ที่ยังไม่เคยประเมิน
+                        formElement.reset(); 
                         
-                        // นำข้อมูลจากการ Admit มาใส่ในช่องพื้นฐาน
+                        // --- ดักจับแก้ปัญหา Error เวลา 1899-12-30 ---
+                        let cleanTime = patient.time || '';
+                        if (String(cleanTime).includes('T')) {
+                            cleanTime = String(cleanTime).split('T')[1].substring(0, 5); // ตัดเอาแค่ HH:mm
+                        } else if (String(cleanTime).includes('1899')) {
+                            cleanTime = ''; // ถ้าเจอปี 1899 ให้เคลียร์เป็นช่องว่างเลย
+                        }
+
+                        let cleanDate = patient.date || '';
+                        if (String(cleanDate).includes('T')) cleanDate = String(cleanDate).split('T')[0];
+                        // ---------------------------------------
+
                         const fields = {
-                            'AdmitDate': patient.date,
-                            'AdmitTime': patient.time,
+                            'AdmitDate': cleanDate,
+                            'AdmitTime': cleanTime,
                             'AdmittedFrom': patient.receivedFrom,
                             'Refer': patient.referFrom,
                             'ChiefComplaint': patient.cc,
@@ -427,8 +444,24 @@ function nurseApp() {
                                         if (el.type === 'checkbox') {
                                             el.checked = (data[key] === 'on' || data[key] === true || data[key] === el.value);
                                         } else {
-                                            el.value = data[key];
-                                            // เช็คให้ชัวร์ว่ามีฟังก์ชัน dispatchEvent ก่อนค่อยสั่งงาน เพื่อป้องกัน Error
+                                            let val = data[key];
+                                            
+                                            // --- ดักจับแก้ปัญหา 1899-12-30 สำหรับข้อมูลที่ดึงกลับมา ---
+                                            if (val && String(val).includes('1899-12-30')) {
+                                                if (el.type === 'time') {
+                                                    const parts = String(val).split('T');
+                                                    val = parts.length > 1 ? parts[1].substring(0, 5) : '';
+                                                } else {
+                                                    val = ''; 
+                                                }
+                                            } else if (el.type === 'time' && val && String(val).includes('T')) {
+                                                val = String(val).split('T')[1].substring(0, 5);
+                                            } else if (el.type === 'date' && val && String(val).includes('T')) {
+                                                val = String(val).split('T')[0];
+                                            }
+                                            // ------------------------------------------------
+
+                                            el.value = val;
                                             if (typeof el.dispatchEvent === 'function') {
                                                 el.dispatchEvent(new Event('input')); 
                                             }
