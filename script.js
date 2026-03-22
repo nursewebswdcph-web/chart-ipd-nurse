@@ -1536,7 +1536,7 @@ function nurseApp() {
             const printWindow = window.open('', '_blank');
             printWindow.document.write(printContent);
             printWindow.document.close();
-        }
+        },
         async saveGridPage() {
             const currentPage = this.classTimeline[this.currentPageIndex];
             if (!currentPage) return;
