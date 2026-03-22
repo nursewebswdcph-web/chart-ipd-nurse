@@ -606,12 +606,50 @@ function nurseApp() {
         showAlert(title, msg) { this.dialog = { show: true, type: 'alert', title, msg, confirmBtnText: 'ตกลง' }; },
         showConfirm(title, msg, onConfirm) { this.dialog = { show: true, type: 'confirm', title, msg, confirmBtnText: 'ยืนยัน', onConfirm }; },
         handleDialogConfirm() { if (this.dialog.onConfirm) this.dialog.onConfirm(); this.dialog.show = false; },
-        // ใน script.js (ตรวจสอบให้แน่ใจว่ามีส่วนนี้)
+        
+        // 1. เพิ่มฟังก์ชันเช็คอายุเด็ก/ผู้ใหญ่
+        checkAgeGroup(ageStr) {
+            if (!ageStr) return true; // ถ้าไม่มีข้อมูล ให้ถือว่าเป็นผู้ใหญ่ไว้ก่อน
+            
+            const StringAge = String(ageStr);
+            const match = StringAge.match(/\d+/);
+            const ageNum = match ? parseInt(match[0], 10) : 0;
+
+            const hasYear = StringAge.includes('ปี');
+            const hasMonth = StringAge.includes('เดือน');
+            const hasDay = StringAge.includes('วัน');
+
+            // ทารก/เด็กเล็ก (หน่วยเดือนหรือวัน แต่ไม่มีปี)
+            if ((hasMonth || hasDay) && !hasYear) return false; 
+
+            return ageNum > 15; // > 15 คือผู้ใหญ่ (15 ปีพอดี ถือว่าเป็นเด็ก)
+        },
+
+        // 2. ปรับปรุงฟังก์ชันเลือกผู้ป่วยให้เช็คอายุก่อนแสดงผล
         openPatientDetail(p) {
             if (!p) return;
             this.selectedPatient = p;
+            
+            // ตรวจสอบอายุจากตัวแปรของคนไข้ (รองรับหลายชื่อคอลัมน์)
+            const patientAge = p.age || p.Age || p.ageDisplay || "";
+            this.isAdult = this.checkAgeGroup(patientAge);
+            
+            // เช็คสถานะใน Console เพื่อความชัวร์
+            console.log(`เลือก: ${p.name}, อายุ: ${patientAge}, เป็น: ${this.isAdult ? 'ผู้ใหญ่' : 'เด็ก'}`);
+
             this.viewMode = 'detail';
+            this.currentForm = null; // เคลียร์ฟอร์มเดิมทุกครั้งที่เปลี่ยนคนไข้
             window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            // โหลดข้อมูลประวัติฟอร์มต่างๆ เบื้องต้น
+            const an = p.an || p.AN;
+            if (an) {
+                this.loadAssessmentData(an);
+                this.loadClassifications(an);
+                this.loadFallRisk(an);
+                this.loadBraden(an);
+                this.loadPatientEdu(an);
+            }
         },
         
         resetForm() {
