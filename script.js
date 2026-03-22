@@ -431,6 +431,8 @@ function nurseApp() {
         
                 if (data && Object.keys(data).length > 0) {
                     this.savedAssessmentPed = data;
+                    this.searchNurse = data['ped_AssessorName'] || '';
+                    this.nursePosition = data['ped_AssessorPosition'] || '';
                     this.$nextTick(() => {
                         setTimeout(() => {
                             const form = document.getElementById('assessment-form-ped');
