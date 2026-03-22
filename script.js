@@ -1146,7 +1146,7 @@ function nurseApp() {
             } finally {
                 this.isLoading = false;
             }
-        }
+        },
 
         // วันที่แบบย่อสำหรับใส่หัวตาราง
         formatThaiDateShort(dateStr) {
@@ -1433,6 +1433,51 @@ function nurseApp() {
                 this.isLoading = false;
             }
         },
+    async saveShiftFallRisk(date, shift) {
+        const cell = this.getFallGridCell(date, shift);
+        
+        // ตรวจสอบว่ามีการกรอกคะแนน Morse หรือ MAAS หรือยัง
+        const hasMorse = cell.scores.some(s => s !== "" && s !== null);
+        const hasMaas = cell.maas !== "" && cell.maas !== null;
+    
+        if (!hasMorse && !hasMaas) {
+            this.dialog = { show: true, type: 'alert', title: 'แจ้งเตือน', msg: 'กรุณากรอกข้อมูลการประเมินก่อนบันทึก' };
+            return;
+        }
+    
+        this.isLoading = true;
+        try {
+            const payload = {
+                action: 'saveFallRiskSingle',
+                an: this.selectedPatient.an,
+                hn: this.selectedPatient.hn,
+                ward: this.currentWard,
+                evalDate: date,
+                shift: shift,
+                m1: cell.scores[0], m2: cell.scores[1], m3: cell.scores[2],
+                m4: cell.scores[3], m5: cell.scores[4], m6: cell.scores[5],
+                morseTotal: this.calcMorseTotal(cell.scores),
+                maasScore: cell.maas,
+                assessor: cell.assessor
+            };
+    
+            const response = await fetch(this.API_URL, {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+            const res = await response.json();
+    
+            if (res.status === 'success') {
+                this.dialog = { show: true, type: 'alert', title: 'สำเร็จ', msg: `บันทึกประเมิน Fall Risk เวร ${shift} เรียบร้อย` };
+            } else {
+                throw new Error(res.message);
+            }
+        } catch (e) {
+            this.dialog = { show: true, type: 'alert', title: 'เกิดข้อผิดพลาด', msg: e.message };
+        } finally {
+            this.isLoading = false;
+        }
+    },
 
         // ฟังก์ชันสั่งพิมพ์ Morse/MAAS
         printFallRisk() {
