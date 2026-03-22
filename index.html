@@ -2295,12 +2295,624 @@
                         </div>
                     
                         <div x-show="currentForm?.id === 'assess_initial_ped'" x-cloak>
-                            <div class="animate-fade-in-up">
-                                <h2 class="text-xl font-black text-pink-600">แบบประเมินสภาพผู้ป่วยเด็กแรกรับ (FR-PED-001)</h2>
-                                <div class="bg-white p-10 rounded-3xl border-2 border-dashed border-pink-200 text-center mt-5">
-                                    <i class="fa-solid fa-file-medical text-5xl text-pink-200 mb-4"></i>
-                                    <p class="text-slate-400 italic">พื้นที่สำหรับฟอร์ม FR-PED-001 (กำลังดำเนินการ)</p>
+                            <div class="animate-fade-in-up bg-white rounded-[2rem] shadow-sm border border-slate-200 p-8">
+                                
+                                <div class="flex justify-between items-center border-b border-slate-200 pb-4 mb-6 sticky top-0 bg-white z-20 pt-2">
+                                    <div>
+                                        <h2 class="text-xl font-black text-pink-600">แบบประเมินสภาพผู้ป่วยเด็กแรกรับ (FR-PED-001)</h2>
+                                        <p class="text-[12px] text-slate-500 font-bold mt-1 tracking-wider">โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน</p>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <button type="button" @click="viewMode = 'detail'" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 px-5 rounded-xl transition-all text-sm">ยกเลิก</button>
+                                        <button type="button" @click="saveAssessmentPedData()" class="bg-pink-600 hover:bg-pink-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition-all active:scale-95 text-sm">
+                                            <i class="fa-solid fa-floppy-disk mr-2"></i> บันทึกข้อมูล
+                                        </button>
+                                    </div>
                                 </div>
+                        
+                                <form id="assessment-form-ped" class="space-y-6 text-sm">
+                                    
+                                    <div class="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-4">
+                                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-600 mb-1">1. วันที่รับผู้ป่วย</label>
+                                                <input type="date" name="ped_AdmitDate" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-pink-500 focus:border-pink-500">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-600 mb-1">เวลา</label>
+                                                <input type="time" name="ped_AdmitTime" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-pink-500 focus:border-pink-500">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-600 mb-1">รับผู้ป่วยจาก</label>
+                                                <input type="text" name="ped_AdmittedFrom" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-pink-500 focus:border-pink-500">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-600 mb-1">รับ Refer จาก</label>
+                                                <input type="text" name="ped_Refer" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-pink-500 focus:border-pink-500">
+                                            </div>
+                                        </div>
+                        
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t border-slate-200">
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-800 mb-2">2. มาถึงหอผู้ป่วยโดย</label>
+                                                <div class="flex flex-wrap gap-4">
+                                                    <label class="flex items-center gap-2"><input type="radio" name="ped_ArriveBy" value="เดิน" class="text-pink-500 focus:ring-pink-500"> เดิน</label>
+                                                    <label class="flex items-center gap-2"><input type="radio" name="ped_ArriveBy" value="รถนั่ง" class="text-pink-500 focus:ring-pink-500"> รถนั่ง</label>
+                                                    <label class="flex items-center gap-2"><input type="radio" name="ped_ArriveBy" value="เปลนอน" class="text-pink-500 focus:ring-pink-500"> เปลนอน</label>
+                                                    <label class="flex items-center gap-2"><input type="radio" name="ped_ArriveBy" value="อุ้ม" class="text-pink-500 focus:ring-pink-500"> อุ้ม</label>
+                                                </div>
+                                                <div class="mt-3 flex items-center gap-2">
+                                                    <span class="text-xs font-bold text-slate-600">ผู้นำส่งโรงพยาบาล:</span>
+                                                    <input type="text" name="ped_DeliverBy" class="flex-1 border border-slate-300 rounded-lg p-1.5 focus:ring-pink-500 focus:border-pink-500">
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-800 mb-2">3. ผู้ให้ข้อมูล</label>
+                                                <div class="flex flex-wrap gap-4 items-center">
+                                                    <label class="flex items-center gap-2"><input type="radio" name="ped_Informant" value="ผู้ป่วย" class="text-pink-500 focus:ring-pink-500"> ผู้ป่วย</label>
+                                                    <label class="flex items-center gap-2"><input type="radio" name="ped_Informant" value="ญาติ" class="text-pink-500 focus:ring-pink-500"> ญาติ</label>
+                                                    <label class="flex items-center gap-2"><input type="radio" name="ped_Informant" value="ผู้นำส่ง" class="text-pink-500 focus:ring-pink-500"> ผู้นำส่ง</label>
+                                                    <div class="flex items-center gap-2">
+                                                        <label class="flex items-center gap-2"><input type="radio" name="ped_Informant" value="อื่นๆ" class="text-pink-500 focus:ring-pink-500"> อื่นๆ ระบุ</label>
+                                                        <input type="text" name="ped_InformantOther" class="w-32 border border-slate-300 rounded-lg p-1 text-xs focus:ring-pink-500 focus:border-pink-500">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                        
+                                    <div class="space-y-4">
+                                        <div>
+                                            <label class="block font-bold text-slate-800 mb-1">4. อาการสำคัญ</label>
+                                            <textarea name="ped_CC" rows="2" class="w-full border border-slate-300 rounded-lg p-3 focus:ring-pink-500 focus:border-pink-500"></textarea>
+                                        </div>
+                                        <div>
+                                            <label class="block font-bold text-slate-800 mb-1">5. ประวัติการเจ็บป่วยปัจจุบัน</label>
+                                            <textarea name="ped_PI" rows="3" class="w-full border border-slate-300 rounded-lg p-3 focus:ring-pink-500 focus:border-pink-500"></textarea>
+                                        </div>
+                                        <div>
+                                            <label class="block font-bold text-slate-800 mb-1">สภาพผู้ป่วยแรกรับ</label>
+                                            <textarea name="ped_InitialState" rows="2" class="w-full border border-slate-300 rounded-lg p-3 focus:ring-pink-500 focus:border-pink-500"></textarea>
+                                        </div>
+                                        <div class="bg-pink-50/50 p-4 rounded-xl border border-pink-100 flex flex-wrap gap-6 items-center">
+                                            <span class="font-bold text-pink-800">สัญญาณชีพแรกรับ:</span>
+                                            <label class="flex items-center gap-2 text-xs font-bold text-slate-700">BT <input type="text" name="ped_BT" class="w-16 p-1 border rounded text-center"> °C</label>
+                                            <label class="flex items-center gap-2 text-xs font-bold text-slate-700">PR <input type="text" name="ped_PR" class="w-16 p-1 border rounded text-center"> /min</label>
+                                            <label class="flex items-center gap-2 text-xs font-bold text-slate-700">RR <input type="text" name="ped_RR" class="w-16 p-1 border rounded text-center"> /min</label>
+                                            <label class="flex items-center gap-2 text-xs font-bold text-slate-700">BP <input type="text" name="ped_BP" class="w-20 p-1 border rounded text-center"> mmHg</label>
+                                            <label class="flex items-center gap-2 text-xs font-bold text-slate-700">O2sat <input type="text" name="ped_O2sat" class="w-16 p-1 border rounded text-center"> %</label>
+                                        </div>
+                                    </div>
+                        
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div class="border border-slate-200 rounded-2xl p-5 shadow-sm">
+                                            <h3 class="font-black text-slate-800 mb-4 text-base border-b pb-2">6. การตรวจร่างกาย</h3>
+                                            
+                                            <div class="mb-3">
+                                                <label class="block text-xs font-bold text-slate-700 mb-1">6.1 ระดับความรู้สึกตัว</label>
+                                                <div class="flex flex-wrap gap-3">
+                                                    <label class="flex items-center gap-1"><input type="radio" name="ped_Consciousness" value="ดี"> ดี</label>
+                                                    <label class="flex items-center gap-1"><input type="radio" name="ped_Consciousness" value="สับสน"> สับสน</label>
+                                                    <label class="flex items-center gap-1"><input type="radio" name="ped_Consciousness" value="ซึม"> ซึม</label>
+                                                    <label class="flex items-center gap-1"><input type="radio" name="ped_Consciousness" value="ไม่รู้สึกตัว"> ไม่รู้สึกตัว</label>
+                                                </div>
+                                            </div>
+                        
+                                            <div class="mb-3">
+                                                <label class="block text-xs font-bold text-slate-700 mb-1">6.2 การหายใจ</label>
+                                                <div class="flex flex-wrap gap-x-3 gap-y-1 items-center">
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Breathing" value="ปกติ"> ปกติ</label>
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Breathing" value="หอบ"> หอบ</label>
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Breathing" value="จมูกบาน"> จมูกบาน</label>
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Breathing" value="อกบุ๋ม"> อกบุ๋ม</label>
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Breathing" value="หายใจลำบาก"> หายใจลำบาก</label>
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Breathing" value="ไม่หายใจ"> ไม่หายใจ</label>
+                                                    <div class="flex items-center gap-1 w-full mt-1">
+                                                        <label class="flex items-center gap-1"><input type="checkbox" name="ped_Breathing" value="อื่นๆ"> อื่นๆ ระบุ</label>
+                                                        <input type="text" name="ped_BreathingOther" class="flex-1 border-b border-slate-300 outline-none px-1 text-xs">
+                                                    </div>
+                                                </div>
+                                            </div>
+                        
+                                            <div class="mb-3">
+                                                <label class="block text-xs font-bold text-slate-700 mb-1">6.3 การไหลเวียนโลหิต</label>
+                                                <div class="pl-3 mb-2">
+                                                    <span class="text-[11px] text-slate-500 block mb-1">- สีผิว</span>
+                                                    <div class="flex flex-wrap gap-x-3 gap-y-1 items-center">
+                                                        <label class="flex items-center gap-1"><input type="checkbox" name="ped_SkinColor" value="ปกติ"> ปกติ</label>
+                                                        <label class="flex items-center gap-1"><input type="checkbox" name="ped_SkinColor" value="ซีด"> ซีด</label>
+                                                        <label class="flex items-center gap-1"><input type="checkbox" name="ped_SkinColor" value="ปลายมือปลายเท้าเขียว"> ปลายมือปลายเท้าเขียว</label>
+                                                        <label class="flex items-center gap-1"><input type="checkbox" name="ped_SkinColor" value="รอบปากเขียว"> รอบปากเขียว</label>
+                                                        <label class="flex items-center gap-1"><input type="checkbox" name="ped_SkinColor" value="เขียวทั้งตัว"> เขียวทั้งตัว</label>
+                                                        <div class="flex items-center gap-1 w-full mt-1">
+                                                            <label class="flex items-center gap-1"><input type="checkbox" name="ped_SkinColor" value="อื่นๆ"> อื่นๆ ระบุ</label>
+                                                            <input type="text" name="ped_SkinColorOther" class="flex-1 border-b border-slate-300 outline-none px-1 text-xs">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="pl-3 flex items-center gap-3">
+                                                    <span class="text-[11px] text-slate-500">- อาการบวม</span>
+                                                    <label class="flex items-center gap-1"><input type="radio" name="ped_Edema" value="ไม่มี"> ไม่มี</label>
+                                                    <div class="flex items-center gap-1">
+                                                        <label class="flex items-center gap-1"><input type="radio" name="ped_Edema" value="มี"> มี บริเวณ</label>
+                                                        <input type="text" name="ped_EdemaWhere" class="w-24 border-b border-slate-300 outline-none px-1 text-xs">
+                                                    </div>
+                                                </div>
+                                            </div>
+                        
+                                            <div class="mb-3">
+                                                <label class="block text-xs font-bold text-slate-700 mb-1">6.4 ผิวหนัง</label>
+                                                <div class="flex flex-wrap gap-3">
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Skin" value="ปกติ"> ปกติ</label>
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Skin" value="แห้งแตก"> แห้งแตก</label>
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Skin" value="เขียวช้ำ"> เขียวช้ำ</label>
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Skin" value="ผื่นคัน"> ผื่นคัน</label>
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Skin" value="ผื่นแดง"> ผื่นแดง</label>
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Skin" value="เหลือง"> เหลือง</label>
+                                                </div>
+                                            </div>
+                        
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-700 mb-1">6.5 การติดต่อสื่อสาร</label>
+                                                <div class="pl-3 mb-1 flex items-center gap-3">
+                                                    <span class="text-[11px] text-slate-500 w-4">- หู</span>
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Ear" value="ได้ยิน"> ได้ยิน</label>
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Ear" value="ไม่ได้ยิน"> ไม่ได้ยิน</label>
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Ear" value="ใช้อุปกรณ์ช่วยฟัง"> ใช้อุปกรณ์ช่วยฟัง</label>
+                                                    <div class="flex items-center gap-1 flex-1">
+                                                        <label class="flex items-center gap-1 whitespace-nowrap"><input type="checkbox" name="ped_Ear" value="อื่นๆ"> อื่นๆ ระบุ</label>
+                                                        <input type="text" name="ped_EarOther" class="w-full border-b border-slate-300 outline-none px-1 text-xs">
+                                                    </div>
+                                                </div>
+                                                <div class="pl-3 flex flex-wrap gap-3">
+                                                    <span class="text-[11px] text-slate-500 w-4">- ตา</span>
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Eye" value="เห็น"> เห็น</label>
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Eye" value="ไม่เห็น"> ไม่เห็น</label>
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Eye" value="ตาปลอม"> ตาปลอม</label>
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Eye" value="สวมแว่นตา"> สวมแว่นตา</label>
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Eye" value="สั้น"> สั้น</label>
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Eye" value="เอียง"> เอียง</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                        
+                                        <div class="border border-slate-200 rounded-2xl p-5 shadow-sm">
+                                            <h3 class="font-black text-slate-800 mb-4 text-base border-b pb-2">7. สภาพจิตใจผู้ป่วยแรกรับ</h3>
+                                            
+                                            <div class="mb-3">
+                                                <label class="block text-xs font-bold text-slate-700 mb-1">7.1 การแสดงออกทางพฤติกรรม</label>
+                                                <div class="flex flex-wrap gap-x-3 gap-y-1 items-center">
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Behavior" value="กระวนกระวาย"> กระวนกระวาย</label>
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Behavior" value="เฉยๆ"> เฉยๆ</label>
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Behavior" value="ไม่สนใจผู้อื่น"> ไม่สนใจผู้อื่น</label>
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Behavior" value="ถอนหายใจบ่อย"> ถอนหายใจบ่อย</label>
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Behavior" value="ก้าวร้าว"> ก้าวร้าว</label>
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Behavior" value="ร้องไห้"> ร้องไห้</label>
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Behavior" value="เอะอะโวยวาย"> เอะอะโวยวาย</label>
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Behavior" value="ไม่ให้ความร่วมมือ"> ไม่ให้ความร่วมมือ</label>
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Behavior" value="ติดหมอน/ผ่าห่ม/ขวดนม/จุกนม"> ติดหมอน/ผ่าห่ม/ขวดนม/จุกนม</label>
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Behavior" value="นอนเปล"> นอนเปล</label>
+                                                    <div class="flex items-center gap-1 w-full mt-1">
+                                                        <label class="flex items-center gap-1"><input type="checkbox" name="ped_Behavior" value="อื่นๆ"> อื่นๆ ระบุ</label>
+                                                        <input type="text" name="ped_BehaviorOther" class="flex-1 border-b border-slate-300 outline-none px-1 text-xs">
+                                                    </div>
+                                                </div>
+                                            </div>
+                        
+                                            <div class="mb-3">
+                                                <label class="block text-xs font-bold text-slate-700 mb-1">7.2 การแสดงออกทางอารมณ์</label>
+                                                <div class="flex flex-wrap gap-x-3 gap-y-1 items-center">
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Emotion" value="โกรธ"> โกรธ</label>
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Emotion" value="หงุดหงิด"> หงุดหงิด</label>
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Emotion" value="สีหน้ากังวล"> สีหน้ากังวล</label>
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Emotion" value="กลัว"> กลัว</label>
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Emotion" value="ซึม"> ซึม</label>
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Emotion" value="ไม่แสดงอารมณ์"> ไม่แสดงอารมณ์</label>
+                                                    <div class="flex items-center gap-1 flex-1 min-w-[150px]">
+                                                        <label class="flex items-center gap-1 whitespace-nowrap"><input type="checkbox" name="ped_Emotion" value="อื่นๆ"> อื่นๆ ระบุ</label>
+                                                        <input type="text" name="ped_EmotionOther" class="w-full border-b border-slate-300 outline-none px-1 text-xs">
+                                                    </div>
+                                                </div>
+                                            </div>
+                        
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-700 mb-1">7.3 บุคคลที่ต้องการใกล้ชิดมากที่สุดในขณะนี้</label>
+                                                <div class="flex flex-wrap gap-3 items-center">
+                                                    <label class="flex items-center gap-1"><input type="radio" name="ped_ClosestPerson" value="บิดา"> บิดา</label>
+                                                    <label class="flex items-center gap-1"><input type="radio" name="ped_ClosestPerson" value="มารดา"> มารดา</label>
+                                                    <div class="flex items-center gap-1">
+                                                        <label class="flex items-center gap-1 whitespace-nowrap"><input type="radio" name="ped_ClosestPerson" value="ญาติ"> ญาติ ระบุ</label>
+                                                        <input type="text" name="ped_ClosestPersonRelative" class="w-20 border-b border-slate-300 outline-none px-1 text-xs">
+                                                    </div>
+                                                    <div class="flex items-center gap-1 flex-1">
+                                                        <label class="flex items-center gap-1 whitespace-nowrap"><input type="radio" name="ped_ClosestPerson" value="อื่นๆ"> อื่นๆ ระบุ</label>
+                                                        <input type="text" name="ped_ClosestPersonOther" class="w-full border-b border-slate-300 outline-none px-1 text-xs">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                        
+                                    <div class="border border-slate-200 rounded-2xl p-5 shadow-sm">
+                                        <h3 class="font-black text-slate-800 mb-4 text-base border-b pb-2">8. แบบแผนการดำรงชีวิตประจำวัน</h3>
+                                        
+                                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                            <div class="space-y-4">
+                                                <div>
+                                                    <label class="block text-xs font-bold text-slate-700 mb-1">8.1 การเคลื่อนไหวและพัฒนาการ</label>
+                                                    <div class="pl-2 space-y-1">
+                                                        <div class="flex flex-wrap gap-2 items-center text-[13px]">
+                                                            <span class="text-slate-500">- เด็กเล็ก:</span>
+                                                            <label class="flex items-center gap-1"><input type="checkbox" name="ped_MoveSmallChild" value="ชันคอ"> ชันคอ</label>
+                                                            <label class="flex items-center gap-1"><input type="checkbox" name="ped_MoveSmallChild" value="คว่ำ"> คว่ำ</label>
+                                                            <label class="flex items-center gap-1"><input type="checkbox" name="ped_MoveSmallChild" value="คืบ"> คืบ</label>
+                                                            <label class="flex items-center gap-1"><input type="checkbox" name="ped_MoveSmallChild" value="คลาน"> คลาน</label>
+                                                            <label class="flex items-center gap-1"><input type="checkbox" name="ped_MoveSmallChild" value="นั่ง"> นั่ง</label>
+                                                            <label class="flex items-center gap-1"><input type="checkbox" name="ped_MoveSmallChild" value="ยืน"> ยืน</label>
+                                                        </div>
+                                                        <div class="flex flex-wrap gap-2 items-center text-[13px]">
+                                                            <span class="text-slate-500">- เด็กโต:</span>
+                                                            <label class="flex items-center gap-1"><input type="radio" name="ped_MoveBigChild" value="เดินได้เอง"> เดินได้เอง</label>
+                                                            <label class="flex items-center gap-1"><input type="radio" name="ped_MoveBigChild" value="เดินไม่ได้"> เดินไม่ได้</label>
+                                                            <div class="flex items-center gap-1">
+                                                                <label class="flex items-center gap-1 whitespace-nowrap"><input type="radio" name="ped_MoveBigChild" value="ใช้อุปกรณ์ช่วย"> ใช้อุปกรณ์ช่วย ระบุ</label>
+                                                                <input type="text" name="ped_MoveBigChildTool" class="w-32 border-b border-slate-300 outline-none px-1 text-xs">
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                        
+                                                <div>
+                                                    <label class="block text-xs font-bold text-slate-700 mb-1">8.2 การนอนหลับ</label>
+                                                    <div class="pl-2 flex flex-wrap gap-4 text-[13px]">
+                                                        <div class="flex items-center gap-2">
+                                                            <span class="text-slate-500">- กลางคืน วันละ</span>
+                                                            <input type="text" name="ped_SleepNight" class="w-12 border-b border-slate-300 text-center outline-none px-1">
+                                                            <span class="text-slate-500">ชั่วโมง</span>
+                                                        </div>
+                                                        <div class="flex items-center gap-2">
+                                                            <span class="text-slate-500">- กลางวัน เวลา</span>
+                                                            <label class="flex items-center gap-1"><input type="radio" name="ped_SleepDay" value="เช้า"> เช้า</label>
+                                                            <label class="flex items-center gap-1"><input type="radio" name="ped_SleepDay" value="บ่าย"> บ่าย</label>
+                                                            <label class="flex items-center gap-1"><input type="radio" name="ped_SleepDay" value="ไม่นอน"> ไม่นอน</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div>
+                                                    <label class="block text-xs font-bold text-slate-700 mb-1">8.4 การขับถ่าย</label>
+                                                    <div class="pl-2 space-y-1 text-[13px]">
+                                                        <div class="flex flex-wrap gap-4 items-center">
+                                                            <div class="flex items-center gap-1">
+                                                                <label class="flex items-center gap-1"><input type="radio" name="ped_Excretion" value="ทุกวัน"> ทุกวัน วันละ</label>
+                                                                <input type="text" name="ped_ExcretionEveryDay" class="w-10 border-b border-slate-300 text-center outline-none">
+                                                                <span>ครั้ง</span>
+                                                            </div>
+                                                            <div class="flex items-center gap-1">
+                                                                <label class="flex items-center gap-1"><input type="radio" name="ped_Excretion" value="ไม่ทุกวัน"> ไม่ทุกวัน</label>
+                                                                <input type="text" name="ped_ExcretionNotEveryDay" class="w-10 border-b border-slate-300 text-center outline-none">
+                                                                <span>วัน/ครั้ง</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="flex gap-4">
+                                                            <span class="text-slate-500">- การใช้ยาระบาย:</span>
+                                                            <label class="flex items-center gap-1"><input type="radio" name="ped_Laxative" value="ใช้"> ใช้</label>
+                                                            <label class="flex items-center gap-1"><input type="radio" name="ped_Laxative" value="ไม่ใช้"> ไม่ใช้</label>
+                                                        </div>
+                                                        <div class="flex gap-4">
+                                                            <span class="text-slate-500">- รูเปิดทางหน้าท้อง:</span>
+                                                            <label class="flex items-center gap-1"><input type="radio" name="ped_Stoma" value="มี"> มี</label>
+                                                            <label class="flex items-center gap-1"><input type="radio" name="ped_Stoma" value="ไม่มี"> ไม่มี</label>
+                                                        </div>
+                                                        <div class="flex flex-wrap gap-2 items-center mt-1">
+                                                            <span class="text-slate-500">- ปัสสาวะ:</span>
+                                                            <label class="flex items-center gap-1"><input type="checkbox" name="ped_Urine" value="ปกติ"> ปกติ</label>
+                                                            <label class="flex items-center gap-1"><input type="checkbox" name="ped_Urine" value="กลั้นไม่ได้"> กลั้นไม่ได้</label>
+                                                            <label class="flex items-center gap-1"><input type="checkbox" name="ped_Urine" value="ใส่สายสวนปัสสาวะ"> ใส่สายสวนปัสสาวะ</label>
+                                                            <label class="flex items-center gap-1"><input type="checkbox" name="ped_Urine" value="รูเปิดทางหน้าท้อง"> รูเปิดทางหน้าท้อง</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-700 mb-1">8.3 การรับประทานอาหาร</label>
+                                                <div class="pl-2 space-y-1.5 text-[13px]">
+                                                    <div class="flex flex-wrap gap-4 items-center">
+                                                        <label class="flex items-center gap-1"><input type="radio" name="ped_EatType" value="รับประทานอาหารเอง"> รับประทานอาหารเอง</label>
+                                                        <div class="flex items-center gap-1">
+                                                            <label class="flex items-center gap-1"><input type="radio" name="ped_EatType" value="ป้อน"> ป้อน จำนวน</label>
+                                                            <input type="text" name="ped_EatFeedCount" class="w-10 border-b border-slate-300 text-center outline-none">
+                                                            <span>มื้อ/วัน</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="flex flex-wrap gap-2 items-center">
+                                                        <span class="text-slate-500">- ประเภทอาหาร:</span>
+                                                        <label class="flex items-center gap-1"><input type="checkbox" name="ped_EatFoodType" value="นมแม่"> นมแม่</label>
+                                                        <label class="flex items-center gap-1"><input type="checkbox" name="ped_EatFoodType" value="นมผสม"> นมผสม</label>
+                                                        <label class="flex items-center gap-1"><input type="checkbox" name="ped_EatFoodType" value="ข้าวต้ม"> ข้าวต้ม</label>
+                                                        <label class="flex items-center gap-1"><input type="checkbox" name="ped_EatFoodType" value="โจ๊ก"> โจ๊ก</label>
+                                                        <div class="flex items-center gap-1">
+                                                            <label class="flex items-center gap-1"><input type="checkbox" name="ped_EatFoodType" value="อื่นๆ"> อื่นๆ ระบุ</label>
+                                                            <input type="text" name="ped_EatFoodTypeOther" class="w-32 border-b border-slate-300 outline-none px-1 text-xs">
+                                                        </div>
+                                                    </div>
+                                                    <div class="flex flex-wrap gap-2 items-center">
+                                                        <span class="text-slate-500">- ปัญหาในการรับประทานอาหาร:</span>
+                                                        <label class="flex items-center gap-1"><input type="radio" name="ped_EatProblem" value="ไม่มี"> ไม่มี</label>
+                                                        <label class="flex items-center gap-1"><input type="radio" name="ped_EatProblem" value="มี"> มี (ถ้ามี เลือกด้านล่าง)</label>
+                                                        <div class="w-full flex flex-wrap gap-2 pl-4">
+                                                            <label class="flex items-center gap-1 text-slate-500"><input type="radio" name="ped_EatProblemDetail" value="เคี้ยวลำบาก"> เคี้ยวลำบาก</label>
+                                                            <label class="flex items-center gap-1 text-slate-500"><input type="radio" name="ped_EatProblemDetail" value="กลืนลำบาก"> กลืนลำบาก</label>
+                                                            <div class="flex items-center gap-1 text-slate-500">
+                                                                <label class="flex items-center gap-1"><input type="radio" name="ped_EatProblemDetail" value="อื่นๆ"> อื่นๆ ระบุ</label>
+                                                                <input type="text" name="ped_EatProblemOther" class="w-32 border-b border-slate-300 outline-none px-1 text-xs">
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="flex items-center gap-2">
+                                                        <span class="text-slate-500">- อาหารที่ชอบ ระบุ:</span>
+                                                        <input type="text" name="ped_EatFavorite" class="flex-1 border-b border-slate-300 outline-none px-1 text-xs">
+                                                    </div>
+                                                    <div class="flex items-center gap-3">
+                                                        <span class="text-slate-500">- อาหารเฉพาะโรค:</span>
+                                                        <label class="flex items-center gap-1"><input type="radio" name="ped_EatSpecific" value="ไม่มี"> ไม่มี</label>
+                                                        <div class="flex items-center gap-1">
+                                                            <label class="flex items-center gap-1"><input type="radio" name="ped_EatSpecific" value="มี"> มี ระบุ</label>
+                                                            <input type="text" name="ped_EatSpecificDetail" class="w-40 border-b border-slate-300 outline-none px-1 text-xs">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                        
+                                    <div class="border border-slate-200 rounded-2xl p-5 shadow-sm">
+                                        <h3 class="font-black text-slate-800 mb-4 text-base border-b pb-2">9. ประวัติในอดีต</h3>
+                                        
+                                        <div class="space-y-3 text-[13px]">
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-700 mb-1">9.1 ประวัติการตั้งครรภ์และการคลอด</label>
+                                                <div class="pl-2 space-y-1">
+                                                    <div class="flex flex-wrap gap-4 items-center">
+                                                        <span class="flex items-center gap-1">บุตรคนที่ <input type="text" name="ped_PregChildNo" class="w-10 border-b border-slate-300 text-center outline-none"></span>
+                                                        <span class="flex items-center gap-1">จำนวนพี่น้อง <input type="text" name="ped_PregSiblingCount" class="w-10 border-b border-slate-300 text-center outline-none"> คน</span>
+                                                        <span class="flex items-center gap-1">ANC <input type="text" name="ped_PregANC" class="w-10 border-b border-slate-300 text-center outline-none"> ครั้ง</span>
+                                                        <div class="flex items-center gap-2">
+                                                            <span class="text-slate-500">ผลตรวจโลหิต:</span>
+                                                            <label class="flex items-center gap-1"><input type="radio" name="ped_PregBlood" value="ปกติ"> ปกติ</label>
+                                                            <label class="flex items-center gap-1"><input type="radio" name="ped_PregBlood" value="ไม่ปกติ"> ไม่ปกติ ระบุ</label>
+                                                            <input type="text" name="ped_PregBloodAbnormal" class="w-24 border-b border-slate-300 outline-none px-1">
+                                                        </div>
+                                                    </div>
+                                                    <div class="flex flex-wrap gap-4 items-center">
+                                                        <div class="flex items-center gap-2">
+                                                            <span class="text-slate-500">การตั้งครรภ์:</span>
+                                                            <label class="flex items-center gap-1"><input type="radio" name="ped_Pregnancy" value="ครบกำหนด"> ครบกำหนด</label>
+                                                            <label class="flex items-center gap-1"><input type="radio" name="ped_Pregnancy" value="ไม่ครบกำหนด"> ไม่ครบกำหนด ระบุ</label>
+                                                            <input type="text" name="ped_PregnancyAbnormal" class="w-24 border-b border-slate-300 outline-none px-1">
+                                                        </div>
+                                                        <div class="flex items-center gap-2 border-l pl-4 border-slate-300">
+                                                            <span class="text-slate-500">การคลอด:</span>
+                                                            <label class="flex items-center gap-1"><input type="radio" name="ped_Delivery" value="ปกติ"> ปกติ</label>
+                                                            <label class="flex items-center gap-1"><input type="radio" name="ped_Delivery" value="ผิดปกติ"> ผิดปกติ ระบุ</label>
+                                                            <input type="text" name="ped_DeliveryAbnormal" class="w-24 border-b border-slate-300 outline-none px-1">
+                                                        </div>
+                                                    </div>
+                                                    <div class="flex flex-wrap gap-4 items-center">
+                                                        <span class="flex items-center gap-1">สถานที่คลอด <input type="text" name="ped_DeliveryPlace" class="w-40 border-b border-slate-300 outline-none"></span>
+                                                        <span class="flex items-center gap-1">น้ำหนักแรกเกิด <input type="text" name="ped_BirthWeight" class="w-16 border-b border-slate-300 text-center outline-none"> กรัม</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                        
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label class="block text-xs font-bold text-slate-700 mb-1">9.2 ภูมิคุ้มกันโรค</label>
+                                                    <div class="flex flex-wrap gap-x-3 gap-y-1 items-center pl-2">
+                                                        <label class="flex items-center gap-1"><input type="checkbox" name="ped_Immunity" value="BCG"> BCG</label>
+                                                        <span class="flex items-center gap-1">
+                                                            <input type="checkbox" name="ped_Immunity" value="DTP+OPV"> DTP+OPV ครั้งที่ 
+                                                            <input type="text" name="ped_ImmunityDTP" class="w-8 border-b border-slate-300 text-center outline-none">
+                                                        </span>
+                                                        <label class="flex items-center gap-1"><input type="checkbox" name="ped_Immunity" value="ญาติจำไม่ได้"> ญาติจำไม่ได้</label>
+                                                        <div class="flex items-center gap-1 w-full mt-1">
+                                                            <label class="flex items-center gap-1"><input type="checkbox" name="ped_Immunity" value="อื่นๆ"> อื่นๆ ระบุ</label>
+                                                            <input type="text" name="ped_ImmunityOther" class="flex-1 border-b border-slate-300 outline-none px-1">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs font-bold text-slate-700 mb-1">9.3 การเจ็บป่วย</label>
+                                                    <div class="flex flex-wrap gap-3 items-center pl-2">
+                                                        <label class="flex items-center gap-1"><input type="radio" name="ped_IllnessHistory" value="ไม่มี"> ไม่มี</label>
+                                                        <div class="flex items-center gap-1">
+                                                            <label class="flex items-center gap-1"><input type="radio" name="ped_IllnessHistory" value="มี"> มี ระบุ</label>
+                                                            <input type="text" name="ped_IllnessHistoryDetail" class="w-32 border-b border-slate-300 outline-none px-1">
+                                                        </div>
+                                                        <label class="flex items-center gap-1"><input type="radio" name="ped_IllnessHistory" value="ญาติจำไม่ได้"> ญาติจำไม่ได้</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                        
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label class="block text-xs font-bold text-slate-700 mb-1">9.4 การรักษาในโรงพยาบาล</label>
+                                                    <div class="pl-2 space-y-1">
+                                                        <div class="flex items-center gap-3">
+                                                            <label class="flex items-center gap-1"><input type="radio" name="ped_AdmitHistory" value="ไม่เคย"> ไม่เคย</label>
+                                                            <span class="flex items-center gap-1">
+                                                                <input type="radio" name="ped_AdmitHistory" value="เคย"> เคย 
+                                                                <input type="text" name="ped_AdmitHistoryCount" class="w-8 border-b border-slate-300 text-center outline-none"> ครั้ง
+                                                            </span>
+                                                        </div>
+                                                        <div class="flex flex-wrap gap-2 items-center">
+                                                            <span class="text-slate-500">- การผ่าตัด:</span>
+                                                            <label class="flex items-center gap-1"><input type="radio" name="ped_SurgeryHistory" value="ไม่เคย"> ไม่เคย</label>
+                                                            <label class="flex items-center gap-1"><input type="radio" name="ped_SurgeryHistory" value="ญาติจำไม่ได้"> ญาติจำไม่ได้</label>
+                                                            <div class="flex items-center gap-1 w-full">
+                                                                <label class="flex items-center gap-1"><input type="radio" name="ped_SurgeryHistory" value="เคย"> เคย ระบุ</label>
+                                                                <input type="text" name="ped_SurgeryHistoryDetail" class="flex-1 border-b border-slate-300 outline-none px-1">
+                                                                <span>เมื่อ</span>
+                                                                <input type="text" name="ped_SurgeryHistoryWhen" class="w-20 border-b border-slate-300 outline-none px-1">
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs font-bold text-slate-700 mb-1">9.5 การแพ้ยา หรือสารต่างๆ</label>
+                                                    <div class="flex flex-wrap gap-3 items-center pl-2">
+                                                        <label class="flex items-center gap-1"><input type="radio" name="ped_Allergy" value="ไม่ทราบ"> ไม่ทราบ</label>
+                                                        <label class="flex items-center gap-1"><input type="radio" name="ped_Allergy" value="ไม่มี"> ไม่มี</label>
+                                                        <div class="flex items-center gap-1">
+                                                            <label class="flex items-center gap-1"><input type="radio" name="ped_Allergy" value="มี"> มี ระบุ</label>
+                                                            <input type="text" name="ped_AllergyDetail" class="w-full border-b border-slate-300 outline-none px-1">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                        
+                                    <div class="border border-slate-200 rounded-2xl p-5 shadow-sm">
+                                        <h3 class="font-black text-slate-800 mb-4 text-base border-b pb-2">10. สภาพสังคม เศรษฐกิจ และสภาพแวดล้อม</h3>
+                                        
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-[13px]">
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-700 mb-1">10.1 อารมณ์ทั่วไป</label>
+                                                <div class="flex flex-wrap gap-x-3 gap-y-1 items-center pl-2">
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_SocialEmotion" value="ร่าเริง"> ร่าเริง</label>
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_SocialEmotion" value="เงียบขรึม"> เงียบขรึม</label>
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_SocialEmotion" value="ขี้โมโห"> ขี้โมโห</label>
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_SocialEmotion" value="ขี้อาย"> ขี้อาย</label>
+                                                    <div class="flex items-center gap-1">
+                                                        <label class="flex items-center gap-1"><input type="checkbox" name="ped_SocialEmotion" value="อื่นๆ"> อื่นๆ ระบุ</label>
+                                                        <input type="text" name="ped_SocialEmotionOther" class="w-24 border-b border-slate-300 outline-none px-1">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-700 mb-1">10.2 การศึกษา</label>
+                                                <div class="flex flex-wrap gap-x-3 gap-y-1 items-center pl-2">
+                                                    <label class="flex items-center gap-1"><input type="radio" name="ped_Education" value="ยังไม่ได้ศึกษา"> ยังไม่ได้ศึกษา</label>
+                                                    <label class="flex items-center gap-1"><input type="radio" name="ped_Education" value="อนุบาล"> อนุบาล</label>
+                                                    <label class="flex items-center gap-1"><input type="radio" name="ped_Education" value="ประถมศึกษา"> ประถมศึกษา</label>
+                                                    <label class="flex items-center gap-1"><input type="radio" name="ped_Education" value="มัธยมศึกษา"> มัธยมศึกษา</label>
+                                                    <div class="flex items-center gap-1 w-full mt-1">
+                                                        <label class="flex items-center gap-1"><input type="radio" name="ped_Education" value="อื่นๆ"> อื่นๆ ระบุ</label>
+                                                        <input type="text" name="ped_EducationOther" class="flex-1 border-b border-slate-300 outline-none px-1">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                        
+                                        <div class="mt-4 text-[13px]">
+                                            <label class="block text-xs font-bold text-slate-700 mb-1">10.3 สิ่งแวดล้อม</label>
+                                            <div class="flex flex-wrap gap-x-3 gap-y-2 items-center pl-2">
+                                                <label class="flex items-center gap-1"><input type="checkbox" name="ped_Environment" value="ใกล้โรงงาน"> ใกล้โรงงาน</label>
+                                                <label class="flex items-center gap-1"><input type="checkbox" name="ped_Environment" value="ชุมชนแออัด"> ชุมชนแออัด</label>
+                                                <label class="flex items-center gap-1"><input type="checkbox" name="ped_Environment" value="พื้นที่ก่อสร้าง"> พื้นที่ก่อสร้าง</label>
+                                                <label class="flex items-center gap-1"><input type="checkbox" name="ped_Environment" value="ใกล้ตลาด"> ใกล้ตลาด</label>
+                                                <label class="flex items-center gap-1"><input type="checkbox" name="ped_Environment" value="บุคคลในบ้านสูบบุหรี่"> บุคคลในบ้านสูบบุหรี่</label>
+                                                <div class="flex items-center gap-1">
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Environment" value="สัตว์เลี้ยง"> สัตว์เลี้ยง ระบุ</label>
+                                                    <input type="text" name="ped_EnvironmentPet" class="w-24 border-b border-slate-300 outline-none px-1">
+                                                </div>
+                                                <div class="flex items-center gap-1">
+                                                    <label class="flex items-center gap-1"><input type="checkbox" name="ped_Environment" value="อื่นๆ"> อื่นๆ ระบุ</label>
+                                                    <input type="text" name="ped_EnvironmentOther" class="w-32 border-b border-slate-300 outline-none px-1">
+                                                </div>
+                                            </div>
+                                        </div>
+                        
+                                        <div class="mt-4 space-y-2 text-[13px]">
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-700 mb-1">10.4 ที่อยู่ของผู้ป่วยในทะเบียนบ้าน</label>
+                                                <textarea name="ped_AddressHome" rows="2" class="w-full border border-slate-300 rounded-lg p-2 text-xs bg-slate-50"></textarea>
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-700 mb-1">10.5 ที่อยู่ปัจจุบันที่ติดต่อได้ของบิดา มารดา หรือผู้ปกครอง</label>
+                                                <div class="flex flex-wrap gap-3 items-center pl-2">
+                                                    <label class="flex items-center gap-1"><input type="radio" name="ped_AddressCurrent" value="ตามที่อยู่ในทะเบียนบ้าน"> ตามที่อยู่ในทะเบียนบ้าน</label>
+                                                    <div class="flex items-center gap-1 flex-1">
+                                                        <label class="flex items-center gap-1 whitespace-nowrap"><input type="radio" name="ped_AddressCurrent" value="อื่นๆ"> อื่นๆ ระบุ</label>
+                                                        <input type="text" name="ped_AddressCurrentOther" class="w-full border-b border-slate-300 outline-none px-1">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="flex flex-wrap gap-6 items-center pl-2 pt-2">
+                                                <span class="flex items-center gap-1 font-bold text-slate-600">รายได้บิดา <input type="text" name="ped_IncomeFather" class="w-20 border-b border-slate-300 text-center outline-none px-1"> บาท/เดือน</span>
+                                                <span class="flex items-center gap-1 font-bold text-slate-600">รายได้มารดา <input type="text" name="ped_IncomeMother" class="w-20 border-b border-slate-300 text-center outline-none px-1"> บาท/เดือน</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                        
+                                    <div class="border border-slate-200 rounded-2xl p-5 shadow-sm">
+                                        <h3 class="font-black text-slate-800 mb-2 text-base border-b pb-2">11. คำแนะนำ</h3>
+                                        <div class="flex flex-wrap gap-4 items-center mb-2">
+                                            <label class="flex items-center gap-1"><input type="radio" name="ped_AdviceTarget" value="ผู้ป่วย"> ผู้ป่วย</label>
+                                            <label class="flex items-center gap-1"><input type="radio" name="ped_AdviceTarget" value="ญาติ/บิดา/มารดา"> ญาติ/บิดา/มารดา</label>
+                                            <label class="flex items-center gap-1"><input type="radio" name="ped_AdviceTarget" value="ไม่ได้ให้คำแนะนำ"> ไม่ได้ให้คำแนะนำ</label>
+                                        </div>
+                                        <div class="flex flex-wrap gap-x-4 gap-y-2 items-center pl-4 text-[13px]">
+                                            <span class="text-slate-500 font-bold">เรื่อง:</span>
+                                            <label class="flex items-center gap-1"><input type="checkbox" name="ped_AdviceTopics" value="การใช้อุปกรณ์ สถานที่"> การใช้อุปกรณ์ สถานที่</label>
+                                            <label class="flex items-center gap-1"><input type="checkbox" name="ped_AdviceTopics" value="ระเบียบการเยี่ยม"> ระเบียบการเยี่ยม</label>
+                                            <label class="flex items-center gap-1"><input type="checkbox" name="ped_AdviceTopics" value="การขอความช่วยเหลือ"> การขอความช่วยเหลือ</label>
+                                            <label class="flex items-center gap-1"><input type="checkbox" name="ped_AdviceTopics" value="การลงนามยินยอม"> การลงนามยินยอม</label>
+                                            <label class="flex items-center gap-1"><input type="checkbox" name="ped_AdviceTopics" value="การเก็บของมีค่า"> การเก็บของมีค่า</label>
+                                            <div class="flex items-center gap-1">
+                                                <label class="flex items-center gap-1"><input type="checkbox" name="ped_AdviceTopics" value="อื่นๆ"> อื่นๆ ระบุ</label>
+                                                <input type="text" name="ped_AdviceTopicsOther" class="w-32 border-b border-slate-300 outline-none px-1 text-xs">
+                                            </div>
+                                        </div>
+                                    </div>
+                        
+                                    <div class="border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                                        <div class="bg-slate-100 px-5 py-3 border-b border-slate-200">
+                                            <h3 class="font-black text-slate-800 text-base">12. ความสามารถในการปฏิบัติ</h3>
+                                        </div>
+                                        <div class="overflow-x-auto">
+                                            <table class="w-full text-left text-[13px] border-collapse min-w-[600px]">
+                                                <thead>
+                                                    <tr class="bg-slate-50 border-b border-slate-200">
+                                                        <th class="p-3 font-bold text-slate-700 w-[30%]">ชื่อกิจกรรม</th>
+                                                        <th class="p-3 font-bold text-slate-700 text-center w-[15%]">ทำได้ทั้งหมด</th>
+                                                        <th class="p-3 font-bold text-slate-700 text-center w-[15%]">ทำได้บางส่วน</th>
+                                                        <th class="p-3 font-bold text-slate-700 text-center w-[15%]">ทำไม่ได้เลย</th>
+                                                        <th class="p-3 font-bold text-slate-700 w-[25%]">ใช้อุปกรณ์ช่วย ระบุ</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="divide-y divide-slate-200">
+                                                    <template x-for="(act, index) in ['การรับประทานอาหาร', 'การทำความสะอาดปาก/ฟัน', 'การทำความสะอาดร่างกาย', 'การแต่งตัว', 'การขับถ่าย']">
+                                                        <tr class="hover:bg-slate-50">
+                                                            <td class="p-3 font-medium text-slate-700"><span x-text="index + 1 + '. '"></span><span x-text="act"></span></td>
+                                                            <td class="p-3 text-center"><input type="radio" :name="'ped_Act' + (index+1)" value="ทำได้ทั้งหมด" class="w-4 h-4 text-pink-500 focus:ring-pink-500"></td>
+                                                            <td class="p-3 text-center"><input type="radio" :name="'ped_Act' + (index+1)" value="ทำได้บางส่วน" class="w-4 h-4 text-pink-500 focus:ring-pink-500"></td>
+                                                            <td class="p-3 text-center"><input type="radio" :name="'ped_Act' + (index+1)" value="ทำไม่ได้เลย" class="w-4 h-4 text-pink-500 focus:ring-pink-500"></td>
+                                                            <td class="p-3">
+                                                                <div class="flex items-center gap-1">
+                                                                    <input type="radio" :name="'ped_Act' + (index+1)" value="ใช้อุปกรณ์ช่วย" class="w-4 h-4 text-pink-500 focus:ring-pink-500 shrink-0">
+                                                                    <input type="text" :name="'ped_Act' + (index+1) + 'Tool'" placeholder="ระบุอุปกรณ์..." class="w-full border-b border-slate-300 outline-none px-1 text-xs bg-transparent">
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    </template>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                        
+                                    <div class="flex justify-end pt-4">
+                                        <div class="bg-pink-50 p-4 rounded-xl border border-pink-100 flex items-center gap-3">
+                                            <span class="font-bold text-slate-700 text-xs">ชื่อพยาบาลผู้บันทึก:</span>
+                                            <input type="text" name="ped_AssessorName" class="w-40 border border-slate-300 rounded p-1.5 text-xs text-center font-bold text-pink-700" :value="nurseName || ''">
+                                            <span class="font-bold text-slate-700 text-xs">ตำแหน่ง:</span>
+                                            <input type="text" name="ped_AssessorPosition" class="w-32 border border-slate-300 rounded p-1.5 text-xs text-center" :value="nursePosition || ''">
+                                        </div>
+                                    </div>
+                        
+                                </form>
                             </div>
                         </div>
 
