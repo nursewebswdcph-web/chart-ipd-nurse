@@ -2288,9 +2288,6 @@
                             </div>
                             <div class="flex gap-2">
                                 <button type="button" @click="viewMode = 'detail'" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2 px-5 rounded-xl text-sm">ยกเลิก</button>
-                                <button type="button" @click="saveFallRiskPage()" class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-6 rounded-xl shadow-md text-sm">
-                                    <i class="fa-solid fa-floppy-disk mr-2"></i> บันทึกข้อมูล
-                                </button>
                                 <button type="button" @click="printFallRisk()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-6 rounded-xl shadow-md text-sm">
                                     <i class="fa-solid fa-print mr-1.5"></i> พิมพ์เอกสาร
                                 </button>
@@ -2385,11 +2382,29 @@
                                         </tr>
                 
                                         <tr class="bg-slate-50">
-                                            <td class="border border-slate-300 px-3 py-1 text-right text-slate-500 font-bold">พยาบาลผู้ประเมิน</td>
+                                            <td class="border border-slate-300 px-3 py-1 text-left text-slate-400 font-bold text-[9px]">ผู้ประเมิน</td>
                                             <template x-for="day in classTimeline[currentPageIndex]">
                                                 <template x-for="s in ['ดึก','เช้า','บ่าย']">
                                                     <td class="border border-slate-300 p-0">
-                                                        <input type="text" class="w-full h-8 text-[9px] text-center outline-none bg-transparent" x-model="getFallGridCell(day.date, s).assessor" placeholder="ชื่อ...">
+                                                        <input type="text" 
+                                                            class="w-full h-8 text-[9px] text-center outline-none bg-transparent"
+                                                            x-model="getFallGridCell(day.date, s).assessor"
+                                                            placeholder="ชื่อ...">
+                                                    </td>
+                                                </template>
+                                            </template>
+                                        </tr>
+                                        
+                                        <tr class="bg-white">
+                                            <td class="border border-slate-300 px-3 py-1 text-left text-amber-500 font-bold text-[9px]">การจัดการ</td>
+                                            <template x-for="day in classTimeline[currentPageIndex]">
+                                                <template x-for="s in ['ดึก','เช้า','บ่าย']">
+                                                    <td class="border border-slate-300 p-1">
+                                                        <button type="button" 
+                                                            @click="saveShiftFallRisk(day.date, s)"
+                                                            class="w-full py-1 bg-amber-50 hover:bg-amber-600 hover:text-white text-amber-600 rounded-lg text-[10px] font-black transition-all shadow-sm">
+                                                            <i class="fa-solid fa-cloud-arrow-up mr-1"></i> บันทึก
+                                                        </button>
                                                     </td>
                                                 </template>
                                             </template>
