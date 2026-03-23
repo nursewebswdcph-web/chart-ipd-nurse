@@ -1419,7 +1419,7 @@ function nurseApp() {
                     .header-right { position: absolute; top: 8mm; right: 10mm; text-align: right; font-size: 8pt; font-weight: bold; line-height: 1.2; }
                     
                     /* หัวเรื่อง */
-                    .main-title { text-align: center; font-weight: 900; font-size: 13pt; margin-top: 5px; margin-bottom: 2px; }
+                    .main-title { text-align: center; font-weight: 900; font-size: 13pt; margin-top: 25px; margin-bottom: 2px; }
                     .sub-title { text-align: center; font-weight: 700; font-size: 11pt; margin-bottom: 8px; }
                     .date-info { text-align: center; font-size: 10pt; margin-bottom: 8px; }
                     
@@ -1547,7 +1547,8 @@ function nurseApp() {
                 <div class="fixed-footer-container">
                     <div class="patient-box-container">
                         <div class="print-patient-box">
-                            <div><b>ชื่อ-สกุล:</b> ${p?.name || '-'} &nbsp; <b>อายุ:</b> ${p?.ageDisplay || '-'} &nbsp; <b>HN:</b> ${p?.hn || '-'} &nbsp; <b>AN:</b> ${p?.an || '-'}</div>                
+                            <div><b>ชื่อ-สกุล:</b> ${p?.name || '-'} &nbsp; <b>อายุ:</b> ${p?.ageDisplay || '-'}</div>  
+                            <div><b>HN:</b> ${p?.hn || '-'} &nbsp; <b>AN:</b> ${p?.an || '-'}</div>                
                             <div><b>แพทย์เจ้าของไข้:</b> ${p?.doctor || '-'} &nbsp; <b>ตึก:</b> ${p?.ward || this.currentWard || '-'} &nbsp; <b>เตียง:</b> ${p?.bed || '-'}</div>
                         </div>
                     </div>
