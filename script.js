@@ -1371,7 +1371,7 @@ function nurseApp() {
 
             const p = this.selectedPatient;
             
-            // 1. จัดกลุ่มข้อมูลตาม "วันที่" เพื่อสร้างโครงสร้างตาราง 5 วัน/หน้า
+            // จัดกลุ่มข้อมูลตามวันที่
             const groupedByDate = {};
             this.classHistoryPed.forEach(d => {
                 if (!d.date) return;
@@ -1382,10 +1382,9 @@ function nurseApp() {
                 groupedByDate[dateKey].shifts[d.shift] = d;
             });
 
-            // เรียงลำดับวันที่จากอดีตไปปัจจุบัน
             const sortedDates = Object.keys(groupedByDate).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
             
-            // 2. แบ่งข้อมูลออกเป็นชุดๆ ละ 5 วัน (15 เวร)
+            // หน้าละ 5 วัน (15 เวร)
             const daysPerPage = 5;
             const pages = [];
             for (let i = 0; i < sortedDates.length; i += daysPerPage) {
@@ -1405,8 +1404,8 @@ function nurseApp() {
                 { id: 'item10', title: '4. การสอนและการประคับประคองจิตใจ (ผู้ป่วยเด็กและครอบครัว)', isMain: true }
             ];
 
-            const admitDateStr = p?.date ? this.formatThaiDateLong(p.date) : '-';
-            const dischargeDateStr = p?.dischargeDate ? this.formatThaiDateLong(p.dischargeDate) : '-';
+            const admitDateStr = p?.date && typeof this.formatThaiDateLong === 'function' ? this.formatThaiDateLong(p.date) : '-';
+            const dischargeDateStr = p?.dischargeDate && typeof this.formatThaiDateLong === 'function' ? this.formatThaiDateLong(p.dischargeDate) : '-';
 
             let printContent = `
             <html>
@@ -1414,41 +1413,39 @@ function nurseApp() {
                 <title>แบบบันทึกการจำแนกประเภทผู้ป่วยเด็ก</title>
                 <style>
                     @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700;900&display=swap');
-                    body { font-family: 'Sarabun', sans-serif; font-size: 10pt; margin: 0; padding: 0; color: #000; }
-                    .a4-page { width: 297mm; height: 210mm; margin: 0 auto; padding: 10mm 15mm 20mm 15mm; position: relative; box-sizing: border-box; page-break-after: always; } /* ปรับเป็นแนวนอนให้ตาราง 15 เวรพอดี */
-                    .header-right { position: absolute; top: 10mm; right: 15mm; text-align: right; font-size: 8pt; font-weight: bold; line-height: 1.2; }
+                    body { font-family: 'Sarabun', sans-serif; font-size: 9pt; margin: 0; padding: 0; color: #000; }
+                    /* เปลี่ยนเป็น A4 แนวตั้ง (Portrait) */
+                    .a4-page { width: 210mm; height: 296mm; margin: 0 auto; padding: 10mm 10mm 15mm 10mm; position: relative; box-sizing: border-box; page-break-after: always; }
+                    .header-right { position: absolute; top: 8mm; right: 10mm; text-align: right; font-size: 8pt; font-weight: bold; line-height: 1.2; }
                     
-                    /* หัวเรื่อง 2 บรรทัด */
-                    .main-title { text-align: center; font-weight: 900; font-size: 14pt; margin-top: 10px; margin-bottom: 5px; }
-                    .sub-title { text-align: center; font-weight: 700; font-size: 12pt; margin-bottom: 10px; }
+                    /* หัวเรื่อง */
+                    .main-title { text-align: center; font-weight: 900; font-size: 13pt; margin-top: 5px; margin-bottom: 2px; }
+                    .sub-title { text-align: center; font-weight: 700; font-size: 11pt; margin-bottom: 8px; }
+                    .date-info { text-align: center; font-size: 10pt; margin-bottom: 8px; }
                     
-                    /* วันที่รับใหม่ วันที่จำหน่าย */
-                    .date-info { text-align: center; font-size: 11pt; margin-bottom: 10px; }
-                    
-                    /* ตาราง Grid */
-                    table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 9.5pt; table-layout: fixed; }
-                    th, td { border: 1px solid #000; padding: 4px; text-align: center; vertical-align: middle; }
+                    /* ตารางบีบให้เข้ากับแนวตั้ง */
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 8pt; table-layout: fixed; }
+                    th, td { border: 1px solid #000; padding: 2px; text-align: center; vertical-align: middle; word-wrap: break-word; }
                     th { font-weight: bold; }
-                    .text-left { text-align: left; padding-left: 5px; }
+                    .text-left { text-align: left; padding-left: 4px; }
                     
-                    /* ความกว้างคอลัมน์ */
-                    .col-topic { width: 20%; }
-                    .col-shift { width: calc(80% / 15); } /* แบ่ง 15 เวรเท่าๆ กัน */
+                    /* ปรับขนาดคอลัมน์ให้ยัดลงแนวตั้งได้ */
+                    .col-topic { width: 26%; } 
+                    .col-shift { width: calc(74% / 15); } 
                     
-                    .bg-gray { background-color: #f1f5f9; font-weight: bold; text-align: left; padding-left: 5px; }
+                    .bg-gray { background-color: #f1f5f9; font-weight: bold; text-align: left; padding-left: 4px; }
                     .bg-light { background-color: #f8fafc; }
                     
                     /* กรอบคนไข้และท้ายกระดาษ */
-                    .fixed-footer-container { position: absolute; bottom: 8mm; left: 15mm; right: 15mm; display: flex; flex-direction: column; gap: 5px; }
+                    .fixed-footer-container { position: absolute; bottom: 8mm; left: 10mm; right: 10mm; display: flex; flex-direction: column; gap: 5px; }
                     .patient-box-container { display: flex; justify-content: flex-end; width: 100%; }
-                    .print-patient-box { width: max-content; border: 1px solid #000; border-radius: 4px; padding: 6px 12px; font-size: 9pt !important; background: #fff; }
-                    .print-footer { width: 100%; text-align: center; font-size: 8pt !important; color: #666; border-top: 1px solid #ccc; padding-top: 5px; }
+                    .print-patient-box { width: max-content; border: 1px solid #000; border-radius: 4px; padding: 4px 8px; font-size: 8.5pt !important; background: #fff; }
+                    .print-footer { width: 100%; text-align: center; font-size: 7.5pt !important; color: #666; border-top: 1px solid #ccc; padding-top: 4px; }
                     
-                    /* เกณฑ์คะแนน */
-                    .criteria-box { font-size: 8.5pt; line-height: 1.4; margin-top: 10px; border: 1px solid #000; padding: 5px; display: inline-block; }
+                    .criteria-box { font-size: 8pt; line-height: 1.3; margin-top: 5px; border: 1px solid #000; padding: 4px; display: inline-block; width: 100%; box-sizing: border-box;}
 
                     @media print {
-                        @page { size: A4 landscape; margin: 0; }
+                        @page { size: A4 portrait; margin: 0; }
                         body { background: #fff; -webkit-print-color-adjust: exact; }
                     }
                 </style>
@@ -1474,72 +1471,65 @@ function nurseApp() {
                         <thead>
                             <tr class="bg-light">
                                 <th class="col-topic">ว/ด/ป</th>
-                                ${pageData.map(day => `
-                                    <th colspan="3">${this.formatThaiDateShort(day.date)}</th>
-                                `).join('')}
+                                ${pageData.map(day => `<th colspan="3">${this.formatThaiDateShort(day.date)}</th>`).join('')}
                                 ${Array(daysPerPage - pageData.length).fill('<th colspan="3"></th>').join('')}
                             </tr>
                             <tr class="bg-light">
-                                <th class="text-left text-gray-500">เวร</th>
+                                <th class="text-left text-gray-500" style="font-size:7pt;">เวร</th>
                                 ${pageData.map(() => `
                                     <th class="col-shift">ดึก</th>
                                     <th class="col-shift">เช้า</th>
-                                    <th class="col-shift">บ่าย</th>
+                                    <th class="col-shift" style="font-size:7pt;">บ่าย</th>
                                 `).join('')}
                                 ${Array(daysPerPage - pageData.length).fill('<th class="col-shift"></th><th class="col-shift"></th><th class="col-shift"></th>').join('')}
                             </tr>
                         </thead>
                         <tbody>`;
 
-                // วนลูปวาดหัวข้อการประเมิน
                 topics.forEach(t => {
-                    // วาดแถวหัวข้อหลัก (Header)
                     if (t.header) {
                         printContent += `<tr><td colspan="${(daysPerPage * 3) + 1}" class="bg-gray">${t.header}</td></tr>`;
                     }
-                    
-                    // วาดแถวคำถาม
-                    printContent += `
-                        <tr>
-                            <td class="text-left" ${t.isMain ? 'style="font-weight:bold; background-color:#f1f5f9;"' : ''}>${t.title}</td>`;
+                    printContent += `<tr><td class="text-left" ${t.isMain ? 'style="font-weight:bold; background-color:#f1f5f9;"' : ''}>${t.title}</td>`;
                             
                     pageData.forEach(day => {
                         ['ดึก', 'เช้า', 'บ่าย'].forEach(shift => {
                             const shiftData = day.shifts[shift];
-                            let scoreVal = '-';
+                            let scoreVal = '';
                             if (shiftData && shiftData.formdata) {
-                                try {
-                                    scoreVal = JSON.parse(shiftData.formdata)[t.id] || '-';
-                                } catch(e) {}
+                                try { scoreVal = JSON.parse(shiftData.formdata)[t.id] || ''; } catch(e) {}
                             }
                             printContent += `<td ${t.isMain ? 'class="bg-gray"' : ''}>${scoreVal}</td>`;
                         });
                     });
                     
-                    // เติมช่องว่างสำหรับวันที่ขาดหายไป
                     printContent += Array((daysPerPage - pageData.length) * 3).fill('<td></td>').join('');
                     printContent += `</tr>`;
                 });
 
-                // แถวสรุปคะแนน
                 printContent += `
-                        <tr>
-                            <th class="text-left">รวมคะแนน (10 ข้อ)</th>
-                            ${pageData.map(day => ['ดึก', 'เช้า', 'บ่าย'].map(shift => `<th>${day.shifts[shift]?.score || '-'}</th>`).join('')).join('')}
+                        <tr style="background-color:#f8fafc;">
+                            <th class="text-left">รวมคะแนน</th>
+                            ${pageData.map(day => ['ดึก', 'เช้า', 'บ่าย'].map(shift => `<th>${day.shifts[shift]?.score || ''}</th>`).join('')).join('')}
                             ${Array((daysPerPage - pageData.length) * 3).fill('<th></th>').join('')}
                         </tr>
                         <tr>
-                            <th class="text-left">ประเภทผู้ป่วย (Type 1-5)</th>
+                            <th class="text-left" style="font-size:7.5pt;">ประเภทผู้ป่วย</th>
                             ${pageData.map(day => ['ดึก', 'เช้า', 'บ่าย'].map(shift => {
                                 const typeStr = day.shifts[shift]?.classtype || '';
                                 const typeMatch = String(typeStr).match(/ประเภท\s*(\d)/);
-                                return `<th>${typeMatch ? 'Type ' + typeMatch[1] : '-'}</th>`;
+                                return `<th style="font-size:7pt;">${typeMatch ? '' + typeMatch[1] : ''}</th>`;
                             }).join('')).join('')}
                             ${Array((daysPerPage - pageData.length) * 3).fill('<th></th>').join('')}
                         </tr>
                         <tr>
                             <th class="text-left">ผู้ประเมิน</th>
-                            ${pageData.map(day => ['ดึก', 'เช้า', 'บ่าย'].map(shift => `<td style="font-size:7pt;">${day.shifts[shift]?.assessor || '-'}</td>`).join('')).join('')}
+                            ${pageData.map(day => ['ดึก', 'เช้า', 'บ่าย'].map(shift => {
+                                let assessor = day.shifts[shift]?.assessor || '';
+                                // ตัดชื่อให้สั้นลงถ้าจำเป็นเพื่อให้ใส่ในแนวตั้งได้
+                                if(assessor.length > 8) assessor = assessor.substring(0,8)+'.';
+                                return `<td style="font-size:6pt; line-height:1;">${assessor}</td>`;
+                            }).join('')).join('')}
                             ${Array((daysPerPage - pageData.length) * 3).fill('<td></td>').join('')}
                         </tr>
                     </tbody>
@@ -1548,7 +1538,7 @@ function nurseApp() {
                 <div class="criteria-box">
                     <b>เกณฑ์การจำแนกประเภท:</b> &nbsp;&nbsp; <br>
                         <b>ประเภท 5 หนักมาก (Need ICU):</b> 34-40 คะแนน <br>
-                        <b>ประเภท 4 หนัก (Modified Intensive Care) :</b> 28-33 คะแนน <br>
+                        <b>ประเภท 4 หนัก (Modified Intensive Care) :</b> 28-33 คะแนน<br>
                         <b>ประเภท 3 หนักปานกลาง (Intensive Care):</b> 22-27 คะแนน <br>
                         <b>ประเภท 2 เจ็บป่วยเล็กน้อย (Minimum Care) :</b> 16-21 คะแนน <br>
                         <b>ประเภท 1 ผู้ป่วยพักฟื้น (Self Care) :</b> ไม่เกิน 15 คะแนน
@@ -1557,8 +1547,7 @@ function nurseApp() {
                 <div class="fixed-footer-container">
                     <div class="patient-box-container">
                         <div class="print-patient-box">
-                            <div><b>ชื่อ-สกุล:</b> ${p?.name || '-'} &nbsp; <b>อายุ:</b> ${p?.ageDisplay || '-'}</div>
-                            <div><b>HN:</b> ${p?.hn || '-'} &nbsp; <b>AN:</b> ${p?.an || '-'}</div>                
+                            <div><b>ชื่อ-สกุล:</b> ${p?.name || '-'} &nbsp; <b>อายุ:</b> ${p?.ageDisplay || '-'} &nbsp; <b>HN:</b> ${p?.hn || '-'} &nbsp; <b>AN:</b> ${p?.an || '-'}</div>                
                             <div><b>แพทย์เจ้าของไข้:</b> ${p?.doctor || '-'} &nbsp; <b>ตึก:</b> ${p?.ward || this.currentWard || '-'} &nbsp; <b>เตียง:</b> ${p?.bed || '-'}</div>
                         </div>
                     </div>
@@ -2024,38 +2013,43 @@ function nurseApp() {
             });
         },
         // ฟังก์ชันบันทึกวันที่จำหน่าย
-        saveDischargeDateAction(an, date) {
-            if (!date) return alert('กรุณาระบุวันที่จำหน่าย');
-            
+        async saveDischargeDateAction(an, dateStr) {
+            // ดักจับกรณีไม่มีข้อมูล AN
+            if (!an) {
+                return this.showAlert('Error', 'ไม่พบเลข AN ของผู้ป่วย กรุณาโหลดข้อมูลใหม่');
+            }
+            if (!dateStr) {
+                return this.showAlert('แจ้งเตือน', 'กรุณาระบุวันที่จำหน่าย');
+            }
+
             this.isLoading = true;
-            fetch(this.API_URL, {
-                method: 'POST',
-                body: JSON.stringify({
-                    action: 'saveDischargeDate',
-                    payload: {
-                        an: an,
-                        dischargeDate: date
-                    }
-                })
-            })
-            .then(res => res.json())
-            .then(result => {
-                this.isLoading = false;
-                if (result.status === 'success') {
-                    alert('บันทึกวันจำหน่ายเรียบร้อยแล้ว');
-                    // อัปเดตข้อมูลในหน้าเว็บทันทีโดยไม่ต้อง Refresh
-                    if(this.selectedPatient) {
-                        this.selectedPatient.dischargeDate = date;
-                    }
-                } else {
-                    alert('เกิดข้อผิดพลาด: ' + result.message);
+            try {
+                const response = await fetch(this.API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ 
+                        action: 'saveDischargeDate', 
+                        an: an, 
+                        date: dateStr 
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
-            })
-            .catch(err => {
+                
+                const res = await response.json();
+                if (res.status === 'success') {
+                    this.showAlert('สำเร็จ', 'บันทึกวันจำหน่ายเรียบร้อยแล้ว');
+                } else {
+                    this.showAlert('เกิดข้อผิดพลาด', res.message);
+                }
+            } catch (error) {
+                console.error("Save Discharge Date Error:", error);
+                // แจ้งเตือนผู้ใช้กรณีเน็ตหลุดหรือถูกบล็อก
+                this.showAlert('ข้อผิดพลาดการเชื่อมต่อ', 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่อีกครั้ง');
+            } finally {
                 this.isLoading = false;
-                console.error('Error:', err);
-                alert('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้');
-            });
+            }
         },
         // โหลดข้อมูลประวัติ Morse/MAAS
         async loadFallRisk(an) {
