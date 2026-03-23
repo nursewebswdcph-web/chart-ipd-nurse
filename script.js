@@ -1419,7 +1419,7 @@ function nurseApp() {
                     .header-right { position: absolute; top: 8mm; right: 10mm; text-align: right; font-size: 8pt; font-weight: bold; line-height: 1.2; }
                     
                     /* หัวเรื่อง */
-                    .main-title { text-align: center; font-weight: 900; font-size: 13pt; margin-top: 25px; margin-bottom: 2px; }
+                    .main-title { text-align: center; font-weight: 900; font-size: 13pt; margin-top: 50px; margin-bottom: 2px; }
                     .sub-title { text-align: center; font-weight: 700; font-size: 11pt; margin-bottom: 8px; }
                     .date-info { text-align: center; font-size: 10pt; margin-bottom: 8px; }
                     
