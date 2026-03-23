@@ -226,7 +226,12 @@ function nurseApp() {
                 String(p.an || '').toLowerCase().includes(String(this.searchAN || '').toLowerCase()) &&
                 String(p.name || '').toLowerCase().includes(String(this.searchName || '').toLowerCase()) &&
                 String(p.doctor || '').toLowerCase().includes(String(this.searchDoc || '').toLowerCase())
-            );
+            ).sort((a, b) => {
+                // เพิ่มการจัดเรียงตามหมายเลขเตียงจากน้อยไปมาก
+                const bedA = String(a.bed || '').trim();
+                const bedB = String(b.bed || '').trim();
+                return bedA.localeCompare(bedB, undefined, { numeric: true, sensitivity: 'base' });
+            });
         },
         get filteredNurses() {
             // 1. ป้องกัน Error กรณีโหลดข้อมูลจากชีตไม่สำเร็จ
