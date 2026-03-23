@@ -1879,6 +1879,24 @@ function nurseApp() {
             if (isNaN(date.getTime())) return dateStr;
             return `${date.getDate()} ${months[date.getMonth()]} ${(date.getFullYear() + 543).toString().slice(-2)}`;
         },
+        // ฟังก์ชันแปลงวันที่เป็นรูปแบบเต็ม (เช่น 1 มกราคม 2569)
+        formatThaiDateLong(dateString) {
+            if (!dateString) return '-';
+            const thaiMonths = [
+                "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+                "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+            ];
+            try {
+                const d = new Date(dateString);
+                if (isNaN(d.getTime())) return '-';
+                const day = d.getDate();
+                const month = thaiMonths[d.getMonth()];
+                const year = d.getFullYear() + 543;
+                return `${day} ${month} ${year}`;
+            } catch (e) {
+                return '-';
+            }
+        },
         // ฟังก์ชันตัดคำนำหน้าและนามสกุล (เอาเฉพาะชื่อจริง)
         formatShortName(fullName) {
             if (!fullName) return '';
