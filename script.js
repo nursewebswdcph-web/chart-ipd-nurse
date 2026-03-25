@@ -2818,32 +2818,31 @@ function nurseApp() {
             printPatientEdu() {
                 if (!this.eduForm) return;
             
-                // ฟังก์ชันช่วยจัดการเครื่องหมายถูก (Checked) ปรับปรุงให้รองรับ String และ Array ได้แม่นยำขึ้น
+                // ฟังก์ชันช่วยจัดการเครื่องหมายถูก (Checked) ปรับปรุงใหม่
                 const getCheck = (id, optionValue = null) => {
                     const d = this.eduForm[id];
                     if (!d) return '☐';
                     
-                    // 1. ถ้าส่ง optionValue มา แสดงว่าเป็นข้อที่เป็นตัวเลือกหลายข้อ (Checkbox Group)
+                    // 1. ถ้าส่ง optionValue มา แสดงว่าเป็นข้อที่เป็นตัวเลือกหลายข้อ (Checkbox Group) ที่อยู่ใน options
                     if (optionValue) {
-                        if (!d.options) return '☐';
-                        
-                        // ดักจับกรณีเป็น Array
-                        if (Array.isArray(d.options)) {
+                        // ตรวจสอบว่า d.options มีค่าและเป็น Array หรือไม่
+                        if (d.options && Array.isArray(d.options)) {
+                            // ใช้ .some() เช็คว่ามีค่า optionValue อยู่ใน Array หรือไม่ (แปลงเป็น String และ trim ป้องกันช่องว่าง)
                             return d.options.some(opt => String(opt).trim() === String(optionValue).trim()) ? '☑' : '☐';
                         } 
-                        // ดักจับกรณีเป็น String (ข้อมูลจาก Sheet อาจมาเป็นข้อความต่อกันด้วยลูกน้ำ)
+                        // ถ้า d.options เป็น String (กรณีข้อมูลถูกบันทึกมาแบบแปลกๆ)
                         else if (typeof d.options === 'string') {
                             return d.options.includes(String(optionValue).trim()) ? '☑' : '☐';
                         }
                         return '☐';
                     }
                     
-                    // 2. ถ้าไม่มี optionValue แสดงว่าเป็น Checkbox หลักของแถวนั้น
-                    // ดักจับค่า "false" ที่เป็น String ป้องกันบั๊กติ๊กถูกค้าง
-                    return (d.checked === true || d.checked === 'true' || d.checked === 1 || d.checked === '1') ? '☑' : '☐';
+                    // 2. ถ้าไม่มี optionValue แสดงว่าเป็น Checkbox หลักของหัวข้อนั้นๆ (เช่น D1.checked)
+                    // ตรวจสอบค่า d.checked ว่าเป็น true หรือ 'true' (เผื่อถูกแปลงเป็น string)
+                    return (d.checked === true || String(d.checked) === 'true') ? '☑' : '☐';
                 };
             
-                // ชุดข้อมูลสำหรับวนลูปสร้างตาราง
+                // ชุดข้อมูลสำหรับวนลูปสร้างตาราง (ส่วนนี้คงเดิม)
                 const rowsDef = [
                     { id: 'D1', rs: 1, topic: '1.D=Diagnosis<br>การให้ความรู้เรื่องโรค', text: (d) => `ให้ความรู้เรื่องโรคที่เป็นอยู่ถึงสาเหตุ อาการ การปฏิบัติตัว ระบุ <span class="dot-line">${d.text1 || '-'}</span>` },
                     { id: 'M1', rs: 1, topic: '2.M=Medicine<br>การให้ความรู้เรื่องยา', text: (d) => `- ชนิดของยา <span class="dot-line">${d.text1 || '-'}</span><br>- ฤทธิ์ของยา / ผลข้างเคียง <span class="dot-line">${d.text2 || '-'}</span>` },
@@ -3040,8 +3039,8 @@ function nurseApp() {
                             <div class="patient-box-container">
                                 <div class="print-patient-box">
                                     <div><b>ชื่อ-สกุล:</b> ${this.selectedPatient?.name || '-'} &nbsp; <b>อายุ:</b> ${this.selectedPatient?.ageDisplay || '-'}</div>
-                                    <div><b>HN:</b> ${this.selectedPatient?.hn || '-'} &nbsp; <b>AN:</b> ${this.selectedPatient?.an || '-'}</div>      
-                                    <div><b>แพทย์:</b> ${this.selectedPatient?.doctor || '-'}&nbsp; <b>ตึก:</b> ${this.currentWard || '-'} &nbsp; <b>เตียง:</b> ${this.selectedPatient?.bed || '-'}</div>        </div>
+                                    <div><b>HN:</b> ${this.selectedPatient?.hn || '-'} &nbsp; <b>AN:</b> ${this.selectedPatient?.an || '-'} &nbsp; <b>ตึก:</b> ${this.currentWard || '-'} &nbsp; <b>เตียง:</b> ${this.selectedPatient?.bed || '-'}</div>                
+                                    <div><b>แพทย์:</b> ${this.selectedPatient?.doctor || '-'}</div>
                                 </div>
                             </div>
                 
