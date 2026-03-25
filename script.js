@@ -3040,7 +3040,7 @@ function nurseApp() {
                                 <div class="print-patient-box">
                                     <div><b>ชื่อ-สกุล:</b> ${this.selectedPatient?.name || '-'} &nbsp; <b>อายุ:</b> ${this.selectedPatient?.ageDisplay || '-'}</div>
                                     <div><b>HN:</b> ${this.selectedPatient?.hn || '-'} &nbsp; <b>AN:</b> ${this.selectedPatient?.an || '-'} </div>                
-                                    <div><b>แพทย์:</b> ${this.selectedPatient?.doctor || '-'}<b>ตึก:</b> ${this.currentWard || '-'} &nbsp; <b>เตียง:</b> ${this.selectedPatient?.bed || '-'}</div>
+                                    <div><b>แพทย์:</b> ${this.selectedPatient?.doctor || '-'}<b>&nbsp;ตึก:</b> ${this.currentWard || '-'} &nbsp; <b>เตียง:</b> ${this.selectedPatient?.bed || '-'}</div>
                                 </div>
                             </div>
                 
