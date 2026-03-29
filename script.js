@@ -1174,7 +1174,13 @@ function nurseApp() {
                     this.classHistory = await res.json();
                     
                     if (this.classHistory && Array.isArray(this.classHistory)) {
-                        this.classHistory.forEach(item => {
+                        // เรียงจากเก่าไปใหม่ เพื่อให้ค่าล่าสุดเขียนทับเสมอ (แก้ปัญหาข้อมูลซ้ำแสดงผิด)
+                        const sortedHistory = [...this.classHistory].sort((a, b) => {
+                            const da = extractDate(a.evalDate) || '';
+                            const db = extractDate(b.evalDate) || '';
+                            return da < db ? -1 : da > db ? 1 : 0;
+                        });
+                        sortedHistory.forEach(item => {
                             const dKey = extractDate(item.evalDate);
                             const shift = sanitizeShift(item.shift);
                             if (!dKey || !shift) return; 
@@ -1190,7 +1196,13 @@ function nurseApp() {
                     this.classHistoryPed = pedHistory;
                     
                     if (pedHistory && Array.isArray(pedHistory)) {
-                        pedHistory.forEach(item => {
+                        // เรียงจากเก่าไปใหม่ เพื่อให้ค่าล่าสุดเขียนทับเสมอ (แก้ปัญหาข้อมูลซ้ำแสดงผิด)
+                        const sortedPed = [...pedHistory].sort((a, b) => {
+                            const da = extractDate(a.date) || '';
+                            const db = extractDate(b.date) || '';
+                            return da < db ? -1 : da > db ? 1 : 0;
+                        });
+                        sortedPed.forEach(item => {
                             const dKey = extractDate(item.date);
                             const shift = sanitizeShift(item.shift);
                             if (!dKey || !shift) return;
@@ -1741,6 +1753,15 @@ function nurseApp() {
             const pages = [];
             const shifts = ['ดึก', 'เช้า', 'บ่าย'];
 
+            // Helper sanitizeShift สำหรับ classTimeline (แก้ปัญหาชื่อเวรผิดจาก DB)
+            const sanitizeShift = (str) => {
+                let s = String(str || '').trim();
+                if (s.includes('ตึก') || s.includes('ดึก')) return 'ดึก';
+                if (s.includes('เข้า') || s.includes('เช้า')) return 'เช้า';
+                if (s.includes('บ่าย')) return 'บ่าย';
+                return s;
+            };
+
             for (let p = 0; p < totalPages; p++) {
                 const dayInPage = [];
                 for (let i = 0; i < 5; i++) {
@@ -1758,12 +1779,12 @@ function nurseApp() {
                     };
 
                     shifts.forEach(s => {
-                        const record = this.classHistory.find(h => {
-                            // 🟢 หัวใจสำคัญ: แปลงวันที่จากฐานข้อมูลเป็น YYYY-MM-DD ก่อนเทียบเสมอ
+                        // filter ทั้งหมดที่ตรงวัน+เวร แล้วเอาค่าล่าสุด (แก้ปัญหา find() หยุดที่ record เก่าสุด)
+                        const matched = this.classHistory.filter(h => {
                             const hDate = this.getLocalYYYYMMDD(h.evalDate);
-                            return hDate === dateKey && h.shift === s;
+                            return hDate === dateKey && sanitizeShift(h.shift) === s;
                         });
-                        dayData.slots[s] = record || null;
+                        dayData.slots[s] = matched.length > 0 ? matched[matched.length - 1] : null;
                     });
                     dayInPage.push(dayData);
                 }
@@ -2089,7 +2110,13 @@ function nurseApp() {
                 };
         
                 if (this.fallHistory && Array.isArray(this.fallHistory)) {
-                    this.fallHistory.forEach(item => {
+                    // เรียงจากเก่าไปใหม่ เพื่อให้ค่าล่าสุดเขียนทับเสมอ (แก้ปัญหาข้อมูลซ้ำแสดงผิด)
+                    const sortedFall = [...this.fallHistory].sort((a, b) => {
+                        const da = extractDate(a.evalDate) || '';
+                        const db = extractDate(b.evalDate) || '';
+                        return da < db ? -1 : da > db ? 1 : 0;
+                    });
+                    sortedFall.forEach(item => {
                         const dKey = extractDate(item.evalDate);
                         const shift = sanitizeShift(item.shift);
                         if (!dKey || !shift) return;
