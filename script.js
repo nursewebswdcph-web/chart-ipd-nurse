@@ -1154,12 +1154,11 @@ function nurseApp() {
         async loadClassifications(an) {
             this.isLoading = true;
             try {
-                this.gridData = {}; // ล้างข้อมูลเก่าเสมอ
-                const SHIFT_ORDER = ['ดึก', 'เช้า', 'บ่าย']; // กำหนดลำดับเวร
+                this.gridData = {}; 
+                const SHIFT_ORDER = ['ดึก', 'เช้า', 'บ่าย'];
                 
                 if (this.isAdult) {
-                    // โหลดผู้ใหญ่
-                    const res = await fetch(`${this.API_URL}?action=getClassifications&an=${an}`);
+                    const res = await fetch(`${this.API_URL}?action=getClassifications&an=${an}&_=${new Date().getTime()}`);
                     this.classHistory = await res.json();
                     
                     if (this.classHistory && Array.isArray(this.classHistory)) {
@@ -1169,23 +1168,23 @@ function nurseApp() {
                             
                             if (!this.gridData[dKey]) {
                                 this.gridData[dKey] = {};
-                                // บังคับสร้างโครงสร้างคีย์ ดึก, เช้า, บ่าย ไว้ล่วงหน้า
                                 SHIFT_ORDER.forEach(shift => {
-                                    this.gridData[dKey][shift] = null; 
+                                    // เตรียม Array ว่าง 10 ช่องไว้เสมอ
+                                    this.gridData[dKey][shift] = { scores: Array(10).fill(''), assessor: '' }; 
                                 });
                             }
                             
                             this.gridData[dKey][item.shift] = {
-                                scores: item.scores ? [...item.scores] : [],
+                                scores: item.scores && item.scores.length > 0 ? [...item.scores] : Array(10).fill(''),
                                 assessor: item.assessor || ''
                             };
                         });
                     }
                 } else {
-                    // โหลดเด็ก (ใช้โครงสร้างตาราง Grid เหมือนผู้ใหญ่แล้ว)
-                    const res = await fetch(`${this.API_URL}?action=getClassificationsPed&an=${an}`);
+                    const res = await fetch(`${this.API_URL}?action=getClassificationsPed&an=${an}&_=${new Date().getTime()}`);
                     const pedHistory = await res.json();
                     this.classHistoryPed = pedHistory;
+                    
                     if (pedHistory && Array.isArray(pedHistory)) {
                         pedHistory.forEach(item => {
                             if (!item.date) return;
@@ -1193,26 +1192,25 @@ function nurseApp() {
                             
                             if (!this.gridData[dKey]) {
                                 this.gridData[dKey] = {};
-                                // บังคับสร้างโครงสร้างคีย์ ดึก, เช้า, บ่าย ไว้ล่วงหน้า
                                 SHIFT_ORDER.forEach(shift => {
-                                    this.gridData[dKey][shift] = null; 
+                                    // เตรียม Array ว่าง 10 ช่องไว้เสมอ
+                                    this.gridData[dKey][shift] = { scores: Array(10).fill(''), assessor: '' }; 
                                 });
                             }
                             
-                            // จัดการ Array คะแนนให้อยู่ในรูปแบบเดียวกัน (10 ช่อง)
-                            let parsedScores = [];
+                            let parsedScores = Array(10).fill('');
                             try {
                                 if (typeof item.formdata === 'string') {
                                     const obj = JSON.parse(item.formdata);
                                     parsedScores = [
-                                        obj.item1, obj.item2, obj.item3, obj.item4, 
-                                        obj.item5, obj.item6, obj.item7, 
-                                        obj.item8, obj.item9, obj.item10
+                                        obj.item1||'', obj.item2||'', obj.item3||'', obj.item4||'', 
+                                        obj.item5||'', obj.item6||'', obj.item7||'', 
+                                        obj.item8||'', obj.item9||'', obj.item10||''
                                     ];
-                                } else {
-                                    parsedScores = item.scores || [];
+                                } else if (item.scores) {
+                                    parsedScores = item.scores;
                                 }
-                            } catch (e) { parsedScores = []; }
+                            } catch (e) { }
         
                             this.gridData[dKey][item.shift] = {
                                 scores: parsedScores,
@@ -1221,6 +1219,10 @@ function nurseApp() {
                         });
                     }
                 }
+                
+                // ถ้าคุณมีฟังก์ชัน buildClassTimeline ให้เรียกใช้เพื่อสร้างโครงสร้างใหม่ด้วย
+                if(typeof this.buildClassTimeline === 'function') this.buildClassTimeline();
+        
             } catch (e) { 
                 console.error("Load Classifications Error:", e); 
             } finally {
@@ -2081,35 +2083,32 @@ function nurseApp() {
             if (!an) return;
             this.isLoading = true;
             try {
-                const SHIFT_ORDER = ['ดึก', 'เช้า', 'บ่าย']; // กำหนดลำดับเวร
-                
-                // เพิ่ม Cache Buster (?_=...) เพื่อป้องกัน Browser จำค่าเก่า
+                const SHIFT_ORDER = ['ดึก', 'เช้า', 'บ่าย'];
                 const response = await fetch(`${this.API_URL}?action=getFallRisk&an=${an}&_=${new Date().getTime()}`);
-                
-                // ตรวจสอบว่า response โอเคไหม
                 if (!response.ok) throw new Error('Network response was not ok');
-                
                 this.fallHistory = await response.json();
                 
                 this.fallGridData = {}; 
                 this.fallHistory.forEach(item => {
-                    // ใช้ฟังก์ชันแปลงวันที่ที่มีอยู่เดิม
                     const dKey = typeof this.getLocalYYYYMMDD === 'function' ? this.getLocalYYYYMMDD(item.evalDate) : (item.evalDate ? item.evalDate.split('T')[0] : '');
                     if (!dKey) return;
         
                     if (!this.fallGridData[dKey]) {
                         this.fallGridData[dKey] = {};
-                        // บังคับสร้างโครงสร้างคีย์ ดึก, เช้า, บ่าย ไว้ล่วงหน้า
                         SHIFT_ORDER.forEach(shift => {
-                            this.fallGridData[dKey][shift] = null; 
+                            // เตรียม Array ว่าง 6 ช่องไว้เสมอ
+                            this.fallGridData[dKey][shift] = { scores: Array(6).fill(''), maas: '', assessor: '' }; 
                         });
                     }
                     this.fallGridData[dKey][item.shift] = {
-                        scores: [item.m1, item.m2, item.m3, item.m4, item.m5, item.m6],
-                        maas: item.maasScore,
+                        scores: [item.m1||'', item.m2||'', item.m3||'', item.m4||'', item.m5||'', item.m6||''],
+                        maas: item.maasScore || '',
                         assessor: item.assessor || ''
                     };
                 });
+                
+                if(typeof this.buildClassTimeline === 'function') this.buildClassTimeline();
+        
             } catch (e) { 
                 console.error("Load Fall Risk Error:", e); 
                 this.fallGridData = {};
