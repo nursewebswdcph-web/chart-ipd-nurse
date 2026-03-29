@@ -1154,66 +1154,38 @@ function nurseApp() {
             this.isLoading = true;
             try {
                 this.gridData = {}; // ล้างข้อมูลเก่าเสมอ
-                
+                const shiftPriority = { 'ดึก': 1, 'เช้า': 2, 'บ่าย': 3 };
+
                 if (this.isAdult) {
-                    // โหลดผู้ใหญ่
+                    // --- สำหรับผู้ใหญ่ ---
                     const res = await fetch(`${this.API_URL}?action=getClassifications&an=${an}`);
-                    this.classHistory = await res.json();
+                    let data = await res.json();
                     
-                    if (this.classHistory && Array.isArray(this.classHistory)) {
-                        this.classHistory.forEach(item => {
-                            if (!item.evalDate) return;
-                            const dKey = typeof this.getLocalYYYYMMDD === 'function' ? this.getLocalYYYYMMDD(item.evalDate) : item.evalDate.split('T')[0];
-                            // Pre-initialize with correct shift order: ดึก → เช้า → บ่าย
-                            if (!this.gridData[dKey]) {
-                                this.gridData[dKey] = { 'ดึก': null, 'เช้า': null, 'บ่าย': null };
-                            }
-                            this.gridData[dKey][item.shift] = {
-                                scores: item.scores ? [...item.scores] : [],
-                                assessor: item.assessor || ''
-                            };
-                        });
-                    }
+                    // จัดเรียง: วันที่ (เก่าไปใหม่) และ เวร (ดึก > เช้า > บ่าย)
+                    this.classHistory = data.sort((a, b) => {
+                        const dateA = new Date(a.evalDate);
+                        const dateB = new Date(b.evalDate);
+                        if (dateA - dateB !== 0) return dateA - dateB;
+                        return (shiftPriority[a.shift] || 99) - (shiftPriority[b.shift] || 99);
+                    });
+                    this.updateClassGridData();
                 } else {
-                    // โหลดเด็ก (ใช้โครงสร้างตาราง Grid เหมือนผู้ใหญ่แล้ว)
+                    // --- สำหรับเด็ก ---
                     const res = await fetch(`${this.API_URL}?action=getClassificationsPed&an=${an}`);
-                    const pedHistory = await res.json();
-                    this.classHistoryPed = pedHistory;
-                    if (pedHistory && Array.isArray(pedHistory)) {
-                        pedHistory.forEach(item => {
-                            if (!item.date) return;
-                            const dKey = typeof this.getLocalYYYYMMDD === 'function' ? this.getLocalYYYYMMDD(item.date) : item.date.split('T')[0];
-                            // Pre-initialize with correct shift order: ดึก → เช้า → บ่าย
-                            if (!this.gridData[dKey]) {
-                                this.gridData[dKey] = { 'ดึก': null, 'เช้า': null, 'บ่าย': null };
-                            }
-                        
-                            let parsedScores = [];
-                            try {
-                                if (typeof item.formdata === 'string') {
-                                    const obj = JSON.parse(item.formdata);
-                                    parsedScores = [
-                                        obj.item1, obj.item2, obj.item3, obj.item4,
-                                        obj.item5, obj.item6, obj.item7,
-                                        obj.item8, obj.item9, obj.item10
-                                    ];
-                                } else {
-                                    parsedScores = item.scores || [];
-                                }
-                            } catch (e) { parsedScores = []; }
-                        
-                            this.gridData[dKey][item.shift] = {
-                                scores: parsedScores,
-                                assessor: item.assessor || ''
-                            };
-                        });
-                    }
+                    let data = await res.json();
+                    
+                    // จัดเรียง: วันที่ (เก่าไปใหม่) และ เวร (ดึก > เช้า > บ่าย)
+                    this.classHistoryPed = data.sort((a, b) => {
+                        const dateA = new Date(a.date);
+                        const dateB = new Date(b.date);
+                        if (dateA - dateB !== 0) return dateA - dateB;
+                        return (shiftPriority[a.shift] || 99) - (shiftPriority[b.shift] || 99);
+                    });
                 }
             } catch (e) { 
-                console.error("Load Classifications Error:", e); 
-            } finally {
-                this.isLoading = false;
+                console.error("Load classification error", e); 
             }
+            this.isLoading = false;
         },
         // คำนวณคะแนนเด็กจาก Array 10 ช่อง
         calcPedScores(scoreArr) {
@@ -2066,36 +2038,26 @@ function nurseApp() {
         },
         // โหลดข้อมูลประวัติ Morse/MAAS
         async loadFallRisk(an) {
-            if (!an) return;
             this.isLoading = true;
             try {
-                // เพิ่ม Cache Buster (?_=...) เพื่อป้องกัน Browser จำค่าเก่า
-                const response = await fetch(`${this.API_URL}?action=getFallRisk&an=${an}&_=${new Date().getTime()}`);
-                
-                // ตรวจสอบว่า response โอเคไหม
-                if (!response.ok) throw new Error('Network response was not ok');
-                
-                this.fallHistory = await response.json();
-                
-                this.fallGridData = {};
-                this.fallHistory.forEach(item => {
-                    const dKey = this.getLocalYYYYMMDD(item.evalDate);
-                    // Pre-initialize with correct shift order: ดึก → เช้า → บ่าย
-                    if (!this.fallGridData[dKey]) {
-                        this.fallGridData[dKey] = { 'ดึก': null, 'เช้า': null, 'บ่าย': null };
-                    }
-                    this.fallGridData[dKey][item.shift] = {
-                        scores: [item.m1, item.m2, item.m3, item.m4, item.m5, item.m6],
-                        maas: item.maasScore,
-                        assessor: item.assessor || ''
-                    };
+                const res = await fetch(`${this.API_URL}?action=getFallRisk&an=${an}`);
+                let data = await res.json();
+
+                const shiftPriority = { 'ดึก': 1, 'เช้า': 2, 'บ่าย': 3 };
+
+                // จัดเรียง: วันที่ และ เวร (ดึก > เช้า > บ่าย)
+                this.fallHistory = data.sort((a, b) => {
+                    const dateA = new Date(a.date);
+                    const dateB = new Date(b.date);
+                    if (dateA - dateB !== 0) return dateA - dateB;
+                    return (shiftPriority[a.shift] || 99) - (shiftPriority[b.shift] || 99);
                 });
+
+                this.updateFallGridData();
             } catch (e) { 
-                console.error("Load Fall Risk Error:", e); 
-                this.fallGridData = {};
-            } finally {
-                this.isLoading = false;
+                console.error("Load FallRisk error", e); 
             }
+            this.isLoading = false;
         },
 
         // ดึง/สร้างช่องข้อมูลสำหรับหน้าจอ Morse/MAAS
