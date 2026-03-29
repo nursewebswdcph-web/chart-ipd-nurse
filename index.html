@@ -2026,7 +2026,7 @@
                                     </div>
                                     <div class="flex gap-2">
                                         <button type="button" @click="viewMode = 'detail'" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2 px-5 rounded-xl transition-all text-sm">ยกเลิก</button>
-                                
+                        
                                         <button type="button" @click="printClassification()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-6 rounded-xl shadow-md shadow-emerald-100 transition-all active:scale-95 text-sm">
                                         <i class="fa-solid fa-print mr-1.5"></i> พิมพ์เอกสาร
                                         </button>
@@ -2059,8 +2059,8 @@
                                             <label class="block text-xs font-bold text-blue-700">ระบุวันจำหน่ายผู้ป่วย:</label>
                                             <div class="flex gap-2 mt-1">
                                                 <input type="date" 
-                                                       x-model="selectedPatient.dischargeDate" 
-                                                       class="border rounded px-2 py-1 text-xs focus:ring-1 focus:ring-blue-500">
+                                                        x-model="selectedPatient.dischargeDate" 
+                                                        class="border rounded px-2 py-1 text-xs focus:ring-1 focus:ring-blue-500">
                                                 <button @click="saveDischargeDateAction(selectedPatient.an, selectedPatient.dischargeDate)" 
                                                         class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition text-xs">
                                                     <i class="fas fa-save mr-1"></i> บันทึกวันจำหน่าย
@@ -2140,7 +2140,7 @@
                                                         </template>
                                                     </template>
                                                 </tr>
-                                            
+                                                
                                                 <tr class="bg-slate-50">
                                                     <td class="border border-slate-300 px-3 py-1 text-left text-slate-400 font-bold text-[9px]">ผู้ประเมิน</td>
                                                     <template x-for="day in classTimeline[currentPageIndex]">
@@ -2276,7 +2276,7 @@
                                                 ประเภทที่ 2  ผู้ป่วยเจ็บป่วยเล็กน้อย        (9-14 คะแนน)<br>
                                                 ประเภทที่ 3  ผู้ป่วยเจ็บป่วยปานกลาง      (15-20 คะแนน)<br>
                                                 ประเภทที่ 4  ผู้ป่วยหนัก                (21-26 คะแนน)<br>
-                                                ประเภทที่ 5 ผู้ป่วยหนักมาก/วิกฤติ          (27-32 คะแนน)
+                                                ประเภทที่ 5 ผู้ป่วยหนักมาก/วิกฤติ         (27-32 คะแนน)
                                             </div>
                                         </div>
                                     </template>
@@ -2293,7 +2293,7 @@
                                     </div>
                                     <div class="flex gap-2">
                                         <button type="button" @click="viewMode = 'detail'" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2 px-5 rounded-xl transition-all text-sm">ยกเลิก</button>
-                                
+                        
                                         <button type="button" @click="printPedClassRecord()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-6 rounded-xl shadow-md shadow-emerald-100 transition-all active:scale-95 text-sm">
                                         <i class="fa-solid fa-print mr-1.5"></i> พิมพ์เอกสาร
                                         </button>
@@ -2326,8 +2326,8 @@
                                             <label class="block text-xs font-bold text-blue-700">ระบุวันจำหน่ายผู้ป่วย:</label>
                                             <div class="flex gap-2 mt-1">
                                                 <input type="date" 
-                                                       x-model="selectedPatient.dischargeDate" 
-                                                       class="border rounded px-2 py-1 text-xs focus:ring-1 focus:ring-blue-500">
+                                                        x-model="selectedPatient.dischargeDate" 
+                                                        class="border rounded px-2 py-1 text-xs focus:ring-1 focus:ring-blue-500">
                                                 <button @click="saveDischargeDateAction(selectedPatient.an, selectedPatient.dischargeDate)" 
                                                         class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition text-xs">
                                                     <i class="fas fa-save mr-1"></i> บันทึกวันจำหน่าย
@@ -2381,7 +2381,7 @@
                                                         <template x-if="question === 'HEADER_3'">
                                                             <td colspan="16" class="bg-slate-100 px-3 py-1 font-bold text-left text-slate-600">3. การประเมินสภาพอาการการสังเกตสัญญาณชีพและเครื่องตรวจวัดต่างๆ</td>
                                                         </template>
-                        
+                                                
                                                         <template x-if="!question.startsWith('HEADER_')">
                                                             <td class="border border-slate-300 px-3 py-1.5 text-left font-medium" 
                                                                 :class="{'font-bold bg-slate-100 text-slate-600': question.startsWith('4.')}" 
@@ -2405,7 +2405,7 @@
                                                                 </template>
                                                             </template>
                                                         </template>
-                        
+                                                
                                                     </tr>
                                                 </template>
                                                 
@@ -2420,7 +2420,7 @@
                                                         </template>
                                                     </template>
                                                 </tr>
-                                            
+                                                
                                                 <tr class="bg-slate-50">
                                                     <td class="border border-slate-300 px-3 py-1 text-left text-slate-400 font-bold text-[9px]">ผู้ประเมิน</td>
                                                     <template x-for="day in classTimeline[currentPageIndex]">
@@ -3111,7 +3111,6 @@
                                 </form>
                             </div>
                         </div>
-
                 <div x-show="currentForm?.id === 'fall_risk'" x-cloak>
                     <div class="space-y-6 animate-fade-in-up">
                         
@@ -3127,7 +3126,7 @@
                                 </button>
                             </div>
                         </div>
-                
+                        
                         <div class="flex justify-between items-center bg-amber-50/50 p-3 rounded-2xl border border-amber-100">
                             <div class="text-sm font-bold text-amber-900">
                                 <i class="fa-solid fa-list-check mr-2"></i> เลือกคะแนนจาก Dropdown ตามความเป็นจริง
@@ -3138,7 +3137,7 @@
                                 <button type="button" @click="currentPageIndex = Math.min(classTimeline.length - 1, currentPageIndex + 1)" :disabled="currentPageIndex >= classTimeline.length - 1" class="px-3 py-1.5 bg-white border border-slate-200 hover:bg-amber-100 disabled:opacity-40 rounded-lg text-xs font-bold transition-all">ถัดไป <i class="fa-solid fa-chevron-right ml-1"></i></button>
                             </div>
                         </div>
-                
+                        
                         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                             <div class="overflow-x-auto custom-scrollbar">
                                 <table class="w-full min-w-[1200px] border-collapse text-center text-[11px] table-fixed">
@@ -3183,7 +3182,7 @@
                                                 </template>
                                             </tr>
                                         </template>
-                
+                        
                                         <tr class="bg-amber-50">
                                             <td class="border border-slate-300 px-3 py-2 font-black text-right text-amber-800">รวมคะแนน (Morse)</td>
                                             <template x-for="day in classTimeline[currentPageIndex]">
@@ -3192,7 +3191,7 @@
                                                 </template>
                                             </template>
                                         </tr>
-                
+                        
                                         <tr><td colspan="16" class="bg-blue-100/50 px-3 py-1 font-bold text-left text-blue-900 border border-slate-300 mt-2"><i class="fa-solid fa-handcuffs mr-2"></i>MAAS (การดึงอุปกรณ์ที่สอดใส่)</td></tr>
                                         
                                         <tr class="hover:bg-slate-50">
@@ -3214,7 +3213,7 @@
                                                 </template>
                                             </template>
                                         </tr>
-                
+                        
                                         <tr class="bg-slate-50">
                                             <td class="border border-slate-300 px-3 py-1 text-left text-slate-400 font-bold text-[9px]">ผู้ประเมิน</td>
                                             <template x-for="day in classTimeline[currentPageIndex]">
@@ -3247,7 +3246,7 @@
                                 </table>
                             </div>
                         </div>
-                
+                        
                         <div id="fall-risk-print-area" class="hidden">
                             <template x-for="(page, pageIndex) in classTimeline" :key="pageIndex">
                                 <div class="a4-page bg-white text-black p-4 mb-4" style="page-break-after: always;">
@@ -3269,7 +3268,7 @@
                                             </tr>
                                             <tr class="bg-gray">
                                                 <template x-for="day in page">
-                                                    <template x-for="s in ['ด','ช','บ']">
+                                                    <template x-for="s in ['ดึก','เช้า','บ่าย']">
                                                         <th class="w-shift border border-black p-1 text-center" x-text="s"></th>
                                                     </template>
                                                 </template>
@@ -3293,7 +3292,7 @@
                                             </tr>
                                             <tr>
                                                 <td class="border border-black p-1">4. ให้สารละลายทางหลอดเลือด/คา Heparin lock</td>
-                                                <td class="border border-black p-1 text-center">ไม่ใช่ = 0<br>ใช่ = 20/td>
+                                                <td class="border border-black p-1 text-center">ไม่ใช่ = 0<br>ใช่ = 20</td>
                                                 <template x-for="day in page"><template x-for="shift in ['ดึก', 'เช้า', 'บ่าย']"><td class="border border-black text-center font-bold" x-text="getFallGridCell(day.date, shift).scores[3]"></td></template></template>
                                             </tr>
                                             <tr>
@@ -3316,7 +3315,7 @@
                                             </tr>
                                         </tbody>
                                     </table>
-                        
+                            
                                     <div class="font-bold text-[11px] mt-1 mb-1 text-start">2.แบบประเมินความเสี่ยงต่อการดึงอุปกรณ์ที่สอดใส่ในร่างกายผู้ป่วย (MAAS)</div>
                                     <table class="w-full text-[9px] border-collapse text-left mb-2">
                                         <thead>
@@ -3329,7 +3328,7 @@
                                             </tr>
                                             <tr class="bg-gray">
                                                 <template x-for="day in page">
-                                                    <template x-for="s in ['ด','ช','บ']">
+                                                    <template x-for="s in ['ดึก','เช้า','บ่าย']">
                                                         <th class="w-shift border border-black p-1 text-center" x-text="s"></th>
                                                     </template>
                                                 </template>
@@ -3353,7 +3352,7 @@
                                             </tr>
                                         </tbody>
                                     </table>
-                        
+                            
                                     <div class="mt-2 border-t border-dashed border-gray-400 pt-2">
                                         <div class="font-bold text-[10px] mb-1 text-center">แนวปฏิบัติการป้องกันการพลัดตกหกล้ม</div>
                                         <table class="w-full text-[8px] border-collapse mb-2">
@@ -3381,7 +3380,7 @@
                                                 3. ให้ข้อมูลผู้ป่วย/ญาติป้องกันการพลัดตกหกล้ม<br>                                                
                                                 4. จัดสิ่งแวดล้อมให้ปลอดภัย<br>                                                
                                                 5. ให้ญาติเฝ้า<br>                                                  
-                                                6. ยกเหล็กกั้นเตียง<br>                                             
+                                                6. ยกเหล็กกั้นเตียง<br>                                              
                                                 7. ตรวจเยี่ยมผู้ป่วยทุก 4 ชั่วโมง<br>                                                
                                                 8. ติดสัญลักษณ์ความเสี่ยงการพลัดตกหกล้ม                                                
                                                 </td>                                                
@@ -3390,16 +3389,16 @@
                                                 2. ประเมินความสามารถในการช่วยเหลือตนเอง<br>                                                
                                                 3. ให้ข้อมูลผู้ป่วย/ญาติป้องกันการพลัดตกหกล้ม<br>                                                
                                                 4. จัดสิ่งแวดล้อมให้ปลอดภัย<br>                                                
-                                                5. ให้ญาติเฝ้า / 6. ยกเหล็กกั้นเตียง<br>                                               
-                                                7. ตรวจเยี่ยมผู้ป่วยทุก 2 ชม.<br>                                                   
+                                                5. ให้ญาติเฝ้า / 6. ยกเหล็กกั้นเตียง<br>                                              
+                                                7. ตรวจเยี่ยมผู้ป่วยทุก 2 ชม.<br>                                                    
                                                 8. ติดสัญลักษณ์ความเสี่ยงการพลัดตกหกล้ม<br>                                                
-                                                9. ผูกมัดตามสภาพ<br>                                                   
+                                                9. ผูกมัดตามสภาพ<br>                                                    
                                                 10. ส่งเวรเกี่ยวกับอากาผู้ป่วย / 11. ปรึกษาสหวิชาชีพ                                                
                                                 </td>                                                
                                                 </tr>
                                             </tbody>
                                         </table>
-                        
+                            
                                         <div class="font-bold text-[10px] mb-1 text-center">แนวปฏิบัติการป้องกันการดึงอุปกรณ์ (MAAS)</div>
                                         <table class="w-full text-[8px] border-collapse">
                                             <thead>
@@ -3415,10 +3414,12 @@
                                             </tbody>
                                         </table>
                                     </div>
-                                </div> </template>
+                                </div> 
+                            </template>
                         </div>
                     </div>
                 </div>
+            
 
                 <template x-if="currentForm?.id === 'braden_scale'">
                     <div x-init="loadBraden(selectedPatient.an)" class="space-y-4 pb-10">
