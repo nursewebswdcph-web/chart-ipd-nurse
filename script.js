@@ -2281,103 +2281,175 @@ function nurseApp() {
     },
 
         // ฟังก์ชันสั่งพิมพ์ Morse/MAAS
-        () {
-            window.scrollTo(0, 0);
-            this.$nextTick(() => {
-                const printArea = document.getElementById('fall-risk-print-area');
-                if (!printArea) return this.showAlert('แจ้งเตือน', 'ไม่พบพื้นที่สำหรับพิมพ์เอกสาร');           
-                const cloneDOM = printArea.cloneNode(true);
-                cloneDOM.querySelectorAll('template').forEach(t => t.remove());
-                const printContent = cloneDOM.innerHTML;                
-                let iframe = document.getElementById('print-frame');
-                if (iframe) iframe.remove(); 
-                iframe = document.createElement('iframe');
-                iframe.id = 'print-frame';
-                iframe.style.display = 'none';
-                document.body.appendChild(iframe);                
-                const pri = iframe.contentWindow;
-                const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]')).map(s => s.outerHTML).join('');
-                pri.document.open();
-                pri.document.write(`
-                    <!DOCTYPE html>
-                    <html>
-                        <head>
-                            <title>พิมพ์แบบประเมิน Morse / MAAS</title>
-                            ${styles}
-                            <style>
-                                @page {size: A4 portrait; margin: 8mm 8mm 8mm 8mm;}
-                                body { font-size: 11px; color: black !important; }                              
+    printFallRisk() {
+        window.scrollTo(0, 0);
+        this.$nextTick(() => {
+            const printArea = document.getElementById('fall-risk-print-area');
+            if (!printArea) {
+                // แจ้งเตือนกรณีไม่พบ element
+                if (typeof this.showAlert === 'function') {
+                    return this.showAlert('แจ้งเตือน', 'ไม่พบพื้นที่สำหรับพิมพ์เอกสาร');
+                } else {
+                    return alert('ไม่พบพื้นที่สำหรับพิมพ์เอกสาร');
+                }
+            }
 
-                                /* บังคับตารางให้ขนาดคงที่ */
-                                table { 
-                                    width: 100%; 
-                                    table-layout: fixed; /* สำคัญ: บังคับคอลัมน์ไม่ให้ขยาย */
-                                    border-collapse: collapse; 
-                                    word-break: break-word; /* ตัดคำถ้าเนื้อหาเกิน */
-                                }                               
-
-                                th, td { 
-                                    border: 1px solid black !important; 
-                                    padding: 2px !important; 
-                                    overflow: hidden; /* ซ่อนเนื้อหาที่เกิน */
-                                }                       
-
-                                /* กำหนดความกว้างเฉพาะคอลัมน์ */
-                                .w-label { width: 200px; }       /* คอลัมน์รายการประเมิน */
-                                .w-guide { width: 85px; }        /* คอลัมน์เกณฑ์คะแนน */
-                                .w-shift { width: 24px; }        /* คอลัมน์เวร (ด/ช/บ) */                               
-
-                                .bg-gray { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
-                                .text-center { text-align: center; }
-                                /* กรอบข้อมูลผู้ป่วย */
-                                /* Footer ท้ายกระดาษ */
-                                .print-global-footer {
-                                    position: fixed; bottom: 0; left: 0; width: 100%; text-align: center;
-                                    font-size: 9px; color: #475569 !important; border-top: 1px solid #9ca3af; 
-                                    padding-top: 4px; padding-bottom: 4px; background-color: white; z-index: 1000;
-                                }
-                                
-                                /* กรอบข้อมูลผู้ป่วย */
-                                .print-patient-info {
-                                    position: fixed; bottom: 22px; right: 15px; width: 260px;
-                                    border: 1px solid #000 !important; border-radius: 4px; padding: 6px 8px;
-                                    font-size: 10px; background-color: white !important; z-index: 1000; 
-                                    line-height: 1.4; color: black !important;
+            // โคลน DOM เพื่อนำไปพิมพ์โดยไม่กระทบหน้าจอหลัก
+            const cloneDOM = printArea.cloneNode(true);
+            
+            // ลบ template tags ของ Alpine.js ออก เพื่อไม่ให้ติดไปกับการพิมพ์
+            cloneDOM.querySelectorAll('template').forEach(t => t.remove());
+            
+            const printContent = cloneDOM.innerHTML;                
+            
+            // จัดการ iframe สำหรับพิมพ์
+            let iframe = document.getElementById('print-frame');
+            if (iframe) iframe.remove(); 
+            
+            iframe = document.createElement('iframe');
+            iframe.id = 'print-frame';
+            iframe.style.display = 'none';
+            document.body.appendChild(iframe);                
+            
+            const pri = iframe.contentWindow;
+            
+            // ดึง style ทั้งหมดจากหน้าหลัก (รวมถึง Tailwind ถ้ามี)
+            const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+                                .map(s => s.outerHTML)
+                                .join('\n');
+            
+            // สร้างเอกสาร HTML ภายใน iframe
+            pri.document.open();
+            pri.document.write(`
+                <!DOCTYPE html>
+                <html lang="th">
+                    <head>
+                        <meta charset="UTF-8">
+                        <title>พิมพ์แบบประเมิน Morse / MAAS</title>
+                        ${styles}
+                        <!-- ดึงฟอนต์ Sarabun มาใช้ในการพิมพ์ -->
+                        <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+                        <style>
+                            @page { 
+                                size: A4 portrait; 
+                                margin: 8mm 8mm 8mm 8mm; 
                             }
-                            </style>
-                        </head>
-                        <body>
-                            <div class="print-patient-info">
-                                <div>
-                                    <b>ชื่อ-สกุล:</b> ${this.selectedPatient?.name || '-'} &nbsp;&nbsp;
-                                    <b>อายุ:</b> ${this.selectedPatient?.ageDisplay || '-'}
-                                </div>
-                                <div>
-                                    <b>HN:</b> ${this.selectedPatient?.hn || '-'} &nbsp;&nbsp;
-                                    <b>AN:</b> ${this.selectedPatient?.an || '-'}
-                                </div>
-                                <div>
-                                    <b>แพทย์:</b> ${this.selectedPatient?.doctor || '-'} &nbsp;&nbsp;
-                                    <b>ตึก:</b> ${this.currentWard || '-'} &nbsp;&nbsp;
-                                    <b>เตียง:</b> ${this.selectedPatient?.bed || '-'}
-                                </div>
-                            </div>                
+                            body { 
+                                font-family: 'Sarabun', sans-serif;
+                                font-size: 11px; 
+                                color: black !important; 
+                                background-color: white;
+                            }                              
 
-                            ${printContent}            
-                            <div class="print-global-footer">
-                                เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | โปรแกรมบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
-                            </div>                
-                            <script>
-                                window.onload = function() {
-                                    setTimeout(() => { window.print(); }, 800);
-                                };
-                            </script>
-                        </body>
-                    </html>
-                `);
-                pri.document.close();
-            });
-        },
+                            /* บังคับสีพื้นหลังให้แสดงตอนพิมพ์ */
+                            * {
+                                -webkit-print-color-adjust: exact !important;
+                                print-color-adjust: exact !important;
+                            }
+
+                            /* บังคับตารางให้ขนาดคงที่ */
+                            table { 
+                                width: 100%; 
+                                table-layout: fixed; /* สำคัญ: บังคับคอลัมน์ไม่ให้ขยาย */
+                                border-collapse: collapse; 
+                                word-break: break-word; /* ตัดคำถ้าเนื้อหาเกิน */
+                                margin-bottom: 12px;
+                            }                               
+
+                            th, td { 
+                                border: 1px solid black !important; 
+                                padding: 4px !important; 
+                                overflow: hidden; /* ซ่อนเนื้อหาที่เกิน */
+                            }                       
+
+                            /* กำหนดความกว้างเฉพาะคอลัมน์ */
+                            .w-label { width: 200px; }       /* คอลัมน์รายการประเมิน */
+                            .w-guide { width: 85px; }        /* คอลัมน์เกณฑ์คะแนน */
+                            .w-shift { width: 24px; }        /* คอลัมน์เวร (ด/ช/บ) */                               
+
+                            .bg-gray { background-color: #f3f4f6 !important; }
+                            .bg-gray-50 { background-color: #f9fafb !important; }
+                            .bg-gray-100 { background-color: #f3f4f6 !important; }
+                            .bg-gray-200 { background-color: #e5e7eb !important; }
+                            
+                            .text-center { text-align: center; }
+                            .text-right { text-align: right; }
+                            .text-left { text-align: left; }
+                            .text-red-700 { color: #b91c1c !important; }
+
+                            /* Footer ท้ายกระดาษ */
+                            .print-global-footer {
+                                position: fixed; 
+                                bottom: 0; 
+                                left: 0; 
+                                width: 100%; 
+                                text-align: center;
+                                font-size: 9px; 
+                                color: #475569 !important; 
+                                border-top: 1px solid #9ca3af; 
+                                padding-top: 4px; 
+                                padding-bottom: 4px; 
+                                background-color: white; 
+                                z-index: 1000;
+                            }
+                            
+                            /* กรอบข้อมูลผู้ป่วย (Fixed ลอยมุมขวาล่าง หรือปรับ position ได้ตามต้องการ) */
+                            .print-patient-info {
+                                position: fixed; 
+                                bottom: 22px; 
+                                right: 15px; 
+                                width: 260px;
+                                border: 1px solid #000 !important; 
+                                border-radius: 4px; 
+                                padding: 6px 8px;
+                                font-size: 10px; 
+                                background-color: white !important; 
+                                z-index: 1000; 
+                                line-height: 1.4; 
+                                color: black !important;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <!-- เนื้อหาตารางที่ถูกโคลนมา -->
+                        ${printContent}            
+                        
+                        <!-- ข้อมูลผู้ป่วย -->
+                        <div class="print-patient-info">
+                            <div>
+                                <b>ชื่อ-สกุล:</b> ${this.selectedPatient?.name || '-'} &nbsp;&nbsp;
+                                <b>อายุ:</b> ${this.selectedPatient?.ageDisplay || '-'}
+                            </div>
+                            <div>
+                                <b>HN:</b> ${this.selectedPatient?.hn || '-'} &nbsp;&nbsp;
+                                <b>AN:</b> ${this.selectedPatient?.an || '-'}
+                            </div>
+                            <div>
+                                <b>แพทย์:</b> ${this.selectedPatient?.doctor || '-'} &nbsp;&nbsp;
+                                <b>ตึก:</b> ${this.currentWard || '-'} &nbsp;&nbsp;
+                                <b>เตียง:</b> ${this.selectedPatient?.bed || '-'}
+                            </div>
+                        </div>                
+
+                        <!-- ข้อความส่วนท้ายกระดาษ -->
+                        <div class="print-global-footer">
+                            เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | โปรแกรมบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
+                        </div>                
+                        
+                        <script>
+                            // หน่วงเวลาเล็กน้อยเพื่อให้ฟอนต์และสไตล์โหลดเสร็จสมบูรณ์ก่อนเรียกหน้าต่างพิมพ์
+                            window.onload = function() {
+                                setTimeout(() => { 
+                                    window.print(); 
+                                }, 800);
+                            };
+                        </script>
+                    </body>
+                </html>
+            `);
+            pri.document.close();
+        });
+    },
         calcBradenFormScore() {
             let t = 0;
             if(this.bradenForm.s1_m1 && this.bradenForm.s1_m1 !== 'null') t += parseInt(this.bradenForm.s1_m1);
