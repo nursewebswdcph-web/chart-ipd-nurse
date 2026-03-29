@@ -1155,29 +1155,33 @@ function nurseApp() {
             this.isLoading = true;
             try {
                 this.gridData = {}; 
-                const SHIFT_ORDER = ['ดึก', 'เช้า', 'บ่าย'];
                 
+                // Helper: ตัวกรองและแก้ไขคำผิดจาก Google Sheets
+                const sanitizeShift = (str) => {
+                    let s = String(str || '').trim();
+                    if (s.includes('ตึก') || s.includes('ดึก')) return 'ดึก';
+                    if (s.includes('เข้า') || s.includes('เช้า')) return 'เช้า';
+                    if (s.includes('บ่าย')) return 'บ่าย';
+                    return s;
+                };
+                const extractDate = (str) => {
+                    const match = String(str || '').match(/\d{4}-\d{2}-\d{2}/);
+                    return match ? match[0] : null;
+                };
+        
                 if (this.isAdult) {
                     const res = await fetch(`${this.API_URL}?action=getClassifications&an=${an}&_=${new Date().getTime()}`);
                     this.classHistory = await res.json();
                     
                     if (this.classHistory && Array.isArray(this.classHistory)) {
                         this.classHistory.forEach(item => {
-                            if (!item.evalDate) return; 
-                            const dKey = typeof this.getLocalYYYYMMDD === 'function' ? this.getLocalYYYYMMDD(item.evalDate) : item.evalDate.split('T')[0];
+                            const dKey = extractDate(item.evalDate);
+                            const shift = sanitizeShift(item.shift);
+                            if (!dKey || !shift) return; 
                             
-                            if (!this.gridData[dKey]) {
-                                this.gridData[dKey] = {};
-                                SHIFT_ORDER.forEach(shift => {
-                                    // เตรียม Array ว่าง 10 ช่องไว้เสมอ
-                                    this.gridData[dKey][shift] = { scores: Array(10).fill(''), assessor: '' }; 
-                                });
-                            }
-                            
-                            this.gridData[dKey][item.shift] = {
-                                scores: item.scores && item.scores.length > 0 ? [...item.scores] : Array(10).fill(''),
-                                assessor: item.assessor || ''
-                            };
+                            let cell = this.getGridCell(dKey, shift);
+                            cell.scores = item.scores && item.scores.length > 0 ? [...item.scores] : Array(10).fill('');
+                            cell.assessor = item.assessor || '';
                         });
                     }
                 } else {
@@ -1187,16 +1191,9 @@ function nurseApp() {
                     
                     if (pedHistory && Array.isArray(pedHistory)) {
                         pedHistory.forEach(item => {
-                            if (!item.date) return;
-                            const dKey = typeof this.getLocalYYYYMMDD === 'function' ? this.getLocalYYYYMMDD(item.date) : item.date.split('T')[0];
-                            
-                            if (!this.gridData[dKey]) {
-                                this.gridData[dKey] = {};
-                                SHIFT_ORDER.forEach(shift => {
-                                    // เตรียม Array ว่าง 10 ช่องไว้เสมอ
-                                    this.gridData[dKey][shift] = { scores: Array(10).fill(''), assessor: '' }; 
-                                });
-                            }
+                            const dKey = extractDate(item.date);
+                            const shift = sanitizeShift(item.shift);
+                            if (!dKey || !shift) return;
                             
                             let parsedScores = Array(10).fill('');
                             try {
@@ -1212,17 +1209,12 @@ function nurseApp() {
                                 }
                             } catch (e) { }
         
-                            this.gridData[dKey][item.shift] = {
-                                scores: parsedScores,
-                                assessor: item.assessor || ''
-                            };
+                            let cell = this.getGridCell(dKey, shift);
+                            cell.scores = parsedScores;
+                            cell.assessor = item.assessor || '';
                         });
                     }
                 }
-                
-                // ถ้าคุณมีฟังก์ชัน buildClassTimeline ให้เรียกใช้เพื่อสร้างโครงสร้างใหม่ด้วย
-                if(typeof this.buildClassTimeline === 'function') this.buildClassTimeline();
-        
             } catch (e) { 
                 console.error("Load Classifications Error:", e); 
             } finally {
@@ -1645,14 +1637,9 @@ function nurseApp() {
         },
         // 🟢 1. ฟังก์ชันดึง/สร้างช่องข้อมูล (ช่วยให้ x-model ทำงานได้แม่นยำ)
         getGridCell(dateStr, shift) {
+            if (!dateStr || !shift) return { scores: Array(10).fill(''), assessor: '' };
             if (!this.gridData[dateStr]) this.gridData[dateStr] = {};
-            if (!this.gridData[dateStr][shift]) {
-                this.gridData[dateStr][shift] = {
-                    scores: Array(8).fill(''),
-                    assessor: '', // เปลี่ยนเป็นค่าว่าง
-                    isNew: true
-                };
-            }
+            if (!this.gridData[dateStr][shift]) this.gridData[dateStr][shift] = { scores: Array(10).fill(''), assessor: '' };
             return this.gridData[dateStr][shift];
         },
         // ฟังก์ชันช่วยคำนวณคะแนนในตาราง
@@ -2083,32 +2070,36 @@ function nurseApp() {
             if (!an) return;
             this.isLoading = true;
             try {
-                const SHIFT_ORDER = ['ดึก', 'เช้า', 'บ่าย'];
                 const response = await fetch(`${this.API_URL}?action=getFallRisk&an=${an}&_=${new Date().getTime()}`);
                 if (!response.ok) throw new Error('Network response was not ok');
                 this.fallHistory = await response.json();
                 
                 this.fallGridData = {}; 
-                this.fallHistory.forEach(item => {
-                    const dKey = typeof this.getLocalYYYYMMDD === 'function' ? this.getLocalYYYYMMDD(item.evalDate) : (item.evalDate ? item.evalDate.split('T')[0] : '');
-                    if (!dKey) return;
-        
-                    if (!this.fallGridData[dKey]) {
-                        this.fallGridData[dKey] = {};
-                        SHIFT_ORDER.forEach(shift => {
-                            // เตรียม Array ว่าง 6 ช่องไว้เสมอ
-                            this.fallGridData[dKey][shift] = { scores: Array(6).fill(''), maas: '', assessor: '' }; 
-                        });
-                    }
-                    this.fallGridData[dKey][item.shift] = {
-                        scores: [item.m1||'', item.m2||'', item.m3||'', item.m4||'', item.m5||'', item.m6||''],
-                        maas: item.maasScore || '',
-                        assessor: item.assessor || ''
-                    };
-                });
                 
-                if(typeof this.buildClassTimeline === 'function') this.buildClassTimeline();
+                const sanitizeShift = (str) => {
+                    let s = String(str || '').trim();
+                    if (s.includes('ตึก') || s.includes('ดึก')) return 'ดึก';
+                    if (s.includes('เข้า') || s.includes('เช้า')) return 'เช้า';
+                    if (s.includes('บ่าย')) return 'บ่าย';
+                    return s;
+                };
+                const extractDate = (str) => {
+                    const match = String(str || '').match(/\d{4}-\d{2}-\d{2}/);
+                    return match ? match[0] : null;
+                };
         
+                if (this.fallHistory && Array.isArray(this.fallHistory)) {
+                    this.fallHistory.forEach(item => {
+                        const dKey = extractDate(item.evalDate);
+                        const shift = sanitizeShift(item.shift);
+                        if (!dKey || !shift) return;
+        
+                        let cell = this.getFallGridCell(dKey, shift);
+                        cell.scores = [item.m1||'', item.m2||'', item.m3||'', item.m4||'', item.m5||'', item.m6||''];
+                        cell.maas = item.maasScore || '';
+                        cell.assessor = item.assessor || '';
+                    });
+                }
             } catch (e) { 
                 console.error("Load Fall Risk Error:", e); 
                 this.fallGridData = {};
@@ -2119,14 +2110,9 @@ function nurseApp() {
 
         // ดึง/สร้างช่องข้อมูลสำหรับหน้าจอ Morse/MAAS
         getFallGridCell(dateStr, shift) {
+            if (!dateStr || !shift) return { scores: Array(6).fill(''), maas: '', assessor: '' };
             if (!this.fallGridData[dateStr]) this.fallGridData[dateStr] = {};
-            if (!this.fallGridData[dateStr][shift]) {
-                this.fallGridData[dateStr][shift] = {
-                    scores: ['', '', '', '', '', ''], // 6 ข้อของ Morse
-                    maas: '', // 1 ข้อของ MAAS
-                    assessor: ''
-                };
-            }
+            if (!this.fallGridData[dateStr][shift]) this.fallGridData[dateStr][shift] = { scores: Array(6).fill(''), maas: '', assessor: '' };
             return this.fallGridData[dateStr][shift];
         },
 
