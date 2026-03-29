@@ -2083,13 +2083,13 @@
                                                 <tr class="bg-slate-50">
                                                     <th class="border border-slate-300 p-1 text-slate-400">เวร</th>
                                                     <template x-for="day in (classTimeline[currentPageIndex] || [])">
-                                                        <template x-for="shift in ['ดึก', 'เช้า', 'บ่าย']">
+                                                        <template x-for="cell in day.shiftCells" :key="cell.date + cell.shift">
                                                             <th class="border border-slate-300 w-[55px] py-1 font-bold"
                                                                 :class="{
-                                                                    'text-indigo-500 bg-indigo-50/30': shift === 'ดึก',
-                                                                    'text-amber-600 bg-amber-50/30': shift === 'เช้า',
-                                                                    'text-orange-600 bg-orange-50/30': shift === 'บ่าย'
-                                                                }" x-text="shift">
+                                                                    'text-indigo-500 bg-indigo-50/30': cell.shift === 'ดึก',
+                                                                    'text-amber-600 bg-amber-50/30': cell.shift === 'เช้า',
+                                                                    'text-orange-600 bg-orange-50/30': cell.shift === 'บ่าย'
+                                                                }" x-text="cell.shift">
                                                             </th>
                                                         </template>
                                                     </template>
@@ -2116,7 +2116,7 @@
                                                         
                                                         <template x-if="question !== 'SEPARATOR' && question !== 'HEADER_HEALTH'">
                                                             <template x-for="day in classTimeline[currentPageIndex]">
-                                                                <template x-for="s in ['ดึก','เช้า','บ่าย']">
+                                                                <template x-for="cell in day.shiftCells" :key="cell.date+cell.shift">
                                                                     <td class="border border-slate-300 p-0">
                                                                         <input type="number" min="1" max="4"
                                                                             class="w-full h-10 text-center font-bold focus:bg-yellow-50 outline-none border-none bg-transparent"
@@ -2132,7 +2132,7 @@
                                                 <tr class="bg-indigo-50/50">
                                                     <td class="border border-slate-300 px-3 py-2 font-bold text-left">รวมคะแนน (ประเภท)</td>
                                                     <template x-for="day in classTimeline[currentPageIndex]">
-                                                        <template x-for="s in ['ดึก','เช้า','บ่าย']">
+                                                        <template x-for="cell in day.shiftCells" :key="cell.date+cell.shift">
                                                             <td class="border border-slate-300 h-12">
                                                                 <div class="font-black text-indigo-700 text-sm" x-text="gridData[day.date]?.[s] ? calcScores(gridData[day.date][s].scores).total : ''"></div>
                                                                 <div class="text-[10px] text-red-600 font-bold" x-text="gridData[day.date]?.[s] && calcScores(gridData[day.date][s].scores).category ? 'ประเภท ' + calcScores(gridData[day.date][s].scores).category : ''"></div>
@@ -2144,7 +2144,7 @@
                                                 <tr class="bg-slate-50">
                                                     <td class="border border-slate-300 px-3 py-1 text-left text-slate-400 font-bold text-[9px]">ผู้ประเมิน</td>
                                                     <template x-for="day in classTimeline[currentPageIndex]">
-                                                        <template x-for="s in ['ดึก','เช้า','บ่าย']">
+                                                        <template x-for="cell in day.shiftCells" :key="cell.date+cell.shift">
                                                             <td class="border border-slate-300 p-0">
                                                                 <input type="text" 
                                                                     class="w-full h-8 text-[9px] text-center outline-none bg-transparent"
@@ -2158,7 +2158,7 @@
                                                 <tr class="bg-white">
                                                     <td class="border border-slate-300 px-3 py-1 text-left text-indigo-400 font-bold text-[9px]">การจัดการ</td>
                                                     <template x-for="day in classTimeline[currentPageIndex]">
-                                                        <template x-for="s in ['ดึก','เช้า','บ่าย']">
+                                                        <template x-for="cell in day.shiftCells" :key="cell.date+cell.shift">
                                                             <td class="border border-slate-300 p-1">
                                                                 <button type="button" 
                                                                     @click="saveShiftClassification(day.date, s)"
@@ -2391,7 +2391,7 @@
                                                         
                                                         <template x-if="!question.startsWith('HEADER_')">
                                                             <template x-for="day in classTimeline[currentPageIndex]">
-                                                                <template x-for="s in ['ดึก','เช้า','บ่าย']">
+                                                                <template x-for="cell in day.shiftCells" :key="cell.date+cell.shift">
                                                                     <td class="border border-slate-300 p-0" :class="{'bg-slate-50': question.startsWith('4.')}">
                                                                         <input type="number" min="1" max="4"
                                                                             class="w-full h-10 text-center font-bold focus:bg-yellow-50 outline-none border-none bg-transparent"
@@ -2412,7 +2412,7 @@
                                                 <tr class="bg-emerald-50/50">
                                                     <td class="border border-slate-300 px-3 py-2 font-bold text-left">รวมคะแนน (ประเภท)</td>
                                                     <template x-for="day in classTimeline[currentPageIndex]">
-                                                        <template x-for="s in ['ดึก','เช้า','บ่าย']">
+                                                        <template x-for="cell in day.shiftCells" :key="cell.date+cell.shift">
                                                             <td class="border border-slate-300 h-12">
                                                                 <div class="font-black text-emerald-700 text-sm" x-text="gridData[day.date]?.[s] ? calcPedScores(gridData[day.date][s].scores).total : ''"></div>
                                                                 <div class="text-[10px] text-red-600 font-bold" x-text="gridData[day.date]?.[s] && calcPedScores(gridData[day.date][s].scores).category ? calcPedScores(gridData[day.date][s].scores).category : ''"></div>
@@ -2424,7 +2424,7 @@
                                                 <tr class="bg-slate-50">
                                                     <td class="border border-slate-300 px-3 py-1 text-left text-slate-400 font-bold text-[9px]">ผู้ประเมิน</td>
                                                     <template x-for="day in classTimeline[currentPageIndex]">
-                                                        <template x-for="s in ['ดึก','เช้า','บ่าย']">
+                                                        <template x-for="cell in day.shiftCells" :key="cell.date+cell.shift">
                                                             <td class="border border-slate-300 p-0">
                                                                 <input type="text" 
                                                                     class="w-full h-8 text-[9px] text-center outline-none bg-transparent"
@@ -2438,7 +2438,7 @@
                                                 <tr class="bg-white">
                                                     <td class="border border-slate-300 px-3 py-1 text-left text-emerald-400 font-bold text-[9px]">การจัดการ</td>
                                                     <template x-for="day in classTimeline[currentPageIndex]">
-                                                        <template x-for="s in ['ดึก','เช้า','บ่าย']">
+                                                        <template x-for="cell in day.shiftCells" :key="cell.date+cell.shift">
                                                             <td class="border border-slate-300 p-1">
                                                                 <button type="button" 
                                                                     @click="savePedShiftClassification(day.date, s)"
@@ -3172,7 +3172,7 @@
                                             <tr class="hover:bg-slate-50">
                                                 <td class="border border-slate-300 px-3 py-1 text-left" x-text="item.label"></td>
                                                 <template x-for="day in classTimeline[currentPageIndex]">
-                                                    <template x-for="s in ['ดึก','เช้า','บ่าย']">
+                                                    <template x-for="cell in day.shiftCells" :key="cell.date+cell.shift">
                                                         <td class="border border-slate-300 p-0">
                                                             <select class="w-full h-8 text-center text-[10px] outline-none bg-transparent cursor-pointer focus:bg-amber-50" x-model="getFallGridCell(day.date, s).scores[idx]">
                                                                 <option value=""></option>
@@ -3187,7 +3187,7 @@
                                         <tr class="bg-amber-50">
                                             <td class="border border-slate-300 px-3 py-2 font-black text-right text-amber-800">รวมคะแนน (Morse)</td>
                                             <template x-for="day in classTimeline[currentPageIndex]">
-                                                <template x-for="s in ['ดึก','เช้า','บ่าย']">
+                                                <template x-for="cell in day.shiftCells" :key="cell.date+cell.shift">
                                                     <td class="border border-slate-300 font-black text-amber-700" x-text="calcMorseTotal(getFallGridCell(day.date, s).scores)"></td>
                                                 </template>
                                             </template>
@@ -3198,7 +3198,7 @@
                                         <tr class="hover:bg-slate-50">
                                             <td class="border border-slate-300 px-3 py-1 text-left">เลือกระดับ MAAS (0-6)</td>
                                             <template x-for="day in classTimeline[currentPageIndex]">
-                                                <template x-for="s in ['ดึก','เช้า','บ่าย']">
+                                                <template x-for="cell in day.shiftCells" :key="cell.date+cell.shift">
                                                     <td class="border border-slate-300 p-0">
                                                         <select class="w-full h-8 text-center text-[10px] outline-none bg-transparent cursor-pointer focus:bg-blue-50" x-model="getFallGridCell(day.date, s).maas">
                                                             <option value=""></option>
@@ -3218,7 +3218,7 @@
                                         <tr class="bg-slate-50">
                                             <td class="border border-slate-300 px-3 py-1 text-left text-slate-400 font-bold text-[9px]">ผู้ประเมิน</td>
                                             <template x-for="day in classTimeline[currentPageIndex]">
-                                                <template x-for="s in ['ดึก','เช้า','บ่าย']">
+                                                <template x-for="cell in day.shiftCells" :key="cell.date+cell.shift">
                                                     <td class="border border-slate-300 p-0">
                                                         <input type="text" 
                                                             class="w-full h-8 text-[9px] text-center outline-none bg-transparent"
@@ -3232,7 +3232,7 @@
                                         <tr class="bg-white">
                                             <td class="border border-slate-300 px-3 py-1 text-left text-amber-500 font-bold text-[9px]">การจัดการ</td>
                                             <template x-for="day in classTimeline[currentPageIndex]">
-                                                <template x-for="s in ['ดึก','เช้า','บ่าย']">
+                                                <template x-for="cell in day.shiftCells" :key="cell.date+cell.shift">
                                                     <td class="border border-slate-300 p-1">
                                                         <button type="button" 
                                                             @click="saveShiftFallRisk(day.date, s)"
@@ -3269,7 +3269,7 @@
                                             </tr>
                                             <tr class="bg-gray">
                                                 <template x-for="day in page">
-                                                    <template x-for="s in ['ดึก','เช้า','บ่าย']">
+                                                    <template x-for="cell in day.shiftCells" :key="cell.date+cell.shift">
                                                         <th class="w-shift border border-black p-1 text-center" x-text="s"></th>
                                                     </template>
                                                 </template>
@@ -3329,7 +3329,7 @@
                                             </tr>
                                             <tr class="bg-gray">
                                                 <template x-for="day in page">
-                                                    <template x-for="s in ['ดึก','เช้า','บ่าย']">
+                                                    <template x-for="cell in day.shiftCells" :key="cell.date+cell.shift">
                                                         <th class="w-shift border border-black p-1 text-center" x-text="s"></th>
                                                     </template>
                                                 </template>
