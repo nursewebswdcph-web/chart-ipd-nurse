@@ -1625,7 +1625,7 @@ function nurseApp() {
                 this.gridData[date][shift] = { scores: [1,1,1,1,1,1,1,1], assessor: '' };
             }
             return this.gridData[date][shift];
-        }
+        },
         // ฟังก์ชันช่วยคำนวณคะแนนในตาราง
         calcScores(scores) {
             if (!scores || !Array.isArray(scores)) return { total: '', category: '' };
