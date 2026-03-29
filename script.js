@@ -159,6 +159,68 @@ function nurseApp() {
             update();
             setInterval(update, 1000);
         },
+        // ---------------------------------------------------------
+        // 1. ENGINE จัดกลุ่มและล็อคลำดับเวร (รื้อทำใหม่)
+        // ---------------------------------------------------------
+        buildStandardShiftGrid(rawData, formType) {
+            if (!rawData || !Array.isArray(rawData)) return { dates: [], grid: {} };
+            
+            let grid = {};
+            
+            rawData.forEach(item => {
+                // ดึงวันที่ให้ปลอดภัยที่สุด
+                let rawDate = item.evalDate || item.date || item.evaldate;
+                if (!rawDate) return;
+                const dKey = String(rawDate).match(/\d{4}-\d{2}-\d{2}/)?.[0];
+                if (!dKey) return;
+
+                // แปลงและกรองชื่อเวร
+                let s = String(item.shift || '').trim();
+                let shift = '';
+                if (s.includes('ดึก') || s.includes('ตึก')) shift = 'ดึก';
+                else if (s.includes('เช้า') || s.includes('เข้า')) shift = 'เช้า';
+                else if (s.includes('บ่าย')) shift = 'บ่าย';
+                if (!shift) return;
+
+                // ถัายังไม่มีวันที่นี้ ให้สร้างโครงสร้างล็อกพื้นที่ 3 เวรไว้รอเลย
+                if (!grid[dKey]) {
+                    grid[dKey] = {
+                        'ดึก': formType === 'fall' ? { scores: Array(6).fill(''), maas: '', assessor: '', isEmpty: true } : { scores: Array(10).fill(''), assessor: '', isEmpty: true },
+                        'เช้า': formType === 'fall' ? { scores: Array(6).fill(''), maas: '', assessor: '', isEmpty: true } : { scores: Array(10).fill(''), assessor: '', isEmpty: true },
+                        'บ่าย': formType === 'fall' ? { scores: Array(6).fill(''), maas: '', assessor: '', isEmpty: true } : { scores: Array(10).fill(''), assessor: '', isEmpty: true }
+                    };
+                }
+
+                // เอาข้อมูลใส่เวรนั้นๆ (เขียนทับอัตโนมัติถ้ามีซ้ำ)
+                if (formType === 'adult') {
+                    grid[dKey][shift].scores = item.scores && item.scores.length > 0 ? [...item.scores] : Array(10).fill('');
+                    grid[dKey][shift].assessor = item.assessor || '';
+                    grid[dKey][shift].isEmpty = false;
+                } else if (formType === 'ped') {
+                    let parsedScores = Array(10).fill('');
+                    try {
+                        if (typeof item.formdata === 'string') {
+                            const obj = JSON.parse(item.formdata);
+                            parsedScores = [obj.item1||'', obj.item2||'', obj.item3||'', obj.item4||'', obj.item5||'', obj.item6||'', obj.item7||'', obj.item8||'', obj.item9||'', obj.item10||''];
+                        } else if (item.scores) {
+                            parsedScores = item.scores;
+                        }
+                    } catch (e) {}
+                    grid[dKey][shift].scores = parsedScores;
+                    grid[dKey][shift].assessor = item.assessor || '';
+                    grid[dKey][shift].isEmpty = false;
+                } else if (formType === 'fall') {
+                    grid[dKey][shift].scores = [item.m1||'', item.m2||'', item.m3||'', item.m4||'', item.m5||'', item.m6||''];
+                    grid[dKey][shift].maas = item.maasScore || '';
+                    grid[dKey][shift].assessor = item.assessor || '';
+                    grid[dKey][shift].isEmpty = false;
+                }
+            });
+
+            // เรียงลำดับวันที่จากอดีต -> ปัจจุบัน
+            const sortedDates = Object.keys(grid).sort((a, b) => new Date(a) - new Date(b));
+            return { dates: sortedDates, grid: grid };
+        },
 
         // 1. ฟังก์ชันตรวจสอบกลุ่มอายุ (เด็ก 0-15 ปี)
         checkAgeGroup(ageStr) {
@@ -1213,107 +1275,31 @@ function nurseApp() {
             this.isLoading = true;
             try {
                 this.gridData = {}; 
-                
-                // Helper: ตัวกรองและแก้ไขคำผิดจาก Google Sheets
-                const sanitizeShift = (str) => {
-                    let s = String(str || '').trim();
-                    if (s.includes('ตึก') || s.includes('ดึก')) return 'ดึก';
-                    if (s.includes('เข้า') || s.includes('เช้า')) return 'เช้า';
-                    if (s.includes('บ่าย')) return 'บ่าย';
-                    return s;
-                };
-                const extractDate = (str) => {
-                    const match = String(str || '').match(/\d{4}-\d{2}-\d{2}/);
-                    return match ? match[0] : null;
-                };
-        
-                // ใช้ tempGrid พักข้อมูลเพื่อจัดระเบียบก่อน
-                let tempGrid = {};
-        
+                this.gridSortedDates = []; // เก็บ Array วันที่ที่เรียงแล้วไว้ใช้ตอนปริ้น
+                let res, rawData, typeStr;
+
                 if (this.isAdult) {
-                    const res = await fetch(`${this.API_URL}?action=getClassifications&an=${an}&_=${new Date().getTime()}`);
-                    this.classHistory = await res.json();
-                    
-                    if (this.classHistory && Array.isArray(this.classHistory)) {
-                        this.classHistory.forEach(item => {
-                            const dKey = extractDate(item.evalDate);
-                            const shift = sanitizeShift(item.shift);
-                            if (!dKey || !shift) return; 
-                            
-                            // 1. ถ้ายังไม่มีวันที่นี้ ให้สร้างโครงสร้าง บังคับลำดับ 'ดึก' -> 'เช้า' -> 'บ่าย'
-                            if (!tempGrid[dKey]) {
-                                tempGrid[dKey] = {
-                                    'ดึก': { scores: Array(10).fill(''), assessor: '', isEmpty: true },
-                                    'เช้า': { scores: Array(10).fill(''), assessor: '', isEmpty: true },
-                                    'บ่าย': { scores: Array(10).fill(''), assessor: '', isEmpty: true }
-                                };
-                            }
-                            
-                            // 2. เอาข้อมูลใส่ลงไปในเวรนั้นๆ (ถ้ามีซ้ำ มันจะเอาอันล่าสุดทับให้เองอัตโนมัติ)
-                            if (tempGrid[dKey][shift]) {
-                                tempGrid[dKey][shift].scores = item.scores && item.scores.length > 0 ? [...item.scores] : Array(10).fill('');
-                                tempGrid[dKey][shift].assessor = item.assessor || '';
-                                tempGrid[dKey][shift].isEmpty = false; // แจ้งว่าเวรนี้มีการประเมินแล้ว
-                            }
-                        });
-                    }
+                    res = await fetch(`${this.API_URL}?action=getClassifications&an=${an}&_=${new Date().getTime()}`);
+                    rawData = await res.json();
+                    this.classHistory = rawData;
+                    typeStr = 'adult';
                 } else {
-                    const res = await fetch(`${this.API_URL}?action=getClassificationsPed&an=${an}&_=${new Date().getTime()}`);
-                    const pedHistory = await res.json();
-                    this.classHistoryPed = pedHistory;
-                    
-                    if (pedHistory && Array.isArray(pedHistory)) {
-                        pedHistory.forEach(item => {
-                            const dKey = extractDate(item.date);
-                            const shift = sanitizeShift(item.shift);
-                            if (!dKey || !shift) return;
-                            
-                            let parsedScores = Array(10).fill('');
-                            try {
-                                if (typeof item.formdata === 'string') {
-                                    const obj = JSON.parse(item.formdata);
-                                    parsedScores = [
-                                        obj.item1||'', obj.item2||'', obj.item3||'', obj.item4||'', 
-                                        obj.item5||'', obj.item6||'', obj.item7||'', 
-                                        obj.item8||'', obj.item9||'', obj.item10||''
-                                    ];
-                                } else if (item.scores) {
-                                    parsedScores = item.scores;
-                                }
-                            } catch (e) { }
-        
-                            // บังคับลำดับ 'ดึก' -> 'เช้า' -> 'บ่าย' สำหรับผู้ป่วยเด็ก
-                            if (!tempGrid[dKey]) {
-                                tempGrid[dKey] = {
-                                    'ดึก': { scores: Array(10).fill(''), assessor: '', isEmpty: true },
-                                    'เช้า': { scores: Array(10).fill(''), assessor: '', isEmpty: true },
-                                    'บ่าย': { scores: Array(10).fill(''), assessor: '', isEmpty: true }
-                                };
-                            }
-                            
-                            if (tempGrid[dKey][shift]) {
-                                tempGrid[dKey][shift].scores = parsedScores;
-                                tempGrid[dKey][shift].assessor = item.assessor || '';
-                                tempGrid[dKey][shift].isEmpty = false;
-                            }
-                        });
-                    }
+                    res = await fetch(`${this.API_URL}?action=getClassificationsPed&an=${an}&_=${new Date().getTime()}`);
+                    rawData = await res.json();
+                    this.classHistoryPed = rawData;
+                    typeStr = 'ped';
                 }
-        
-                // 3. เรียงลำดับวันที่จากอดีต -> ปัจจุบัน แล้วค่อยกำหนดกลับให้ this.gridData
-                const sortedDates = Object.keys(tempGrid).sort((a, b) => new Date(a) - new Date(b));
-                let finalGrid = {};
-                sortedDates.forEach(date => {
-                    finalGrid[date] = tempGrid[date];
-                });
+
+                const processed = this.buildStandardShiftGrid(rawData, typeStr);
                 
+                // คืนค่ากลับให้ตัวแปรระบบ
+                let finalGrid = {};
+                processed.dates.forEach(d => { finalGrid[d] = processed.grid[d]; });
                 this.gridData = finalGrid;
-        
-            } catch (e) { 
-                console.error("Load Classifications Error:", e); 
-            } finally {
-                this.isLoading = false;
-            }
+                this.gridSortedDates = processed.dates; 
+
+            } catch (e) { console.error("Load Classifications Error:", e); } 
+            finally { this.isLoading = false; }
         },
         // คำนวณคะแนนเด็กจาก Array 10 ช่อง
         calcPedScores(scoreArr) {
@@ -1731,10 +1717,10 @@ function nurseApp() {
         },
         // 🟢 1. ฟังก์ชันดึง/สร้างช่องข้อมูล (ช่วยให้ x-model ทำงานได้แม่นยำ)
         getGridCell(dateStr, shift) {
-            if (!dateStr || !shift) return { scores: Array(10).fill(''), assessor: '' };
-            if (!this.gridData[dateStr]) this.gridData[dateStr] = {};
-            if (!this.gridData[dateStr][shift]) this.gridData[dateStr][shift] = { scores: Array(10).fill(''), assessor: '' };
-            return this.gridData[dateStr][shift];
+            if (this.gridData && this.gridData[dateStr] && this.gridData[dateStr][shift]) {
+                return this.gridData[dateStr][shift];
+            }
+            return { scores: Array(10).fill(''), assessor: '', isEmpty: true };
         },
         // ฟังก์ชันช่วยคำนวณคะแนนในตาราง
         calcScores(scores) {
@@ -2164,73 +2150,30 @@ function nurseApp() {
             if (!an) return;
             this.isLoading = true;
             try {
+                this.fallGridData = {};
+                this.fallSortedDates = []; // เก็บ Array วันที่ที่เรียงแล้วไว้ใช้ตอนปริ้น
+                
                 const response = await fetch(`${this.API_URL}?action=getFallRisk&an=${an}&_=${new Date().getTime()}`);
                 if (!response.ok) throw new Error('Network response was not ok');
                 this.fallHistory = await response.json();
                 
-                this.fallGridData = {}; 
-                let tempGrid = {};
+                const processed = this.buildStandardShiftGrid(this.fallHistory, 'fall');
                 
-                const sanitizeShift = (str) => {
-                    let s = String(str || '').trim();
-                    if (s.includes('ตึก') || s.includes('ดึก')) return 'ดึก';
-                    if (s.includes('เข้า') || s.includes('เช้า')) return 'เช้า';
-                    if (s.includes('บ่าย')) return 'บ่าย';
-                    return s;
-                };
-                const extractDate = (str) => {
-                    const match = String(str || '').match(/\d{4}-\d{2}-\d{2}/);
-                    return match ? match[0] : null;
-                };
-        
-                if (this.fallHistory && Array.isArray(this.fallHistory)) {
-                    this.fallHistory.forEach(item => {
-                        const dKey = extractDate(item.evalDate);
-                        const shift = sanitizeShift(item.shift);
-                        if (!dKey || !shift) return;
-        
-                        // 1. บังคับสร้างก้อนข้อมูล ดึก -> เช้า -> บ่าย รอไว้เสมอ
-                        if (!tempGrid[dKey]) {
-                            tempGrid[dKey] = {
-                                'ดึก': { scores: Array(6).fill(''), maas: '', assessor: '', isEmpty: true },
-                                'เช้า': { scores: Array(6).fill(''), maas: '', assessor: '', isEmpty: true },
-                                'บ่าย': { scores: Array(6).fill(''), maas: '', assessor: '', isEmpty: true }
-                            };
-                        }
-                        
-                        // 2. เติมข้อมูลลงช่องเวร (ค่าล่าสุดจะทับค่าเดิมอัตโนมัติหากมีการประเมินซ้ำ)
-                        if (tempGrid[dKey][shift]) {
-                            tempGrid[dKey][shift].scores = [item.m1||'', item.m2||'', item.m3||'', item.m4||'', item.m5||'', item.m6||''];
-                            tempGrid[dKey][shift].maas = item.maasScore || '';
-                            tempGrid[dKey][shift].assessor = item.assessor || '';
-                            tempGrid[dKey][shift].isEmpty = false; // ทำเครื่องหมายว่าประเมินแล้ว
-                        }
-                    });
-                }
-        
-                // 3. เรียงลำดับวันที่
-                const sortedDates = Object.keys(tempGrid).sort((a, b) => new Date(a) - new Date(b));
                 let finalGrid = {};
-                sortedDates.forEach(date => {
-                    finalGrid[date] = tempGrid[date];
-                });
-                
+                processed.dates.forEach(d => { finalGrid[d] = processed.grid[d]; });
                 this.fallGridData = finalGrid;
-        
-            } catch (e) { 
-                console.error("Load Fall Risk Error:", e); 
-                this.fallGridData = {};
-            } finally {
-                this.isLoading = false;
-            }
+                this.fallSortedDates = processed.dates;
+
+            } catch (e) { console.error("Load Fall Risk Error:", e); } 
+            finally { this.isLoading = false; }
         },
 
         // ดึง/สร้างช่องข้อมูลสำหรับหน้าจอ Morse/MAAS
         getFallGridCell(dateStr, shift) {
-            if (!dateStr || !shift) return { scores: Array(6).fill(''), maas: '', assessor: '' };
-            if (!this.fallGridData[dateStr]) this.fallGridData[dateStr] = {};
-            if (!this.fallGridData[dateStr][shift]) this.fallGridData[dateStr][shift] = { scores: Array(6).fill(''), maas: '', assessor: '' };
-            return this.fallGridData[dateStr][shift];
+            if (this.fallGridData && this.fallGridData[dateStr] && this.fallGridData[dateStr][shift]) {
+                return this.fallGridData[dateStr][shift];
+            }
+            return { scores: Array(6).fill(''), maas: '', assessor: '', isEmpty: true };
         },
 
         // คำนวณผลรวม Morse อัตโนมัติ
