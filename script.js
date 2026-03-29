@@ -1725,21 +1725,20 @@ function nurseApp() {
         },
         get classTimeline() {
             if (!this.selectedPatient || !this.selectedPatient.date) return [];
-
-            // 1. สร้างวันที่ Admit แบบ Local
+        
             const [y, m, d] = this.selectedPatient.date.split('-').map(Number);
-            const admitDate = new Date(y, m - 1, d, 12, 0, 0); // ตั้งเวลาเที่ยงวันกันพลาด
-
+            const admitDate = new Date(y, m - 1, d, 12, 0, 0);
+        
             const today = new Date();
             today.setHours(12, 0, 0, 0);
             
             const diffTime = Math.abs(today - admitDate);
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
             const totalPages = Math.ceil(Math.max(diffDays, 5) / 5);
-
+        
             const pages = [];
-            const shifts = ['ดึก', 'เช้า', 'บ่าย'];
-
+            const shifts = ['ดึก', 'เช้า', 'บ่าย']; // ✅ บังคับลำดับนี้เสมอ
+        
             for (let p = 0; p < totalPages; p++) {
                 const dayInPage = [];
                 for (let i = 0; i < 5; i++) {
@@ -1747,18 +1746,18 @@ function nurseApp() {
                     const currentDate = new Date(admitDate);
                     currentDate.setDate(admitDate.getDate() + currentIdx);
                     
-                    // ใช้ Helper ดึงค่า YYYY-MM-DD
                     const dateKey = this.getLocalYYYYMMDD(currentDate);
                     
                     const dayData = {
                         date: dateKey,
                         formattedDate: this.formatThaiDateShort(dateKey),
-                        slots: {}
+                        slots: {},
+                        // ✅ เพิ่ม shiftCells แบบ flat array เพื่อป้องกันปัญหา nested x-for
+                        shiftCells: shifts.map(s => ({ date: dateKey, shift: s }))
                     };
-
+        
                     shifts.forEach(s => {
                         const record = this.classHistory.find(h => {
-                            // 🟢 หัวใจสำคัญ: แปลงวันที่จากฐานข้อมูลเป็น YYYY-MM-DD ก่อนเทียบเสมอ
                             const hDate = this.getLocalYYYYMMDD(h.evalDate);
                             return hDate === dateKey && h.shift === s;
                         });
