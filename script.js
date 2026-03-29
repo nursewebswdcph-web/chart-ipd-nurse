@@ -6,7 +6,6 @@ function nurseApp() {
         isPrintingPed: false,
         realTimeClock: '',
         currentWard: null,
-        
         viewMode: 'list', 
         isEditing: false,
         nurses: [],
@@ -36,9 +35,6 @@ function nurseApp() {
 
         fallHistory: [],
         fallGridData: {},
-        classAdultGrid: { dates: [], columns: [], grid: {} },
-        classPedGrid: { dates: [], columns: [], grid: {} },
-        fallRiskGrid: { dates: [], columns: [], grid: {} },
         bradenHistory: [],
         bradenForm: {
             evalDate: new Date().toISOString().split('T')[0],
@@ -1152,113 +1148,59 @@ function nurseApp() {
             
             return { total, category };
         },
-        // ฟังก์ชันใหม่! นำไปวางต่อจากฟังก์ชันอื่นๆ ใน nurseApp() 
-    // หน้าที่: บังคับสร้างช่อง ดึก, เช้า, บ่าย รอไว้เสมอ
-    processGridData(rawData) {
-        if (!rawData || !Array.isArray(rawData) || rawData.length === 0) {
-            return { dates: [], columns: [], grid: {} };
-        }
-
-        // 1. หาวันที่ทั้งหมดที่ไม่ซ้ำกัน และเรียงลำดับจากเก่าไปใหม่ (หรือใหม่ไปเก่าตามชอบ)
-        const uniqueDates = [...new Set(rawData.map(item => {
-            if (!item.date) return null;
-            return String(item.date).split('T')[0];
-        }).filter(Boolean))].sort();
-
-        const shiftOrder = ['ดึก', 'เช้า', 'บ่าย'];
-        const columns = [];
-        const grid = {};
-
-        // 2. สร้างโครงร่าง (Skeleton) บังคับ 3 เวรต่อวัน
-        uniqueDates.forEach(date => {
-            grid[date] = {};
-            shiftOrder.forEach(shift => {
-                columns.push({ date: date, shift: shift });
-                grid[date][shift] = null; // เตรียมช่องว่างไว้
-            });
-        });
-
-        // 3. หยอดข้อมูลลงในโครงร่าง หากเวรไหนไม่มีข้อมูลก็จะเป็น null 
-        rawData.forEach(item => {
-            if (!item.date || !item.shift) return;
-            let d = String(item.date).split('T')[0];
-            let s = String(item.shift).trim();
-
-            if (grid[d] && grid[d][s] !== undefined) {
-                // แปลง key เป็นพิมพ์เล็กทั้งหมดให้ดึงง่ายๆ
-                let normalizedItem = {};
-                for (let key in item) {
-                    normalizedItem[key.toLowerCase()] = item[key];
-                }
-                grid[d][s] = normalizedItem;
-            }
-        });
-
-        return { dates: uniqueDates, columns: columns, grid: grid };
-    },
 
         // โหลดข้อมูลประวัติทั้งหมดของ AN
         async loadClassifications(an) {
             this.isLoading = true;
             try {
-                this.gridData = {}; 
+                this.gridData = {}; // ล้างข้อมูลเก่าเสมอ
                 
-                // Helper: ตัวกรองและแก้ไขคำผิดจาก Google Sheets
-                const sanitizeShift = (str) => {
-                    let s = String(str || '').trim();
-                    if (s.includes('ตึก') || s.includes('ดึก')) return 'ดึก';
-                    if (s.includes('เข้า') || s.includes('เช้า')) return 'เช้า';
-                    if (s.includes('บ่าย')) return 'บ่าย';
-                    return s;
-                };
-                const extractDate = (str) => {
-                    const match = String(str || '').match(/\d{4}-\d{2}-\d{2}/);
-                    return match ? match[0] : null;
-                };
-        
                 if (this.isAdult) {
-                    const res = await fetch(`${this.API_URL}?action=getClassifications&an=${an}&_=${new Date().getTime()}`);
+                    // โหลดผู้ใหญ่
+                    const res = await fetch(`${this.API_URL}?action=getClassifications&an=${an}`);
                     this.classHistory = await res.json();
                     
                     if (this.classHistory && Array.isArray(this.classHistory)) {
                         this.classHistory.forEach(item => {
-                            const dKey = extractDate(item.evalDate);
-                            const shift = sanitizeShift(item.shift);
-                            if (!dKey || !shift) return; 
-                            
-                            let cell = this.getGridCell(dKey, shift);
-                            cell.scores = item.scores && item.scores.length > 0 ? [...item.scores] : Array(10).fill('');
-                            cell.assessor = item.assessor || '';
+                            if (!item.evalDate) return; 
+                            const dKey = typeof this.getLocalYYYYMMDD === 'function' ? this.getLocalYYYYMMDD(item.evalDate) : item.evalDate.split('T')[0];
+                            if (!this.gridData[dKey]) this.gridData[dKey] = {};
+                            this.gridData[dKey][item.shift] = {
+                                scores: item.scores ? [...item.scores] : [],
+                                assessor: item.assessor || ''
+                            };
                         });
                     }
                 } else {
-                    const res = await fetch(`${this.API_URL}?action=getClassificationsPed&an=${an}&_=${new Date().getTime()}`);
+                    // โหลดเด็ก (ใช้โครงสร้างตาราง Grid เหมือนผู้ใหญ่แล้ว)
+                    const res = await fetch(`${this.API_URL}?action=getClassificationsPed&an=${an}`);
                     const pedHistory = await res.json();
                     this.classHistoryPed = pedHistory;
-                    
                     if (pedHistory && Array.isArray(pedHistory)) {
                         pedHistory.forEach(item => {
-                            const dKey = extractDate(item.date);
-                            const shift = sanitizeShift(item.shift);
-                            if (!dKey || !shift) return;
+                            if (!item.date) return;
+                            const dKey = typeof this.getLocalYYYYMMDD === 'function' ? this.getLocalYYYYMMDD(item.date) : item.date.split('T')[0];
+                            if (!this.gridData[dKey]) this.gridData[dKey] = {};
                             
-                            let parsedScores = Array(10).fill('');
+                            // จัดการ Array คะแนนให้อยู่ในรูปแบบเดียวกัน (10 ช่อง)
+                            let parsedScores = [];
                             try {
                                 if (typeof item.formdata === 'string') {
                                     const obj = JSON.parse(item.formdata);
                                     parsedScores = [
-                                        obj.item1||'', obj.item2||'', obj.item3||'', obj.item4||'', 
-                                        obj.item5||'', obj.item6||'', obj.item7||'', 
-                                        obj.item8||'', obj.item9||'', obj.item10||''
+                                        obj.item1, obj.item2, obj.item3, obj.item4, 
+                                        obj.item5, obj.item6, obj.item7, 
+                                        obj.item8, obj.item9, obj.item10
                                     ];
-                                } else if (item.scores) {
-                                    parsedScores = item.scores;
+                                } else {
+                                    parsedScores = item.scores || [];
                                 }
-                            } catch (e) { }
-        
-                            let cell = this.getGridCell(dKey, shift);
-                            cell.scores = parsedScores;
-                            cell.assessor = item.assessor || '';
+                            } catch (e) { parsedScores = []; }
+
+                            this.gridData[dKey][item.shift] = {
+                                scores: parsedScores,
+                                assessor: item.assessor || ''
+                            };
                         });
                     }
                 }
@@ -1682,9 +1624,14 @@ function nurseApp() {
         },
         // 🟢 1. ฟังก์ชันดึง/สร้างช่องข้อมูล (ช่วยให้ x-model ทำงานได้แม่นยำ)
         getGridCell(dateStr, shift) {
-            if (!dateStr || !shift) return { scores: Array(10).fill(''), assessor: '' };
             if (!this.gridData[dateStr]) this.gridData[dateStr] = {};
-            if (!this.gridData[dateStr][shift]) this.gridData[dateStr][shift] = { scores: Array(10).fill(''), assessor: '' };
+            if (!this.gridData[dateStr][shift]) {
+                this.gridData[dateStr][shift] = {
+                    scores: Array(8).fill(''),
+                    assessor: '', // เปลี่ยนเป็นค่าว่าง
+                    isNew: true
+                };
+            }
             return this.gridData[dateStr][shift];
         },
         // ฟังก์ชันช่วยคำนวณคะแนนในตาราง
@@ -2115,36 +2062,25 @@ function nurseApp() {
             if (!an) return;
             this.isLoading = true;
             try {
+                // เพิ่ม Cache Buster (?_=...) เพื่อป้องกัน Browser จำค่าเก่า
                 const response = await fetch(`${this.API_URL}?action=getFallRisk&an=${an}&_=${new Date().getTime()}`);
+                
+                // ตรวจสอบว่า response โอเคไหม
                 if (!response.ok) throw new Error('Network response was not ok');
+                
                 this.fallHistory = await response.json();
                 
                 this.fallGridData = {}; 
-                
-                const sanitizeShift = (str) => {
-                    let s = String(str || '').trim();
-                    if (s.includes('ตึก') || s.includes('ดึก')) return 'ดึก';
-                    if (s.includes('เข้า') || s.includes('เช้า')) return 'เช้า';
-                    if (s.includes('บ่าย')) return 'บ่าย';
-                    return s;
-                };
-                const extractDate = (str) => {
-                    const match = String(str || '').match(/\d{4}-\d{2}-\d{2}/);
-                    return match ? match[0] : null;
-                };
-        
-                if (this.fallHistory && Array.isArray(this.fallHistory)) {
-                    this.fallHistory.forEach(item => {
-                        const dKey = extractDate(item.evalDate);
-                        const shift = sanitizeShift(item.shift);
-                        if (!dKey || !shift) return;
-        
-                        let cell = this.getFallGridCell(dKey, shift);
-                        cell.scores = [item.m1||'', item.m2||'', item.m3||'', item.m4||'', item.m5||'', item.m6||''];
-                        cell.maas = item.maasScore || '';
-                        cell.assessor = item.assessor || '';
-                    });
-                }
+                this.fallHistory.forEach(item => {
+                    // ใช้ฟังก์ชันแปลงวันที่ที่มีอยู่เดิม
+                    const dKey = this.getLocalYYYYMMDD(item.evalDate);
+                    if (!this.fallGridData[dKey]) this.fallGridData[dKey] = {};
+                    this.fallGridData[dKey][item.shift] = {
+                        scores: [item.m1, item.m2, item.m3, item.m4, item.m5, item.m6],
+                        maas: item.maasScore,
+                        assessor: item.assessor || ''
+                    };
+                });
             } catch (e) { 
                 console.error("Load Fall Risk Error:", e); 
                 this.fallGridData = {};
@@ -2153,12 +2089,16 @@ function nurseApp() {
             }
         },
 
-
         // ดึง/สร้างช่องข้อมูลสำหรับหน้าจอ Morse/MAAS
         getFallGridCell(dateStr, shift) {
-            if (!dateStr || !shift) return { scores: Array(6).fill(''), maas: '', assessor: '' };
             if (!this.fallGridData[dateStr]) this.fallGridData[dateStr] = {};
-            if (!this.fallGridData[dateStr][shift]) this.fallGridData[dateStr][shift] = { scores: Array(6).fill(''), maas: '', assessor: '' };
+            if (!this.fallGridData[dateStr][shift]) {
+                this.fallGridData[dateStr][shift] = {
+                    scores: ['', '', '', '', '', ''], // 6 ข้อของ Morse
+                    maas: '', // 1 ข้อของ MAAS
+                    assessor: ''
+                };
+            }
             return this.fallGridData[dateStr][shift];
         },
 
@@ -2281,175 +2221,103 @@ function nurseApp() {
     },
 
         // ฟังก์ชันสั่งพิมพ์ Morse/MAAS
-    printFallRisk() {
-        window.scrollTo(0, 0);
-        this.$nextTick(() => {
-            const printArea = document.getElementById('fall-risk-print-area');
-            if (!printArea) {
-                // แจ้งเตือนกรณีไม่พบ element
-                if (typeof this.showAlert === 'function') {
-                    return this.showAlert('แจ้งเตือน', 'ไม่พบพื้นที่สำหรับพิมพ์เอกสาร');
-                } else {
-                    return alert('ไม่พบพื้นที่สำหรับพิมพ์เอกสาร');
-                }
-            }
+        printFallRisk() {
+            window.scrollTo(0, 0);
+            this.$nextTick(() => {
+                const printArea = document.getElementById('fall-risk-print-area');
+                if (!printArea) return this.showAlert('แจ้งเตือน', 'ไม่พบพื้นที่สำหรับพิมพ์เอกสาร');           
+                const cloneDOM = printArea.cloneNode(true);
+                cloneDOM.querySelectorAll('template').forEach(t => t.remove());
+                const printContent = cloneDOM.innerHTML;                
+                let iframe = document.getElementById('print-frame');
+                if (iframe) iframe.remove(); 
+                iframe = document.createElement('iframe');
+                iframe.id = 'print-frame';
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);                
+                const pri = iframe.contentWindow;
+                const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]')).map(s => s.outerHTML).join('');
+                pri.document.open();
+                pri.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                        <head>
+                            <title>พิมพ์แบบประเมิน Morse / MAAS</title>
+                            ${styles}
+                            <style>
+                                @page {size: A4 portrait; margin: 8mm 8mm 8mm 8mm;}
+                                body { font-size: 11px; color: black !important; }                             
 
-            // โคลน DOM เพื่อนำไปพิมพ์โดยไม่กระทบหน้าจอหลัก
-            const cloneDOM = printArea.cloneNode(true);
-            
-            // ลบ template tags ของ Alpine.js ออก เพื่อไม่ให้ติดไปกับการพิมพ์
-            cloneDOM.querySelectorAll('template').forEach(t => t.remove());
-            
-            const printContent = cloneDOM.innerHTML;                
-            
-            // จัดการ iframe สำหรับพิมพ์
-            let iframe = document.getElementById('print-frame');
-            if (iframe) iframe.remove(); 
-            
-            iframe = document.createElement('iframe');
-            iframe.id = 'print-frame';
-            iframe.style.display = 'none';
-            document.body.appendChild(iframe);                
-            
-            const pri = iframe.contentWindow;
-            
-            // ดึง style ทั้งหมดจากหน้าหลัก (รวมถึง Tailwind ถ้ามี)
-            const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
-                                .map(s => s.outerHTML)
-                                .join('\n');
-            
-            // สร้างเอกสาร HTML ภายใน iframe
-            pri.document.open();
-            pri.document.write(`
-                <!DOCTYPE html>
-                <html lang="th">
-                    <head>
-                        <meta charset="UTF-8">
-                        <title>พิมพ์แบบประเมิน Morse / MAAS</title>
-                        ${styles}
-                        <!-- ดึงฟอนต์ Sarabun มาใช้ในการพิมพ์ -->
-                        <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
-                        <style>
-                            @page { 
-                                size: A4 portrait; 
-                                margin: 8mm 8mm 8mm 8mm; 
+                                /* บังคับตารางให้ขนาดคงที่ */
+                                table { 
+                                    width: 100%; 
+                                    table-layout: fixed; /* สำคัญ: บังคับคอลัมน์ไม่ให้ขยาย */
+                                    border-collapse: collapse; 
+                                    word-break: break-word; /* ตัดคำถ้าเนื้อหาเกิน */
+                                }                               
+
+                                th, td { 
+                                    border: 1px solid black !important; 
+                                    padding: 2px !important; 
+                                    overflow: hidden; /* ซ่อนเนื้อหาที่เกิน */
+                                }                       
+
+                                /* กำหนดความกว้างเฉพาะคอลัมน์ */
+                                .w-label { width: 200px; }       /* คอลัมน์รายการประเมิน */
+                                .w-guide { width: 85px; }        /* คอลัมน์เกณฑ์คะแนน */
+                                .w-shift { width: 24px; }        /* คอลัมน์เวร (ด/ช/บ) */                               
+
+                                .bg-gray { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
+                                .text-center { text-center: center; }
+                                /* กรอบข้อมูลผู้ป่วย */
+                                /* Footer ท้ายกระดาษ */
+                                .print-global-footer {
+                                    position: fixed; bottom: 0; left: 0; width: 100%; text-align: center;
+                                    font-size: 9px; color: #475569 !important; border-top: 1px solid #9ca3af; 
+                                    padding-top: 4px; padding-bottom: 4px; background-color: white; z-index: 1000;
+                                }
+                                
+                                /* กรอบข้อมูลผู้ป่วย */
+                                .print-patient-info {
+                                    position: fixed; bottom: 22px; right: 15px; width: 260px;
+                                    border: 1px solid #000 !important; border-radius: 4px; padding: 6px 8px;
+                                    font-size: 10px; background-color: white !important; z-index: 1000; 
+                                    line-height: 1.4; color: black !important;
                             }
-                            body { 
-                                font-family: 'Sarabun', sans-serif;
-                                font-size: 11px; 
-                                color: black !important; 
-                                background-color: white;
-                            }                              
+                            </style>
+                        </head>
+                        <body>
+                            <div class="print-patient-info">
+                                <div>
+                                    <b>ชื่อ-สกุล:</b> ${this.selectedPatient?.name || '-'} &nbsp;&nbsp;
+                                    <b>อายุ:</b> ${this.selectedPatient?.ageDisplay || '-'}
+                                </div>
+                                <div>
+                                    <b>HN:</b> ${this.selectedPatient?.hn || '-'} &nbsp;&nbsp;
+                                    <b>AN:</b> ${this.selectedPatient?.an || '-'}
+                                </div>
+                                <div>
+                                    <b>แพทย์:</b> ${this.selectedPatient?.doctor || '-'} &nbsp;&nbsp;
+                                    <b>ตึก:</b> ${this.currentWard || '-'} &nbsp;&nbsp;
+                                    <b>เตียง:</b> ${this.selectedPatient?.bed || '-'}
+                                </div>
+                            </div>                
 
-                            /* บังคับสีพื้นหลังให้แสดงตอนพิมพ์ */
-                            * {
-                                -webkit-print-color-adjust: exact !important;
-                                print-color-adjust: exact !important;
-                            }
-
-                            /* บังคับตารางให้ขนาดคงที่ */
-                            table { 
-                                width: 100%; 
-                                table-layout: fixed; /* สำคัญ: บังคับคอลัมน์ไม่ให้ขยาย */
-                                border-collapse: collapse; 
-                                word-break: break-word; /* ตัดคำถ้าเนื้อหาเกิน */
-                                margin-bottom: 12px;
-                            }                               
-
-                            th, td { 
-                                border: 1px solid black !important; 
-                                padding: 4px !important; 
-                                overflow: hidden; /* ซ่อนเนื้อหาที่เกิน */
-                            }                       
-
-                            /* กำหนดความกว้างเฉพาะคอลัมน์ */
-                            .w-label { width: 200px; }       /* คอลัมน์รายการประเมิน */
-                            .w-guide { width: 85px; }        /* คอลัมน์เกณฑ์คะแนน */
-                            .w-shift { width: 24px; }        /* คอลัมน์เวร (ด/ช/บ) */                               
-
-                            .bg-gray { background-color: #f3f4f6 !important; }
-                            .bg-gray-50 { background-color: #f9fafb !important; }
-                            .bg-gray-100 { background-color: #f3f4f6 !important; }
-                            .bg-gray-200 { background-color: #e5e7eb !important; }
-                            
-                            .text-center { text-align: center; }
-                            .text-right { text-align: right; }
-                            .text-left { text-align: left; }
-                            .text-red-700 { color: #b91c1c !important; }
-
-                            /* Footer ท้ายกระดาษ */
-                            .print-global-footer {
-                                position: fixed; 
-                                bottom: 0; 
-                                left: 0; 
-                                width: 100%; 
-                                text-align: center;
-                                font-size: 9px; 
-                                color: #475569 !important; 
-                                border-top: 1px solid #9ca3af; 
-                                padding-top: 4px; 
-                                padding-bottom: 4px; 
-                                background-color: white; 
-                                z-index: 1000;
-                            }
-                            
-                            /* กรอบข้อมูลผู้ป่วย (Fixed ลอยมุมขวาล่าง หรือปรับ position ได้ตามต้องการ) */
-                            .print-patient-info {
-                                position: fixed; 
-                                bottom: 22px; 
-                                right: 15px; 
-                                width: 260px;
-                                border: 1px solid #000 !important; 
-                                border-radius: 4px; 
-                                padding: 6px 8px;
-                                font-size: 10px; 
-                                background-color: white !important; 
-                                z-index: 1000; 
-                                line-height: 1.4; 
-                                color: black !important;
-                            }
-                        </style>
-                    </head>
-                    <body>
-                        <!-- เนื้อหาตารางที่ถูกโคลนมา -->
-                        ${printContent}            
-                        
-                        <!-- ข้อมูลผู้ป่วย -->
-                        <div class="print-patient-info">
-                            <div>
-                                <b>ชื่อ-สกุล:</b> ${this.selectedPatient?.name || '-'} &nbsp;&nbsp;
-                                <b>อายุ:</b> ${this.selectedPatient?.ageDisplay || '-'}
-                            </div>
-                            <div>
-                                <b>HN:</b> ${this.selectedPatient?.hn || '-'} &nbsp;&nbsp;
-                                <b>AN:</b> ${this.selectedPatient?.an || '-'}
-                            </div>
-                            <div>
-                                <b>แพทย์:</b> ${this.selectedPatient?.doctor || '-'} &nbsp;&nbsp;
-                                <b>ตึก:</b> ${this.currentWard || '-'} &nbsp;&nbsp;
-                                <b>เตียง:</b> ${this.selectedPatient?.bed || '-'}
-                            </div>
-                        </div>                
-
-                        <!-- ข้อความส่วนท้ายกระดาษ -->
-                        <div class="print-global-footer">
-                            เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | โปรแกรมบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
-                        </div>                
-                        
-                        <script>
-                            // หน่วงเวลาเล็กน้อยเพื่อให้ฟอนต์และสไตล์โหลดเสร็จสมบูรณ์ก่อนเรียกหน้าต่างพิมพ์
-                            window.onload = function() {
-                                setTimeout(() => { 
-                                    window.print(); 
-                                }, 800);
-                            };
-                        </script>
-                    </body>
-                </html>
-            `);
-            pri.document.close();
-        });
-    },
+                            ${printContent}            
+                            <div class="print-global-footer">
+                                เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | โปรแกรมบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
+                            </div>               
+                            <script>
+                                window.onload = function() {
+                                    setTimeout(() => { window.print(); }, 800);
+                                };
+                            </script>
+                        </body>
+                    </html>
+                `);
+                pri.document.close();
+            });
+        }, 
         calcBradenFormScore() {
             let t = 0;
             if(this.bradenForm.s1_m1 && this.bradenForm.s1_m1 !== 'null') t += parseInt(this.bradenForm.s1_m1);
