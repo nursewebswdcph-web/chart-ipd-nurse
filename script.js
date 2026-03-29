@@ -1148,26 +1148,10 @@ function nurseApp() {
             
             return { total, category };
         },
-        // ฟังก์ชันช่วยจัดเรียงเวร บังคับเรียง ดึก -> เช้า -> บ่าย เสมอ
-        sortShiftOrder(groupedData) {
-            const shiftOrder = ['ดึก', 'เช้า', 'บ่าย'];
-            let sortedObj = {};
-
-            // วนลูปตรวจสอบข้อมูลในแต่ละวัน
-            for (let date in groupedData) {
-                sortedObj[date] = {};
-                // ดึงข้อมูลมาใส่ Object ใหม่ตามลำดับเวรที่กำหนดไว้
-                shiftOrder.forEach(shift => {
-                    if (groupedData[date][shift] !== undefined) {
-                        sortedObj[date][shift] = groupedData[date][shift];
-                    }
-                });
-            }
-            return sortedObj;
-        },
 
         // โหลดข้อมูลประวัติทั้งหมดของ AN
-        async loadClassifications(an) {
+        async loadClassifica
+            tions(an) {
             this.isLoading = true;
             try {
                 this.gridData = {}; // ล้างข้อมูลเก่าเสมอ
@@ -1179,9 +1163,12 @@ function nurseApp() {
                     
                     if (this.classHistory && Array.isArray(this.classHistory)) {
                         this.classHistory.forEach(item => {
-                            if (!item.evalDate) return; 
+                            if (!item.evalDate) return;
                             const dKey = typeof this.getLocalYYYYMMDD === 'function' ? this.getLocalYYYYMMDD(item.evalDate) : item.evalDate.split('T')[0];
-                            if (!this.gridData[dKey]) this.gridData[dKey] = {};
+                            // Pre-initialize with correct shift order: ดึก → เช้า → บ่าย
+                            if (!this.gridData[dKey]) {
+                                this.gridData[dKey] = { 'ดึก': null, 'เช้า': null, 'บ่าย': null };
+                            }
                             this.gridData[dKey][item.shift] = {
                                 scores: item.scores ? [...item.scores] : [],
                                 assessor: item.assessor || ''
@@ -1197,23 +1184,25 @@ function nurseApp() {
                         pedHistory.forEach(item => {
                             if (!item.date) return;
                             const dKey = typeof this.getLocalYYYYMMDD === 'function' ? this.getLocalYYYYMMDD(item.date) : item.date.split('T')[0];
-                            if (!this.gridData[dKey]) this.gridData[dKey] = {};
-                            
-                            // จัดการ Array คะแนนให้อยู่ในรูปแบบเดียวกัน (10 ช่อง)
+                            // Pre-initialize with correct shift order: ดึก → เช้า → บ่าย
+                            if (!this.gridData[dKey]) {
+                                this.gridData[dKey] = { 'ดึก': null, 'เช้า': null, 'บ่าย': null };
+                            }
+                        
                             let parsedScores = [];
                             try {
                                 if (typeof item.formdata === 'string') {
                                     const obj = JSON.parse(item.formdata);
                                     parsedScores = [
-                                        obj.item1, obj.item2, obj.item3, obj.item4, 
-                                        obj.item5, obj.item6, obj.item7, 
+                                        obj.item1, obj.item2, obj.item3, obj.item4,
+                                        obj.item5, obj.item6, obj.item7,
                                         obj.item8, obj.item9, obj.item10
                                     ];
                                 } else {
                                     parsedScores = item.scores || [];
                                 }
                             } catch (e) { parsedScores = []; }
-
+                        
                             this.gridData[dKey][item.shift] = {
                                 scores: parsedScores,
                                 assessor: item.assessor || ''
@@ -1221,10 +1210,6 @@ function nurseApp() {
                         });
                     }
                 }
-                
-                // --- เพิ่มส่วนนี้: นำข้อมูลมาจัดเรียงเวร (ดึก, เช้า, บ่าย) หลังจากทำข้อมูลเสร็จทั้งหมด ---
-                this.gridData = this.sortShiftOrder(this.gridData);
-                
             } catch (e) { 
                 console.error("Load Classifications Error:", e); 
             } finally {
@@ -1645,12 +1630,14 @@ function nurseApp() {
         },
         // 🟢 1. ฟังก์ชันดึง/สร้างช่องข้อมูล (ช่วยให้ x-model ทำงานได้แม่นยำ)
         getGridCell(dateStr, shift) {
-            if (!this.gridData[dateStr]) this.gridData[dateStr] = {};
+            // Always initialize the date key with all shifts in correct order first
+            if (!this.gridData[dateStr]) {
+                this.gridData[dateStr] = { 'ดึก': null, 'เช้า': null, 'บ่าย': null };
+            }
             if (!this.gridData[dateStr][shift]) {
                 this.gridData[dateStr][shift] = {
-                    scores: Array(8).fill(''),
-                    assessor: '', // เปลี่ยนเป็นค่าว่าง
-                    isNew: true
+                    scores: ['', '', '', '', '', '', '', ''],
+                    assessor: ''
                 };
             }
             return this.gridData[dateStr][shift];
@@ -2091,21 +2078,19 @@ function nurseApp() {
                 
                 this.fallHistory = await response.json();
                 
-                this.fallGridData = {}; 
+                this.fallGridData = {};
                 this.fallHistory.forEach(item => {
-                    // ใช้ฟังก์ชันแปลงวันที่ที่มีอยู่เดิม
                     const dKey = this.getLocalYYYYMMDD(item.evalDate);
-                    if (!this.fallGridData[dKey]) this.fallGridData[dKey] = {};
+                    // Pre-initialize with correct shift order: ดึก → เช้า → บ่าย
+                    if (!this.fallGridData[dKey]) {
+                        this.fallGridData[dKey] = { 'ดึก': null, 'เช้า': null, 'บ่าย': null };
+                    }
                     this.fallGridData[dKey][item.shift] = {
                         scores: [item.m1, item.m2, item.m3, item.m4, item.m5, item.m6],
                         maas: item.maasScore,
                         assessor: item.assessor || ''
                     };
                 });
-                
-                // --- เพิ่มส่วนนี้: นำข้อมูลมาจัดเรียงเวร (ดึก, เช้า, บ่าย) ---
-                this.fallGridData = this.sortShiftOrder(this.fallGridData);
-                
             } catch (e) { 
                 console.error("Load Fall Risk Error:", e); 
                 this.fallGridData = {};
@@ -2116,11 +2101,14 @@ function nurseApp() {
 
         // ดึง/สร้างช่องข้อมูลสำหรับหน้าจอ Morse/MAAS
         getFallGridCell(dateStr, shift) {
-            if (!this.fallGridData[dateStr]) this.fallGridData[dateStr] = {};
+            // Always initialize the date key with all shifts in correct order first
+            if (!this.fallGridData[dateStr]) {
+                this.fallGridData[dateStr] = { 'ดึก': null, 'เช้า': null, 'บ่าย': null };
+            }
             if (!this.fallGridData[dateStr][shift]) {
                 this.fallGridData[dateStr][shift] = {
-                    scores: ['', '', '', '', '', ''], // 6 ข้อของ Morse
-                    maas: '', // 1 ข้อของ MAAS
+                    scores: ['', '', '', '', '', ''],
+                    maas: '',
                     assessor: ''
                 };
             }
