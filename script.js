@@ -1162,12 +1162,9 @@ function nurseApp() {
                     
                     if (this.classHistory && Array.isArray(this.classHistory)) {
                         this.classHistory.forEach(item => {
-                            if (!item.evalDate) return;
+                            if (!item.evalDate) return; 
                             const dKey = typeof this.getLocalYYYYMMDD === 'function' ? this.getLocalYYYYMMDD(item.evalDate) : item.evalDate.split('T')[0];
-                            // Pre-initialize with correct shift order: ดึก → เช้า → บ่าย
-                            if (!this.gridData[dKey]) {
-                                this.gridData[dKey] = { 'ดึก': null, 'เช้า': null, 'บ่าย': null };
-                            }
+                            if (!this.gridData[dKey]) this.gridData[dKey] = {};
                             this.gridData[dKey][item.shift] = {
                                 scores: item.scores ? [...item.scores] : [],
                                 assessor: item.assessor || ''
@@ -1183,25 +1180,23 @@ function nurseApp() {
                         pedHistory.forEach(item => {
                             if (!item.date) return;
                             const dKey = typeof this.getLocalYYYYMMDD === 'function' ? this.getLocalYYYYMMDD(item.date) : item.date.split('T')[0];
-                            // Pre-initialize with correct shift order: ดึก → เช้า → บ่าย
-                            if (!this.gridData[dKey]) {
-                                this.gridData[dKey] = { 'ดึก': null, 'เช้า': null, 'บ่าย': null };
-                            }
-                        
+                            if (!this.gridData[dKey]) this.gridData[dKey] = {};
+                            
+                            // จัดการ Array คะแนนให้อยู่ในรูปแบบเดียวกัน (10 ช่อง)
                             let parsedScores = [];
                             try {
                                 if (typeof item.formdata === 'string') {
                                     const obj = JSON.parse(item.formdata);
                                     parsedScores = [
-                                        obj.item1, obj.item2, obj.item3, obj.item4,
-                                        obj.item5, obj.item6, obj.item7,
+                                        obj.item1, obj.item2, obj.item3, obj.item4, 
+                                        obj.item5, obj.item6, obj.item7, 
                                         obj.item8, obj.item9, obj.item10
                                     ];
                                 } else {
                                     parsedScores = item.scores || [];
                                 }
                             } catch (e) { parsedScores = []; }
-                        
+
                             this.gridData[dKey][item.shift] = {
                                 scores: parsedScores,
                                 assessor: item.assessor || ''
@@ -1629,14 +1624,12 @@ function nurseApp() {
         },
         // 🟢 1. ฟังก์ชันดึง/สร้างช่องข้อมูล (ช่วยให้ x-model ทำงานได้แม่นยำ)
         getGridCell(dateStr, shift) {
-            // Always initialize the date key with all shifts in correct order first
-            if (!this.gridData[dateStr]) {
-                this.gridData[dateStr] = { 'ดึก': null, 'เช้า': null, 'บ่าย': null };
-            }
+            if (!this.gridData[dateStr]) this.gridData[dateStr] = {};
             if (!this.gridData[dateStr][shift]) {
                 this.gridData[dateStr][shift] = {
-                    scores: ['', '', '', '', '', '', '', ''],
-                    assessor: ''
+                    scores: Array(8).fill(''),
+                    assessor: '', // เปลี่ยนเป็นค่าว่าง
+                    isNew: true
                 };
             }
             return this.gridData[dateStr][shift];
@@ -2077,13 +2070,11 @@ function nurseApp() {
                 
                 this.fallHistory = await response.json();
                 
-                this.fallGridData = {};
+                this.fallGridData = {}; 
                 this.fallHistory.forEach(item => {
+                    // ใช้ฟังก์ชันแปลงวันที่ที่มีอยู่เดิม
                     const dKey = this.getLocalYYYYMMDD(item.evalDate);
-                    // Pre-initialize with correct shift order: ดึก → เช้า → บ่าย
-                    if (!this.fallGridData[dKey]) {
-                        this.fallGridData[dKey] = { 'ดึก': null, 'เช้า': null, 'บ่าย': null };
-                    }
+                    if (!this.fallGridData[dKey]) this.fallGridData[dKey] = {};
                     this.fallGridData[dKey][item.shift] = {
                         scores: [item.m1, item.m2, item.m3, item.m4, item.m5, item.m6],
                         maas: item.maasScore,
@@ -2100,14 +2091,11 @@ function nurseApp() {
 
         // ดึง/สร้างช่องข้อมูลสำหรับหน้าจอ Morse/MAAS
         getFallGridCell(dateStr, shift) {
-            // Always initialize the date key with all shifts in correct order first
-            if (!this.fallGridData[dateStr]) {
-                this.fallGridData[dateStr] = { 'ดึก': null, 'เช้า': null, 'บ่าย': null };
-            }
+            if (!this.fallGridData[dateStr]) this.fallGridData[dateStr] = {};
             if (!this.fallGridData[dateStr][shift]) {
                 this.fallGridData[dateStr][shift] = {
-                    scores: ['', '', '', '', '', ''],
-                    maas: '',
+                    scores: ['', '', '', '', '', ''], // 6 ข้อของ Morse
+                    maas: '', // 1 ข้อของ MAAS
                     assessor: ''
                 };
             }
