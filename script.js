@@ -36,6 +36,9 @@ function nurseApp() {
 
         fallHistory: [],
         fallGridData: {},
+        classAdultGrid: { dates: [], columns: [], grid: {} },
+        classPedGrid: { dates: [], columns: [], grid: {} },
+        fallRiskGrid: { dates: [], columns: [], grid: {} },
         bradenHistory: [],
         bradenForm: {
             evalDate: new Date().toISOString().split('T')[0],
@@ -1149,6 +1152,50 @@ function nurseApp() {
             
             return { total, category };
         },
+        // ฟังก์ชันใหม่! นำไปวางต่อจากฟังก์ชันอื่นๆ ใน nurseApp() 
+    // หน้าที่: บังคับสร้างช่อง ดึก, เช้า, บ่าย รอไว้เสมอ
+    processGridData(rawData) {
+        if (!rawData || !Array.isArray(rawData) || rawData.length === 0) {
+            return { dates: [], columns: [], grid: {} };
+        }
+
+        // 1. หาวันที่ทั้งหมดที่ไม่ซ้ำกัน และเรียงลำดับจากเก่าไปใหม่ (หรือใหม่ไปเก่าตามชอบ)
+        const uniqueDates = [...new Set(rawData.map(item => {
+            if (!item.date) return null;
+            return String(item.date).split('T')[0];
+        }).filter(Boolean))].sort();
+
+        const shiftOrder = ['ดึก', 'เช้า', 'บ่าย'];
+        const columns = [];
+        const grid = {};
+
+        // 2. สร้างโครงร่าง (Skeleton) บังคับ 3 เวรต่อวัน
+        uniqueDates.forEach(date => {
+            grid[date] = {};
+            shiftOrder.forEach(shift => {
+                columns.push({ date: date, shift: shift });
+                grid[date][shift] = null; // เตรียมช่องว่างไว้
+            });
+        });
+
+        // 3. หยอดข้อมูลลงในโครงร่าง หากเวรไหนไม่มีข้อมูลก็จะเป็น null 
+        rawData.forEach(item => {
+            if (!item.date || !item.shift) return;
+            let d = String(item.date).split('T')[0];
+            let s = String(item.shift).trim();
+
+            if (grid[d] && grid[d][s] !== undefined) {
+                // แปลง key เป็นพิมพ์เล็กทั้งหมดให้ดึงง่ายๆ
+                let normalizedItem = {};
+                for (let key in item) {
+                    normalizedItem[key.toLowerCase()] = item[key];
+                }
+                grid[d][s] = normalizedItem;
+            }
+        });
+
+        return { dates: uniqueDates, columns: columns, grid: grid };
+    },
 
         // โหลดข้อมูลประวัติทั้งหมดของ AN
         async loadClassifications(an) {
@@ -1384,9 +1431,8 @@ function nurseApp() {
             if (!this.classHistoryPed || this.classHistoryPed.length === 0) {
                 return this.showAlert('แจ้งเตือน', 'ยังไม่มีประวัติการประเมินเพื่อพิมพ์');
             }
-        
+
             const p = this.selectedPatient;
-            const SHIFT_ORDER = ['ดึก', 'เช้า', 'บ่าย']; // กำหนดตัวแปรจัดเรียงเวรที่นี่
             
             // จัดกลุ่มข้อมูลตามวันที่
             const groupedByDate = {};
@@ -1398,7 +1444,7 @@ function nurseApp() {
                 }
                 groupedByDate[dateKey].shifts[d.shift] = d;
             });
-        
+
             const sortedDates = Object.keys(groupedByDate).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
             
             // หน้าละ 5 วัน (15 เวร)
@@ -1407,7 +1453,7 @@ function nurseApp() {
             for (let i = 0; i < sortedDates.length; i += daysPerPage) {
                 pages.push(sortedDates.slice(i, i + daysPerPage).map(dateKey => groupedByDate[dateKey]));
             }
-        
+
             const topics = [
                 { id: 'item1', title: '1.1 การดูดนมและรับประทานอาหาร', header: '1. การดูแลเกี่ยวกับกิจวัตรประจำวัน' },
                 { id: 'item2', title: '1.2 การดูแลสุขอนามัยส่วนบุคคล' },
@@ -1420,16 +1466,16 @@ function nurseApp() {
                 { id: 'item9', title: '3.2 การสังเกตสัญญาณชีพและเครื่องวัดอื่นๆ' },
                 { id: 'item10', title: '4. การสอนและการประคับประคองจิตใจ (ผู้ป่วยเด็กและครอบครัว)', isMain: true }
             ];
-        
+
             const admitDateStr = p?.date && typeof this.formatThaiDateLong === 'function' ? this.formatThaiDateLong(p.date) : '-';
             const dischargeDateStr = p?.dischargeDate && typeof this.formatThaiDateLong === 'function' ? this.formatThaiDateLong(p.dischargeDate) : '-';
-        
+
             let printContent = `
             <html>
             <head>
                 <title>แบบบันทึกการจำแนกประเภทผู้ป่วยเด็ก</title>
                 <style>
-                    @import url('[https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700;900&display=swap](https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700;900&display=swap)');
+                    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700;900&display=swap');
                     body { font-family: 'Sarabun', sans-serif; font-size: 9pt; margin: 0; padding: 0; color: #000; }
                     /* เปลี่ยนเป็น A4 แนวตั้ง (Portrait) */
                     .a4-page { width: 210mm; height: 296mm; margin: 0 auto; padding: 10mm 10mm 15mm 10mm; position: relative; box-sizing: border-box; page-break-after: always; }
@@ -1460,7 +1506,7 @@ function nurseApp() {
                     .print-footer { width: 100%; text-align: center; font-size: 7.5pt !important; color: #666; border-top: 1px solid #ccc; padding-top: 4px; }
                     
                     .criteria-box { font-size: 8pt; line-height: 1.3; margin-top: 5px; border: 1px solid #000; padding: 4px; display: inline-block; width: 100%; box-sizing: border-box;}
-        
+
                     @media print {
                         @page { size: A4 portrait; margin: 0; }
                         body { background: #fff; -webkit-print-color-adjust: exact; }
@@ -1468,7 +1514,7 @@ function nurseApp() {
                 </style>
             </head>
             <body>`;
-        
+
             pages.forEach((pageData, pageIndex) => {
                 printContent += `
                 <div class="a4-page">
@@ -1502,7 +1548,7 @@ function nurseApp() {
                             </tr>
                         </thead>
                         <tbody>`;
-        
+
                 topics.forEach(t => {
                     if (t.header) {
                         printContent += `<tr><td colspan="${(daysPerPage * 3) + 1}" class="bg-gray">${t.header}</td></tr>`;
@@ -1510,8 +1556,7 @@ function nurseApp() {
                     printContent += `<tr><td class="text-left" ${t.isMain ? 'style="font-weight:bold; background-color:#f1f5f9;"' : ''}>${t.title}</td>`;
                             
                     pageData.forEach(day => {
-                        // บังคับลูปด้วย SHIFT_ORDER
-                        SHIFT_ORDER.forEach(shift => {
+                        ['ดึก', 'เช้า', 'บ่าย'].forEach(shift => {
                             const shiftData = day.shifts[shift];
                             let scoreVal = '';
                             if (shiftData && shiftData.formdata) {
@@ -1524,16 +1569,16 @@ function nurseApp() {
                     printContent += Array((daysPerPage - pageData.length) * 3).fill('<td></td>').join('');
                     printContent += `</tr>`;
                 });
-        
+
                 printContent += `
                         <tr style="background-color:#f8fafc;">
                             <th class="text-left">รวมคะแนน</th>
-                            ${pageData.map(day => SHIFT_ORDER.map(shift => `<th>${day.shifts[shift]?.score || ''}</th>`).join('')).join('')}
+                            ${pageData.map(day => ['ดึก', 'เช้า', 'บ่าย'].map(shift => `<th>${day.shifts[shift]?.score || ''}</th>`).join('')).join('')}
                             ${Array((daysPerPage - pageData.length) * 3).fill('<th></th>').join('')}
                         </tr>
                         <tr>
                             <th class="text-left" style="font-size:7.5pt;">ประเภทผู้ป่วย</th>
-                            ${pageData.map(day => SHIFT_ORDER.map(shift => {
+                            ${pageData.map(day => ['ดึก', 'เช้า', 'บ่าย'].map(shift => {
                                 const typeStr = day.shifts[shift]?.classtype || '';
                                 const typeMatch = String(typeStr).match(/ประเภท\s*(\d)/);
                                 return `<th style="font-size:7pt;">${typeMatch ? '' + typeMatch[1] : ''}</th>`;
@@ -1542,7 +1587,7 @@ function nurseApp() {
                         </tr>
                         <tr>
                             <th class="text-left">ผู้ประเมิน</th>
-                            ${pageData.map(day => SHIFT_ORDER.map(shift => {
+                            ${pageData.map(day => ['ดึก', 'เช้า', 'บ่าย'].map(shift => {
                                 let assessor = day.shifts[shift]?.assessor || '';
                                 // ตัดชื่อให้สั้นลงถ้าจำเป็นเพื่อให้ใส่ในแนวตั้งได้
                                 if(assessor.length > 8) assessor = assessor.substring(0,8)+'.';
@@ -1552,7 +1597,7 @@ function nurseApp() {
                         </tr>
                     </tbody>
                 </table>
-        
+
                 <div class="criteria-box">
                     <b>เกณฑ์การจำแนกประเภท:</b> &nbsp;&nbsp; <br>
                         <b>ประเภท 5 หนักมาก (Need ICU):</b> 34-40 คะแนน <br>
@@ -1561,7 +1606,7 @@ function nurseApp() {
                         <b>ประเภท 2 เจ็บป่วยเล็กน้อย (Minimum Care) :</b> 16-21 คะแนน <br>
                         <b>ประเภท 1 ผู้ป่วยพักฟื้น (Self Care) :</b> ไม่เกิน 15 คะแนน
                 </div>
-        
+
                 <div class="fixed-footer-container">
                     <div class="patient-box-container">
                         <div class="print-patient-box">
@@ -1576,7 +1621,7 @@ function nurseApp() {
                 </div>
             </div>`;
             });
-        
+
             printContent += `
                 <script>window.onload = () => { setTimeout(() => { window.print(); window.close(); }, 500); }</script>
             </body>
@@ -2108,6 +2153,7 @@ function nurseApp() {
             }
         },
 
+
         // ดึง/สร้างช่องข้อมูลสำหรับหน้าจอ Morse/MAAS
         getFallGridCell(dateStr, shift) {
             if (!dateStr || !shift) return { scores: Array(6).fill(''), maas: '', assessor: '' };
@@ -2235,7 +2281,7 @@ function nurseApp() {
     },
 
         // ฟังก์ชันสั่งพิมพ์ Morse/MAAS
-        printFallRisk() {
+        () {
             window.scrollTo(0, 0);
             this.$nextTick(() => {
                 const printArea = document.getElementById('fall-risk-print-area');
@@ -2261,7 +2307,7 @@ function nurseApp() {
                             <style>
                                 @page {size: A4 portrait; margin: 8mm 8mm 8mm 8mm;}
                                 body { font-size: 11px; color: black !important; }                              
-        
+
                                 /* บังคับตารางให้ขนาดคงที่ */
                                 table { 
                                     width: 100%; 
@@ -2269,21 +2315,21 @@ function nurseApp() {
                                     border-collapse: collapse; 
                                     word-break: break-word; /* ตัดคำถ้าเนื้อหาเกิน */
                                 }                               
-        
+
                                 th, td { 
                                     border: 1px solid black !important; 
                                     padding: 2px !important; 
                                     overflow: hidden; /* ซ่อนเนื้อหาที่เกิน */
                                 }                       
-        
+
                                 /* กำหนดความกว้างเฉพาะคอลัมน์ */
                                 .w-label { width: 200px; }       /* คอลัมน์รายการประเมิน */
                                 .w-guide { width: 85px; }        /* คอลัมน์เกณฑ์คะแนน */
                                 .w-shift { width: 24px; }        /* คอลัมน์เวร (ด/ช/บ) */                               
-        
+
                                 .bg-gray { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
-                                .text-center { text-align: center; } /* แก้ไขจุดนี้ text-center -> text-align */
-                                
+                                .text-center { text-align: center; }
+                                /* กรอบข้อมูลผู้ป่วย */
                                 /* Footer ท้ายกระดาษ */
                                 .print-global-footer {
                                     position: fixed; bottom: 0; left: 0; width: 100%; text-align: center;
@@ -2297,7 +2343,7 @@ function nurseApp() {
                                     border: 1px solid #000 !important; border-radius: 4px; padding: 6px 8px;
                                     font-size: 10px; background-color: white !important; z-index: 1000; 
                                     line-height: 1.4; color: black !important;
-                                }
+                            }
                             </style>
                         </head>
                         <body>
@@ -2316,7 +2362,7 @@ function nurseApp() {
                                     <b>เตียง:</b> ${this.selectedPatient?.bed || '-'}
                                 </div>
                             </div>                
-        
+
                             ${printContent}            
                             <div class="print-global-footer">
                                 เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | โปรแกรมบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
@@ -2331,7 +2377,7 @@ function nurseApp() {
                 `);
                 pri.document.close();
             });
-        }, 
+        },
         calcBradenFormScore() {
             let t = 0;
             if(this.bradenForm.s1_m1 && this.bradenForm.s1_m1 !== 'null') t += parseInt(this.bradenForm.s1_m1);
