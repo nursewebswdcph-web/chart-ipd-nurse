@@ -1148,6 +1148,23 @@ function nurseApp() {
             
             return { total, category };
         },
+        // ฟังก์ชันช่วยจัดเรียงเวร บังคับเรียง ดึก -> เช้า -> บ่าย เสมอ
+        sortShiftOrder(groupedData) {
+            const shiftOrder = ['ดึก', 'เช้า', 'บ่าย'];
+            let sortedObj = {};
+
+            // วนลูปตรวจสอบข้อมูลในแต่ละวัน
+            for (let date in groupedData) {
+                sortedObj[date] = {};
+                // ดึงข้อมูลมาใส่ Object ใหม่ตามลำดับเวรที่กำหนดไว้
+                shiftOrder.forEach(shift => {
+                    if (groupedData[date][shift] !== undefined) {
+                        sortedObj[date][shift] = groupedData[date][shift];
+                    }
+                });
+            }
+            return sortedObj;
+        },
 
         // โหลดข้อมูลประวัติทั้งหมดของ AN
         async loadClassifications(an) {
@@ -1204,6 +1221,10 @@ function nurseApp() {
                         });
                     }
                 }
+                
+                // --- เพิ่มส่วนนี้: นำข้อมูลมาจัดเรียงเวร (ดึก, เช้า, บ่าย) หลังจากทำข้อมูลเสร็จทั้งหมด ---
+                this.gridData = this.sortShiftOrder(this.gridData);
+                
             } catch (e) { 
                 console.error("Load Classifications Error:", e); 
             } finally {
@@ -2081,6 +2102,10 @@ function nurseApp() {
                         assessor: item.assessor || ''
                     };
                 });
+                
+                // --- เพิ่มส่วนนี้: นำข้อมูลมาจัดเรียงเวร (ดึก, เช้า, บ่าย) ---
+                this.fallGridData = this.sortShiftOrder(this.fallGridData);
+                
             } catch (e) { 
                 console.error("Load Fall Risk Error:", e); 
                 this.fallGridData = {};
