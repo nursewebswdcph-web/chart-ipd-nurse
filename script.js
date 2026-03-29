@@ -1157,34 +1157,43 @@ function nurseApp() {
                 const shiftPriority = { 'ดึก': 1, 'เช้า': 2, 'บ่าย': 3 };
 
                 if (this.isAdult) {
-                    // --- สำหรับผู้ใหญ่ ---
                     const res = await fetch(`${this.API_URL}?action=getClassifications&an=${an}`);
-                    let data = await res.json();
+                    this.classHistory = await res.json();
                     
-                    // จัดเรียง: วันที่ (เก่าไปใหม่) และ เวร (ดึก > เช้า > บ่าย)
-                    this.classHistory = data.sort((a, b) => {
-                        const dateA = new Date(a.evalDate);
-                        const dateB = new Date(b.evalDate);
-                        if (dateA - dateB !== 0) return dateA - dateB;
-                        return (shiftPriority[a.shift] || 99) - (shiftPriority[b.shift] || 99);
-                    });
-                    this.updateClassGridData();
+                    if (this.classHistory && Array.isArray(this.classHistory)) {
+                        // เรียงข้อมูลก่อน: วันที่ (น้อยไปมาก) และ เวร (ดึก->เช้า->บ่าย)
+                        this.classHistory.sort((a, b) => {
+                            const dA = new Date(a.evalDate), dB = new Date(b.evalDate);
+                            if (dA - dB !== 0) return dA - dB;
+                            return (shiftPriority[a.shift] || 99) - (shiftPriority[b.shift] || 99);
+                        });
+
+                        this.classHistory.forEach(item => {
+                            const date = this.formatThaiDateShort(item.evalDate);
+                            if (!this.gridData[date]) this.gridData[date] = {};
+                            this.gridData[date][item.shift] = item;
+                        });
+                    }
                 } else {
-                    // --- สำหรับเด็ก ---
                     const res = await fetch(`${this.API_URL}?action=getClassificationsPed&an=${an}`);
-                    let data = await res.json();
+                    this.classHistoryPed = await res.json();
                     
-                    // จัดเรียง: วันที่ (เก่าไปใหม่) และ เวร (ดึก > เช้า > บ่าย)
-                    this.classHistoryPed = data.sort((a, b) => {
-                        const dateA = new Date(a.date);
-                        const dateB = new Date(b.date);
-                        if (dateA - dateB !== 0) return dateA - dateB;
-                        return (shiftPriority[a.shift] || 99) - (shiftPriority[b.shift] || 99);
-                    });
+                    if (this.classHistoryPed && Array.isArray(this.classHistoryPed)) {
+                        // เรียงข้อมูลเด็ก
+                        this.classHistoryPed.sort((a, b) => {
+                            const dA = new Date(a.date), dB = new Date(b.date);
+                            if (dA - dB !== 0) return dA - dB;
+                            return (shiftPriority[a.shift] || 99) - (shiftPriority[b.shift] || 99);
+                        });
+
+                        this.classHistoryPed.forEach(item => {
+                            const date = this.formatThaiDateShort(item.date);
+                            if (!this.gridData[date]) this.gridData[date] = {};
+                            this.gridData[date][item.shift] = item;
+                        });
+                    }
                 }
-            } catch (e) { 
-                console.error("Load classification error", e); 
-            }
+            } catch (e) { console.error("Load classification error", e); }
             this.isLoading = false;
         },
         // คำนวณคะแนนเด็กจาก Array 10 ช่อง
@@ -2041,22 +2050,26 @@ function nurseApp() {
             this.isLoading = true;
             try {
                 const res = await fetch(`${this.API_URL}?action=getFallRisk&an=${an}`);
-                let data = await res.json();
-
+                this.fallHistory = await res.json();
+                this.fallGridData = {};
+                
                 const shiftPriority = { 'ดึก': 1, 'เช้า': 2, 'บ่าย': 3 };
 
-                // จัดเรียง: วันที่ และ เวร (ดึก > เช้า > บ่าย)
-                this.fallHistory = data.sort((a, b) => {
-                    const dateA = new Date(a.date);
-                    const dateB = new Date(b.date);
-                    if (dateA - dateB !== 0) return dateA - dateB;
-                    return (shiftPriority[a.shift] || 99) - (shiftPriority[b.shift] || 99);
-                });
+                if (this.fallHistory && Array.isArray(this.fallHistory)) {
+                    // เรียงข้อมูล: วันที่ และ เวร (ดึก->เช้า->บ่าย)
+                    this.fallHistory.sort((a, b) => {
+                        const dA = new Date(a.date), dB = new Date(b.date);
+                        if (dA - dB !== 0) return dA - dB;
+                        return (shiftPriority[a.shift] || 99) - (shiftPriority[b.shift] || 99);
+                    });
 
-                this.updateFallGridData();
-            } catch (e) { 
-                console.error("Load FallRisk error", e); 
-            }
+                    this.fallHistory.forEach(item => {
+                        const date = this.formatThaiDateShort(item.date);
+                        if (!this.fallGridData[date]) this.fallGridData[date] = {};
+                        this.fallGridData[date][item.shift] = item;
+                    });
+                }
+            } catch (e) { console.error("Load FallRisk error", e); }
             this.isLoading = false;
         },
 
