@@ -1150,8 +1150,7 @@ function nurseApp() {
         },
 
         // โหลดข้อมูลประวัติทั้งหมดของ AN
-        async loadClassifica
-            tions(an) {
+        async loadClassifications(an) {
             this.isLoading = true;
             try {
                 this.gridData = {}; // ล้างข้อมูลเก่าเสมอ
