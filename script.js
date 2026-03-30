@@ -2285,6 +2285,19 @@ function nurseApp() {
                 assessor: cell?.assessor || ''
             };
         },
+        getFallPrintCell(dateStr, shift) {
+            if (!dateStr || !shift) {
+                return { scores: Array(6).fill(''), maas: '', assessor: '' };
+            }
+            const normalizedDate = this.normalizeDateKey(dateStr);
+            const normalizedShift = this.normalizeShiftLabel(shift);
+            const cell = this.fallGridData?.[normalizedDate]?.[normalizedShift];
+            return {
+                scores: Array.from({ length: 6 }, (_, index) => cell?.scores?.[index] ?? ''),
+                maas: cell?.maas ?? '',
+                assessor: cell?.assessor || ''
+            };
+        },
 
         // 🟢 ฟังก์ชันสั่งพิมพ์ของฟอร์มจำแนกผู้ป่วย (อัปเดตแก้ปัญหาหน้าว่าง)
         printClassification() {
@@ -2688,100 +2701,276 @@ function nurseApp() {
         // ฟังก์ชันสั่งพิมพ์ Morse/MAAS
         printFallRisk() {
             window.scrollTo(0, 0);
-            this.$nextTick(() => {
-                const printArea = document.getElementById('fall-risk-print-area');
-                if (!printArea) return this.showAlert('แจ้งเตือน', 'ไม่พบพื้นที่สำหรับพิมพ์เอกสาร');           
-                const cloneDOM = printArea.cloneNode(true);
-                cloneDOM.querySelectorAll('template').forEach(t => t.remove());
-                const printContent = cloneDOM.innerHTML;                
-                let iframe = document.getElementById('print-frame');
-                if (iframe) iframe.remove(); 
-                iframe = document.createElement('iframe');
-                iframe.id = 'print-frame';
-                iframe.style.display = 'none';
-                document.body.appendChild(iframe);                
-                const pri = iframe.contentWindow;
-                const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]')).map(s => s.outerHTML).join('');
-                pri.document.open();
-                pri.document.write(`
-                    <!DOCTYPE html>
-                    <html>
-                        <head>
-                            <title>พิมพ์แบบประเมิน Morse / MAAS</title>
-                            ${styles}
-                            <style>
-                                @page {size: A4 portrait; margin: 8mm 8mm 8mm 8mm;}
-                                body { font-size: 11px; color: black !important; }                              
-        
-                                /* บังคับตารางให้ขนาดคงที่ */
-                                table { 
-                                    width: 100%; 
-                                    table-layout: fixed; /* สำคัญ: บังคับคอลัมน์ไม่ให้ขยาย */
-                                    border-collapse: collapse; 
-                                    word-break: break-word; /* ตัดคำถ้าเนื้อหาเกิน */
-                                }                               
-        
-                                th, td { 
-                                    border: 1px solid black !important; 
-                                    padding: 2px !important; 
-                                    overflow: hidden; /* ซ่อนเนื้อหาที่เกิน */
-                                }                       
-        
-                                /* กำหนดความกว้างเฉพาะคอลัมน์ */
-                                .w-label { width: 200px; }       /* คอลัมน์รายการประเมิน */
-                                .w-guide { width: 85px; }        /* คอลัมน์เกณฑ์คะแนน */
-                                .w-shift { width: 24px; }        /* คอลัมน์เวร (ด/ช/บ) */                               
-        
-                                .bg-gray { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
-                                .text-center { text-align: center; } /* แก้ไขจุดนี้ text-center -> text-align */
-                                
-                                /* Footer ท้ายกระดาษ */
-                                .print-global-footer {
-                                    position: fixed; bottom: 0; left: 0; width: 100%; text-align: center;
-                                    font-size: 9px; color: #475569 !important; border-top: 1px solid #9ca3af; 
-                                    padding-top: 4px; padding-bottom: 4px; background-color: white; z-index: 1000;
-                                }
-                                
-                                /* กรอบข้อมูลผู้ป่วย */
-                                .print-patient-info {
-                                    position: fixed; bottom: 22px; right: 15px; width: 260px;
-                                    border: 1px solid #000 !important; border-radius: 4px; padding: 6px 8px;
-                                    font-size: 10px; background-color: white !important; z-index: 1000; 
-                                    line-height: 1.4; color: black !important;
-                                }
-                            </style>
-                        </head>
-                        <body>
-                            <div class="print-patient-info">
-                                <div>
-                                    <b>ชื่อ-สกุล:</b> ${this.selectedPatient?.name || '-'} &nbsp;&nbsp;
-                                    <b>อายุ:</b> ${this.selectedPatient?.ageDisplay || '-'}
-                                </div>
-                                <div>
-                                    <b>HN:</b> ${this.selectedPatient?.hn || '-'} &nbsp;&nbsp;
-                                    <b>AN:</b> ${this.selectedPatient?.an || '-'}
-                                </div>
-                                <div>
-                                    <b>แพทย์:</b> ${this.selectedPatient?.doctor || '-'} &nbsp;&nbsp;
-                                    <b>ตึก:</b> ${this.currentWard || '-'} &nbsp;&nbsp;
-                                    <b>เตียง:</b> ${this.selectedPatient?.bed || '-'}
-                                </div>
-                            </div>                
-        
-                            ${printContent}            
-                            <div class="print-global-footer">
-                                เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | โปรแกรมบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
-                            </div>                
-                            <script>
-                                window.onload = function() {
-                                    setTimeout(() => { window.print(); }, 800);
-                                };
-                            </script>
-                        </body>
-                    </html>
-                `);
-                pri.document.close();
-            });
+            const pages = this.printTimelinePages || [];
+            if (!pages.length) {
+                return this.showAlert('แจ้งเตือน', 'ยังไม่มีประวัติการประเมินเพื่อพิมพ์');
+            }
+
+            const shifts = this.shiftOrder;
+            const morseRows = [
+                { label: '1. มีการหกล้มกะทันหัน หรือหกล้มช่วง 3 เดือนก่อนมา รพ.', guide: 'ไม่ใช่ = 0<br>ใช่ = 25', scoreIndex: 0 },
+                { label: '2. มีการวินิจฉัยโรคมากกว่า 1 รายการ', guide: 'ไม่ใช่ = 0<br>ใช่ = 15', scoreIndex: 1 },
+                { label: '3. การช่วยในการเคลื่อนย้าย<br>- เดินได้เอง/รถเข็น/นอนพัก<br>- ไม้ค้ำยัน/ไม้เท้า<br>- ยึดเกาะไปตามเตียง/โต๊ะ/เก้าอี้', guide: '<br>ใช่ = 0<br>ใช่ = 15<br>ใช่ = 30', scoreIndex: 2 },
+                { label: '4. ให้สารละลายทางหลอดเลือด/คา Heparin lock', guide: 'ไม่ใช่ = 0<br>ใช่ = 20', scoreIndex: 3 },
+                { label: '5. การเดิน / การเคลื่อนย้าย<br>- ปกติ/นอนพัก/ไม่เคลื่อนไหว<br>- อ่อนแรงเล็กน้อยหรืออ่อนเพลีย<br>- ลุกจากเก้าอี้ลำบาก/เดินไม่ได้', guide: '<br>ใช่ = 0<br>ใช่ = 10<br>ใช่ = 20', scoreIndex: 4 },
+                { label: '6. สภาพจิตใจ<br>- รับรู้บุคคล เวลา สถานที่<br>- ตอบสนองไม่ตรงกับความจริง', guide: '<br>ใช่ = 0<br>ใช่ = 15', scoreIndex: 5 }
+            ];
+            const maasRows = [
+                { value: '0', label: 'ไม่ตอบสนอง (0)' },
+                { value: '1', label: 'ตอบสนองต่อการกระตุ้นแรงๆ (1)' },
+                { value: '2', label: 'ตอบสนองการสัมผัส/เรียกชื่อ (2)' },
+                { value: '3', label: 'สงบ/ให้ความร่วมมือ (3)' },
+                { value: '4', label: 'พักน้อย/ไม่ร่วมมือ (4)' },
+                { value: '5', label: 'ต่อต้านการรักษา (5)' },
+                { value: '6', label: 'ต่อต้านการรักษา/อันตราย (6)' }
+            ];
+
+            const buildShiftCells = (page, renderCell) => page.map(day => shifts.map(shift => renderCell(day, shift)).join('')).join('');
+
+            const pageMarkup = pages.map((page, pageIndex) => {
+                const dayHeaders = page.map(day => `<th colspan="3" class="border border-black p-1 text-center">${this.escapeHtml(day.formattedDate)}</th>`).join('');
+                const shiftHeaders = page.map(() => shifts.map(shift => `<th class="w-shift border border-black p-1 text-center">${this.escapeHtml(shift)}</th>`).join('')).join('');
+
+                const morseBody = morseRows.map(row => {
+                    const cells = buildShiftCells(page, (day, shift) => {
+                        const cell = this.getFallPrintCell(day.date, shift);
+                        return `<td class="border border-black text-center font-bold">${this.escapeHtml(cell.scores[row.scoreIndex])}</td>`;
+                    });
+                    return `
+                        <tr>
+                            <td class="border border-black p-1">${row.label}</td>
+                            <td class="border border-black p-1 text-center">${row.guide}</td>
+                            ${cells}
+                        </tr>
+                    `;
+                }).join('');
+
+                const morseTotalRow = buildShiftCells(page, (day, shift) => {
+                    const cell = this.getFallPrintCell(day.date, shift);
+                    return `<td class="border border-black text-center">${this.escapeHtml(this.calcMorseTotal(cell.scores))}</td>`;
+                });
+
+                const morseAssessorRow = buildShiftCells(page, (day, shift) => {
+                    const cell = this.getFallPrintCell(day.date, shift);
+                    return `<td class="border border-black text-center text-[8px]">${this.escapeHtml(cell.assessor)}</td>`;
+                });
+
+                const maasBody = maasRows.map(row => {
+                    const cells = buildShiftCells(page, (day, shift) => {
+                        const cell = this.getFallPrintCell(day.date, shift);
+                        return `<td class="border border-black text-center font-bold">${cell.maas === row.value ? '✓' : ''}</td>`;
+                    });
+                    return `<tr><td class="border border-black p-1">${row.label}</td><td class="border border-black text-center">${this.escapeHtml(row.value)}</td>${cells}</tr>`;
+                }).join('');
+
+                const maasScoreRow = buildShiftCells(page, (day, shift) => {
+                    const cell = this.getFallPrintCell(day.date, shift);
+                    return `<td class="border border-black text-center">${this.escapeHtml(cell.maas)}</td>`;
+                });
+
+                const maasAssessorRow = buildShiftCells(page, (day, shift) => {
+                    const cell = this.getFallPrintCell(day.date, shift);
+                    return `<td class="border border-black text-center text-[8px]">${this.escapeHtml(cell.assessor)}</td>`;
+                });
+
+                return `
+                    <div class="a4-page bg-white text-black p-4 mb-4" style="page-break-after: always;">
+                        <div class="text-right text-[10px] font-bold">
+                            Echart-ipd-nurse<br>Morse-MAAS-Form หน้า ${pageIndex + 1}
+                        </div>
+                        <div class="text-center font-bold text-[13px] mt-1 mb-2">
+                            การประเมินความเสี่ยงต่อการพลัดตกหกล้ม Morse / การดึงอุปกรณ์ที่สอดใส่ในร่างกายผู้ป่วย (MAAS)<br>โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
+                        </div>
+                        <div class="font-bold text-[11px] mt-1 mb-1 text-start">1.การประเมินความเสี่ยงต่อการพลัดตกหกล้ม Morse Fall Risk  Score</div>
+                        <table class="w-full text-[9px] border-collapse text-left mb-2">
+                            <thead>
+                                <tr class="bg-gray">
+                                    <th rowspan="2" class="w-label border border-black p-1">ประเด็น</th>
+                                    <th rowspan="2" class="w-guide border border-black p-1 text-center">คะแนน/<br>เวร</th>
+                                    ${dayHeaders}
+                                </tr>
+                                <tr class="bg-gray">
+                                    ${shiftHeaders}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${morseBody}
+                                <tr class="bg-gray font-bold">
+                                    <td colspan="2" class="border border-black text-right pr-2">รวมคะแนน</td>
+                                    ${morseTotalRow}
+                                </tr>
+                                <tr>
+                                    <td colspan="2" class="border border-black text-right pr-2 font-bold">พยาบาลผู้ประเมิน</td>
+                                    ${morseAssessorRow}
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="font-bold text-[11px] mt-1 mb-1 text-start">2.แบบประเมินความเสี่ยงต่อการดึงอุปกรณ์ที่สอดใส่ในร่างกายผู้ป่วย (MAAS)</div>
+                        <table class="w-full text-[9px] border-collapse text-left mb-2">
+                            <thead>
+                                <tr class="bg-gray">
+                                    <th rowspan="2" class="w-label border border-black p-1">ประเด็น</th>
+                                    <th rowspan="2" class="w-guide border border-black p-1 text-center">คะแนน</th>
+                                    ${dayHeaders}
+                                </tr>
+                                <tr class="bg-gray">
+                                    ${shiftHeaders}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${maasBody}
+                                <tr class="bg-gray font-bold">
+                                    <td colspan="2" class="border border-black text-right pr-2">คะแนนที่ได้</td>
+                                    ${maasScoreRow}
+                                </tr>
+                                <tr>
+                                    <td colspan="2" class="border border-black text-right pr-2 font-bold">พยาบาลผู้ประเมิน</td>
+                                    ${maasAssessorRow}
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="mt-2 border-t border-dashed border-gray-400 pt-2">
+                            <div class="font-bold text-[10px] mb-1 text-center">แนวปฏิบัติการป้องกันการพลัดตกหกล้ม</div>
+                            <table class="w-full text-[8px] border-collapse mb-2">
+                                <thead>
+                                    <tr class="bg-gray">
+                                        <th class="border border-black p-1 w-1/3">No Risk 0-24</th>
+                                        <th class="border border-black p-1 w-1/3">Low Risk 25-50</th>
+                                        <th class="border border-black p-1 w-1/3">High Risk ≥ 51</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="border border-black p-1 align-top">
+                                            1. จัดเตียงให้เหมาะสมกับสภาพผู้ป่วย<br>
+                                            2. ประเมินความสามารถในการช่วยเหลือตนเอง<br>
+                                            3. ให้ข้อมูลผู้ป่วย/ญาติป้องกันการพลัดตกหกล้ม<br>
+                                            4. จัดสิ่งแวดล้อมให้ปลอดภัย<br>
+                                            5. ให้ญาติเฝ้า<br>
+                                            6. ยกเหล็กกั้นเตียง<br>
+                                            7. ตรวจเยี่ยมเวรละ 1 ครั้ง
+                                        </td>
+                                        <td class="border border-black p-1 align-top">
+                                            1. จัดเตียงให้เหมาะสมกับสภาพผู้ป่วย<br>
+                                            2. ประเมินความสามารถในการช่วยเหลือตนเอง<br>
+                                            3. ให้ข้อมูลผู้ป่วย/ญาติป้องกันการพลัดตกหกล้ม<br>
+                                            4. จัดสิ่งแวดล้อมให้ปลอดภัย<br>
+                                            5. ให้ญาติเฝ้า<br>
+                                            6. ยกเหล็กกั้นเตียง<br>
+                                            7. ตรวจเยี่ยมผู้ป่วยทุก 4 ชั่วโมง<br>
+                                            8. ติดสัญลักษณ์ความเสี่ยงการพลัดตกหกล้ม
+                                        </td>
+                                        <td class="border border-black p-1 align-top">
+                                            1. จัดเตียงให้เหมาะสมกับสภาพผู้ป่วย<br>
+                                            2. ประเมินความสามารถในการช่วยเหลือตนเอง<br>
+                                            3. ให้ข้อมูลผู้ป่วย/ญาติป้องกันการพลัดตกหกล้ม<br>
+                                            4. จัดสิ่งแวดล้อมให้ปลอดภัย<br>
+                                            5. ให้ญาติเฝ้า / 6. ยกเหล็กกั้นเตียง<br>
+                                            7. ตรวจเยี่ยมผู้ป่วยทุก 2 ชม.<br>
+                                            8. ติดสัญลักษณ์ความเสี่ยงการพลัดตกหกล้ม<br>
+                                            9. ผูกมัดตามสภาพ<br>
+                                            10. ส่งเวรเกี่ยวกับอากาผู้ป่วย / 11. ปรึกษาสหวิชาชีพ
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <div class="font-bold text-[10px] mb-1 text-center">แนวปฏิบัติการป้องกันการดึงอุปกรณ์ (MAAS)</div>
+                            <table class="w-full text-[8px] border-collapse">
+                                <thead>
+                                    <tr class="bg-gray">
+                                        <th class="border border-black p-1 w-1/4">คะแนน</th>
+                                        <th class="border border-black p-1 text-left">รายการปฏิบัติ</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td class="border border-black text-center font-bold">0-3</td><td class="border border-black p-1">ไม่ต้องผูกยึด</td></tr>
+                                    <tr><td class="border border-black text-center font-bold">4-6</td><td class="border border-black p-1 font-bold">ต้องผูกยึดผู้ป่วยและเฝ้าระวังอย่างใกล้ชิด <br> ***ก่อนผูกยึดต้องแจ้งญาติทราบก่อนทุกครั้ง*** <br> ***กรณีไม่มีญาติผูกยึดได้เลย***</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            let iframe = document.getElementById('print-frame');
+            if (iframe) iframe.remove();
+            iframe = document.createElement('iframe');
+            iframe.id = 'print-frame';
+            iframe.style.display = 'none';
+            document.body.appendChild(iframe);
+
+            const pri = iframe.contentWindow;
+            const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]')).map(s => s.outerHTML).join('');
+            const pName = this.escapeHtml(this.selectedPatient?.name || '-');
+            const pAge = this.escapeHtml(this.selectedPatient?.ageDisplay || '-');
+            const pHn = this.escapeHtml(this.selectedPatient?.hn || '-');
+            const pAn = this.escapeHtml(this.selectedPatient?.an || '-');
+            const pDoc = this.escapeHtml(this.selectedPatient?.doctor || '-');
+            const pWard = this.escapeHtml(this.currentWard || '-');
+            const pBed = this.escapeHtml(this.selectedPatient?.bed || '-');
+
+            pri.document.open();
+            pri.document.write(`
+                <!DOCTYPE html>
+                <html>
+                    <head>
+                        <title>พิมพ์แบบประเมิน Morse / MAAS</title>
+                        ${styles}
+                        <style>
+                            @page {size: A4 portrait; margin: 8mm 8mm 8mm 8mm;}
+                            body { font-size: 11px; color: black !important; }
+                            table {
+                                width: 100%;
+                                table-layout: fixed;
+                                border-collapse: collapse;
+                                word-break: break-word;
+                            }
+                            th, td {
+                                border: 1px solid black !important;
+                                padding: 2px !important;
+                                overflow: hidden;
+                            }
+                            .w-label { width: 200px; }
+                            .w-guide { width: 85px; }
+                            .w-shift { width: 24px; }
+                            .bg-gray { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
+                            .text-center { text-align: center; }
+                            .print-global-footer {
+                                position: fixed; bottom: 0; left: 0; width: 100%; text-align: center;
+                                font-size: 9px; color: #475569 !important; border-top: 1px solid #9ca3af;
+                                padding-top: 4px; padding-bottom: 4px; background-color: white; z-index: 1000;
+                            }
+                            .print-patient-info {
+                                position: fixed; bottom: 22px; right: 15px; width: 260px;
+                                border: 1px solid #000 !important; border-radius: 4px; padding: 6px 8px;
+                                font-size: 10px; background-color: white !important; z-index: 1000;
+                                line-height: 1.4; color: black !important;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="print-patient-info">
+                            <div><b>ชื่อ-สกุล:</b> ${pName} &nbsp;&nbsp;<b>อายุ:</b> ${pAge}</div>
+                            <div><b>HN:</b> ${pHn} &nbsp;&nbsp;<b>AN:</b> ${pAn}</div>
+                            <div><b>แพทย์:</b> ${pDoc} &nbsp;&nbsp;<b>ตึก:</b> ${pWard} &nbsp;&nbsp;<b>เตียง:</b> ${pBed}</div>
+                        </div>
+
+                        ${pageMarkup}
+                        <div class="print-global-footer">
+                            เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | โปรแกรมบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
+                        </div>
+                        <script>
+                            window.onload = function() {
+                                setTimeout(() => { window.print(); }, 800);
+                            };
+                        </script>
+                    </body>
+                </html>
+            `);
+            pri.document.close();
         }, 
         calcBradenFormScore() {
             let t = 0;
