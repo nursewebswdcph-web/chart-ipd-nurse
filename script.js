@@ -1952,8 +1952,9 @@ function nurseApp() {
                         <tr>
                             <th class="text-left">ผู้ประเมิน</th>
                             ${pageData.map(day => SHIFT_ORDER.map(shift => {
-                                const assessor = this.formatPrintAssessorName(this.getGridCell(day.date, shift).assessor || '', 7);
-                                return `<td style="font-size:5.5pt; line-height:1; white-space:nowrap; overflow:hidden;">${assessor}</td>`;
+                                const rawAssessor = this.getGridCell(day.date, shift).assessor || '';
+                                const assessor = this.formatPrintAssessorName(rawAssessor);
+                                return `<td style="${this.getPrintAssessorStyle(rawAssessor, 5.5, 3.8, 7)}">${assessor}</td>`;
                             }).join('')).join('')}
                             ${Array((daysPerPage - pageData.length) * 3).fill('<td></td>').join('')}
                         </tr>
@@ -2422,10 +2423,14 @@ function nurseApp() {
             name = name.replace(/\s+/g, ' ');
             return name ? name.split(' ')[0].trim() : '';
         },
-        formatPrintAssessorName(fullName, maxLength = 7) {
-            const shortName = this.formatShortName(fullName);
-            if (!shortName) return '';
-            return shortName.length > maxLength ? `${shortName.slice(0, maxLength)}.` : shortName;
+        formatPrintAssessorName(fullName) {
+            return this.formatShortName(fullName);
+        },
+        getPrintAssessorStyle(fullName, basePt = 6, minPt = 4.2, fitChars = 7) {
+            const shortName = this.formatPrintAssessorName(fullName);
+            const extraChars = Math.max(shortName.length - fitChars, 0);
+            const fontSize = Math.max(minPt, Number((basePt - (extraChars * 0.3)).toFixed(2)));
+            return `font-size:${fontSize}pt; line-height:1; white-space:nowrap; overflow:hidden;`;
         },
         escapeHtml(value) {
             return String(value ?? '')
@@ -2513,7 +2518,7 @@ function nurseApp() {
 
                 const assessorRow = buildShiftCells(page, (day, shift) => {
                     const cell = this.getClassificationPrintCell(day.date, shift);
-                    return `<td class="border border-black text-gray-800 text-[8px] font-normal leading-tight" style="white-space:nowrap; overflow:hidden;">${this.escapeHtml(this.formatPrintAssessorName(cell.assessor, 7))}</td>`;
+                    return `<td class="border border-black text-gray-800 font-normal leading-tight" style="${this.getPrintAssessorStyle(cell.assessor, 5.8, 4.1, 7)}">${this.escapeHtml(this.formatPrintAssessorName(cell.assessor))}</td>`;
                 });
 
                 const dayHeaders = page.map(day => `<th colspan="3" class="border border-black font-bold py-1">${this.escapeHtml(day.formattedDate)}</th>`).join('');
@@ -2914,7 +2919,7 @@ function nurseApp() {
 
                 const morseAssessorRow = buildShiftCells(page, (day, shift) => {
                     const cell = this.getFallPrintCell(day.date, shift);
-                    return `<td class="border border-black text-center text-[7px]" style="white-space:nowrap; overflow:hidden;">${this.escapeHtml(this.formatPrintAssessorName(cell.assessor, 7))}</td>`;
+                    return `<td class="border border-black text-center" style="${this.getPrintAssessorStyle(cell.assessor, 5.4, 3.9, 7)}">${this.escapeHtml(this.formatPrintAssessorName(cell.assessor))}</td>`;
                 });
 
                 const maasBody = maasRows.map(row => {
@@ -2932,7 +2937,7 @@ function nurseApp() {
 
                 const maasAssessorRow = buildShiftCells(page, (day, shift) => {
                     const cell = this.getFallPrintCell(day.date, shift);
-                    return `<td class="border border-black text-center text-[7px]" style="white-space:nowrap; overflow:hidden;">${this.escapeHtml(this.formatPrintAssessorName(cell.assessor, 7))}</td>`;
+                    return `<td class="border border-black text-center" style="${this.getPrintAssessorStyle(cell.assessor, 5.4, 3.9, 7)}">${this.escapeHtml(this.formatPrintAssessorName(cell.assessor))}</td>`;
                 });
 
                 return `
