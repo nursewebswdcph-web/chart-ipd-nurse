@@ -1952,9 +1952,8 @@ function nurseApp() {
                         <tr>
                             <th class="text-left">ผู้ประเมิน</th>
                             ${pageData.map(day => SHIFT_ORDER.map(shift => {
-                                let assessor = this.formatShortName(this.getGridCell(day.date, shift).assessor || '');
-                                if(assessor.length > 8) assessor = assessor.substring(0,8)+'.';
-                                return `<td style="font-size:6pt; line-height:1;">${assessor}</td>`;
+                                const assessor = this.formatPrintAssessorName(this.getGridCell(day.date, shift).assessor || '', 7);
+                                return `<td style="font-size:5.5pt; line-height:1; white-space:nowrap; overflow:hidden;">${assessor}</td>`;
                             }).join('')).join('')}
                             ${Array((daysPerPage - pageData.length) * 3).fill('<td></td>').join('')}
                         </tr>
@@ -2423,6 +2422,11 @@ function nurseApp() {
             name = name.replace(/\s+/g, ' ');
             return name ? name.split(' ')[0].trim() : '';
         },
+        formatPrintAssessorName(fullName, maxLength = 7) {
+            const shortName = this.formatShortName(fullName);
+            if (!shortName) return '';
+            return shortName.length > maxLength ? `${shortName.slice(0, maxLength)}.` : shortName;
+        },
         escapeHtml(value) {
             return String(value ?? '')
                 .replace(/&/g, '&amp;')
@@ -2509,7 +2513,7 @@ function nurseApp() {
 
                 const assessorRow = buildShiftCells(page, (day, shift) => {
                     const cell = this.getClassificationPrintCell(day.date, shift);
-                    return `<td class="border border-black text-gray-800 text-[10px] font-normal leading-tight">${this.escapeHtml(this.formatShortName(cell.assessor))}</td>`;
+                    return `<td class="border border-black text-gray-800 text-[8px] font-normal leading-tight" style="white-space:nowrap; overflow:hidden;">${this.escapeHtml(this.formatPrintAssessorName(cell.assessor, 7))}</td>`;
                 });
 
                 const dayHeaders = page.map(day => `<th colspan="3" class="border border-black font-bold py-1">${this.escapeHtml(day.formattedDate)}</th>`).join('');
@@ -2910,7 +2914,7 @@ function nurseApp() {
 
                 const morseAssessorRow = buildShiftCells(page, (day, shift) => {
                     const cell = this.getFallPrintCell(day.date, shift);
-                    return `<td class="border border-black text-center text-[8px]">${this.escapeHtml(this.formatShortName(cell.assessor))}</td>`;
+                    return `<td class="border border-black text-center text-[7px]" style="white-space:nowrap; overflow:hidden;">${this.escapeHtml(this.formatPrintAssessorName(cell.assessor, 7))}</td>`;
                 });
 
                 const maasBody = maasRows.map(row => {
@@ -2928,7 +2932,7 @@ function nurseApp() {
 
                 const maasAssessorRow = buildShiftCells(page, (day, shift) => {
                     const cell = this.getFallPrintCell(day.date, shift);
-                    return `<td class="border border-black text-center text-[8px]">${this.escapeHtml(this.formatShortName(cell.assessor))}</td>`;
+                    return `<td class="border border-black text-center text-[7px]" style="white-space:nowrap; overflow:hidden;">${this.escapeHtml(this.formatPrintAssessorName(cell.assessor, 7))}</td>`;
                 });
 
                 return `
@@ -3051,7 +3055,7 @@ function nurseApp() {
                                         </tr>
                                         <tr>
                                             <td class="border border-black text-center font-bold">4-6</td>
-                                            <td class="border border-black p-1 font-bold maas-guide-single-line">ต้องผูกมัดผู้ป่วยและเฝ้าระวังอย่างใกล้ชิด ***ก่อนผูกมัดต้องแจ้งญาติทราบก่อนทุกครั้ง*** ***กรณีไม่มีญาติผูกมัดได้เลย***</td>
+                                            <td class="border border-black p-1 font-bold maas-guide-single-line">ต้องผูกมัดผู้ป่วยและเฝ้าระวังอย่างใกล้ชิด *ก่อนผูกมัดต้องแจ้งญาติทราบก่อนทุกครั้ง กรณีไม่มีญาติผูกมัดได้เลย*</td>
                                         </tr>
                                     </tbody>
                                 </table>
