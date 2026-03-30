@@ -2034,7 +2034,7 @@
                                 
                                 <div class="flex justify-between items-center bg-indigo-50/50 p-3 rounded-2xl border border-indigo-100">
                                     <div class="text-sm font-bold text-indigo-900">
-                                        <i class="fa-solid fa-keyboard mr-2"></i> วิธีการ: คลิกที่ช่องแล้วพิมพ์คะแนน (1-4) | <span class="text-slate-500 font-normal italic">ระบบจะคำนวณประเภทให้อัตโนมัติ</span>
+                                        <i class="fa-solid fa-keyboard mr-2"></i> วิธีการ: เปิดเวรที่ต้องการ แล้วเลือกคะแนนแบบ Radio | <span class="text-slate-500 font-normal italic">ระบบจะคำนวณประเภทให้อัตโนมัติ</span>
                                     </div>
                                     <div class="flex items-center gap-3">
                                         <button type="button" 
@@ -2071,15 +2071,15 @@
                                 
                                 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                                     <div class="overflow-x-auto">
-                                        <table class="w-full min-w-[1100px] text-sm border-collapse">
+                                        <table class="w-full min-w-[920px] text-[12px] border-collapse table-fixed">
                                             <thead class="bg-slate-50">
                                                 <tr class="text-left">
-                                                    <th class="px-4 py-3 border-b border-slate-200 font-black text-slate-500 w-[160px]">วันที่</th>
+                                                    <th class="px-3 py-2.5 border-b border-slate-200 font-black text-slate-500 w-[120px]">วันที่</th>
                                                     <template x-for="shift in shiftOrder" :key="`adult-head-${shift}`">
-                                                        <th class="px-4 py-3 border-b border-slate-200 font-black"
+                                                        <th class="px-3 py-2.5 border-b border-slate-200 font-black text-center"
                                                             :class="{
-                                                                'text-indigo-700': shift === 'ดึก',
-                                                                'text-amber-700': shift === 'เช้า',
+                                                                'text-purple-700': shift === 'ดึก',
+                                                                'text-emerald-700': shift === 'เช้า',
                                                                 'text-orange-700': shift === 'บ่าย'
                                                             }" x-text="`เวร${shift}`"></th>
                                                     </template>
@@ -2088,42 +2088,42 @@
                                             <tbody>
                                                 <template x-for="day in currentShiftPage" :key="`adult-row-${day.date}`">
                                                     <tr class="align-top odd:bg-white even:bg-slate-50/50">
-                                                        <td class="px-4 py-4 border-b border-slate-100">
+                                                        <td class="px-3 py-3 border-b border-slate-100">
                                                             <div class="font-black text-slate-800" x-text="day.formattedDate"></div>
                                                             <div class="text-[11px] text-slate-400 mt-1" x-text="day.date"></div>
                                                         </td>
                                                         <template x-for="shift in shiftOrder" :key="`adult-cell-${day.date}-${shift}`">
-                                                            <td class="px-4 py-4 border-b border-slate-100">
-                                                                <div class="rounded-2xl border bg-white p-4 space-y-3 shadow-sm"
+                                                            <td class="px-2 py-2 border-b border-slate-100">
+                                                                <div class="rounded-xl border bg-white p-2.5 space-y-2 shadow-sm"
                                                                     :class="{
-                                                                        'border-indigo-200': shift === 'ดึก',
-                                                                        'border-amber-200': shift === 'เช้า',
+                                                                        'border-purple-200': shift === 'ดึก',
+                                                                        'border-emerald-200': shift === 'เช้า',
                                                                         'border-orange-200': shift === 'บ่าย'
                                                                     }">
-                                                                    <div class="flex items-start justify-between gap-3">
+                                                                    <div class="flex items-start justify-between gap-2">
                                                                         <div>
-                                                                            <div class="text-xs font-black"
+                                                                            <div class="text-[11px] font-black"
                                                                                 :class="{
-                                                                                    'text-indigo-700': shift === 'ดึก',
-                                                                                    'text-amber-700': shift === 'เช้า',
+                                                                                    'text-purple-700': shift === 'ดึก',
+                                                                                    'text-emerald-700': shift === 'เช้า',
                                                                                     'text-orange-700': shift === 'บ่าย'
                                                                                 }" x-text="`เวร${shift}`"></div>
-                                                                            <div class="text-[11px] text-slate-500 mt-1" x-text="getAdultShiftSummary(day.date, shift).updatedAt"></div>
+                                                                            <div class="text-[10px] text-slate-500 mt-0.5" x-text="getAdultShiftSummary(day.date, shift).evalDateText"></div>
                                                                         </div>
-                                                                        <span class="px-2.5 py-1 rounded-full text-[10px] font-black"
+                                                                        <span class="px-2 py-0.5 rounded-full text-[9px] font-black whitespace-nowrap"
                                                                             :class="getAdultShiftSummary(day.date, shift).filled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'"
-                                                                            x-text="getAdultShiftSummary(day.date, shift).filled ? 'ประเมินแล้ว' : 'ยังไม่ประเมิน'"></span>
+                                                                            x-text="getAdultShiftSummary(day.date, shift).filled ? 'มีข้อมูล' : 'ว่าง'"></span>
                                                                     </div>
-                                                                    <div class="text-sm text-slate-700 space-y-1">
-                                                                        <div>คะแนนรวม: <span class="font-black text-indigo-700" x-text="getAdultShiftSummary(day.date, shift).total || '-'"></span></div>
-                                                                        <div>ประเภท: <span class="font-bold text-rose-600" x-text="getAdultShiftSummary(day.date, shift).category || '-'"></span></div>
-                                                                        <div>ผู้ประเมิน: <span class="font-medium" x-text="getAdultShiftSummary(day.date, shift).assessor || '-'"></span></div>
+                                                                    <div class="grid grid-cols-1 gap-1 text-[11px] text-slate-700 leading-tight">
+                                                                        <div>คะแนน <span class="font-black text-indigo-700" x-text="getAdultShiftSummary(day.date, shift).total || '-'"></span></div>
+                                                                        <div>ประเภท <span class="font-bold text-rose-600" x-text="getAdultShiftSummary(day.date, shift).category || '-'"></span></div>
+                                                                        <div class="truncate">ผู้ประเมิน <span class="font-medium" x-text="getAdultShiftSummary(day.date, shift).assessor || '-'"></span></div>
                                                                     </div>
                                                                     <button type="button"
                                                                         @click="openAdultShiftModal(day.date, shift)"
-                                                                        class="w-full h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-black transition-all">
+                                                                        class="w-full h-9 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-black transition-all">
                                                                         <i class="fa-solid mr-1" :class="getAdultShiftSummary(day.date, shift).filled ? 'fa-pen-to-square' : 'fa-file-circle-plus'"></i>
-                                                                        <span x-text="getAdultShiftSummary(day.date, shift).filled ? 'แก้ไขรายเวร' : 'บันทึกเวรนี้'"></span>
+                                                                        <span x-text="getAdultShiftSummary(day.date, shift).filled ? 'แก้ไขเวร' : 'บันทึกเวร'"></span>
                                                                     </button>
                                                                 </div>
                                                             </td>
@@ -2264,7 +2264,7 @@
                                 
                                 <div class="flex justify-between items-center bg-emerald-50/50 p-3 rounded-2xl border border-emerald-100">
                                     <div class="text-sm font-bold text-emerald-900">
-                                        <i class="fa-solid fa-keyboard mr-2"></i> วิธีการ: คลิกที่ช่องแล้วพิมพ์คะแนน (1-4) | <span class="text-slate-500 font-normal italic">ระบบจะคำนวณประเภทให้อัตโนมัติ</span>
+                                        <i class="fa-solid fa-keyboard mr-2"></i> วิธีการ: เปิดเวรที่ต้องการ แล้วเลือกคะแนนแบบ Radio | <span class="text-slate-500 font-normal italic">ระบบจะคำนวณประเภทให้อัตโนมัติ</span>
                                     </div>
                                     <div class="flex items-center gap-3">
                                         <button type="button" 
@@ -2301,15 +2301,15 @@
                                 
                                 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                                     <div class="overflow-x-auto">
-                                        <table class="w-full min-w-[1100px] text-sm border-collapse">
+                                        <table class="w-full min-w-[920px] text-[12px] border-collapse table-fixed">
                                             <thead class="bg-slate-50">
                                                 <tr class="text-left">
-                                                    <th class="px-4 py-3 border-b border-slate-200 font-black text-slate-500 w-[160px]">วันที่</th>
+                                                    <th class="px-3 py-2.5 border-b border-slate-200 font-black text-slate-500 w-[120px]">วันที่</th>
                                                     <template x-for="shift in shiftOrder" :key="`ped-head-${shift}`">
-                                                        <th class="px-4 py-3 border-b border-slate-200 font-black"
+                                                        <th class="px-3 py-2.5 border-b border-slate-200 font-black text-center"
                                                             :class="{
-                                                                'text-indigo-700': shift === 'ดึก',
-                                                                'text-amber-700': shift === 'เช้า',
+                                                                'text-purple-700': shift === 'ดึก',
+                                                                'text-emerald-700': shift === 'เช้า',
                                                                 'text-orange-700': shift === 'บ่าย'
                                                             }" x-text="`เวร${shift}`"></th>
                                                     </template>
@@ -2318,42 +2318,42 @@
                                             <tbody>
                                                 <template x-for="day in currentShiftPage" :key="`ped-row-${day.date}`">
                                                     <tr class="align-top odd:bg-white even:bg-slate-50/50">
-                                                        <td class="px-4 py-4 border-b border-slate-100">
+                                                        <td class="px-3 py-3 border-b border-slate-100">
                                                             <div class="font-black text-slate-800" x-text="day.formattedDate"></div>
                                                             <div class="text-[11px] text-slate-400 mt-1" x-text="day.date"></div>
                                                         </td>
                                                         <template x-for="shift in shiftOrder" :key="`ped-cell-${day.date}-${shift}`">
-                                                            <td class="px-4 py-4 border-b border-slate-100">
-                                                                <div class="rounded-2xl border bg-white p-4 space-y-3 shadow-sm"
+                                                            <td class="px-2 py-2 border-b border-slate-100">
+                                                                <div class="rounded-xl border bg-white p-2.5 space-y-2 shadow-sm"
                                                                     :class="{
-                                                                        'border-indigo-200': shift === 'ดึก',
-                                                                        'border-amber-200': shift === 'เช้า',
+                                                                        'border-purple-200': shift === 'ดึก',
+                                                                        'border-emerald-200': shift === 'เช้า',
                                                                         'border-orange-200': shift === 'บ่าย'
                                                                     }">
-                                                                    <div class="flex items-start justify-between gap-3">
+                                                                    <div class="flex items-start justify-between gap-2">
                                                                         <div>
-                                                                            <div class="text-xs font-black"
+                                                                            <div class="text-[11px] font-black"
                                                                                 :class="{
-                                                                                    'text-indigo-700': shift === 'ดึก',
-                                                                                    'text-amber-700': shift === 'เช้า',
+                                                                                    'text-purple-700': shift === 'ดึก',
+                                                                                    'text-emerald-700': shift === 'เช้า',
                                                                                     'text-orange-700': shift === 'บ่าย'
                                                                                 }" x-text="`เวร${shift}`"></div>
-                                                                            <div class="text-[11px] text-slate-500 mt-1" x-text="getPedShiftSummary(day.date, shift).updatedAt"></div>
+                                                                            <div class="text-[10px] text-slate-500 mt-0.5" x-text="getPedShiftSummary(day.date, shift).evalDateText"></div>
                                                                         </div>
-                                                                        <span class="px-2.5 py-1 rounded-full text-[10px] font-black"
+                                                                        <span class="px-2 py-0.5 rounded-full text-[9px] font-black whitespace-nowrap"
                                                                             :class="getPedShiftSummary(day.date, shift).filled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'"
-                                                                            x-text="getPedShiftSummary(day.date, shift).filled ? 'ประเมินแล้ว' : 'ยังไม่ประเมิน'"></span>
+                                                                            x-text="getPedShiftSummary(day.date, shift).filled ? 'มีข้อมูล' : 'ว่าง'"></span>
                                                                     </div>
-                                                                    <div class="text-sm text-slate-700 space-y-1">
-                                                                        <div>คะแนนรวม: <span class="font-black text-emerald-700" x-text="getPedShiftSummary(day.date, shift).total || '-'"></span></div>
-                                                                        <div>ประเภท: <span class="font-bold text-rose-600" x-text="getPedShiftSummary(day.date, shift).category || '-'"></span></div>
-                                                                        <div>ผู้ประเมิน: <span class="font-medium" x-text="getPedShiftSummary(day.date, shift).assessor || '-'"></span></div>
+                                                                    <div class="grid grid-cols-1 gap-1 text-[11px] text-slate-700 leading-tight">
+                                                                        <div>คะแนน <span class="font-black text-emerald-700" x-text="getPedShiftSummary(day.date, shift).total || '-'"></span></div>
+                                                                        <div>ประเภท <span class="font-bold text-rose-600" x-text="getPedShiftSummary(day.date, shift).category || '-'"></span></div>
+                                                                        <div class="truncate">ผู้ประเมิน <span class="font-medium" x-text="getPedShiftSummary(day.date, shift).assessor || '-'"></span></div>
                                                                     </div>
                                                                     <button type="button"
                                                                         @click="openPedShiftModal(day.date, shift)"
-                                                                        class="w-full h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-black transition-all">
+                                                                        class="w-full h-9 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black transition-all">
                                                                         <i class="fa-solid mr-1" :class="getPedShiftSummary(day.date, shift).filled ? 'fa-pen-to-square' : 'fa-file-circle-plus'"></i>
-                                                                        <span x-text="getPedShiftSummary(day.date, shift).filled ? 'แก้ไขรายเวร' : 'บันทึกเวรนี้'"></span>
+                                                                        <span x-text="getPedShiftSummary(day.date, shift).filled ? 'แก้ไขเวร' : 'บันทึกเวร'"></span>
                                                                     </button>
                                                                 </div>
                                                             </td>
@@ -3039,7 +3039,7 @@
                         
                         <div class="flex justify-between items-center bg-amber-50/50 p-3 rounded-2xl border border-amber-100">
                             <div class="text-sm font-bold text-amber-900">
-                                <i class="fa-solid fa-list-check mr-2"></i> เลือกคะแนนจาก Dropdown ตามความเป็นจริง
+                                <i class="fa-solid fa-list-check mr-2"></i> เปิดเวรที่ต้องการ แล้วเลือกคะแนนแบบ Radio ตามความเป็นจริง
                             </div>
                             <div class="flex items-center gap-3">
                                 <button type="button" @click="currentPageIndex = Math.max(0, currentPageIndex - 1)" :disabled="currentPageIndex === 0" class="px-3 py-1.5 bg-white border border-slate-200 hover:bg-amber-100 disabled:opacity-40 rounded-lg text-xs font-bold transition-all"><i class="fa-solid fa-chevron-left mr-1"></i> ย้อนหลัง</button>
@@ -3050,15 +3050,15 @@
                         
                         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                             <div class="overflow-x-auto">
-                                <table class="w-full min-w-[1100px] text-sm border-collapse">
+                                <table class="w-full min-w-[920px] text-[12px] border-collapse table-fixed">
                                     <thead class="bg-slate-50">
                                         <tr class="text-left">
-                                            <th class="px-4 py-3 border-b border-slate-200 font-black text-slate-500 w-[160px]">วันที่</th>
+                                            <th class="px-3 py-2.5 border-b border-slate-200 font-black text-slate-500 w-[120px]">วันที่</th>
                                             <template x-for="shift in shiftOrder" :key="`fall-head-${shift}`">
-                                                <th class="px-4 py-3 border-b border-slate-200 font-black"
+                                                <th class="px-3 py-2.5 border-b border-slate-200 font-black text-center"
                                                     :class="{
-                                                        'text-indigo-700': shift === 'ดึก',
-                                                        'text-amber-700': shift === 'เช้า',
+                                                        'text-purple-700': shift === 'ดึก',
+                                                        'text-emerald-700': shift === 'เช้า',
                                                         'text-orange-700': shift === 'บ่าย'
                                                     }" x-text="`เวร${shift}`"></th>
                                             </template>
@@ -3067,42 +3067,42 @@
                                     <tbody>
                                         <template x-for="day in currentShiftPage" :key="`fall-row-${day.date}`">
                                             <tr class="align-top odd:bg-white even:bg-slate-50/50">
-                                                <td class="px-4 py-4 border-b border-slate-100">
+                                                <td class="px-3 py-3 border-b border-slate-100">
                                                     <div class="font-black text-slate-800" x-text="day.formattedDate"></div>
                                                     <div class="text-[11px] text-slate-400 mt-1" x-text="day.date"></div>
                                                 </td>
                                                 <template x-for="shift in shiftOrder" :key="`fall-cell-${day.date}-${shift}`">
-                                                    <td class="px-4 py-4 border-b border-slate-100">
-                                                        <div class="rounded-2xl border bg-white p-4 space-y-3 shadow-sm"
+                                                    <td class="px-2 py-2 border-b border-slate-100">
+                                                        <div class="rounded-xl border bg-white p-2.5 space-y-2 shadow-sm"
                                                             :class="{
-                                                                'border-indigo-200': shift === 'ดึก',
-                                                                'border-amber-200': shift === 'เช้า',
+                                                                'border-purple-200': shift === 'ดึก',
+                                                                'border-emerald-200': shift === 'เช้า',
                                                                 'border-orange-200': shift === 'บ่าย'
                                                             }">
-                                                            <div class="flex items-start justify-between gap-3">
+                                                            <div class="flex items-start justify-between gap-2">
                                                                 <div>
-                                                                    <div class="text-xs font-black"
+                                                                    <div class="text-[11px] font-black"
                                                                         :class="{
-                                                                            'text-indigo-700': shift === 'ดึก',
-                                                                            'text-amber-700': shift === 'เช้า',
+                                                                            'text-purple-700': shift === 'ดึก',
+                                                                            'text-emerald-700': shift === 'เช้า',
                                                                             'text-orange-700': shift === 'บ่าย'
                                                                         }" x-text="`เวร${shift}`"></div>
-                                                                    <div class="text-[11px] text-slate-500 mt-1" x-text="getFallShiftSummary(day.date, shift).updatedAt"></div>
+                                                                    <div class="text-[10px] text-slate-500 mt-0.5" x-text="getFallShiftSummary(day.date, shift).evalDateText"></div>
                                                                 </div>
-                                                                <span class="px-2.5 py-1 rounded-full text-[10px] font-black"
+                                                                <span class="px-2 py-0.5 rounded-full text-[9px] font-black whitespace-nowrap"
                                                                     :class="getFallShiftSummary(day.date, shift).filled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'"
-                                                                    x-text="getFallShiftSummary(day.date, shift).filled ? 'ประเมินแล้ว' : 'ยังไม่ประเมิน'"></span>
+                                                                    x-text="getFallShiftSummary(day.date, shift).filled ? 'มีข้อมูล' : 'ว่าง'"></span>
                                                             </div>
-                                                            <div class="text-sm text-slate-700 space-y-1">
-                                                                <div>Morse: <span class="font-black text-amber-700" x-text="getFallShiftSummary(day.date, shift).morse || '-'"></span></div>
-                                                                <div>MAAS: <span class="font-black text-blue-700" x-text="getFallShiftSummary(day.date, shift).maas || '-'"></span></div>
-                                                                <div>ผู้ประเมิน: <span class="font-medium" x-text="getFallShiftSummary(day.date, shift).assessor || '-'"></span></div>
+                                                            <div class="grid grid-cols-1 gap-1 text-[11px] text-slate-700 leading-tight">
+                                                                <div>Morse <span class="font-black text-amber-700" x-text="getFallShiftSummary(day.date, shift).morse || '-'"></span></div>
+                                                                <div>MAAS <span class="font-black text-blue-700" x-text="getFallShiftSummary(day.date, shift).maas || '-'"></span></div>
+                                                                <div class="truncate">ผู้ประเมิน <span class="font-medium" x-text="getFallShiftSummary(day.date, shift).assessor || '-'"></span></div>
                                                             </div>
                                                             <button type="button"
                                                                 @click="openFallShiftModal(day.date, shift)"
-                                                                class="w-full h-10 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-sm font-black transition-all">
+                                                                class="w-full h-9 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-black transition-all">
                                                                 <i class="fa-solid mr-1" :class="getFallShiftSummary(day.date, shift).filled ? 'fa-pen-to-square' : 'fa-file-circle-plus'"></i>
-                                                                <span x-text="getFallShiftSummary(day.date, shift).filled ? 'แก้ไขรายเวร' : 'บันทึกเวรนี้'"></span>
+                                                                <span x-text="getFallShiftSummary(day.date, shift).filled ? 'แก้ไขเวร' : 'บันทึกเวร'"></span>
                                                             </button>
                                                         </div>
                                                     </td>
@@ -4342,16 +4342,18 @@
                             <div class="px-4 py-2 rounded-xl bg-slate-100 text-sm font-black text-slate-700" x-text="item.title"></div>
                         </template>
                         <template x-if="item.type === 'question'">
-                            <label class="grid grid-cols-1 md:grid-cols-[1fr_96px] gap-3 items-center rounded-xl border border-slate-200 bg-white px-4 py-3">
-                                <span class="text-sm font-medium text-slate-700" x-text="item.label"></span>
-                                <select x-model="classForm.scores[item.scoreIndex]" class="h-11 rounded-xl border border-slate-200 px-3 font-black text-slate-700 outline-none focus:ring-2 focus:ring-indigo-300">
-                                    <option value=""></option>
-                                    <option value="1">1</option>
-                                    <option value="2">2</option>
-                                    <option value="3">3</option>
-                                    <option value="4">4</option>
-                                </select>
-                            </label>
+                            <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 space-y-3">
+                                <div class="text-sm font-medium text-slate-700" x-text="item.label"></div>
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                    <template x-for="score in [1, 2, 3, 4]" :key="`adult-radio-${item.scoreIndex}-${score}`">
+                                        <label class="flex items-center justify-center rounded-lg border px-3 py-2 text-xs font-black cursor-pointer transition-all"
+                                            :class="Number(classForm.scores[item.scoreIndex]) === score ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-600 hover:border-indigo-200'">
+                                            <input type="radio" class="sr-only" :name="`adult-score-${item.scoreIndex}`" :value="score" x-model="classForm.scores[item.scoreIndex]">
+                                            <span x-text="score"></span>
+                                        </label>
+                                    </template>
+                                </div>
+                            </div>
                         </template>
                     </div>
                 </template>
@@ -4391,17 +4393,19 @@
                             <div class="px-4 py-2 rounded-xl bg-slate-100 text-sm font-black text-slate-700" x-text="item.title"></div>
                         </template>
                         <template x-if="item.type === 'question'">
-                            <label class="grid grid-cols-1 md:grid-cols-[1fr_96px] gap-3 items-center rounded-xl border px-4 py-3"
+                            <div class="rounded-xl border px-4 py-3 space-y-3"
                                 :class="item.emphasis ? 'border-slate-200 bg-slate-50' : 'border-slate-200 bg-white'">
-                                <span class="text-sm text-slate-700" :class="item.emphasis ? 'font-bold' : 'font-medium'" x-text="item.label"></span>
-                                <select x-model="pedShiftForm.scores[item.scoreIndex]" class="h-11 rounded-xl border border-slate-200 px-3 font-black text-slate-700 outline-none focus:ring-2 focus:ring-emerald-300">
-                                    <option value=""></option>
-                                    <option value="1">1</option>
-                                    <option value="2">2</option>
-                                    <option value="3">3</option>
-                                    <option value="4">4</option>
-                                </select>
-                            </label>
+                                <div class="text-sm text-slate-700" :class="item.emphasis ? 'font-bold' : 'font-medium'" x-text="item.label"></div>
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                    <template x-for="score in [1, 2, 3, 4]" :key="`ped-radio-${item.scoreIndex}-${score}`">
+                                        <label class="flex items-center justify-center rounded-lg border px-3 py-2 text-xs font-black cursor-pointer transition-all"
+                                            :class="Number(pedShiftForm.scores[item.scoreIndex]) === score ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-200'">
+                                            <input type="radio" class="sr-only" :name="`ped-score-${item.scoreIndex}`" :value="score" x-model="pedShiftForm.scores[item.scoreIndex]">
+                                            <span x-text="score"></span>
+                                        </label>
+                                    </template>
+                                </div>
+                            </div>
                         </template>
                     </div>
                 </template>
@@ -4439,15 +4443,18 @@
                     <div class="px-4 py-2 bg-amber-100/70 text-sm font-black text-amber-900">Morse Fall Scale</div>
                     <div class="p-4 space-y-3">
                         <template x-for="(item, idx) in fallRiskMorseQuestions" :key="`fall-modal-${idx}`">
-                            <label class="grid grid-cols-1 gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3">
-                                <span class="text-sm font-medium text-slate-700" x-text="item.label"></span>
-                                <select x-model="fallShiftForm.scores[idx]" class="h-11 rounded-xl border border-slate-200 px-3 text-sm outline-none focus:ring-2 focus:ring-amber-300">
-                                    <option value=""></option>
+                            <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 space-y-3">
+                                <div class="text-sm font-medium text-slate-700" x-text="item.label"></div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                                     <template x-for="opt in item.opts" :key="`fall-opt-${idx}-${opt.v}`">
-                                        <option :value="opt.v" x-text="opt.t"></option>
+                                        <label class="flex items-center rounded-lg border px-3 py-2 text-xs font-medium cursor-pointer transition-all"
+                                            :class="String(fallShiftForm.scores[idx]) === String(opt.v) ? 'border-amber-500 bg-amber-50 text-amber-800' : 'border-slate-200 bg-white text-slate-700 hover:border-amber-200'">
+                                            <input type="radio" class="sr-only" :name="`fall-score-${idx}`" :value="String(opt.v)" x-model="fallShiftForm.scores[idx]">
+                                            <span x-text="opt.t"></span>
+                                        </label>
                                     </template>
-                                </select>
-                            </label>
+                                </div>
+                            </div>
                         </template>
                         <div class="rounded-xl bg-amber-50 border border-amber-100 px-4 py-3 text-sm font-black text-amber-800">
                             รวมคะแนน Morse: <span x-text="calcMorseTotal(fallShiftForm.scores) || '-'"></span>
@@ -4457,12 +4464,15 @@
                 <div class="rounded-2xl border border-blue-100 overflow-hidden">
                     <div class="px-4 py-2 bg-blue-100/70 text-sm font-black text-blue-900">MAAS</div>
                     <div class="p-4 space-y-3">
-                        <select x-model="fallShiftForm.maas" class="w-full h-11 rounded-xl border border-slate-200 px-3 text-sm outline-none focus:ring-2 focus:ring-blue-300">
-                            <option value=""></option>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                             <template x-for="item in fallRiskMaasOptions" :key="`fall-maas-${item.value}`">
-                                <option :value="item.value" x-text="item.label"></option>
+                                <label class="flex items-center rounded-lg border px-3 py-2 text-xs font-medium cursor-pointer transition-all"
+                                    :class="String(fallShiftForm.maas) === String(item.value) ? 'border-blue-500 bg-blue-50 text-blue-800' : 'border-slate-200 bg-white text-slate-700 hover:border-blue-200'">
+                                    <input type="radio" class="sr-only" name="fall-maas" :value="String(item.value)" x-model="fallShiftForm.maas">
+                                    <span x-text="item.label"></span>
+                                </label>
                             </template>
-                        </select>
+                        </div>
                         <div class="rounded-xl bg-blue-50 border border-blue-100 px-4 py-3 text-sm font-black text-blue-800">
                             คะแนน MAAS: <span x-text="fallShiftForm.maas || '-'"></span>
                         </div>
