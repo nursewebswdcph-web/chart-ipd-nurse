@@ -2012,6 +2012,26 @@ function nurseApp() {
             }
             return pages;
         },
+        get printTimelinePages() {
+            return this.classTimeline.map((page, pageIndex) => {
+                const paddedPage = page.map((day, dayIndex) => ({
+                    ...day,
+                    slotKey: day.date || `page-${pageIndex}-day-${dayIndex}`,
+                    isPlaceholder: false
+                }));
+
+                while (paddedPage.length < 5) {
+                    paddedPage.push({
+                        date: '',
+                        formattedDate: '',
+                        slotKey: `page-${pageIndex}-placeholder-${paddedPage.length}`,
+                        isPlaceholder: true
+                    });
+                }
+
+                return paddedPage;
+            });
+        },
 
         // เปิด Popup ประเมินรอบใหม่ และเคลียร์ค่า
         openClassModal() {
