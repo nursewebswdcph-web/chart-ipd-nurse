@@ -116,6 +116,12 @@ function nurseApp() {
             scores: Array(10).fill(''),
             assessor: ''
         },
+        classificationLoadPromise: null,
+        classificationLoadKey: '',
+        classificationRefreshTimer: null,
+        fallRiskLoadPromise: null,
+        fallRiskLoadKey: '',
+        fallRiskRefreshTimer: null,
         showFallShiftModal: false,
         fallShiftForm: {
             evalDate: new Date().toISOString().split('T')[0],
@@ -292,6 +298,154 @@ function nurseApp() {
                 cell.timestamp = record.timestamp || '';
             });
         },
+        normalizeAdultClassificationHistory(records = []) {
+            return this.normalizeShiftData(records, {
+                buildRecord: (item, index) => ({
+                    ...item,
+                    evalDate: item.evalDate,
+                    shift: item.shift,
+                    timestamp: item.timestamp,
+                    scores: Array.isArray(item.scores) ? item.scores.slice(0, 8) : Array(8).fill(''),
+                    total: item.total ?? '',
+                    category: item.category ?? '',
+                    assessor: item.assessor || '',
+                    _sourceIndex: index
+                })
+            });
+        },
+        normalizePedClassificationHistory(records = []) {
+            return this.normalizeShiftData(records, {
+                buildRecord: (item, index) => {
+                    const formData = item.formData || this.parseJsonSafely(item.formdata, {});
+                    return {
+                        ...item,
+                        evalDate: item.evalDate || item.date,
+                        shift: item.shift,
+                        timestamp: item.timestamp,
+                        formData,
+                        scores: Array.isArray(item.scores) ? item.scores.slice(0, 10) : this.buildPedScores(formData),
+                        score: item.score ?? '',
+                        classType: item.classType || item.classtype || '',
+                        assessor: item.assessor || '',
+                        _sourceIndex: index
+                    };
+                }
+            });
+        },
+        normalizeFallRiskHistory(records = []) {
+            return this.normalizeShiftData(records, {
+                buildRecord: (item, index) => ({
+                    ...item,
+                    evalDate: item.evalDate,
+                    shift: item.shift,
+                    timestamp: item.timestamp,
+                    m1: item.m1 ?? '',
+                    m2: item.m2 ?? '',
+                    m3: item.m3 ?? '',
+                    m4: item.m4 ?? '',
+                    m5: item.m5 ?? '',
+                    m6: item.m6 ?? '',
+                    morseTotal: item.morseTotal ?? '',
+                    maasScore: item.maasScore ?? '',
+                    assessor: item.assessor || '',
+                    _sourceIndex: index
+                })
+            });
+        },
+        clampCurrentPageIndex() {
+            this.currentPageIndex = Math.min(this.currentPageIndex, Math.max(this.classTimeline.length - 1, 0));
+        },
+        upsertClassificationRecord(record, options = {}) {
+            const pediatric = options.pediatric === true;
+            const targetDate = this.normalizeDateKey(record?.evalDate || record?.date);
+            const targetShift = this.normalizeShiftLabel(record?.shift);
+            if (!targetDate || !targetShift) return;
+
+            const historyKey = pediatric ? 'classHistoryPed' : 'classHistory';
+            const currentHistory = Array.isArray(this[historyKey]) ? this[historyKey] : [];
+            const nextHistory = currentHistory.filter(item =>
+                !(this.normalizeDateKey(item.evalDate || item.date) === targetDate &&
+                  this.normalizeShiftLabel(item.shift) === targetShift)
+            );
+            nextHistory.push({
+                ...record,
+                evalDate: targetDate,
+                date: targetDate,
+                shift: targetShift,
+                timestamp: record.timestamp || new Date().toISOString()
+            });
+
+            this[historyKey] = pediatric
+                ? this.normalizePedClassificationHistory(nextHistory)
+                : this.normalizeAdultClassificationHistory(nextHistory);
+            this.rebuildClassificationGrid(this[historyKey]);
+            this.clampCurrentPageIndex();
+        },
+        removeClassificationRecord(date, shift, options = {}) {
+            const pediatric = options.pediatric === true;
+            const targetDate = this.normalizeDateKey(date);
+            const targetShift = this.normalizeShiftLabel(shift);
+            const historyKey = pediatric ? 'classHistoryPed' : 'classHistory';
+            const currentHistory = Array.isArray(this[historyKey]) ? this[historyKey] : [];
+            this[historyKey] = currentHistory.filter(item =>
+                !(this.normalizeDateKey(item.evalDate || item.date) === targetDate &&
+                  this.normalizeShiftLabel(item.shift) === targetShift)
+            );
+            this.rebuildClassificationGrid(this[historyKey]);
+            this.clampCurrentPageIndex();
+        },
+        upsertFallRiskRecord(record) {
+            const targetDate = this.normalizeDateKey(record?.evalDate || record?.date);
+            const targetShift = this.normalizeShiftLabel(record?.shift);
+            if (!targetDate || !targetShift) return;
+
+            const currentHistory = Array.isArray(this.fallHistory) ? this.fallHistory : [];
+            const nextHistory = currentHistory.filter(item =>
+                !(this.normalizeDateKey(item.evalDate || item.date) === targetDate &&
+                  this.normalizeShiftLabel(item.shift) === targetShift)
+            );
+            nextHistory.push({
+                ...record,
+                evalDate: targetDate,
+                date: targetDate,
+                shift: targetShift,
+                timestamp: record.timestamp || new Date().toISOString()
+            });
+
+            this.fallHistory = this.normalizeFallRiskHistory(nextHistory);
+            this.rebuildFallGrid(this.fallHistory);
+            this.clampCurrentPageIndex();
+        },
+        removeFallRiskRecord(date, shift) {
+            const targetDate = this.normalizeDateKey(date);
+            const targetShift = this.normalizeShiftLabel(shift);
+            const currentHistory = Array.isArray(this.fallHistory) ? this.fallHistory : [];
+            this.fallHistory = currentHistory.filter(item =>
+                !(this.normalizeDateKey(item.evalDate || item.date) === targetDate &&
+                  this.normalizeShiftLabel(item.shift) === targetShift)
+            );
+            this.rebuildFallGrid(this.fallHistory);
+            this.clampCurrentPageIndex();
+        },
+        scheduleClassificationRefresh(an, options = {}) {
+            const pediatric = options.pediatric === true;
+            clearTimeout(this.classificationRefreshTimer);
+            this.classificationRefreshTimer = setTimeout(() => {
+                if (String(this.selectedPatient?.an || this.selectedPatient?.AN || '') !== String(an)) return;
+                this.loadClassifications(an, { force: true, silent: true, pediatric }).catch(error => {
+                    console.error('Silent classification refresh error:', error);
+                });
+            }, 900);
+        },
+        scheduleFallRiskRefresh(an) {
+            clearTimeout(this.fallRiskRefreshTimer);
+            this.fallRiskRefreshTimer = setTimeout(() => {
+                if (String(this.selectedPatient?.an || this.selectedPatient?.AN || '') !== String(an)) return;
+                this.loadFallRisk(an, { force: true, silent: true }).catch(error => {
+                    console.error('Silent fall risk refresh error:', error);
+                });
+            }, 900);
+        },
         getTimelineSourceRecords() {
             if (this.currentForm?.id === 'fall_risk') return this.fallHistory || [];
             if (this.currentForm?.id === 'patient_class_ped') return this.classHistoryPed || [];
@@ -465,6 +619,7 @@ function nurseApp() {
             this.showFallShiftModal = true;
         },
         deleteAdultShift(date, shift) {
+            if (this.isLoading) return;
             if (!this.selectedPatient?.an) {
                 return this.showAlert('Error', 'ไม่พบเลข AN ของผู้ป่วย');
             }
@@ -495,7 +650,8 @@ function nurseApp() {
                         this.successMsg = `ลบเวร${shift} วันที่ ${this.formatThaiDateShort(date)} เรียบร้อยแล้ว`;
                         this.showSuccess = true;
                         setTimeout(() => this.showSuccess = false, 2500);
-                        await this.loadClassifications(this.selectedPatient.an);
+                        this.removeClassificationRecord(date, shift, { pediatric: false });
+                        this.scheduleClassificationRefresh(this.selectedPatient.an, { pediatric: false });
                     } catch (error) {
                         this.showAlert('Error', 'ลบข้อมูลไม่สำเร็จ: ' + error.message);
                     } finally {
@@ -505,6 +661,7 @@ function nurseApp() {
             );
         },
         deletePedShift(date, shift) {
+            if (this.isLoading) return;
             const currentAN = this.selectedPatient?.an || this.selectedPatient?.AN;
             if (!currentAN) {
                 return this.showAlert('Error', 'ไม่พบเลข AN ของผู้ป่วย');
@@ -537,7 +694,8 @@ function nurseApp() {
                         this.successMsg = `ลบเวร${shift} วันที่ ${this.formatThaiDateShort(date)} เรียบร้อยแล้ว`;
                         this.showSuccess = true;
                         setTimeout(() => this.showSuccess = false, 2500);
-                        await this.loadClassifications(currentAN);
+                        this.removeClassificationRecord(date, shift, { pediatric: true });
+                        this.scheduleClassificationRefresh(currentAN, { pediatric: true });
                     } catch (error) {
                         this.showAlert('Error', 'ลบข้อมูลไม่สำเร็จ: ' + error.message);
                     } finally {
@@ -547,6 +705,7 @@ function nurseApp() {
             );
         },
         deleteFallShift(date, shift) {
+            if (this.isLoading) return;
             if (!this.selectedPatient?.an) {
                 return this.showAlert('Error', 'ไม่พบเลข AN ของผู้ป่วย');
             }
@@ -578,7 +737,8 @@ function nurseApp() {
                         this.successMsg = `ลบเวร${shift} วันที่ ${this.formatThaiDateShort(date)} เรียบร้อยแล้ว`;
                         this.showSuccess = true;
                         setTimeout(() => this.showSuccess = false, 2500);
-                        await this.loadFallRisk(this.selectedPatient.an);
+                        this.removeFallRiskRecord(date, shift);
+                        this.scheduleFallRiskRefresh(this.selectedPatient.an);
                     } catch (error) {
                         this.showAlert('Error', 'ลบข้อมูลไม่สำเร็จ: ' + error.message);
                     } finally {
@@ -1596,55 +1756,51 @@ function nurseApp() {
         },
 
         // โหลดข้อมูลประวัติทั้งหมดของ AN
-        async loadClassifications(an) {
-            this.isLoading = true;
-            try {
-                this.gridData = {};
-        
-                if (this.isAdult) {
-                    const res = await fetch(`${this.API_URL}?action=getClassifications&an=${an}&_=${new Date().getTime()}`);
+        async loadClassifications(an, options = {}) {
+            if (!an) return [];
+
+            const pediatric = options.pediatric === true || (options.pediatric !== false && !this.isAdult);
+            const requestKey = `${String(an)}__${pediatric ? 'ped' : 'adult'}`;
+            if (!options.force && this.classificationLoadPromise && this.classificationLoadKey === requestKey) {
+                return this.classificationLoadPromise;
+            }
+
+            if (!options.silent) this.isLoading = true;
+
+            const loadTask = (async () => {
+                if (pediatric) {
+                    const res = await fetch(`${this.API_URL}?action=getClassificationsPed&an=${an}&_=${Date.now()}`);
                     const rawHistory = await res.json();
-                    this.classHistory = this.normalizeShiftData(rawHistory, {
-                        buildRecord: (item, index) => ({
-                            ...item,
-                            evalDate: item.evalDate,
-                            shift: item.shift,
-                            timestamp: item.timestamp,
-                            scores: Array.isArray(item.scores) ? item.scores.slice(0, 8) : Array(8).fill(''),
-                            total: item.total ?? '',
-                            category: item.category ?? '',
-                            assessor: item.assessor || '',
-                            _sourceIndex: index
-                        })
-                    });
-                    this.rebuildClassificationGrid(this.classHistory);
-                } else {
-                    const res = await fetch(`${this.API_URL}?action=getClassificationsPed&an=${an}&_=${new Date().getTime()}`);
-                    const rawHistory = await res.json();
-                    this.classHistoryPed = this.normalizeShiftData(rawHistory, {
-                        buildRecord: (item, index) => {
-                            const formData = item.formData || this.parseJsonSafely(item.formdata, {});
-                            return {
-                                ...item,
-                                evalDate: item.evalDate || item.date,
-                                shift: item.shift,
-                                timestamp: item.timestamp,
-                                formData,
-                                scores: Array.isArray(item.scores) ? item.scores.slice(0, 10) : this.buildPedScores(formData),
-                                score: item.score ?? '',
-                                classType: item.classType || item.classtype || '',
-                                assessor: item.assessor || '',
-                                _sourceIndex: index
-                            };
-                        }
-                    });
+                    if (String(this.selectedPatient?.an || this.selectedPatient?.AN || '') !== String(an)) return [];
+                    this.classHistoryPed = this.normalizePedClassificationHistory(rawHistory);
                     this.rebuildClassificationGrid(this.classHistoryPed);
+                    this.clampCurrentPageIndex();
+                    return this.classHistoryPed;
                 }
-                this.currentPageIndex = Math.min(this.currentPageIndex, Math.max(this.classTimeline.length - 1, 0));
-            } catch (e) { 
-                console.error("Load Classifications Error:", e); 
+
+                const res = await fetch(`${this.API_URL}?action=getClassifications&an=${an}&_=${Date.now()}`);
+                const rawHistory = await res.json();
+                if (String(this.selectedPatient?.an || this.selectedPatient?.AN || '') !== String(an)) return [];
+                this.classHistory = this.normalizeAdultClassificationHistory(rawHistory);
+                this.rebuildClassificationGrid(this.classHistory);
+                this.clampCurrentPageIndex();
+                return this.classHistory;
+            })();
+
+            this.classificationLoadPromise = loadTask;
+            this.classificationLoadKey = requestKey;
+
+            try {
+                return await loadTask;
+            } catch (e) {
+                console.error("Load Classifications Error:", e);
+                return [];
             } finally {
-                this.isLoading = false;
+                if (this.classificationLoadPromise === loadTask) {
+                    this.classificationLoadPromise = null;
+                    this.classificationLoadKey = '';
+                }
+                if (!options.silent) this.isLoading = false;
             }
         },
         // คำนวณคะแนนเด็กจาก Array 10 ช่อง
@@ -2199,6 +2355,7 @@ function nurseApp() {
 
         // บันทึกข้อมูล 1 เวร
         async saveClassForm() {
+            if (this.isLoading) return;
             if (this.classForm.scores.some(score => ![1, 2, 3, 4].includes(Number(score)))) {
                 return this.showAlert('แจ้งเตือน', 'กรุณาประเมินให้ครบทั้ง 8 ข้อ');
             }
@@ -2224,18 +2381,24 @@ function nurseApp() {
 
             this.isLoading = true;
             try {
-                const res = await fetch(this.API_URL, {
+                const response = await fetch(this.API_URL, {
                     method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'saveClassification', payload: payload })
                 });
+                const res = await response.json();
+                if (res.status !== 'success') throw new Error(res.message || 'บันทึกข้อมูลไม่สำเร็จ');
+
+                this.upsertClassificationRecord({
+                    ...payload,
+                    timestamp: new Date().toISOString()
+                }, { pediatric: false });
+
                 this.successMsg = 'บันทึกข้อมูลประเมินรายเวรเรียบร้อยแล้ว';
                 this.showSuccess = true;
                 setTimeout(() => this.showSuccess = false, 3000);
                 
                 this.showClassModal = false; // ปิด Popup หลังบันทึกสำเร็จ
-                await this.loadClassifications(this.selectedPatient.an);
+                this.scheduleClassificationRefresh(this.selectedPatient.an, { pediatric: false });
             } catch (error) {
                 this.showAlert('Error', 'เกิดข้อผิดพลาด: ' + error.message);
             } finally {
@@ -2243,6 +2406,7 @@ function nurseApp() {
             }
         },
         async savePedShiftForm() {
+            if (this.isLoading) return;
             const form = this.pedShiftForm;
             if (form.scores.some(score => ![1, 2, 3, 4].includes(Number(score)))) {
                 return this.showAlert('แจ้งเตือน', 'กรุณาประเมินให้ครบทั้ง 10 ข้อ');
@@ -2286,7 +2450,12 @@ function nurseApp() {
                 this.successMsg = `บันทึกเวร${form.shift} วันที่ ${this.formatThaiDateShort(form.evalDate)} สำเร็จ`;
                 this.showSuccess = true;
                 setTimeout(() => this.showSuccess = false, 2500);
-                await this.loadClassifications(currentAN);
+                this.upsertClassificationRecord({
+                    ...payload,
+                    scores: form.scores.map(score => Number(score)),
+                    timestamp: new Date().toISOString()
+                }, { pediatric: true });
+                this.scheduleClassificationRefresh(currentAN, { pediatric: true });
             } catch (error) {
                 this.showAlert('Error', error.message);
             } finally {
@@ -2294,6 +2463,7 @@ function nurseApp() {
             }
         },
         async saveFallShiftForm() {
+            if (this.isLoading) return;
             const form = this.fallShiftForm;
             const hasMorse = form.scores.some(score => score !== '' && score !== null);
             const hasMaas = form.maas !== '' && form.maas !== null;
@@ -2331,7 +2501,21 @@ function nurseApp() {
                 this.successMsg = `บันทึกเวร${form.shift} วันที่ ${this.formatThaiDateShort(form.evalDate)} สำเร็จ`;
                 this.showSuccess = true;
                 setTimeout(() => this.showSuccess = false, 2500);
-                await this.loadFallRisk(this.selectedPatient.an);
+                this.upsertFallRiskRecord({
+                    evalDate: form.evalDate,
+                    shift: form.shift,
+                    m1: form.scores[0] ?? '',
+                    m2: form.scores[1] ?? '',
+                    m3: form.scores[2] ?? '',
+                    m4: form.scores[3] ?? '',
+                    m5: form.scores[4] ?? '',
+                    m6: form.scores[5] ?? '',
+                    morseTotal: this.calcMorseTotal(form.scores) || '',
+                    maasScore: form.maas ?? '',
+                    assessor: form.assessor,
+                    timestamp: new Date().toISOString()
+                });
+                this.scheduleFallRiskRefresh(this.selectedPatient.an);
             } catch (error) {
                 this.showAlert('Error', error.message);
             } finally {
@@ -2700,38 +2884,41 @@ function nurseApp() {
             }
         },
         // โหลดข้อมูลประวัติ Morse/MAAS
-        async loadFallRisk(an) {
-            if (!an) return;
-            this.isLoading = true;
-            try {
-                const response = await fetch(`${this.API_URL}?action=getFallRisk&an=${an}&_=${new Date().getTime()}`);
+        async loadFallRisk(an, options = {}) {
+            if (!an) return [];
+            const requestKey = String(an);
+            if (!options.force && this.fallRiskLoadPromise && this.fallRiskLoadKey === requestKey) {
+                return this.fallRiskLoadPromise;
+            }
+
+            if (!options.silent) this.isLoading = true;
+
+            const loadTask = (async () => {
+                const response = await fetch(`${this.API_URL}?action=getFallRisk&an=${an}&_=${Date.now()}`);
                 if (!response.ok) throw new Error('Network response was not ok');
                 const rawHistory = await response.json();
-                this.fallHistory = this.normalizeShiftData(rawHistory, {
-                    buildRecord: (item, index) => ({
-                        ...item,
-                        evalDate: item.evalDate,
-                        shift: item.shift,
-                        timestamp: item.timestamp,
-                        m1: item.m1 ?? '',
-                        m2: item.m2 ?? '',
-                        m3: item.m3 ?? '',
-                        m4: item.m4 ?? '',
-                        m5: item.m5 ?? '',
-                        m6: item.m6 ?? '',
-                        morseTotal: item.morseTotal ?? '',
-                        maasScore: item.maasScore ?? '',
-                        assessor: item.assessor || '',
-                        _sourceIndex: index
-                    })
-                });
+                if (String(this.selectedPatient?.an || this.selectedPatient?.AN || '') !== String(an)) return [];
+                this.fallHistory = this.normalizeFallRiskHistory(rawHistory);
                 this.rebuildFallGrid(this.fallHistory);
-                this.currentPageIndex = Math.min(this.currentPageIndex, Math.max(this.classTimeline.length - 1, 0));
-            } catch (e) { 
-                console.error("Load Fall Risk Error:", e); 
+                this.clampCurrentPageIndex();
+                return this.fallHistory;
+            })();
+
+            this.fallRiskLoadPromise = loadTask;
+            this.fallRiskLoadKey = requestKey;
+
+            try {
+                return await loadTask;
+            } catch (e) {
+                console.error("Load Fall Risk Error:", e);
                 this.fallGridData = {};
+                return [];
             } finally {
-                this.isLoading = false;
+                if (this.fallRiskLoadPromise === loadTask) {
+                    this.fallRiskLoadPromise = null;
+                    this.fallRiskLoadKey = '';
+                }
+                if (!options.silent) this.isLoading = false;
             }
         },
 
