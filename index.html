@@ -2119,12 +2119,20 @@
                                                                         <div>ประเภท <span class="font-bold text-rose-600" x-text="getAdultShiftSummary(day.date, shift).category || '-'"></span></div>
                                                                         <div class="truncate">ผู้ประเมิน <span class="font-medium" x-text="getAdultShiftSummary(day.date, shift).assessor || '-'"></span></div>
                                                                     </div>
-                                                                    <button type="button"
-                                                                        @click="openAdultShiftModal(day.date, shift)"
-                                                                        class="w-full h-9 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-black transition-all">
-                                                                        <i class="fa-solid mr-1" :class="getAdultShiftSummary(day.date, shift).filled ? 'fa-pen-to-square' : 'fa-file-circle-plus'"></i>
-                                                                        <span x-text="getAdultShiftSummary(day.date, shift).filled ? 'แก้ไขเวร' : 'บันทึกเวร'"></span>
-                                                                    </button>
+                                                                    <div class="grid gap-2" :class="getAdultShiftSummary(day.date, shift).filled ? 'grid-cols-2' : 'grid-cols-1'">
+                                                                        <button type="button"
+                                                                            @click="openAdultShiftModal(day.date, shift)"
+                                                                            class="w-full h-9 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-black transition-all">
+                                                                            <i class="fa-solid mr-1" :class="getAdultShiftSummary(day.date, shift).filled ? 'fa-pen-to-square' : 'fa-file-circle-plus'"></i>
+                                                                            <span x-text="getAdultShiftSummary(day.date, shift).filled ? 'แก้ไขเวร' : 'บันทึกเวร'"></span>
+                                                                        </button>
+                                                                        <button type="button"
+                                                                            x-show="getAdultShiftSummary(day.date, shift).filled"
+                                                                            @click="deleteAdultShift(day.date, shift)"
+                                                                            class="w-full h-9 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-[11px] font-black transition-all">
+                                                                            <i class="fa-solid fa-trash-can mr-1"></i> ลบเวร
+                                                                        </button>
+                                                                    </div>
                                                                 </div>
                                                             </td>
                                                         </template>
@@ -2349,12 +2357,20 @@
                                                                         <div>ประเภท <span class="font-bold text-rose-600" x-text="getPedShiftSummary(day.date, shift).category || '-'"></span></div>
                                                                         <div class="truncate">ผู้ประเมิน <span class="font-medium" x-text="getPedShiftSummary(day.date, shift).assessor || '-'"></span></div>
                                                                     </div>
-                                                                    <button type="button"
-                                                                        @click="openPedShiftModal(day.date, shift)"
-                                                                        class="w-full h-9 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black transition-all">
-                                                                        <i class="fa-solid mr-1" :class="getPedShiftSummary(day.date, shift).filled ? 'fa-pen-to-square' : 'fa-file-circle-plus'"></i>
-                                                                        <span x-text="getPedShiftSummary(day.date, shift).filled ? 'แก้ไขเวร' : 'บันทึกเวร'"></span>
-                                                                    </button>
+                                                                    <div class="grid gap-2" :class="getPedShiftSummary(day.date, shift).filled ? 'grid-cols-2' : 'grid-cols-1'">
+                                                                        <button type="button"
+                                                                            @click="openPedShiftModal(day.date, shift)"
+                                                                            class="w-full h-9 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black transition-all">
+                                                                            <i class="fa-solid mr-1" :class="getPedShiftSummary(day.date, shift).filled ? 'fa-pen-to-square' : 'fa-file-circle-plus'"></i>
+                                                                            <span x-text="getPedShiftSummary(day.date, shift).filled ? 'แก้ไขเวร' : 'บันทึกเวร'"></span>
+                                                                        </button>
+                                                                        <button type="button"
+                                                                            x-show="getPedShiftSummary(day.date, shift).filled"
+                                                                            @click="deletePedShift(day.date, shift)"
+                                                                            class="w-full h-9 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-[11px] font-black transition-all">
+                                                                            <i class="fa-solid fa-trash-can mr-1"></i> ลบเวร
+                                                                        </button>
+                                                                    </div>
                                                                 </div>
                                                             </td>
                                                         </template>
@@ -3098,12 +3114,20 @@
                                                                 <div>MAAS <span class="font-black text-blue-700" x-text="getFallShiftSummary(day.date, shift).maas || '-'"></span></div>
                                                                 <div class="truncate">ผู้ประเมิน <span class="font-medium" x-text="getFallShiftSummary(day.date, shift).assessor || '-'"></span></div>
                                                             </div>
-                                                            <button type="button"
-                                                                @click="openFallShiftModal(day.date, shift)"
-                                                                class="w-full h-9 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-black transition-all">
-                                                                <i class="fa-solid mr-1" :class="getFallShiftSummary(day.date, shift).filled ? 'fa-pen-to-square' : 'fa-file-circle-plus'"></i>
-                                                                <span x-text="getFallShiftSummary(day.date, shift).filled ? 'แก้ไขเวร' : 'บันทึกเวร'"></span>
-                                                            </button>
+                                                            <div class="grid gap-2" :class="getFallShiftSummary(day.date, shift).filled ? 'grid-cols-2' : 'grid-cols-1'">
+                                                                <button type="button"
+                                                                    @click="openFallShiftModal(day.date, shift)"
+                                                                    class="w-full h-9 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-black transition-all">
+                                                                    <i class="fa-solid mr-1" :class="getFallShiftSummary(day.date, shift).filled ? 'fa-pen-to-square' : 'fa-file-circle-plus'"></i>
+                                                                    <span x-text="getFallShiftSummary(day.date, shift).filled ? 'แก้ไขเวร' : 'บันทึกเวร'"></span>
+                                                                </button>
+                                                                <button type="button"
+                                                                    x-show="getFallShiftSummary(day.date, shift).filled"
+                                                                    @click="deleteFallShift(day.date, shift)"
+                                                                    class="w-full h-9 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-[11px] font-black transition-all">
+                                                                    <i class="fa-solid fa-trash-can mr-1"></i> ลบเวร
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     </td>
                                                 </template>
@@ -4371,6 +4395,7 @@
             </div>
             <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 flex gap-3">
                 <button @click="showClassModal = false" class="flex-1 h-11 rounded-xl bg-white border border-slate-200 font-bold text-slate-600">ยกเลิก</button>
+                <button x-show="hasClassificationShiftData(classForm.evalDate, classForm.shift)" @click="deleteAdultShift(classForm.evalDate, classForm.shift)" class="flex-1 h-11 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-black">ลบเวรนี้</button>
                 <button @click="saveClassForm()" class="flex-1 h-11 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black">บันทึกเวรนี้</button>
             </div>
         </div>
@@ -4423,6 +4448,7 @@
             </div>
             <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 flex gap-3">
                 <button @click="showPedShiftModal = false" class="flex-1 h-11 rounded-xl bg-white border border-slate-200 font-bold text-slate-600">ยกเลิก</button>
+                <button x-show="hasClassificationShiftData(pedShiftForm.evalDate, pedShiftForm.shift)" @click="deletePedShift(pedShiftForm.evalDate, pedShiftForm.shift)" class="flex-1 h-11 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-black">ลบเวรนี้</button>
                 <button @click="savePedShiftForm()" class="flex-1 h-11 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black">บันทึกเวรนี้</button>
             </div>
         </div>
@@ -4482,6 +4508,7 @@
             </div>
             <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 flex gap-3">
                 <button @click="showFallShiftModal = false" class="flex-1 h-11 rounded-xl bg-white border border-slate-200 font-bold text-slate-600">ยกเลิก</button>
+                <button x-show="hasFallShiftData(fallShiftForm.evalDate, fallShiftForm.shift)" @click="deleteFallShift(fallShiftForm.evalDate, fallShiftForm.shift)" class="flex-1 h-11 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-black">ลบเวรนี้</button>
                 <button @click="saveFallShiftForm()" class="flex-1 h-11 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-black">บันทึกเวรนี้</button>
             </div>
         </div>
