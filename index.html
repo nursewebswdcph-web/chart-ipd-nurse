@@ -2055,15 +2055,11 @@
                                     </div>
                                     <template x-if="selectedPatient">
                                         <div class="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
-                                            <label class="block text-xs font-bold text-blue-700">ระบุวันจำหน่ายผู้ป่วย:</label>
+                                            <label class="block text-xs font-bold text-blue-700">ระบุวันจำหน่ายผู้ป่วย เพื่อพิมพ์ลงเอกสาร:</label>
                                             <div class="flex gap-2 mt-1">
                                                 <input type="date" 
                                                         x-model="selectedPatient.dischargeDate" 
                                                         class="border rounded px-2 py-1 text-xs focus:ring-1 focus:ring-blue-500">
-                                                <button @click="saveDischargeDateAction(selectedPatient.an, selectedPatient.dischargeDate)" 
-                                                        class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition text-xs">
-                                                    <i class="fas fa-save mr-1"></i> บันทึกวันจำหน่าย
-                                                </button>
                                             </div>
                                         </div>
                                     </template>
