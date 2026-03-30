@@ -282,6 +282,73 @@ function nurseApp() {
             if (this.currentForm?.id === 'patient_class_ped') return this.classHistoryPed || [];
             return this.classHistory || [];
         },
+        get currentShiftPage() {
+            return this.classTimeline[this.currentPageIndex] || [];
+        },
+        get adultClassificationQuestions() {
+            return [
+                { type: 'section', title: 'สภาวะสุขภาพ' },
+                { type: 'question', scoreIndex: 0, label: '1. สัญญาณชีพ' },
+                { type: 'question', scoreIndex: 1, label: '2. อาการและอาการแสดงทางระบบประสาท' },
+                { type: 'question', scoreIndex: 2, label: '3. การได้รับการตรวจรักษา/ผ่าตัดหรือหัตถการ' },
+                { type: 'question', scoreIndex: 3, label: '4. พฤติกรรมที่ผิดปกติอารมณ์ จิตสังคม' },
+                { type: 'section', title: 'ความต้องการการดูแลขั้นต่ำ' },
+                { type: 'question', scoreIndex: 4, label: '5. ความสามารถในการปฏิบัติกิจวัตรประจำวัน' },
+                { type: 'question', scoreIndex: 5, label: '6. ความต้องการด้านจิตใจและอารมณ์' },
+                { type: 'question', scoreIndex: 6, label: '7. ความต้องการยา/การรักษาทำหัตถการ/ฟื้นฟู' },
+                { type: 'question', scoreIndex: 7, label: '8. ความต้องการการบรรเทาอาการรบกวน' }
+            ];
+        },
+        get pedClassificationQuestions() {
+            return [
+                { type: 'section', title: '1. การดูแลเกี่ยวกับกิจวัตรประจำวัน' },
+                { type: 'question', scoreIndex: 0, label: '1.1 การดูดนมและรับประทานอาหาร' },
+                { type: 'question', scoreIndex: 1, label: '1.2 การดูแลสุขอนามัยส่วนบุคคล' },
+                { type: 'question', scoreIndex: 2, label: '1.3 การขับถ่าย' },
+                { type: 'question', scoreIndex: 3, label: '1.4 การเคลื่อนไหวร่างกายและการออกกำลังกาย' },
+                { type: 'section', title: '2. การได้รับยาและการปฏิบัติการพยาบาล' },
+                { type: 'question', scoreIndex: 4, label: '2.1 การได้รับยาและ/หรือ สารน้ำ สารอาหาร' },
+                { type: 'question', scoreIndex: 5, label: '2.2 การปฏิบัติการรักษาพยาบาล' },
+                { type: 'question', scoreIndex: 6, label: '2.3 การช่วยเหลือด้านการหายใจ' },
+                { type: 'section', title: '3. การประเมินสภาพอาการการสังเกตสัญญาณชีพและเครื่องตรวจวัดต่างๆ' },
+                { type: 'question', scoreIndex: 7, label: '3.1 สภาพอาการทั่วไป' },
+                { type: 'question', scoreIndex: 8, label: '3.2 การสังเกตสัญญาณชีพและเครื่องวัดอื่นๆ' },
+                { type: 'question', scoreIndex: 9, label: '4. การสอนและการประคับประคองจิตใจ (ผู้ป่วยเด็กและครอบครัว)', emphasis: true }
+            ];
+        },
+        get fallRiskMorseQuestions() {
+            return [
+                { label: '1. ประวัติหกล้มช่วง 3 เดือน', opts: [{ v: 0, t: 'ไม่ใช่ = 0' }, { v: 25, t: 'ใช่ = 25' }] },
+                { label: '2. มีการวินิจฉัยโรค > 1 รายการ', opts: [{ v: 0, t: 'ไม่ใช่ = 0' }, { v: 15, t: 'ใช่ = 15' }] },
+                { label: '3. การช่วยในการเคลื่อนย้าย', opts: [{ v: 0, t: 'เดินเอง/รถเข็น = 0' }, { v: 15, t: 'ไม้เท้า = 15' }, { v: 30, t: 'ยึดเกาะโต๊ะ/เตียง = 30' }] },
+                { label: '4. ให้สารละลายทางหลอดเลือด', opts: [{ v: 0, t: 'ไม่ใช่ = 0' }, { v: 20, t: 'ใช่ = 20' }] },
+                { label: '5. การเดิน/เคลื่อนย้าย', opts: [{ v: 0, t: 'ปกติ/นอนพัก = 0' }, { v: 10, t: 'อ่อนแรงเล็กน้อย = 10' }, { v: 20, t: 'บกพร่อง/เดินไม่ได้ = 20' }] },
+                { label: '6. สภาพจิตใจ', opts: [{ v: 0, t: 'รับรู้ปกติ = 0' }, { v: 15, t: 'ไม่รับรู้ความจริง = 15' }] }
+            ];
+        },
+        get fallRiskMaasOptions() {
+            return [
+                { value: '0', label: '0 - ไม่ตอบสนอง' },
+                { value: '1', label: '1 - ตอบสนองต่อการกระตุ้นแรงๆ' },
+                { value: '2', label: '2 - ตอบสนองต่อการสัมผัส/เรียก' },
+                { value: '3', label: '3 - สงบและให้ความร่วมมือ' },
+                { value: '4', label: '4 - พักได้น้อย/ไม่ร่วมมือ' },
+                { value: '5', label: '5 - ต่อต้านการรักษา' },
+                { value: '6', label: '6 - ต่อต้าน/อันตรายต่อผู้อื่น' }
+            ];
+        },
+        formatShiftTimestamp(value) {
+            if (!value) return 'ยังไม่บันทึก';
+            const date = new Date(value);
+            if (isNaN(date.getTime())) return 'ยังไม่บันทึก';
+            return date.toLocaleString('th-TH', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        },
 
         init() {
             this.startClock();
