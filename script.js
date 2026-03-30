@@ -1826,7 +1826,7 @@ function nurseApp() {
                         <tr>
                             <th class="text-left">ผู้ประเมิน</th>
                             ${pageData.map(day => SHIFT_ORDER.map(shift => {
-                                let assessor = this.getGridCell(day.date, shift).assessor || '';
+                                let assessor = this.formatShortName(this.getGridCell(day.date, shift).assessor || '');
                                 if(assessor.length > 8) assessor = assessor.substring(0,8)+'.';
                                 return `<td style="font-size:6pt; line-height:1;">${assessor}</td>`;
                             }).join('')).join('')}
@@ -2291,8 +2291,11 @@ function nurseApp() {
         // ฟังก์ชันตัดคำนำหน้าและนามสกุล (เอาเฉพาะชื่อจริง)
         formatShortName(fullName) {
             if (!fullName) return '';
-            let name = fullName.replace(/^(นาย|นางสาว|นาง|น\.ส\.|นพ\.|พญ\.|พว\.|ทพ\.|ทญ\.)/g, '').trim();
-            return name.split(' ')[0]; // เอาเฉพาะชื่อจริงตัวแรก
+            let name = String(fullName)
+                .replace(/^(นายแพทย์|แพทย์หญิง|ทันตแพทย์หญิง|ทันตแพทย์|นาย|นางสาว|นาง|น\.ส\.|นพ\.|พญ\.|พว\.|ทพ\.|ทญ\.)\s*/g, '')
+                .trim();
+            name = name.replace(/\s+/g, ' ');
+            return name ? name.split(' ')[0].trim() : '';
         },
         escapeHtml(value) {
             return String(value ?? '')
@@ -2380,7 +2383,7 @@ function nurseApp() {
 
                 const assessorRow = buildShiftCells(page, (day, shift) => {
                     const cell = this.getClassificationPrintCell(day.date, shift);
-                    return `<td class="border border-black text-gray-800 text-[10px] font-normal leading-tight">${this.escapeHtml(cell.assessor)}</td>`;
+                    return `<td class="border border-black text-gray-800 text-[10px] font-normal leading-tight">${this.escapeHtml(this.formatShortName(cell.assessor))}</td>`;
                 });
 
                 const dayHeaders = page.map(day => `<th colspan="3" class="border border-black font-bold py-1">${this.escapeHtml(day.formattedDate)}</th>`).join('');
@@ -2781,7 +2784,7 @@ function nurseApp() {
 
                 const morseAssessorRow = buildShiftCells(page, (day, shift) => {
                     const cell = this.getFallPrintCell(day.date, shift);
-                    return `<td class="border border-black text-center text-[8px]">${this.escapeHtml(cell.assessor)}</td>`;
+                    return `<td class="border border-black text-center text-[8px]">${this.escapeHtml(this.formatShortName(cell.assessor))}</td>`;
                 });
 
                 const maasBody = maasRows.map(row => {
@@ -2799,7 +2802,7 @@ function nurseApp() {
 
                 const maasAssessorRow = buildShiftCells(page, (day, shift) => {
                     const cell = this.getFallPrintCell(day.date, shift);
-                    return `<td class="border border-black text-center text-[8px]">${this.escapeHtml(cell.assessor)}</td>`;
+                    return `<td class="border border-black text-center text-[8px]">${this.escapeHtml(this.formatShortName(cell.assessor))}</td>`;
                 });
 
                 return `
@@ -2908,36 +2911,24 @@ function nurseApp() {
 
                             <div class="avoid-break maas-guide-box">
                                 <div class="font-bold text-[10px] mb-1 text-center">แนวปฏิบัติการป้องกันการดึงอุปกรณ์ (MAAS)</div>
-                                <div class="maas-guide-grid">
-                                    <table class="w-full text-[8px] border-collapse maas-guide-card">
-                                        <thead>
-                                            <tr class="bg-gray">
-                                                <th class="border border-black p-1 w-[60px]">คะแนน</th>
-                                                <th class="border border-black p-1 text-left">รายการปฏิบัติ</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td class="border border-black text-center font-bold">0-3</td>
-                                                <td class="border border-black p-1">ไม่ต้องผูกมัด</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                    <table class="w-full text-[8px] border-collapse maas-guide-card">
-                                        <thead>
-                                            <tr class="bg-gray">
-                                                <th class="border border-black p-1 w-[60px]">คะแนน</th>
-                                                <th class="border border-black p-1 text-left">รายการปฏิบัติ</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td class="border border-black text-center font-bold">4-6</td>
-                                                <td class="border border-black p-1 font-bold">ต้องผูกมัดผู้ป่วยและเฝ้าระวังอย่างใกล้ชิด <br> ***ก่อนผูกมัดต้องแจ้งญาติทราบก่อนทุกครั้ง*** <br> ***กรณีไม่มีญาติผูกมัดได้เลย***</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
+                                <table class="w-full text-[8px] border-collapse maas-guide-table">
+                                    <thead>
+                                        <tr class="bg-gray">
+                                            <th class="border border-black p-1 w-[60px]">คะแนน</th>
+                                            <th class="border border-black p-1 text-left">รายการปฏิบัติ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td class="border border-black text-center font-bold">0-3</td>
+                                            <td class="border border-black p-1">ไม่ต้องผูกมัด</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="border border-black text-center font-bold">4-6</td>
+                                            <td class="border border-black p-1 font-bold maas-guide-single-line">ต้องผูกมัดผู้ป่วยและเฝ้าระวังอย่างใกล้ชิด ***ก่อนผูกมัดต้องแจ้งญาติทราบก่อนทุกครั้ง*** ***กรณีไม่มีญาติผูกมัดได้เลย***</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
@@ -2989,9 +2980,9 @@ function nurseApp() {
                             .text-center { text-align: center; }
                             .avoid-break { break-inside: avoid; page-break-inside: avoid; }
                             .maas-guide-box { margin-top: 2px; }
-                            .maas-guide-grid { display: flex; gap: 8px; align-items: stretch; }
-                            .maas-guide-card { margin-top: 0; }
-                            .maas-guide-card td, .maas-guide-card th { font-size: 8px; }
+                            .maas-guide-table { margin-top: 0; }
+                            .maas-guide-table td, .maas-guide-table th { font-size: 8px; }
+                            .maas-guide-single-line { white-space: nowrap; font-size: 7px; }
                             .print-global-footer {
                                 position: fixed; bottom: 0; left: 0; width: 100%; text-align: center;
                                 font-size: 9px; color: #475569 !important; border-top: 1px solid #9ca3af;
