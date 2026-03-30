@@ -464,6 +464,132 @@ function nurseApp() {
             };
             this.showFallShiftModal = true;
         },
+        deleteAdultShift(date, shift) {
+            if (!this.selectedPatient?.an) {
+                return this.showAlert('Error', 'ไม่พบเลข AN ของผู้ป่วย');
+            }
+            if (!this.hasClassificationShiftData(date, shift)) {
+                return this.showAlert('แจ้งเตือน', 'เวรนี้ยังไม่มีข้อมูลให้ลบ');
+            }
+
+            this.showConfirm(
+                'ยืนยันการลบ',
+                `ต้องการลบข้อมูลแบบจำแนกผู้ป่วย วันที่ ${this.formatThaiDateShort(date)} เวร${shift} ใช่หรือไม่?`,
+                async () => {
+                    this.isLoading = true;
+                    try {
+                        const response = await fetch(this.API_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                action: 'deleteClassification',
+                                payload: {
+                                    an: this.selectedPatient.an,
+                                    evalDate: date,
+                                    shift
+                                }
+                            })
+                        });
+                        const res = await response.json();
+                        if (res.status !== 'success') throw new Error(res.message);
+                        this.showClassModal = false;
+                        this.successMsg = `ลบเวร${shift} วันที่ ${this.formatThaiDateShort(date)} เรียบร้อยแล้ว`;
+                        this.showSuccess = true;
+                        setTimeout(() => this.showSuccess = false, 2500);
+                        await this.loadClassifications(this.selectedPatient.an);
+                    } catch (error) {
+                        this.showAlert('Error', 'ลบข้อมูลไม่สำเร็จ: ' + error.message);
+                    } finally {
+                        this.isLoading = false;
+                    }
+                }
+            );
+        },
+        deletePedShift(date, shift) {
+            const currentAN = this.selectedPatient?.an || this.selectedPatient?.AN;
+            if (!currentAN) {
+                return this.showAlert('Error', 'ไม่พบเลข AN ของผู้ป่วย');
+            }
+            if (!this.hasClassificationShiftData(date, shift)) {
+                return this.showAlert('แจ้งเตือน', 'เวรนี้ยังไม่มีข้อมูลให้ลบ');
+            }
+
+            this.showConfirm(
+                'ยืนยันการลบ',
+                `ต้องการลบข้อมูลแบบจำแนกผู้ป่วยเด็ก วันที่ ${this.formatThaiDateShort(date)} เวร${shift} ใช่หรือไม่?`,
+                async () => {
+                    this.isLoading = true;
+                    try {
+                        const response = await fetch(this.API_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                action: 'deleteClassificationPed',
+                                payload: {
+                                    an: currentAN,
+                                    evalDate: date,
+                                    shift
+                                }
+                            })
+                        });
+                        const res = await response.json();
+                        if (res.status !== 'success') throw new Error(res.message);
+
+                        this.showPedShiftModal = false;
+                        this.successMsg = `ลบเวร${shift} วันที่ ${this.formatThaiDateShort(date)} เรียบร้อยแล้ว`;
+                        this.showSuccess = true;
+                        setTimeout(() => this.showSuccess = false, 2500);
+                        await this.loadClassifications(currentAN);
+                    } catch (error) {
+                        this.showAlert('Error', 'ลบข้อมูลไม่สำเร็จ: ' + error.message);
+                    } finally {
+                        this.isLoading = false;
+                    }
+                }
+            );
+        },
+        deleteFallShift(date, shift) {
+            if (!this.selectedPatient?.an) {
+                return this.showAlert('Error', 'ไม่พบเลข AN ของผู้ป่วย');
+            }
+            if (!this.hasFallShiftData(date, shift)) {
+                return this.showAlert('แจ้งเตือน', 'เวรนี้ยังไม่มีข้อมูลให้ลบ');
+            }
+
+            this.showConfirm(
+                'ยืนยันการลบ',
+                `ต้องการลบข้อมูลประเมินพลัดตกหกล้ม วันที่ ${this.formatThaiDateShort(date)} เวร${shift} ใช่หรือไม่?`,
+                async () => {
+                    this.isLoading = true;
+                    try {
+                        const response = await fetch(this.API_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                action: 'deleteFallRisk',
+                                payload: {
+                                    an: this.selectedPatient.an,
+                                    evalDate: date,
+                                    shift
+                                }
+                            })
+                        });
+                        const res = await response.json();
+                        if (res.status !== 'success') throw new Error(res.message);
+
+                        this.showFallShiftModal = false;
+                        this.successMsg = `ลบเวร${shift} วันที่ ${this.formatThaiDateShort(date)} เรียบร้อยแล้ว`;
+                        this.showSuccess = true;
+                        setTimeout(() => this.showSuccess = false, 2500);
+                        await this.loadFallRisk(this.selectedPatient.an);
+                    } catch (error) {
+                        this.showAlert('Error', 'ลบข้อมูลไม่สำเร็จ: ' + error.message);
+                    } finally {
+                        this.isLoading = false;
+                    }
+                }
+            );
+        },
 
         init() {
             this.startClock();
