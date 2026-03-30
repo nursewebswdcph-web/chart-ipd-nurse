@@ -2265,125 +2265,223 @@ function nurseApp() {
             let name = fullName.replace(/^(นาย|นางสาว|นาง|น\.ส\.|นพ\.|พญ\.|พว\.|ทพ\.|ทญ\.)/g, '').trim();
             return name.split(' ')[0]; // เอาเฉพาะชื่อจริงตัวแรก
         },
+        escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        },
+        getClassificationPrintCell(dateStr, shift) {
+            if (!dateStr || !shift) {
+                return { scores: Array(8).fill(''), assessor: '' };
+            }
+            const normalizedDate = this.normalizeDateKey(dateStr);
+            const normalizedShift = this.normalizeShiftLabel(shift);
+            const cell = this.gridData?.[normalizedDate]?.[normalizedShift];
+            return {
+                scores: Array.from({ length: 8 }, (_, index) => cell?.scores?.[index] ?? ''),
+                assessor: cell?.assessor || ''
+            };
+        },
 
         // 🟢 ฟังก์ชันสั่งพิมพ์ของฟอร์มจำแนกผู้ป่วย (อัปเดตแก้ปัญหาหน้าว่าง)
         printClassification() {
             window.scrollTo(0, 0);
-            
-            // รอให้ Alpine.js เรนเดอร์ DOM เสร็จสมบูรณ์
-            this.$nextTick(() => {
-                const printArea = document.getElementById('patient-class-print-area');
-                if (!printArea) {
-                    return this.showAlert('แจ้งเตือน', 'ไม่พบพื้นที่สำหรับพิมพ์เอกสาร');
-                }
-                
-                // 1. โคลน DOM เพื่อนำมาปรับแต่งก่อนพิมพ์ โดยไม่กระทบหน้าเว็บจริง
-                const cloneDOM = printArea.cloneNode(true);
-                
-                // 2. ลบแท็ก <template> ทิ้งทั้งหมด! (หัวใจสำคัญ: ป้องกันตารางพังเวลาลง Iframe)
-                const templates = cloneDOM.querySelectorAll('template');
-                templates.forEach(t => t.remove());
-                
-                // 3. ดึง HTML ที่โครงสร้างสะอาดแล้วมาเก็บไว้
-                const printContent = cloneDOM.innerHTML;
-                
-                // 4. สร้าง Iframe ใหม่ทุกครั้ง ป้องกันอาการค้างหรือหน้าขาว
-                let iframe = document.getElementById('print-frame');
-                if (iframe) {
-                    iframe.remove(); 
-                }
-                iframe = document.createElement('iframe');
-                iframe.id = 'print-frame';
-                iframe.style.display = 'none';
-                document.body.appendChild(iframe);
-                
-                const pri = iframe.contentWindow;
-                const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]')).map(s => s.outerHTML).join('');
 
-                // ดึงข้อมูลคนไข้
-                const pName = this.selectedPatient?.name || '-';
-                const pAge = this.selectedPatient?.ageDisplay || '-';
-                const pHn = this.selectedPatient?.hn || '-';
-                const pAn = this.selectedPatient?.an || '-';
-                const pDoc = this.selectedPatient?.doctor || '-';
-                const pWard = this.currentWard || '-';
-                const pBed = this.selectedPatient?.bed || '-';
+            const pages = this.printTimelinePages || [];
+            if (!pages.length) {
+                return this.showAlert('แจ้งเตือน', 'ยังไม่มีประวัติการประเมินเพื่อพิมพ์');
+            }
 
-                pri.document.open();
-                pri.document.write(`
-                    <!DOCTYPE html>
-                    <html>
-                        <head>
-                            <title>พิมพ์การจำแนกประเภทผู้ป่วย</title>
-                            ${styles}
-                            <style>
-                                /* ตั้งค่าหน้ากระดาษ */
-                                @page {size: A4 portrait; margin: 20mm 8mm 10mm 8mm;}
-                                body { 
-                                    background: white !important; 
-                                    margin: 0; 
-                                    padding: 0; 
-                                    color: black !important; 
-                                    -webkit-print-color-adjust: exact !important; 
-                                    print-color-adjust: exact !important;
-                                }
-                                
-                                .a4-page { 
-                                    width: 100% !important; 
-                                    margin: 0 auto !important; 
-                                    position: relative;
-                                    page-break-after: always; 
-                                    overflow: visible !important;
-                                    padding-bottom: 75px !important; 
-                                    display: block !important; 
-                                }
-                                .a4-page:last-child { page-break-after: auto; }
-                                
-                                /* บังคับสไตล์ตาราง */
-                                table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-                                th, td { border: 1px solid black !important; padding: 4px !important; font-size: 11px; color: black !important; }
+            const shifts = this.shiftOrder;
+            const questionRows = [
+                { type: 'section', label: 'สภาวะสุขภาพ' },
+                { type: 'question', label: '1. สัญญาณชีพ', scoreIndex: 0 },
+                { type: 'question', label: '2. อาการและอาการแสดงทางระบบประสาท', scoreIndex: 1 },
+                { type: 'question', label: '3. การได้รับการตรวจรักษา/ผ่าตัดหรือหัตถการ', scoreIndex: 2 },
+                { type: 'question', label: '4. พฤติกรรมที่ผิดปกติ อารมณ์ จิตสังคม', scoreIndex: 3 },
+                { type: 'section', label: 'ความต้องการการดูแลขั้นต่ำ' },
+                { type: 'question', label: '5. ความสามารถในการปฏิบัติกิจวัตรประจำวัน', scoreIndex: 4 },
+                { type: 'question', label: '6. ความต้องการด้านจิตใจและอารมณ์ของผู้ป่วย', scoreIndex: 5 },
+                { type: 'question', label: '7. ความต้องการยา/การรักษาทำหัตถการ/ฟื้นฟู', scoreIndex: 6 },
+                { type: 'question', label: '8. ความต้องการการบรรเทาอาการรบกวน', scoreIndex: 7 }
+            ];
 
-                                /* Footer ท้ายกระดาษ */
-                                .print-global-footer {
-                                    position: fixed; bottom: 0; left: 0; width: 100%; text-align: center;
-                                    font-size: 9px; color: #475569 !important; border-top: 1px solid #9ca3af; 
-                                    padding-top: 4px; padding-bottom: 4px; background-color: white; z-index: 1000;
-                                }
-                                
-                                /* กรอบข้อมูลผู้ป่วย */
-                                .print-patient-info {
-                                    position: fixed; bottom: 22px; right: 15px; width: 260px;
-                                    border: 1px solid #000 !important; border-radius: 4px; padding: 6px 8px;
-                                    font-size: 10px; background-color: white !important; z-index: 1000; 
-                                    line-height: 1.4; color: black !important;
-                                }
-                            </style>
-                        </head>
-                        <body>
-                            <div class="print-patient-info">
-                                <div><b>ชื่อ-สกุล:</b> ${pName} &nbsp;&nbsp;<b>อายุ:</b> ${pAge}</div>
-                                <div><b>HN:</b> ${pHn} &nbsp;&nbsp;<b>AN:</b> ${pAn}</div>
-                                <div><b>แพทย์:</b> ${pDoc} &nbsp;&nbsp;<b>ตึก:</b> ${pWard} &nbsp;&nbsp;<b>เตียง:</b> ${pBed}</div>
-                            </div>
-                            
-                            <div class="print-global-footer">
-                                เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | ระบบบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
-                            </div>
+            const buildShiftCells = (page, renderCell) => page.map(day => shifts.map(shift => renderCell(day, shift)).join('')).join('');
 
-                            ${printContent}
-                            
-                            <script>
-                                window.onload = function() { 
-                                    setTimeout(() => { 
-                                        window.print(); 
-                                    }, 800); 
-                                };
-                            </script>
-                        </body>
-                    </html>
-                `);
-                pri.document.close();
-            });
+            const pageMarkup = pages.map((page, pageIndex) => {
+                const tableRows = questionRows.map(row => {
+                    if (row.type === 'section') {
+                        return `<tr><th colspan="16" class="border border-black text-left px-2 py-1.5 bg-gray-50 font-bold">${this.escapeHtml(row.label)}</th></tr>`;
+                    }
+
+                    const cells = buildShiftCells(page, (day, shift) => {
+                        const cell = this.getClassificationPrintCell(day.date, shift);
+                        const score = cell.scores[row.scoreIndex] ?? '';
+                        return `<td class="border border-black font-bold text-[12px]">${this.escapeHtml(score)}</td>`;
+                    });
+
+                    return `<tr><td class="border border-black text-left px-2 py-1.5 font-medium">${this.escapeHtml(row.label)}</td>${cells}</tr>`;
+                }).join('');
+
+                const totalRow = buildShiftCells(page, (day, shift) => {
+                    const cell = this.getClassificationPrintCell(day.date, shift);
+                    return `<td class="border border-black text-blue-800">${this.escapeHtml(this.calcScores(cell.scores).total)}</td>`;
+                });
+
+                const categoryRow = buildShiftCells(page, (day, shift) => {
+                    const cell = this.getClassificationPrintCell(day.date, shift);
+                    return `<td class="border border-black text-red-700">${this.escapeHtml(this.calcScores(cell.scores).category)}</td>`;
+                });
+
+                const assessorRow = buildShiftCells(page, (day, shift) => {
+                    const cell = this.getClassificationPrintCell(day.date, shift);
+                    return `<td class="border border-black text-gray-800 text-[10px] font-normal leading-tight">${this.escapeHtml(cell.assessor)}</td>`;
+                });
+
+                const dayHeaders = page.map(day => `<th colspan="3" class="border border-black font-bold py-1">${this.escapeHtml(day.formattedDate)}</th>`).join('');
+                const shiftHeaders = page.map(() => shifts.map(shift => `<th class="border border-black w-[42px] font-bold">${this.escapeHtml(shift)}</th>`).join('')).join('');
+
+                return `
+                    <div class="a4-page relative bg-white shadow-xl mx-auto rounded-lg p-6 max-w-[210mm] text-black">
+                        <div class="text-right text-[8px] font-bold mb-2">
+                            Echart-ipd-nurse<br>Classification-Form หน้า ${pageIndex + 1}
+                        </div>
+                        <div class="text-center font-bold text-[15px] leading-relaxed mb-4">
+                            แบบบันทึกการจำแนกผู้ป่วย หอผู้ป่วย ${this.escapeHtml(this.currentWard || '')}<br>
+                            กลุ่มการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
+                        </div>
+
+                        <div class="flex justify-center gap-8 text-[12px] font-bold mb-3">
+                            <div>วันที่รับใหม่ <span class="border-b border-dotted border-black inline-block min-w-[140px] text-center">${this.escapeHtml(this.formatThaiDate(this.selectedPatient?.date))}</span></div>
+                            <div>วันที่จำหน่าย <span class="border-b border-dotted border-black inline-block min-w-[140px] text-center">${this.escapeHtml(this.selectedPatient?.dischargeDate ? this.formatThaiDate(this.selectedPatient.dischargeDate) : '')}</span></div>
+                        </div>
+
+                        <table class="w-full border-collapse border border-black text-center text-[11px] leading-tight" style="table-layout: fixed;">
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th class="border border-black text-left px-2 py-1.5 w-[180px]">ว/ด/ป</th>
+                                    ${dayHeaders}
+                                </tr>
+                                <tr class="bg-gray-100">
+                                    <th class="border border-black text-left px-2 py-1">เวร</th>
+                                    ${shiftHeaders}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${tableRows}
+                                <tr class="font-bold bg-gray-50">
+                                    <td class="border border-black text-left px-2 py-2">รวมคะแนน</td>
+                                    ${totalRow}
+                                </tr>
+                                <tr class="font-bold">
+                                    <td class="border border-black text-left px-2 py-2">ประเภทผู้ป่วย</td>
+                                    ${categoryRow}
+                                </tr>
+                                <tr class="font-bold">
+                                    <td class="border border-black text-left px-2 py-2">ผู้ประเมิน</td>
+                                    ${assessorRow}
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="mt-4 text-[11px] text-black font-medium leading-relaxed">
+                            เกณฑ์การจำแนก นับรวมตั้งแต่ข้อ 1 ถึง ข้อ 8<br>
+                            ประเภทที่ 1  ผู้ป่วยพักฟื้นดูแลตัวเองได้     (8 คะแนน)<br>
+                            ประเภทที่ 2  ผู้ป่วยเจ็บป่วยเล็กน้อย        (9-14 คะแนน)<br>
+                            ประเภทที่ 3  ผู้ป่วยเจ็บป่วยปานกลาง      (15-20 คะแนน)<br>
+                            ประเภทที่ 4  ผู้ป่วยหนัก                (21-26 คะแนน)<br>
+                            ประเภทที่ 5 ผู้ป่วยหนักมาก/วิกฤติ         (27-32 คะแนน)
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            let iframe = document.getElementById('print-frame');
+            if (iframe) iframe.remove();
+            iframe = document.createElement('iframe');
+            iframe.id = 'print-frame';
+            iframe.style.display = 'none';
+            document.body.appendChild(iframe);
+
+            const pri = iframe.contentWindow;
+            const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]')).map(s => s.outerHTML).join('');
+            const pName = this.escapeHtml(this.selectedPatient?.name || '-');
+            const pAge = this.escapeHtml(this.selectedPatient?.ageDisplay || '-');
+            const pHn = this.escapeHtml(this.selectedPatient?.hn || '-');
+            const pAn = this.escapeHtml(this.selectedPatient?.an || '-');
+            const pDoc = this.escapeHtml(this.selectedPatient?.doctor || '-');
+            const pWard = this.escapeHtml(this.currentWard || '-');
+            const pBed = this.escapeHtml(this.selectedPatient?.bed || '-');
+
+            pri.document.open();
+            pri.document.write(`
+                <!DOCTYPE html>
+                <html>
+                    <head>
+                        <title>พิมพ์การจำแนกประเภทผู้ป่วย</title>
+                        ${styles}
+                        <style>
+                            @page {size: A4 portrait; margin: 20mm 8mm 10mm 8mm;}
+                            body {
+                                background: white !important;
+                                margin: 0;
+                                padding: 0;
+                                color: black !important;
+                                -webkit-print-color-adjust: exact !important;
+                                print-color-adjust: exact !important;
+                            }
+                            .a4-page {
+                                width: 100% !important;
+                                margin: 0 auto !important;
+                                position: relative;
+                                page-break-after: always;
+                                overflow: visible !important;
+                                padding-bottom: 75px !important;
+                                display: block !important;
+                            }
+                            .a4-page:last-child { page-break-after: auto; }
+                            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                            th, td { border: 1px solid black !important; padding: 4px !important; font-size: 11px; color: black !important; }
+                            .print-global-footer {
+                                position: fixed; bottom: 0; left: 0; width: 100%; text-align: center;
+                                font-size: 9px; color: #475569 !important; border-top: 1px solid #9ca3af;
+                                padding-top: 4px; padding-bottom: 4px; background-color: white; z-index: 1000;
+                            }
+                            .print-patient-info {
+                                position: fixed; bottom: 22px; right: 15px; width: 260px;
+                                border: 1px solid #000 !important; border-radius: 4px; padding: 6px 8px;
+                                font-size: 10px; background-color: white !important; z-index: 1000;
+                                line-height: 1.4; color: black !important;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="print-patient-info">
+                            <div><b>ชื่อ-สกุล:</b> ${pName} &nbsp;&nbsp;<b>อายุ:</b> ${pAge}</div>
+                            <div><b>HN:</b> ${pHn} &nbsp;&nbsp;<b>AN:</b> ${pAn}</div>
+                            <div><b>แพทย์:</b> ${pDoc} &nbsp;&nbsp;<b>ตึก:</b> ${pWard} &nbsp;&nbsp;<b>เตียง:</b> ${pBed}</div>
+                        </div>
+
+                        <div class="print-global-footer">
+                            เอกสารฉบับนี้พิมพ์จากระบบอิเล็กทรอนิกส์ IPD Nurse Workbench | ระบบบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
+                        </div>
+
+                        ${pageMarkup}
+
+                        <script>
+                            window.onload = function() {
+                                setTimeout(() => {
+                                    window.print();
+                                }, 800);
+                            };
+                        </script>
+                    </body>
+                </html>
+            `);
+            pri.document.close();
         },
         // ฟังก์ชันบันทึกวันที่จำหน่าย
         async saveDischargeDateAction(an, dateStr) {
