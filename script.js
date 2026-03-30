@@ -143,6 +143,145 @@ function nurseApp() {
             dept: '', cc: '', pi: '', dx: '', doctor: '', 
             status: 'Active'
         },
+        shiftOrder: ['ดึก', 'เช้า', 'บ่าย'],
+        shiftPriorityMap: { 'ดึก': 1, 'เช้า': 2, 'บ่าย': 3 },
+
+        dateKeyToLocalDate(dateKey) {
+            if (!dateKey) return null;
+            const cleanDate = String(dateKey).trim();
+            const match = cleanDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if (!match) return null;
+            return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12, 0, 0);
+        },
+        normalizeDateKey(value) {
+            if (!value) return '';
+            if (value instanceof Date) {
+                return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
+            }
+
+            const raw = String(value).trim();
+            if (!raw) return '';
+
+            const isoMatch = raw.match(/(\d{4})-(\d{2})-(\d{2})/);
+            if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+
+            const slashMatch = raw.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+            if (slashMatch) {
+                return `${slashMatch[3]}-${String(slashMatch[2]).padStart(2, '0')}-${String(slashMatch[1]).padStart(2, '0')}`;
+            }
+
+            if (raw.includes('T')) return raw.split('T')[0];
+
+            const parsed = new Date(raw);
+            if (!isNaN(parsed.getTime())) {
+                return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}-${String(parsed.getDate()).padStart(2, '0')}`;
+            }
+
+            return '';
+        },
+        normalizeShiftLabel(value) {
+            const shift = String(value || '').trim();
+            if (!shift) return '';
+            if (shift.includes('ดึก') || shift.includes('ตึก')) return 'ดึก';
+            if (shift.includes('เช้า') || shift.includes('เข้า')) return 'เช้า';
+            if (shift.includes('บ่าย')) return 'บ่าย';
+            return shift;
+        },
+        normalizeTimestampValue(value, fallbackDate = '') {
+            if (value) {
+                const parsed = new Date(value);
+                if (!isNaN(parsed.getTime())) return parsed.getTime();
+            }
+
+            const dateKey = this.normalizeDateKey(fallbackDate || value);
+            const localDate = this.dateKeyToLocalDate(dateKey);
+            return localDate ? localDate.getTime() : 0;
+        },
+        parseJsonSafely(value, fallback = {}) {
+            if (!value) return fallback;
+            if (typeof value === 'object') return value;
+            try {
+                return JSON.parse(value);
+            } catch (error) {
+                return fallback;
+            }
+        },
+        buildPedScores(formData = {}) {
+            return [
+                formData.item1 || '', formData.item2 || '', formData.item3 || '', formData.item4 || '',
+                formData.item5 || '', formData.item6 || '', formData.item7 || '', formData.item8 || '',
+                formData.item9 || '', formData.item10 || ''
+            ];
+        },
+        normalizeShiftData(records, options = {}) {
+            const { buildRecord = null } = options;
+            if (!Array.isArray(records)) return [];
+
+            const latestBySlot = new Map();
+
+            records.forEach((record, index) => {
+                const baseRecord = typeof buildRecord === 'function' ? buildRecord(record, index) : { ...record };
+                if (!baseRecord) return;
+
+                const evalDate = this.normalizeDateKey(baseRecord.evalDate || baseRecord.date);
+                const shift = this.normalizeShiftLabel(baseRecord.shift);
+                if (!evalDate || !shift || !this.shiftPriorityMap[shift]) return;
+
+                const timestampValue = this.normalizeTimestampValue(baseRecord.timestamp, evalDate);
+                const candidate = {
+                    ...baseRecord,
+                    evalDate,
+                    shift,
+                    _sortTimestamp: timestampValue,
+                    _sourceIndex: Number(baseRecord._sourceIndex ?? index)
+                };
+                const key = `${evalDate}__${shift}`;
+                const current = latestBySlot.get(key);
+
+                if (!current ||
+                    timestampValue > current._sortTimestamp ||
+                    (timestampValue === current._sortTimestamp && candidate._sourceIndex > current._sourceIndex)) {
+                    latestBySlot.set(key, candidate);
+                }
+            });
+
+            return Array.from(latestBySlot.values())
+                .sort((a, b) => {
+                    if (a.evalDate !== b.evalDate) return a.evalDate.localeCompare(b.evalDate);
+                    const shiftDiff = this.shiftPriorityMap[a.shift] - this.shiftPriorityMap[b.shift];
+                    if (shiftDiff !== 0) return shiftDiff;
+                    if (a._sortTimestamp !== b._sortTimestamp) return a._sortTimestamp - b._sortTimestamp;
+                    return a._sourceIndex - b._sourceIndex;
+                })
+                .map(({ _sortTimestamp, _sourceIndex, ...record }) => record);
+        },
+        rebuildClassificationGrid(records = []) {
+            this.gridData = {};
+            records.forEach(record => {
+                const cell = this.getGridCell(record.evalDate, record.shift);
+                cell.scores = Array.from({ length: 10 }, (_, index) => record.scores?.[index] ?? '');
+                cell.assessor = record.assessor || '';
+                cell.timestamp = record.timestamp || '';
+            });
+        },
+        rebuildFallGrid(records = []) {
+            this.fallGridData = {};
+            records.forEach(record => {
+                const cell = this.getFallGridCell(record.evalDate, record.shift);
+                cell.scores = [
+                    record.m1 ?? '', record.m2 ?? '', record.m3 ?? '',
+                    record.m4 ?? '', record.m5 ?? '', record.m6 ?? ''
+                ];
+                cell.maas = record.maasScore ?? '';
+                cell.assessor = record.assessor || '';
+                cell.timestamp = record.timestamp || '';
+            });
+        },
+        getTimelineSourceRecords() {
+            if (this.currentForm?.id === 'fall_risk') return this.fallHistory || [];
+            if (this.currentForm?.id === 'patient_class_ped') return this.classHistoryPed || [];
+            return this.classHistory || [];
+        },
 
         init() {
             this.startClock();
@@ -1012,10 +1151,11 @@ function nurseApp() {
         formatThaiDate(dateStr) {
             if (!dateStr) return '..................';
             const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
-            const date = new Date(dateStr);
+            const dateKey = this.normalizeDateKey(dateStr);
+            const date = this.dateKeyToLocalDate(dateKey);
             
             // ตรวจสอบว่าเป็นรูปแบบวันที่ที่ถูกต้องหรือไม่
-            if (isNaN(date.getTime())) return dateStr; 
+            if (!date || isNaN(date.getTime())) return dateStr; 
             
             const d = date.getDate();
             const m = months[date.getMonth()];
@@ -1154,79 +1294,48 @@ function nurseApp() {
         async loadClassifications(an) {
             this.isLoading = true;
             try {
-                this.gridData = {}; 
-                
-                // Helper: ตัวกรองและแก้ไขคำผิดจาก Google Sheets
-                const sanitizeShift = (str) => {
-                    let s = String(str || '').trim();
-                    if (s.includes('ตึก') || s.includes('ดึก')) return 'ดึก';
-                    if (s.includes('เข้า') || s.includes('เช้า')) return 'เช้า';
-                    if (s.includes('บ่าย')) return 'บ่าย';
-                    return s;
-                };
-                const extractDate = (str) => {
-                    const match = String(str || '').match(/\d{4}-\d{2}-\d{2}/);
-                    return match ? match[0] : null;
-                };
+                this.gridData = {};
         
                 if (this.isAdult) {
                     const res = await fetch(`${this.API_URL}?action=getClassifications&an=${an}&_=${new Date().getTime()}`);
-                    this.classHistory = await res.json();
-                    
-                    if (this.classHistory && Array.isArray(this.classHistory)) {
-                        // เรียงจากเก่าไปใหม่ เพื่อให้ค่าล่าสุดเขียนทับเสมอ (แก้ปัญหาข้อมูลซ้ำแสดงผิด)
-                        const sortedHistory = [...this.classHistory].sort((a, b) => {
-                            const da = extractDate(a.evalDate) || '';
-                            const db = extractDate(b.evalDate) || '';
-                            return da < db ? -1 : da > db ? 1 : 0;
-                        });
-                        sortedHistory.forEach(item => {
-                            const dKey = extractDate(item.evalDate);
-                            const shift = sanitizeShift(item.shift);
-                            if (!dKey || !shift) return; 
-                            
-                            let cell = this.getGridCell(dKey, shift);
-                            cell.scores = item.scores && item.scores.length > 0 ? [...item.scores] : Array(10).fill('');
-                            cell.assessor = item.assessor || '';
-                        });
-                    }
+                    const rawHistory = await res.json();
+                    this.classHistory = this.normalizeShiftData(rawHistory, {
+                        buildRecord: (item, index) => ({
+                            ...item,
+                            evalDate: item.evalDate,
+                            shift: item.shift,
+                            timestamp: item.timestamp,
+                            scores: Array.isArray(item.scores) ? item.scores.slice(0, 8) : Array(8).fill(''),
+                            total: item.total ?? '',
+                            category: item.category ?? '',
+                            assessor: item.assessor || '',
+                            _sourceIndex: index
+                        })
+                    });
+                    this.rebuildClassificationGrid(this.classHistory);
                 } else {
                     const res = await fetch(`${this.API_URL}?action=getClassificationsPed&an=${an}&_=${new Date().getTime()}`);
-                    const pedHistory = await res.json();
-                    this.classHistoryPed = pedHistory;
-                    
-                    if (pedHistory && Array.isArray(pedHistory)) {
-                        // เรียงจากเก่าไปใหม่ เพื่อให้ค่าล่าสุดเขียนทับเสมอ (แก้ปัญหาข้อมูลซ้ำแสดงผิด)
-                        const sortedPed = [...pedHistory].sort((a, b) => {
-                            const da = extractDate(a.date) || '';
-                            const db = extractDate(b.date) || '';
-                            return da < db ? -1 : da > db ? 1 : 0;
-                        });
-                        sortedPed.forEach(item => {
-                            const dKey = extractDate(item.date);
-                            const shift = sanitizeShift(item.shift);
-                            if (!dKey || !shift) return;
-                            
-                            let parsedScores = Array(10).fill('');
-                            try {
-                                if (typeof item.formdata === 'string') {
-                                    const obj = JSON.parse(item.formdata);
-                                    parsedScores = [
-                                        obj.item1||'', obj.item2||'', obj.item3||'', obj.item4||'', 
-                                        obj.item5||'', obj.item6||'', obj.item7||'', 
-                                        obj.item8||'', obj.item9||'', obj.item10||''
-                                    ];
-                                } else if (item.scores) {
-                                    parsedScores = item.scores;
-                                }
-                            } catch (e) { }
-        
-                            let cell = this.getGridCell(dKey, shift);
-                            cell.scores = parsedScores;
-                            cell.assessor = item.assessor || '';
-                        });
-                    }
+                    const rawHistory = await res.json();
+                    this.classHistoryPed = this.normalizeShiftData(rawHistory, {
+                        buildRecord: (item, index) => {
+                            const formData = item.formData || this.parseJsonSafely(item.formdata, {});
+                            return {
+                                ...item,
+                                evalDate: item.evalDate || item.date,
+                                shift: item.shift,
+                                timestamp: item.timestamp,
+                                formData,
+                                scores: Array.isArray(item.scores) ? item.scores.slice(0, 10) : this.buildPedScores(formData),
+                                score: item.score ?? '',
+                                classType: item.classType || item.classtype || '',
+                                assessor: item.assessor || '',
+                                _sourceIndex: index
+                            };
+                        }
+                    });
+                    this.rebuildClassificationGrid(this.classHistoryPed);
                 }
+                this.currentPageIndex = Math.min(this.currentPageIndex, Math.max(this.classTimeline.length - 1, 0));
             } catch (e) { 
                 console.error("Load Classifications Error:", e); 
             } finally {
@@ -1301,6 +1410,7 @@ function nurseApp() {
                 an: currentAN,
                 ward: this.currentWard || this.selectedPatient.ward || '',
                 bed: this.selectedPatient.bed || '',
+                evalDate: date,
                 date: date,
                 shift: shift,
                 score: result.total,
@@ -1321,7 +1431,7 @@ function nurseApp() {
                     this.showSuccess = true;
                     this.successMsg = `บันทึกเวร${shift} วันที่ ${this.formatThaiDateShort(date)} สำเร็จ`;
                     setTimeout(() => this.showSuccess = false, 2000);
-                    // ไม่ต้องโหลดใหม่ทั้งหน้า แค่แสดง Success ก็พอ
+                    await this.loadClassifications(currentAN);
                 } else {
                     this.showAlert('Error', res.message);
                 }
@@ -1361,6 +1471,7 @@ function nurseApp() {
                     an: this.selectedPatient?.an,
                     ward: this.currentWard,
                     bed: this.selectedPatient?.bed,
+                    evalDate: this.pedClassForm.date,
                     date: this.pedClassForm.date,
                     shift: this.pedClassForm.shift,
                     score: this.pedClassForm.total,
@@ -1393,44 +1504,27 @@ function nurseApp() {
 
         // 3. ระบบพิมพ์เอกสารเด็ก A4
         printPedClassRecord() {
-            if (!this.classHistoryPed || this.classHistoryPed.length === 0) {
+            const pages = this.classTimeline;
+            const hasAnyData = Array.isArray(this.classHistoryPed) && this.classHistoryPed.length > 0;
+            if (!hasAnyData || pages.length === 0) {
                 return this.showAlert('แจ้งเตือน', 'ยังไม่มีประวัติการประเมินเพื่อพิมพ์');
             }
         
             const p = this.selectedPatient;
-            const SHIFT_ORDER = ['ดึก', 'เช้า', 'บ่าย']; // กำหนดตัวแปรจัดเรียงเวรที่นี่
-            
-            // จัดกลุ่มข้อมูลตามวันที่
-            const groupedByDate = {};
-            this.classHistoryPed.forEach(d => {
-                if (!d.date) return;
-                const dateKey = typeof this.getLocalYYYYMMDD === 'function' ? this.getLocalYYYYMMDD(d.date) : d.date.split('T')[0];
-                if (!groupedByDate[dateKey]) {
-                    groupedByDate[dateKey] = { date: dateKey, shifts: { 'ดึก': null, 'เช้า': null, 'บ่าย': null } };
-                }
-                groupedByDate[dateKey].shifts[d.shift] = d;
-            });
-        
-            const sortedDates = Object.keys(groupedByDate).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
-            
-            // หน้าละ 5 วัน (15 เวร)
+            const SHIFT_ORDER = this.shiftOrder;
             const daysPerPage = 5;
-            const pages = [];
-            for (let i = 0; i < sortedDates.length; i += daysPerPage) {
-                pages.push(sortedDates.slice(i, i + daysPerPage).map(dateKey => groupedByDate[dateKey]));
-            }
         
             const topics = [
-                { id: 'item1', title: '1.1 การดูดนมและรับประทานอาหาร', header: '1. การดูแลเกี่ยวกับกิจวัตรประจำวัน' },
-                { id: 'item2', title: '1.2 การดูแลสุขอนามัยส่วนบุคคล' },
-                { id: 'item3', title: '1.3 การขับถ่าย' },
-                { id: 'item4', title: '1.4 การเคลื่อนไหวร่างกายและการออกกำลังกาย' },
-                { id: 'item5', title: '2.1 การได้รับยาและ/หรือ สารน้ำ สารอาหาร', header: '2. การได้รับยาและการปฏิบัติการพยาบาล' },
-                { id: 'item6', title: '2.2 การปฏิบัติการรักษาพยาบาล' },
-                { id: 'item7', title: '2.3 การช่วยเหลือด้านการหายใจ' },
-                { id: 'item8', title: '3.1 สภาพอาการทั่วไป', header: '3. การประเมินสภาพอาการการสังเกตสัญญาณชีพและเครื่องตรวจวัดต่างๆ' },
-                { id: 'item9', title: '3.2 การสังเกตสัญญาณชีพและเครื่องวัดอื่นๆ' },
-                { id: 'item10', title: '4. การสอนและการประคับประคองจิตใจ (ผู้ป่วยเด็กและครอบครัว)', isMain: true }
+                { scoreIndex: 0, title: '1.1 การดูดนมและรับประทานอาหาร', header: '1. การดูแลเกี่ยวกับกิจวัตรประจำวัน' },
+                { scoreIndex: 1, title: '1.2 การดูแลสุขอนามัยส่วนบุคคล' },
+                { scoreIndex: 2, title: '1.3 การขับถ่าย' },
+                { scoreIndex: 3, title: '1.4 การเคลื่อนไหวร่างกายและการออกกำลังกาย' },
+                { scoreIndex: 4, title: '2.1 การได้รับยาและ/หรือ สารน้ำ สารอาหาร', header: '2. การได้รับยาและการปฏิบัติการพยาบาล' },
+                { scoreIndex: 5, title: '2.2 การปฏิบัติการรักษาพยาบาล' },
+                { scoreIndex: 6, title: '2.3 การช่วยเหลือด้านการหายใจ' },
+                { scoreIndex: 7, title: '3.1 สภาพอาการทั่วไป', header: '3. การประเมินสภาพอาการการสังเกตสัญญาณชีพและเครื่องตรวจวัดต่างๆ' },
+                { scoreIndex: 8, title: '3.2 การสังเกตสัญญาณชีพและเครื่องวัดอื่นๆ' },
+                { scoreIndex: 9, title: '4. การสอนและการประคับประคองจิตใจ (ผู้ป่วยเด็กและครอบครัว)', isMain: true }
             ];
         
             const admitDateStr = p?.date && typeof this.formatThaiDateLong === 'function' ? this.formatThaiDateLong(p.date) : '-';
@@ -1522,13 +1616,8 @@ function nurseApp() {
                     printContent += `<tr><td class="text-left" ${t.isMain ? 'style="font-weight:bold; background-color:#f1f5f9;"' : ''}>${t.title}</td>`;
                             
                     pageData.forEach(day => {
-                        // บังคับลูปด้วย SHIFT_ORDER
                         SHIFT_ORDER.forEach(shift => {
-                            const shiftData = day.shifts[shift];
-                            let scoreVal = '';
-                            if (shiftData && shiftData.formdata) {
-                                try { scoreVal = JSON.parse(shiftData.formdata)[t.id] || ''; } catch(e) {}
-                            }
+                            const scoreVal = this.getGridCell(day.date, shift).scores[t.scoreIndex] || '';
                             printContent += `<td ${t.isMain ? 'class="bg-gray"' : ''}>${scoreVal}</td>`;
                         });
                     });
@@ -1540,13 +1629,13 @@ function nurseApp() {
                 printContent += `
                         <tr style="background-color:#f8fafc;">
                             <th class="text-left">รวมคะแนน</th>
-                            ${pageData.map(day => SHIFT_ORDER.map(shift => `<th>${day.shifts[shift]?.score || ''}</th>`).join('')).join('')}
+                            ${pageData.map(day => SHIFT_ORDER.map(shift => `<th>${this.calcPedScores(this.getGridCell(day.date, shift).scores).total || ''}</th>`).join('')).join('')}
                             ${Array((daysPerPage - pageData.length) * 3).fill('<th></th>').join('')}
                         </tr>
                         <tr>
                             <th class="text-left" style="font-size:7.5pt;">ประเภทผู้ป่วย</th>
                             ${pageData.map(day => SHIFT_ORDER.map(shift => {
-                                const typeStr = day.shifts[shift]?.classtype || '';
+                                const typeStr = this.calcPedScores(this.getGridCell(day.date, shift).scores).category || '';
                                 const typeMatch = String(typeStr).match(/ประเภท\s*(\d)/);
                                 return `<th style="font-size:7pt;">${typeMatch ? '' + typeMatch[1] : ''}</th>`;
                             }).join('')).join('')}
@@ -1555,8 +1644,7 @@ function nurseApp() {
                         <tr>
                             <th class="text-left">ผู้ประเมิน</th>
                             ${pageData.map(day => SHIFT_ORDER.map(shift => {
-                                let assessor = day.shifts[shift]?.assessor || '';
-                                // ตัดชื่อให้สั้นลงถ้าจำเป็นเพื่อให้ใส่ในแนวตั้งได้
+                                let assessor = this.getGridCell(day.date, shift).assessor || '';
                                 if(assessor.length > 8) assessor = assessor.substring(0,8)+'.';
                                 return `<td style="font-size:6pt; line-height:1;">${assessor}</td>`;
                             }).join('')).join('')}
@@ -1649,9 +1737,9 @@ function nurseApp() {
         },
         // 🟢 1. ฟังก์ชันดึง/สร้างช่องข้อมูล (ช่วยให้ x-model ทำงานได้แม่นยำ)
         getGridCell(dateStr, shift) {
-            if (!dateStr || !shift) return { scores: Array(10).fill(''), assessor: '' };
+            if (!dateStr || !shift) return { scores: Array(10).fill(''), assessor: '', timestamp: '' };
             if (!this.gridData[dateStr]) this.gridData[dateStr] = {};
-            if (!this.gridData[dateStr][shift]) this.gridData[dateStr][shift] = { scores: Array(10).fill(''), assessor: '' };
+            if (!this.gridData[dateStr][shift]) this.gridData[dateStr][shift] = { scores: Array(10).fill(''), assessor: '', timestamp: '' };
             return this.gridData[dateStr][shift];
         },
         // ฟังก์ชันช่วยคำนวณคะแนนในตาราง
@@ -1724,69 +1812,48 @@ function nurseApp() {
         },
         // 🟢 ฟังก์ชันดึงวันที่ YYYY-MM-DD แบบ Local Time (ไทย) 100%
         getLocalYYYYMMDD(date) {
-            if (!date) return '';
-            const d = new Date(date);
-            // ถ้าเป็น String วันที่จาก Google Sheet ให้บังคับเวลาเป็นเที่ยงวันเพื่อป้องกันการปัดวัน
-            if (typeof date === 'string' && !date.includes('T')) {
-                const [y, m, day] = date.split('-').map(Number);
-                return `${y}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            }
-            const y = d.getFullYear();
-            const m = String(d.getMonth() + 1).padStart(2, '0');
-            const day = String(d.getDate()).padStart(2, '0');
-            return `${y}-${m}-${day}`;
+            return this.normalizeDateKey(date);
         },
         get classTimeline() {
-            if (!this.selectedPatient || !this.selectedPatient.date) return [];
+            if (!this.selectedPatient) return [];
 
-            // 1. สร้างวันที่ Admit แบบ Local
-            const [y, m, d] = this.selectedPatient.date.split('-').map(Number);
-            const admitDate = new Date(y, m - 1, d, 12, 0, 0); // ตั้งเวลาเที่ยงวันกันพลาด
+            const anchorDates = [];
+            const admitDate = this.normalizeDateKey(this.selectedPatient.date || this.selectedPatient.admitDate);
+            const dischargeDate = this.normalizeDateKey(this.selectedPatient.dischargeDate);
+            const todayDate = this.getLocalYYYYMMDD(new Date());
 
-            const today = new Date();
-            today.setHours(12, 0, 0, 0);
-            
-            const diffTime = Math.abs(today - admitDate);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-            const totalPages = Math.ceil(Math.max(diffDays, 5) / 5);
+            if (admitDate) anchorDates.push(admitDate);
+            if (dischargeDate) anchorDates.push(dischargeDate);
+            if (todayDate) anchorDates.push(todayDate);
+
+            this.getTimelineSourceRecords().forEach(record => {
+                const recordDate = this.normalizeDateKey(record?.evalDate || record?.date);
+                if (recordDate) anchorDates.push(recordDate);
+            });
+
+            if (anchorDates.length === 0) return [];
+
+            const sortedAnchorDates = anchorDates
+                .map(dateKey => this.dateKeyToLocalDate(dateKey))
+                .filter(Boolean)
+                .sort((a, b) => a.getTime() - b.getTime());
+
+            const startDate = new Date(sortedAnchorDates[0]);
+            const endDate = new Date(sortedAnchorDates[sortedAnchorDates.length - 1]);
+            const diffDays = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+            const totalDays = Math.max(diffDays, 5);
 
             const pages = [];
-            const shifts = ['ดึก', 'เช้า', 'บ่าย'];
-
-            // Helper sanitizeShift สำหรับ classTimeline (แก้ปัญหาชื่อเวรผิดจาก DB)
-            const sanitizeShift = (str) => {
-                let s = String(str || '').trim();
-                if (s.includes('ตึก') || s.includes('ดึก')) return 'ดึก';
-                if (s.includes('เข้า') || s.includes('เช้า')) return 'เช้า';
-                if (s.includes('บ่าย')) return 'บ่าย';
-                return s;
-            };
-
-            for (let p = 0; p < totalPages; p++) {
+            for (let offset = 0; offset < totalDays; offset += 5) {
                 const dayInPage = [];
-                for (let i = 0; i < 5; i++) {
-                    const currentIdx = (p * 5) + i;
-                    const currentDate = new Date(admitDate);
-                    currentDate.setDate(admitDate.getDate() + currentIdx);
-                    
-                    // ใช้ Helper ดึงค่า YYYY-MM-DD
+                for (let i = 0; i < 5 && offset + i < totalDays; i++) {
+                    const currentDate = new Date(startDate);
+                    currentDate.setDate(startDate.getDate() + offset + i);
                     const dateKey = this.getLocalYYYYMMDD(currentDate);
-                    
-                    const dayData = {
+                    dayInPage.push({
                         date: dateKey,
-                        formattedDate: this.formatThaiDateShort(dateKey),
-                        slots: {}
-                    };
-
-                    shifts.forEach(s => {
-                        // filter ทั้งหมดที่ตรงวัน+เวร แล้วเอาค่าล่าสุด (แก้ปัญหา find() หยุดที่ record เก่าสุด)
-                        const matched = this.classHistory.filter(h => {
-                            const hDate = this.getLocalYYYYMMDD(h.evalDate);
-                            return hDate === dateKey && sanitizeShift(h.shift) === s;
-                        });
-                        dayData.slots[s] = matched.length > 0 ? matched[matched.length - 1] : null;
+                        formattedDate: this.formatThaiDateShort(dateKey)
                     });
-                    dayInPage.push(dayData);
                 }
                 pages.push(dayInPage);
             }
@@ -1883,11 +1950,12 @@ function nurseApp() {
                 });
                 const res = await response.json();
         
-                if (res.status === 'success') {
-                    this.dialog = { show: true, type: 'alert', title: 'สำเร็จ', msg: `บันทึกข้อมูลเวร ${shift} ของวันที่ ${date} เรียบร้อยแล้ว` };
-                } else {
-                    throw new Error(res.message);
-                }
+            if (res.status === 'success') {
+                this.dialog = { show: true, type: 'alert', title: 'สำเร็จ', msg: `บันทึกข้อมูลเวร ${shift} ของวันที่ ${date} เรียบร้อยแล้ว` };
+                await this.loadClassifications(this.selectedPatient.an);
+            } else {
+                throw new Error(res.message);
+            }
             } catch (e) {
                 this.dialog = { show: true, type: 'alert', title: 'เกิดข้อผิดพลาด', msg: e.message };
             } finally {
@@ -1899,8 +1967,9 @@ function nurseApp() {
         formatThaiDateShort(dateStr) {
             if (!dateStr) return '';
             const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
-            const date = new Date(dateStr);
-            if (isNaN(date.getTime())) return dateStr;
+            const dateKey = this.normalizeDateKey(dateStr);
+            const date = this.dateKeyToLocalDate(dateKey);
+            if (!date || isNaN(date.getTime())) return dateStr;
             return `${date.getDate()} ${months[date.getMonth()]} ${(date.getFullYear() + 543).toString().slice(-2)}`;
         },
         // ฟังก์ชันแปลงวันที่เป็นรูปแบบเต็ม (เช่น 1 มกราคม 2569)
@@ -1911,8 +1980,9 @@ function nurseApp() {
                 "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
             ];
             try {
-                const d = new Date(dateString);
-                if (isNaN(d.getTime())) return '-';
+                const dateKey = this.normalizeDateKey(dateString);
+                const d = this.dateKeyToLocalDate(dateKey);
+                if (!d || isNaN(d.getTime())) return '-';
                 const day = d.getDate();
                 const month = thaiMonths[d.getMonth()];
                 const year = d.getFullYear() + 543;
@@ -2093,40 +2163,27 @@ function nurseApp() {
             try {
                 const response = await fetch(`${this.API_URL}?action=getFallRisk&an=${an}&_=${new Date().getTime()}`);
                 if (!response.ok) throw new Error('Network response was not ok');
-                this.fallHistory = await response.json();
-                
-                this.fallGridData = {}; 
-                
-                const sanitizeShift = (str) => {
-                    let s = String(str || '').trim();
-                    if (s.includes('ตึก') || s.includes('ดึก')) return 'ดึก';
-                    if (s.includes('เข้า') || s.includes('เช้า')) return 'เช้า';
-                    if (s.includes('บ่าย')) return 'บ่าย';
-                    return s;
-                };
-                const extractDate = (str) => {
-                    const match = String(str || '').match(/\d{4}-\d{2}-\d{2}/);
-                    return match ? match[0] : null;
-                };
-        
-                if (this.fallHistory && Array.isArray(this.fallHistory)) {
-                    // เรียงจากเก่าไปใหม่ เพื่อให้ค่าล่าสุดเขียนทับเสมอ (แก้ปัญหาข้อมูลซ้ำแสดงผิด)
-                    const sortedFall = [...this.fallHistory].sort((a, b) => {
-                        const da = extractDate(a.evalDate) || '';
-                        const db = extractDate(b.evalDate) || '';
-                        return da < db ? -1 : da > db ? 1 : 0;
-                    });
-                    sortedFall.forEach(item => {
-                        const dKey = extractDate(item.evalDate);
-                        const shift = sanitizeShift(item.shift);
-                        if (!dKey || !shift) return;
-        
-                        let cell = this.getFallGridCell(dKey, shift);
-                        cell.scores = [item.m1||'', item.m2||'', item.m3||'', item.m4||'', item.m5||'', item.m6||''];
-                        cell.maas = item.maasScore || '';
-                        cell.assessor = item.assessor || '';
-                    });
-                }
+                const rawHistory = await response.json();
+                this.fallHistory = this.normalizeShiftData(rawHistory, {
+                    buildRecord: (item, index) => ({
+                        ...item,
+                        evalDate: item.evalDate,
+                        shift: item.shift,
+                        timestamp: item.timestamp,
+                        m1: item.m1 ?? '',
+                        m2: item.m2 ?? '',
+                        m3: item.m3 ?? '',
+                        m4: item.m4 ?? '',
+                        m5: item.m5 ?? '',
+                        m6: item.m6 ?? '',
+                        morseTotal: item.morseTotal ?? '',
+                        maasScore: item.maasScore ?? '',
+                        assessor: item.assessor || '',
+                        _sourceIndex: index
+                    })
+                });
+                this.rebuildFallGrid(this.fallHistory);
+                this.currentPageIndex = Math.min(this.currentPageIndex, Math.max(this.classTimeline.length - 1, 0));
             } catch (e) { 
                 console.error("Load Fall Risk Error:", e); 
                 this.fallGridData = {};
@@ -2137,9 +2194,9 @@ function nurseApp() {
 
         // ดึง/สร้างช่องข้อมูลสำหรับหน้าจอ Morse/MAAS
         getFallGridCell(dateStr, shift) {
-            if (!dateStr || !shift) return { scores: Array(6).fill(''), maas: '', assessor: '' };
+            if (!dateStr || !shift) return { scores: Array(6).fill(''), maas: '', assessor: '', timestamp: '' };
             if (!this.fallGridData[dateStr]) this.fallGridData[dateStr] = {};
-            if (!this.fallGridData[dateStr][shift]) this.fallGridData[dateStr][shift] = { scores: Array(6).fill(''), maas: '', assessor: '' };
+            if (!this.fallGridData[dateStr][shift]) this.fallGridData[dateStr][shift] = { scores: Array(6).fill(''), maas: '', assessor: '', timestamp: '' };
             return this.fallGridData[dateStr][shift];
         },
 
@@ -2251,6 +2308,7 @@ function nurseApp() {
     
             if (res.status === 'success') {
                 this.dialog = { show: true, type: 'alert', title: 'สำเร็จ', msg: `บันทึกประเมิน Fall Risk เวร ${shift} เรียบร้อย` };
+                await this.loadFallRisk(this.selectedPatient.an);
             } else {
                 throw new Error(res.message);
             }
