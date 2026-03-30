@@ -109,6 +109,21 @@ function nurseApp() {
             scores: [0, 0, 0, 0, 0, 0, 0, 0], // ค่าเริ่มต้นเป็น 0 (ยังไม่ประเมิน)
             assessor: ''
         },
+        showPedShiftModal: false,
+        pedShiftForm: {
+            evalDate: new Date().toISOString().split('T')[0],
+            shift: 'เช้า',
+            scores: Array(10).fill(''),
+            assessor: ''
+        },
+        showFallShiftModal: false,
+        fallShiftForm: {
+            evalDate: new Date().toISOString().split('T')[0],
+            shift: 'เช้า',
+            scores: Array(6).fill(''),
+            maas: '',
+            assessor: ''
+        },
         classHistory: [],
         classHistoryPed: [],
         pedClassForm: {
@@ -348,6 +363,77 @@ function nurseApp() {
                 hour: '2-digit',
                 minute: '2-digit'
             });
+        },
+        hasClassificationShiftData(date, shift) {
+            const cell = this.getGridCell(date, shift);
+            return cell.scores.some(value => value !== '' && value !== null && value !== 0);
+        },
+        hasFallShiftData(date, shift) {
+            const cell = this.getFallGridCell(date, shift);
+            return cell.scores.some(value => value !== '' && value !== null) || (cell.maas !== '' && cell.maas !== null);
+        },
+        getAdultShiftSummary(date, shift) {
+            const cell = this.getGridCell(date, shift);
+            const result = this.calcScores(cell.scores);
+            return {
+                filled: this.hasClassificationShiftData(date, shift),
+                total: result.total || '',
+                category: result.category ? `ประเภท ${result.category}` : '',
+                assessor: cell.assessor || '',
+                updatedAt: this.formatShiftTimestamp(cell.timestamp)
+            };
+        },
+        getPedShiftSummary(date, shift) {
+            const cell = this.getGridCell(date, shift);
+            const result = this.calcPedScores(cell.scores);
+            return {
+                filled: this.hasClassificationShiftData(date, shift),
+                total: result.total || '',
+                category: result.category || '',
+                assessor: cell.assessor || '',
+                updatedAt: this.formatShiftTimestamp(cell.timestamp)
+            };
+        },
+        getFallShiftSummary(date, shift) {
+            const cell = this.getFallGridCell(date, shift);
+            return {
+                filled: this.hasFallShiftData(date, shift),
+                morse: this.calcMorseTotal(cell.scores) || '',
+                maas: cell.maas || '',
+                assessor: cell.assessor || '',
+                updatedAt: this.formatShiftTimestamp(cell.timestamp)
+            };
+        },
+        openAdultShiftModal(date, shift) {
+            const cell = this.getGridCell(date, shift);
+            this.classForm = {
+                evalDate: date,
+                shift,
+                scores: Array.from({ length: 8 }, (_, index) => cell.scores[index] ?? ''),
+                assessor: cell.assessor || ''
+            };
+            this.showClassModal = true;
+        },
+        openPedShiftModal(date, shift) {
+            const cell = this.getGridCell(date, shift);
+            this.pedShiftForm = {
+                evalDate: date,
+                shift,
+                scores: Array.from({ length: 10 }, (_, index) => cell.scores[index] ?? ''),
+                assessor: cell.assessor || ''
+            };
+            this.showPedShiftModal = true;
+        },
+        openFallShiftModal(date, shift) {
+            const cell = this.getFallGridCell(date, shift);
+            this.fallShiftForm = {
+                evalDate: date,
+                shift,
+                scores: Array.from({ length: 6 }, (_, index) => cell.scores[index] ?? ''),
+                maas: cell.maas ?? '',
+                assessor: cell.assessor || ''
+            };
+            this.showFallShiftModal = true;
         },
 
         init() {
@@ -1933,7 +2019,7 @@ function nurseApp() {
                 // เปลี่ยนมาใช้ Helper ของเราแทนเพื่อให้ได้วันที่ไทยจริงๆ
                 evalDate: this.getLocalYYYYMMDD(new Date()), 
                 shift: 'เช้า',
-                scores: [0, 0, 0, 0, 0, 0, 0, 0],
+                scores: Array(8).fill(''),
                 assessor: ''
             };
             this.showClassModal = true;
@@ -1941,8 +2027,7 @@ function nurseApp() {
 
         // บันทึกข้อมูล 1 เวร
         async saveClassForm() {
-            // เช็คว่าประเมินครบ 8 ข้อหรือไม่ (ถ้ามีข้อไหนเป็น 0 ถือว่ายังไม่ประเมิน)
-            if (this.classForm.scores.includes(0)) {
+            if (this.classForm.scores.some(score => ![1, 2, 3, 4].includes(Number(score)))) {
                 return this.showAlert('แจ้งเตือน', 'กรุณาประเมินให้ครบทั้ง 8 ข้อ');
             }
             if (!this.classForm.assessor) {
@@ -1959,7 +2044,7 @@ function nurseApp() {
                 ward: this.currentWard,
                 evalDate: finalDate, // ส่งวันที่แบบสะอาดไป
                 shift: this.classForm.shift,
-                scores: this.classForm.scores,
+                scores: this.classForm.scores.map(score => Number(score)),
                 total: total,
                 category: category,
                 assessor: this.classForm.assessor
@@ -1981,6 +2066,102 @@ function nurseApp() {
                 await this.loadClassifications(this.selectedPatient.an);
             } catch (error) {
                 this.showAlert('Error', 'เกิดข้อผิดพลาด: ' + error.message);
+            } finally {
+                this.isLoading = false;
+            }
+        },
+        async savePedShiftForm() {
+            const form = this.pedShiftForm;
+            if (form.scores.some(score => ![1, 2, 3, 4].includes(Number(score)))) {
+                return this.showAlert('แจ้งเตือน', 'กรุณาประเมินให้ครบทั้ง 10 ข้อ');
+            }
+            if (!form.assessor) {
+                return this.showAlert('แจ้งเตือน', 'กรุณาระบุชื่อพยาบาลผู้ประเมิน');
+            }
+
+            const currentAN = this.selectedPatient?.an || this.selectedPatient?.AN;
+            if (!currentAN) return this.showAlert('Error', 'ไม่พบเลข AN ของผู้ป่วย');
+
+            const formDataObj = {
+                item1: Number(form.scores[0]), item2: Number(form.scores[1]), item3: Number(form.scores[2]), item4: Number(form.scores[3]),
+                item5: Number(form.scores[4]), item6: Number(form.scores[5]), item7: Number(form.scores[6]), item8: Number(form.scores[7]),
+                item9: Number(form.scores[8]), item10: Number(form.scores[9])
+            };
+            const result = this.calcPedScores(form.scores);
+            const payload = {
+                an: currentAN,
+                ward: this.currentWard || this.selectedPatient?.ward || '',
+                bed: this.selectedPatient?.bed || '',
+                evalDate: form.evalDate,
+                date: form.evalDate,
+                shift: form.shift,
+                score: result.total,
+                classType: result.category,
+                assessor: form.assessor,
+                formData: formDataObj
+            };
+
+            this.isLoading = true;
+            try {
+                const response = await fetch(this.API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'saveClassificationPed', payload })
+                });
+                const res = await response.json();
+                if (res.status !== 'success') throw new Error(res.message);
+
+                this.showPedShiftModal = false;
+                this.successMsg = `บันทึกเวร${form.shift} วันที่ ${this.formatThaiDateShort(form.evalDate)} สำเร็จ`;
+                this.showSuccess = true;
+                setTimeout(() => this.showSuccess = false, 2500);
+                await this.loadClassifications(currentAN);
+            } catch (error) {
+                this.showAlert('Error', error.message);
+            } finally {
+                this.isLoading = false;
+            }
+        },
+        async saveFallShiftForm() {
+            const form = this.fallShiftForm;
+            const hasMorse = form.scores.some(score => score !== '' && score !== null);
+            const hasMaas = form.maas !== '' && form.maas !== null;
+            if (!hasMorse && !hasMaas) {
+                return this.showAlert('แจ้งเตือน', 'กรุณากรอกข้อมูลอย่างน้อย 1 รายการ');
+            }
+            if (!form.assessor) {
+                return this.showAlert('แจ้งเตือน', 'กรุณาระบุชื่อพยาบาลผู้ประเมิน');
+            }
+
+            const payload = {
+                action: 'saveFallRiskSingle',
+                an: this.selectedPatient.an,
+                hn: this.selectedPatient.hn,
+                ward: this.currentWard,
+                evalDate: form.evalDate,
+                shift: form.shift,
+                m1: form.scores[0], m2: form.scores[1], m3: form.scores[2],
+                m4: form.scores[3], m5: form.scores[4], m6: form.scores[5],
+                morseTotal: this.calcMorseTotal(form.scores),
+                maasScore: form.maas,
+                assessor: form.assessor
+            };
+
+            this.isLoading = true;
+            try {
+                const response = await fetch(this.API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                const res = await response.json();
+                if (res.status !== 'success') throw new Error(res.message);
+
+                this.showFallShiftModal = false;
+                this.successMsg = `บันทึกเวร${form.shift} วันที่ ${this.formatThaiDateShort(form.evalDate)} สำเร็จ`;
+                this.showSuccess = true;
+                setTimeout(() => this.showSuccess = false, 2500);
+                await this.loadFallRisk(this.selectedPatient.an);
+            } catch (error) {
+                this.showAlert('Error', error.message);
             } finally {
                 this.isLoading = false;
             }
