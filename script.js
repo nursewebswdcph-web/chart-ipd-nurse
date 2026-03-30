@@ -380,7 +380,7 @@ function nurseApp() {
                 total: result.total || '',
                 category: result.category ? `ประเภท ${result.category}` : '',
                 assessor: cell.assessor || '',
-                updatedAt: this.formatShiftTimestamp(cell.timestamp)
+                evalDateText: this.formatThaiDateShort(date)
             };
         },
         getPedShiftSummary(date, shift) {
@@ -391,7 +391,7 @@ function nurseApp() {
                 total: result.total || '',
                 category: result.category || '',
                 assessor: cell.assessor || '',
-                updatedAt: this.formatShiftTimestamp(cell.timestamp)
+                evalDateText: this.formatThaiDateShort(date)
             };
         },
         getFallShiftSummary(date, shift) {
@@ -401,7 +401,7 @@ function nurseApp() {
                 morse: this.calcMorseTotal(cell.scores) || '',
                 maas: cell.maas || '',
                 assessor: cell.assessor || '',
-                updatedAt: this.formatShiftTimestamp(cell.timestamp)
+                evalDateText: this.formatThaiDateShort(date)
             };
         },
         openAdultShiftModal(date, shift) {
