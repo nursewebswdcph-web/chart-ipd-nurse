@@ -143,7 +143,208 @@
         </div>
     </div>
 
-    <nav class="hospital-gradient text-white shadow-lg sticky top-0 z-[1000] px-4 py-2 border-b border-white/10 no-print">
+    <section x-show="!isAuthenticated" x-cloak class="min-h-screen bg-[radial-gradient(circle_at_top,#d1fae5_0%,#f8fafc_34%,#e2e8f0_100%)] px-4 py-10 md:py-16">
+        <div class="mx-auto max-w-xl">
+            <div class="rounded-[2.75rem] bg-white/95 backdrop-blur-sm border border-white/70 shadow-2xl shadow-slate-200/70 overflow-hidden">
+                <div class="hospital-gradient px-8 py-8 text-white">
+                    <div class="flex items-center gap-4">
+                        <div class="h-16 w-16 rounded-[1.75rem] bg-white/15 border border-white/20 flex items-center justify-center shadow-inner">
+                            <img src="https://swdcph.moph.go.th/intranet/login/images/logo_swd.png" alt="Logo" class="h-11 w-11 rounded-full bg-white p-1">
+                        </div>
+                        <div>
+                            <h1 class="text-2xl md:text-3xl font-black leading-tight">IPD Nurse Workbench</h1>
+                            <p class="mt-1 text-sm font-semibold text-white/80">ระบบบันทึกเวชระเบียนทางการพยาบาล โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-6 md:p-8">
+                <div x-show="authMode === 'login'" x-cloak class="space-y-4">
+                    <div>
+                        <h2 class="text-2xl font-black text-slate-800">เข้าสู่ระบบ</h2>
+                        <p class="mt-1 text-sm text-slate-500">ใช้ชื่อผู้ใช้และรหัสผ่านที่ลงทะเบียนไว้เพื่อเข้าสู่ระบบ</p>
+                    </div>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-600 mb-2">ชื่อผู้ใช้</label>
+                            <input type="text" x-model="authLoginForm.username" class="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" placeholder="username">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-600 mb-2">รหัสผ่าน</label>
+                            <div class="relative">
+                                <input :type="authPasswordVisibility.login ? 'text' : 'password'" x-model="authLoginForm.password" @keydown.enter.prevent="submitLogin()" class="w-full rounded-2xl border border-slate-200 px-4 py-3 pr-12 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" placeholder="กรอกรหัสผ่าน">
+                                <button @click="authPasswordVisibility.login = !authPasswordVisibility.login" type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-teal-700 transition-colors">
+                                    <i class="fa-solid" :class="authPasswordVisibility.login ? 'fa-eye-slash' : 'fa-eye'"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <button @click="submitLogin()" type="button" class="w-full rounded-2xl bg-teal-600 px-4 py-3 text-white font-black shadow-lg shadow-teal-200 hover:bg-teal-700 transition-all">
+                            เข้าสู่ระบบ
+                        </button>
+                        <div class="text-center">
+                            <button @click="authMode = 'forgot'" type="button" class="text-sm font-black text-slate-500 hover:text-teal-700">ลืมรหัสผ่าน</button>
+                        </div>
+                        <div class="text-center text-sm text-slate-500">
+                            ยังไม่มีบัญชี
+                            <button @click="authMode = 'register'" type="button" class="font-black text-teal-700 hover:text-teal-800">ลงทะเบียน</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div x-show="authMode === 'forgot'" x-cloak class="space-y-4">
+                    <div>
+                        <h2 class="text-2xl font-black text-slate-800">ลืมรหัสผ่าน</h2>
+                        <p class="mt-1 text-sm text-slate-500">กรอกชื่อผู้ใช้หรืออีเมลที่ลงทะเบียนไว้ ระบบจะส่งลิงก์ตั้งรหัสผ่านใหม่ไปยังอีเมลอัตโนมัติ</p>
+                    </div>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-600 mb-2">ชื่อผู้ใช้หรือ E-mail</label>
+                            <input type="text" x-model="authForgotForm.identifier" @keydown.enter.prevent="submitForgotPassword()" class="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" placeholder="username หรือ yourname@hospital.go.th">
+                        </div>
+                        <button @click="submitForgotPassword()" type="button" class="w-full rounded-2xl bg-slate-800 px-4 py-3 text-white font-black shadow-lg shadow-slate-200 hover:bg-slate-900 transition-all">
+                            ส่งลิงก์ตั้งรหัสผ่านใหม่
+                        </button>
+                        <div class="text-center text-sm text-slate-500">
+                            <button @click="authMode = 'login'" type="button" class="font-black text-teal-700 hover:text-teal-800">กลับไปหน้าเข้าสู่ระบบ</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div x-show="authMode === 'register'" x-cloak class="space-y-4">
+                    <div>
+                        <h2 class="text-2xl font-black text-slate-800">ลงทะเบียนผู้ใช้งาน</h2>
+                        <p class="mt-1 text-sm text-slate-500">กรอกข้อมูลให้ครบถ้วน ระบบจะตรวจสอบกับชีต Staff และส่งรหัสยืนยันไปยังอีเมลอัตโนมัติ</p>
+                    </div>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-600 mb-2">ชื่อผู้ใช้</label>
+                            <input type="text" x-model="authRegisterForm.username" class="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" placeholder="4-30 ตัวอักษร เช่น natnarinthorn">
+                        </div>
+                    </div>
+                    <div class="grid gap-4 md:grid-cols-3">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-600 mb-2">คำนำหน้า</label>
+                            <select x-model="authRegisterForm.prefix" class="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100">
+                                <template x-for="prefix in authPrefixes" :key="prefix">
+                                    <option :value="prefix" x-text="prefix"></option>
+                                </template>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-600 mb-2">ชื่อ</label>
+                            <input type="text" x-model="authRegisterForm.firstName" class="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" placeholder="ชื่อ">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-600 mb-2">นามสกุล</label>
+                            <input type="text" x-model="authRegisterForm.lastName" class="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" placeholder="นามสกุล">
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-600 mb-2">E-mail</label>
+                            <input type="email" x-model="authRegisterForm.email" class="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" placeholder="yourname@hospital.go.th">
+                        </div>
+                        <div class="grid gap-4 md:grid-cols-2">
+                            <div>
+                                <label class="block text-sm font-bold text-slate-600 mb-2">รหัสผ่าน</label>
+                                <div class="relative">
+                                    <input :type="authPasswordVisibility.register ? 'text' : 'password'" x-model="authRegisterForm.password" class="w-full rounded-2xl border border-slate-200 px-4 py-3 pr-12 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" placeholder="อย่างน้อย 6 ตัวอักษร">
+                                    <button @click="authPasswordVisibility.register = !authPasswordVisibility.register" type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-teal-700 transition-colors">
+                                        <i class="fa-solid" :class="authPasswordVisibility.register ? 'fa-eye-slash' : 'fa-eye'"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-slate-600 mb-2">ยืนยันรหัสผ่าน</label>
+                                <div class="relative">
+                                    <input :type="authPasswordVisibility.confirm ? 'text' : 'password'" x-model="authRegisterForm.confirmPassword" @keydown.enter.prevent="submitRegistration()" class="w-full rounded-2xl border border-slate-200 px-4 py-3 pr-12 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" placeholder="ยืนยันรหัสผ่าน">
+                                    <button @click="authPasswordVisibility.confirm = !authPasswordVisibility.confirm" type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-teal-700 transition-colors">
+                                        <i class="fa-solid" :class="authPasswordVisibility.confirm ? 'fa-eye-slash' : 'fa-eye'"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <button @click="submitRegistration()" type="button" class="w-full rounded-2xl bg-slate-800 px-4 py-3 text-white font-black shadow-lg shadow-slate-200 hover:bg-slate-900 transition-all">
+                            ส่งรหัสยืนยันลงทะเบียน
+                        </button>
+                        <div class="text-center text-sm text-slate-500">
+                            มีบัญชีอยู่แล้ว
+                            <button @click="authMode = 'login'" type="button" class="font-black text-teal-700 hover:text-teal-800">เข้าสู่ระบบ</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div x-show="authMode === 'verify'" x-cloak class="space-y-4">
+                    <div>
+                        <h2 class="text-2xl font-black text-slate-800">ยืนยันอีเมล</h2>
+                        <p class="mt-1 text-sm text-slate-500">กรอกรหัส OTP ที่ส่งไปยังอีเมลเพื่อเปิดใช้งานบัญชี ระบบจะพาคุณกลับไปหน้าเข้าสู่ระบบอัตโนมัติหลังยืนยันสำเร็จ</p>
+                    </div>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-600 mb-2">E-mail</label>
+                            <input type="email" x-model="authVerifyForm.email" class="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" placeholder="yourname@hospital.go.th">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-600 mb-2">รหัสยืนยัน 6 หลัก</label>
+                            <input type="text" x-model="authVerifyForm.code" maxlength="6" @keydown.enter.prevent="submitVerification()" class="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100 tracking-[0.35em] text-center font-black text-lg" placeholder="000000">
+                        </div>
+                        <button @click="submitVerification()" type="button" class="w-full rounded-2xl bg-emerald-600 px-4 py-3 text-white font-black shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all">
+                            ยืนยันและสร้างบัญชี
+                        </button>
+                        <div class="text-center text-sm text-slate-500">
+                            <button @click="authMode = 'login'" type="button" class="font-black text-teal-700 hover:text-teal-800">กลับไปหน้าเข้าสู่ระบบ</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div x-show="authMode === 'reset'" x-cloak class="space-y-4">
+                    <div>
+                        <h2 class="text-2xl font-black text-slate-800">ตั้งรหัสผ่านใหม่</h2>
+                        <p class="mt-1 text-sm text-slate-500">ตั้งรหัสผ่านใหม่จากลิงก์ยืนยันที่ส่งไปทางอีเมล เมื่อบันทึกสำเร็จระบบจะพากลับไปหน้าเข้าสู่ระบบ</p>
+                    </div>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-600 mb-2">E-mail</label>
+                            <input type="email" x-model="authResetForm.email" class="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" placeholder="yourname@hospital.go.th">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-600 mb-2">รหัสยืนยันจากลิงก์</label>
+                            <input type="text" x-model="authResetForm.token" class="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" placeholder="token จากอีเมล">
+                        </div>
+                        <div class="grid gap-4 md:grid-cols-2">
+                            <div>
+                                <label class="block text-sm font-bold text-slate-600 mb-2">รหัสผ่านใหม่</label>
+                                <div class="relative">
+                                    <input :type="authPasswordVisibility.reset ? 'text' : 'password'" x-model="authResetForm.password" class="w-full rounded-2xl border border-slate-200 px-4 py-3 pr-12 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" placeholder="อย่างน้อย 6 ตัวอักษร">
+                                    <button @click="authPasswordVisibility.reset = !authPasswordVisibility.reset" type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-teal-700 transition-colors">
+                                        <i class="fa-solid" :class="authPasswordVisibility.reset ? 'fa-eye-slash' : 'fa-eye'"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-slate-600 mb-2">ยืนยันรหัสผ่านใหม่</label>
+                                <div class="relative">
+                                    <input :type="authPasswordVisibility.resetConfirm ? 'text' : 'password'" x-model="authResetForm.confirmPassword" @keydown.enter.prevent="submitPasswordReset()" class="w-full rounded-2xl border border-slate-200 px-4 py-3 pr-12 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" placeholder="ยืนยันรหัสผ่านใหม่">
+                                    <button @click="authPasswordVisibility.resetConfirm = !authPasswordVisibility.resetConfirm" type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-teal-700 transition-colors">
+                                        <i class="fa-solid" :class="authPasswordVisibility.resetConfirm ? 'fa-eye-slash' : 'fa-eye'"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <button @click="submitPasswordReset()" type="button" class="w-full rounded-2xl bg-emerald-600 px-4 py-3 text-white font-black shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all">
+                            บันทึกรหัสผ่านใหม่
+                        </button>
+                        <div class="text-center text-sm text-slate-500">
+                            <button @click="clearAuthRoute(); authMode = 'login'" type="button" class="font-black text-teal-700 hover:text-teal-800">กลับไปหน้าเข้าสู่ระบบ</button>
+                        </div>
+                    </div>
+                </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <nav x-show="isAuthenticated" x-cloak class="hospital-gradient text-white shadow-lg sticky top-0 z-[1000] px-4 py-2 border-b border-white/10 no-print">
         <div class="container mx-auto flex justify-between items-center h-14">
             <div class="flex items-center space-x-3">
                 <img src="https://swdcph.moph.go.th/intranet/login/images/logo_swd.png" alt="Logo" class="h-10 w-auto bg-white rounded-full p-1 shadow-inner">
@@ -154,6 +355,13 @@
             </div>
 
             <div class="flex items-center gap-3">
+                <template x-if="currentUser">
+                    <div class="hidden md:flex flex-col text-right leading-tight">
+                        <span class="text-sm font-black text-white" x-text="currentUser.fullName"></span>
+                        <span class="text-[11px] text-white/70 font-semibold" x-text="currentUser.position || 'บุคลากรทางการพยาบาล'"></span>
+                        <span x-show="isServiceAdmin" class="text-[10px] text-amber-200 font-black uppercase tracking-wider">Admin</span>
+                    </div>
+                </template>
                 <template x-if="currentWard">
                     <div class="flex items-center gap-2">
                         <div class="bg-emerald-500/40 px-3 py-1 rounded-full text-xs font-bold border border-emerald-400/30 flex items-center">
@@ -165,11 +373,15 @@
                 <button @click="currentWard = null; viewMode = 'list'" x-show="currentWard" class="w-9 h-9 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 transition-colors border border-white/10">
                     <i class="fa-solid fa-house text-sm"></i>
                 </button>
+                <button @click="logout()" type="button" class="inline-flex items-center gap-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 px-3 py-2 text-sm font-bold transition-colors">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span class="hidden sm:inline">ออกระบบ</span>
+                </button>
             </div>
         </div>
     </nav>
 
-    <main class="container mx-auto p-4 md:p-6 lg:p-8">
+    <main x-show="isAuthenticated" x-cloak class="container mx-auto p-4 md:p-6 lg:p-8">
         <div x-show="!currentWard && viewMode !== 'chart'" x-cloak class="max-w-7xl mx-auto px-4">
             <div class="text-center mb-10 mt-6">
                 <h2 class="text-xl font-black text-slate-800 tracking-tight uppercase">
@@ -2055,11 +2267,15 @@
                                     </div>
                                     <template x-if="selectedPatient">
                                         <div class="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
-                                            <label class="block text-xs font-bold text-blue-700">ระบุวันจำหน่ายผู้ป่วยก่อนพิมพ์:</label>
+                                            <label class="block text-xs font-bold text-blue-700">ระบุวันจำหน่ายผู้ป่วย:</label>
                                             <div class="flex gap-2 mt-1">
                                                 <input type="date" 
                                                         x-model="selectedPatient.dischargeDate" 
                                                         class="border rounded px-2 py-1 text-xs focus:ring-1 focus:ring-blue-500">
+                                                <button @click="saveDischargeDateAction(selectedPatient.an, selectedPatient.dischargeDate)" 
+                                                        class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition text-xs">
+                                                    <i class="fas fa-save mr-1"></i> บันทึกวันจำหน่าย
+                                                </button>
                                             </div>
                                         </div>
                                     </template>
@@ -3039,7 +3255,7 @@
                         <div class="flex justify-between items-center border-b border-slate-200 pb-3 sticky top-0 bg-white z-20 pt-2">
                             <div>
                                 <h2 class="text-xl font-black text-amber-900 leading-tight">แบบประเมินความเสี่ยงต่อการพลัดตกหกล้ม (Morse) / การดึงอุปกรณ์ (MAAS)</h2>
-                                <p class="text-[11px] text-slate-500 font-bold mt-0.5 tracking-wider uppercase">Morse Fall Scale (ประเมินวันอังคารและศุกร์), MAAS ประเมินทุกเวร</span></p>
+                                <p class="text-[11px] text-slate-500 font-bold mt-0.5 tracking-wider uppercase">หอผู้ป่วย <span x-text="currentWard"></span></p>
                             </div>
                             <div class="flex gap-2">
                                 <button type="button" @click="viewMode = 'detail'" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2 px-5 rounded-xl text-sm">ยกเลิก</button>
@@ -4343,7 +4559,231 @@
             </main>
         </div>
     </div>
-</main>
+    </main>
+
+    <div x-show="showServicePanel" class="no-print fixed inset-0 z-[17000] flex items-end md:items-center justify-center bg-slate-900/55 backdrop-blur-sm p-0 md:p-4" x-cloak>
+        <div @click.away="closeServicePanel()" class="bg-white w-full md:max-w-6xl md:rounded-[2rem] shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[100vh] md:max-h-[92vh]">
+            <div class="hospital-gradient px-6 py-5 text-white flex items-center justify-between">
+                <div>
+                    <h3 class="text-xl font-black">IT Nurse Service</h3>
+                    <p class="text-xs text-white/80 font-semibold">ศูนย์รับแจ้งปัญหาการใช้งานและคำขอพิเศษของระบบ</p>
+                </div>
+                <button @click="closeServicePanel()" type="button" class="w-11 h-11 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/10">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <div class="border-b border-slate-200 px-6 py-4 flex flex-wrap gap-3 bg-slate-50">
+                <button @click="serviceView = 'create'" :class="serviceView === 'create' ? 'bg-teal-600 text-white border-teal-600' : 'bg-white text-slate-600 border-slate-200'" class="rounded-full border px-4 py-2 text-sm font-black transition-all">แจ้งเรื่องใหม่</button>
+                <button @click="serviceView = 'mine'; loadServiceRequests({ force: true })" :class="serviceView === 'mine' ? 'bg-teal-600 text-white border-teal-600' : 'bg-white text-slate-600 border-slate-200'" class="rounded-full border px-4 py-2 text-sm font-black transition-all">รายการของฉัน</button>
+                <button x-show="isServiceAdmin" @click="serviceView = 'admin'; loadServiceRequests({ force: true })" :class="serviceView === 'admin' ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200'" class="rounded-full border px-4 py-2 text-sm font-black transition-all">รายการทั้งหมด (Admin)</button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-6 bg-slate-50/70">
+                <div x-show="serviceView === 'create'" class="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+                    <div class="bg-white rounded-[1.75rem] border border-slate-200 p-6 shadow-sm space-y-4">
+                        <div>
+                            <h4 class="text-lg font-black text-slate-800">แจ้งปัญหา / ส่งคำขอใหม่</h4>
+                            <p class="text-sm text-slate-500">แนบภาพหน้าจอหรือไฟล์ประกอบได้ เพื่อให้ทีม IT Nurse วิเคราะห์ได้เร็วขึ้น</p>
+                        </div>
+                        <div class="grid gap-4 md:grid-cols-2">
+                            <div>
+                                <label class="block text-sm font-bold text-slate-600 mb-2">ประเภทคำขอ</label>
+                                <select x-model="serviceForm.category" class="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100">
+                                    <template x-for="category in serviceCategories" :key="category">
+                                        <option :value="category" x-text="category"></option>
+                                    </template>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-slate-600 mb-2">ผู้แจ้ง</label>
+                                <input type="text" :value="currentUser ? `${currentUser.fullName} | ${currentUser.position || '-'}` : ''" readonly class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-500">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-600 mb-2">หัวข้อ</label>
+                            <input type="text" x-model="serviceForm.subject" class="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" placeholder="เช่น ปุ่มบันทึกเวร Fall Risk ไม่ทำงาน">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-600 mb-2">รายละเอียด</label>
+                            <textarea x-model="serviceForm.details" rows="7" class="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" placeholder="อธิบายอาการที่พบ ขั้นตอนที่ทำก่อนเกิดปัญหา และสิ่งที่คาดหวัง"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-600 mb-2">แนบภาพ / แนบไฟล์</label>
+                            <input :key="serviceFileInputKey" type="file" multiple @change="handleServiceFiles($event)" class="block w-full text-sm text-slate-500 file:mr-4 file:rounded-full file:border-0 file:bg-teal-50 file:px-4 file:py-2 file:font-black file:text-teal-700 hover:file:bg-teal-100">
+                            <p class="mt-2 text-xs text-slate-400">แนบได้สูงสุด 5 ไฟล์ และไม่เกิน 5 MB ต่อไฟล์</p>
+                        </div>
+                        <div class="space-y-2" x-show="serviceForm.attachments.length > 0">
+                            <template x-for="(file, index) in serviceForm.attachments" :key="`${file.name}-${index}`">
+                                <div class="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                                    <div class="min-w-0">
+                                        <div class="truncate text-sm font-black text-slate-700" x-text="file.name"></div>
+                                        <div class="text-xs text-slate-400" x-text="formatFileSize(file.size)"></div>
+                                    </div>
+                                    <button @click="removeServiceAttachment(index)" type="button" class="rounded-full bg-rose-50 px-3 py-1.5 text-xs font-black text-rose-600 hover:bg-rose-100">ลบ</button>
+                                </div>
+                            </template>
+                        </div>
+                        <div class="flex gap-3 pt-2">
+                            <button @click="resetServiceForm()" type="button" class="flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 font-black text-slate-600">ล้างข้อมูล</button>
+                            <button @click="submitServiceRequest()" type="button" class="flex-1 rounded-2xl bg-teal-600 px-4 py-3 font-black text-white shadow-lg shadow-teal-200 hover:bg-teal-700">ส่งคำขอ</button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-[1.75rem] border border-slate-200 p-6 shadow-sm space-y-4">
+                        <div>
+                            <h4 class="text-lg font-black text-slate-800">สถานะคำขอของฉัน</h4>
+                            <p class="text-sm text-slate-500">ติดตามความคืบหน้าของงานล่าสุดได้จากที่นี่</p>
+                        </div>
+                        <div class="space-y-3 max-h-[26rem] overflow-y-auto pr-1">
+                            <template x-if="serviceRequests.filter(item => item.requesterEmail === currentUser?.email).length === 0">
+                                <div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm font-semibold text-slate-400">ยังไม่มีคำขอของคุณในระบบ</div>
+                            </template>
+                            <template x-for="request in serviceRequests.filter(item => item.requesterEmail === currentUser?.email)" :key="request.requestId">
+                                <div class="rounded-[1.5rem] border border-slate-200 bg-slate-50 px-4 py-4">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div>
+                                            <div class="text-xs font-black uppercase tracking-wider text-teal-600" x-text="request.category"></div>
+                                            <div class="mt-1 text-sm font-black text-slate-800" x-text="request.subject"></div>
+                                        </div>
+                                        <span class="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-600 border border-slate-200" x-text="request.status"></span>
+                                    </div>
+                                    <p class="mt-2 text-sm text-slate-500 whitespace-pre-line" x-text="request.details"></p>
+                                    <div class="mt-3 text-xs text-slate-400">แจ้งเมื่อ <span x-text="formatServiceDateTime(request.createdAt)"></span></div>
+                                    <div x-show="request.adminNote" class="mt-3 rounded-2xl bg-amber-50 px-3 py-3 text-sm text-amber-900 border border-amber-100">
+                                        <div class="font-black mb-1">บันทึกจากผู้ดูแล</div>
+                                        <div class="whitespace-pre-line" x-text="request.adminNote"></div>
+                                    </div>
+                                    <div x-show="request.attachments && request.attachments.length" class="mt-3 space-y-2">
+                                        <template x-for="file in request.attachments" :key="file.fileId || file.url">
+                                            <a :href="file.url" target="_blank" class="flex items-center justify-between rounded-xl bg-white px-3 py-2 text-sm font-semibold text-slate-600 border border-slate-200 hover:border-teal-300">
+                                                <span class="truncate pr-3" x-text="file.name"></span>
+                                                <span class="text-xs text-teal-600 font-black">เปิดไฟล์</span>
+                                            </a>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+                <div x-show="serviceView === 'mine'" class="space-y-4">
+                    <template x-if="serviceRequests.filter(item => item.requesterEmail === currentUser?.email).length === 0">
+                        <div class="rounded-[1.75rem] border border-dashed border-slate-200 bg-white px-6 py-14 text-center text-slate-400 font-semibold">ยังไม่มีรายการคำขอของคุณ</div>
+                    </template>
+                    <template x-for="request in serviceRequests.filter(item => item.requesterEmail === currentUser?.email)" :key="request.requestId">
+                        <div class="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
+                            <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                                <div class="min-w-0">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <span class="rounded-full bg-teal-50 px-3 py-1 text-xs font-black text-teal-700" x-text="request.category"></span>
+                                        <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600" x-text="request.status"></span>
+                                        <span class="text-xs text-slate-400 font-semibold" x-text="request.requestId"></span>
+                                    </div>
+                                    <div class="mt-2 text-base font-black text-slate-800" x-text="request.subject"></div>
+                                    <p class="mt-2 text-sm text-slate-500 whitespace-pre-line" x-text="request.details"></p>
+                                </div>
+                                <div class="text-sm text-slate-400 font-semibold whitespace-nowrap" x-text="formatServiceDateTime(request.createdAt)"></div>
+                            </div>
+                            <div x-show="request.attachments && request.attachments.length" class="mt-4 grid gap-2 md:grid-cols-2">
+                                <template x-for="file in request.attachments" :key="file.fileId || file.url">
+                                    <a :href="file.url" target="_blank" class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-600 hover:border-teal-300">
+                                        <span class="block truncate" x-text="file.name"></span>
+                                        <span class="block text-xs text-slate-400" x-text="formatFileSize(file.size)"></span>
+                                    </a>
+                                </template>
+                            </div>
+                            <div x-show="request.adminNote" class="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900 border border-amber-100">
+                                <div class="font-black mb-1">บันทึกจากผู้ดูแล</div>
+                                <div class="whitespace-pre-line" x-text="request.adminNote"></div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <div x-show="serviceView === 'admin' && isServiceAdmin" class="space-y-4">
+                    <template x-if="serviceRequests.length === 0">
+                        <div class="rounded-[1.75rem] border border-dashed border-slate-200 bg-white px-6 py-14 text-center text-slate-400 font-semibold">ยังไม่มีคำขอ Service ในระบบ</div>
+                    </template>
+                    <template x-for="request in serviceRequests" :key="request.requestId">
+                        <div class="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
+                            <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                                <div class="min-w-0">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <span class="rounded-full bg-slate-900 px-3 py-1 text-xs font-black text-white" x-text="request.requestId"></span>
+                                        <span class="rounded-full bg-teal-50 px-3 py-1 text-xs font-black text-teal-700" x-text="request.category"></span>
+                                    </div>
+                                    <div class="mt-2 text-base font-black text-slate-800" x-text="request.subject"></div>
+                                    <div class="mt-2 text-sm text-slate-500">
+                                        <span class="font-black text-slate-700" x-text="request.requesterName"></span>
+                                        <span> | </span>
+                                        <span x-text="request.requesterPosition || '-'"></span>
+                                        <span> | </span>
+                                        <span x-text="request.requesterUsername"></span>
+                                    </div>
+                                    <p class="mt-2 text-sm text-slate-500 whitespace-pre-line" x-text="request.details"></p>
+                                </div>
+                                <div class="text-sm text-slate-400 font-semibold whitespace-nowrap" x-text="formatServiceDateTime(request.createdAt)"></div>
+                            </div>
+                            <div x-show="request.attachments && request.attachments.length" class="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                                <template x-for="file in request.attachments" :key="file.fileId || file.url">
+                                    <a :href="file.url" target="_blank" class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-600 hover:border-teal-300">
+                                        <span class="block truncate" x-text="file.name"></span>
+                                        <span class="block text-xs text-slate-400" x-text="formatFileSize(file.size)"></span>
+                                    </a>
+                                </template>
+                            </div>
+                            <div class="mt-4 grid gap-4 lg:grid-cols-[220px_1fr_180px]">
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-600 mb-2">สถานะ</label>
+                                    <select x-model="request.statusDraft" class="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-200">
+                                        <template x-for="status in serviceStatuses" :key="status">
+                                            <option :value="status" x-text="status"></option>
+                                        </template>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-600 mb-2">บันทึกจากผู้ดูแล</label>
+                                    <textarea x-model="request.adminNoteDraft" rows="3" class="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-200" placeholder="ระบุความคืบหน้า หรือข้อมูลที่ต้องการจากผู้ใช้งานเพิ่มเติม"></textarea>
+                                </div>
+                                <div class="flex flex-col justify-end gap-2">
+                                    <button @click="saveServiceStatus(request)" type="button" class="rounded-2xl bg-slate-900 px-4 py-3 font-black text-white hover:bg-slate-800">บันทึกสถานะ</button>
+                                    <div class="text-xs text-slate-400 leading-relaxed">
+                                        อัปเดตล่าสุด:
+                                        <span x-text="request.updatedAt ? formatServiceDateTime(request.updatedAt) : '-'"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <button x-show="isAuthenticated" x-cloak @click="openServicePanel(isServiceAdmin ? 'admin' : 'create')" type="button" class="no-print fixed bottom-6 right-6 z-[16000] inline-flex items-center gap-3 rounded-full bg-teal-600 px-5 py-4 text-white shadow-2xl shadow-teal-200 hover:bg-teal-700 transition-all">
+        <span class="flex h-11 w-11 items-center justify-center rounded-full bg-white/15 border border-white/15">
+            <i class="fa-solid fa-headset text-lg"></i>
+        </span>
+        <span class="text-left leading-tight">
+            <span class="block text-sm font-black">IT Nurse Service</span>
+            <span class="block text-[11px] text-white/75" x-text="isServiceAdmin ? 'จัดการคำขอ Service' : 'แจ้งปัญหา / ขอปรับปรุงระบบ'"></span>
+        </span>
+    </button>
+
+    <footer class="no-print px-4 pb-8">
+        <div class="container mx-auto">
+            <div class="flex flex-col gap-2 text-[11px] text-slate-400 md:flex-row md:items-center md:justify-between">
+                <div class="font-medium">
+                    © 2026 IPD Nurse System All rights reserved. | Developed by Natnarinthorn.
+                </div>
+                <div class="font-bold uppercase tracking-[0.18em] text-slate-400 md:text-right">
+                    V2.1 Digitalized
+                </div>
+            </div>
+        </div>
+    </footer>
 
     <div x-show="showClassModal" class="fixed inset-0 z-[12000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" x-cloak>
         <div @click.away="showClassModal = false" class="bg-white w-full max-w-3xl max-h-[90vh] overflow-hidden rounded-[2rem] shadow-2xl border border-slate-200 flex flex-col">
@@ -4462,7 +4902,7 @@
             </div>
             <div class="p-6 overflow-y-auto space-y-4">
                 <div class="rounded-2xl border border-amber-100 overflow-hidden">
-                    <div class="px-4 py-2 bg-amber-100/70 text-sm font-black text-amber-900">Morse Fall Scale (ประเมินวันอังคารและศุกร์)</div>
+                    <div class="px-4 py-2 bg-amber-100/70 text-sm font-black text-amber-900">Morse Fall Scale</div>
                     <div class="p-4 space-y-3">
                         <template x-for="(item, idx) in fallRiskMorseQuestions" :key="`fall-modal-${idx}`">
                             <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 space-y-3">
@@ -4484,7 +4924,7 @@
                     </div>
                 </div>
                 <div class="rounded-2xl border border-blue-100 overflow-hidden">
-                    <div class="px-4 py-2 bg-blue-100/70 text-sm font-black text-blue-900">MAAS ประเมินทุกเวร</div>
+                    <div class="px-4 py-2 bg-blue-100/70 text-sm font-black text-blue-900">MAAS</div>
                     <div class="p-4 space-y-3">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                             <template x-for="item in fallRiskMaasOptions" :key="`fall-maas-${item.value}`">
