@@ -3,8 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0f766e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>IPD Nurse Workbench | โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน</title>
     <link rel="icon" type="image/png" href="https://png.pngtree.com/png-vector/20250520/ourmid/pngtree-healthcare-nurse-station-symbol-for-medical-facilities-png-image_16333172.png">
+    <link rel="manifest" href="./manifest.webmanifest">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="script.js"></script>
@@ -355,6 +359,10 @@
             </div>
 
             <div class="flex items-center gap-3">
+                <button x-show="canInstallApp && !isAppInstalled" @click="installApp()" type="button" class="inline-flex items-center gap-2 rounded-xl bg-emerald-500/90 hover:bg-emerald-400 border border-emerald-300/30 px-3 py-2 text-sm font-bold transition-colors">
+                    <i class="fa-solid fa-download"></i>
+                    <span class="hidden sm:inline">ติดตั้งแอป</span>
+                </button>
                 <template x-if="currentUser">
                     <div class="hidden md:flex flex-col text-right leading-tight">
                         <span class="text-sm font-black text-white" x-text="currentUser.fullName"></span>
