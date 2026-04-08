@@ -4483,13 +4483,26 @@ function nurseApp() {
         },
 
         async saveProgressToDB() {
+            if (!this.selectedPatient?.an) {
+                this.focusAlert('ไม่พบเลข AN ของผู้ป่วย');
+                return false;
+            }
             try {
                 const payload = { an: this.selectedPatient.an, hn: this.selectedPatient.hn, ward: this.currentWard, noteData: this.progressNotes };
-                await fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveNursingNotes', payload }) });
+                const response = await fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveNursingNotes', payload }) });
+                const result = await response.json();
+                if (result.status !== 'success') {
+                    throw new Error(result.message || 'บันทึก Nursing Progress Note ไม่สำเร็จ');
+                }
                 
                 this.showSuccess = true; this.successMsg = 'ซิงค์ข้อมูลลงฐานข้อมูลเรียบร้อย';
                 setTimeout(() => { this.showSuccess = false; }, 3000);
-            } catch(e) { console.error(e); }
+                return true;
+            } catch(e) {
+                console.error(e);
+                this.focusAlert(`บันทึกข้อมูลไม่สำเร็จ: ${e.message}`);
+                return false;
+            }
         },
 
         editProgressNote(index) {
