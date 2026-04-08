@@ -2,6 +2,7 @@ function nurseApp() {
     return {
         // --- 1. CONFIG & STATE ---
         API_URL: 'https://script.google.com/macros/s/AKfycbxqaydhsgGZKV8hz28qYUzsTVDl7c-DzgFZD9FDzcWE_uCnwIaJryjqiNQ2ggxOYn49/exec',
+        APP_WEB_URL: 'https://nursewebswdcph-web.github.io/chart-ipd-nurse/',
         isLoading: false,
         isPrintingPed: false,
         realTimeClock: '',
@@ -9,6 +10,49 @@ function nurseApp() {
         
         viewMode: 'list', 
         isEditing: false,
+        isAuthenticated: false,
+        currentUser: null,
+        sessionToken: '',
+        authSessionKey: 'ipd_nurse_session_token',
+        authMode: 'login',
+        initDataLoadedAt: 0,
+        initDataTTL: 300000,
+        initDataPromise: null,
+        patientsCacheByWard: {},
+        patientsPromiseByWard: {},
+        patientsCacheTTL: 30000,
+        resourceLoadMeta: {},
+        resourceLoadPromises: {},
+        resourceLoadTTL: 45000,
+        templateCache: {
+            focusTemplates: null,
+            nursingTemplates: null
+        },
+        templatePromises: {
+            focusTemplates: null,
+            nursingTemplates: null
+        },
+        authPrefixes: ['นาย', 'นาง', 'นางสาว', 'นพ.', 'พญ.', 'พว.', 'ทพ.', 'ทญ.'],
+        authLoginForm: { username: '', password: '' },
+        authRegisterForm: { username: '', prefix: 'นางสาว', firstName: '', lastName: '', email: '', password: '', confirmPassword: '' },
+        authVerifyForm: { email: '', code: '' },
+        authForgotForm: { identifier: '' },
+        authResetForm: { email: '', token: '', password: '', confirmPassword: '' },
+        authPasswordVisibility: {
+            login: false,
+            register: false,
+            confirm: false,
+            reset: false,
+            resetConfirm: false
+        },
+        showServicePanel: false,
+        serviceView: 'create',
+        serviceLoadPromise: null,
+        serviceRequests: [],
+        serviceStatuses: ['ใหม่', 'รับเรื่องแล้ว', 'กำลังดำเนินการ', 'รอข้อมูลเพิ่ม', 'เสร็จสิ้น', 'ปิดงาน'],
+        serviceCategories: ['แจ้งปัญหาการใช้งาน', 'คำขอพิเศษเพิ่มเติม', 'ขอปรับปรุงแบบฟอร์ม', 'ขอสิทธิ์/บัญชีผู้ใช้', 'อื่นๆ'],
+        serviceForm: { category: 'แจ้งปัญหาการใช้งาน', subject: '', details: '', attachments: [] },
+        serviceFileInputKey: Date.now(),
         nurses: [],
         showNurseListFor: null,
         nurseName: '', 
@@ -747,10 +791,559 @@ function nurseApp() {
                 }
             );
         },
+        get isServiceAdmin() {
+            return String(this.currentUser?.role || '').toLowerCase() === 'admin';
+        },
+        get effectiveAppBaseUrl() {
+            const currentHref = window.location.href || '';
+            if (/^https?:\/\//i.test(currentHref)) {
+                const cleanHref = currentHref.split('?')[0].split('#')[0];
+                return cleanHref.endsWith('/') ? cleanHref : cleanHref;
+            }
+            return this.APP_WEB_URL;
+        },
+        applyAuthRouteFromUrl() {
+            const params = new URLSearchParams(window.location.search || '');
+            const authMode = String(params.get('authMode') || '').trim();
+            if (authMode !== 'reset') return false;
+
+            this.resetAuthForms();
+            this.authMode = 'reset';
+            this.authResetForm = {
+                email: String(params.get('email') || '').trim(),
+                token: String(params.get('token') || '').trim(),
+                password: '',
+                confirmPassword: ''
+            };
+            this.setAuthenticatedUser(null, '');
+            window.localStorage.removeItem(this.authSessionKey);
+            return true;
+        },
+        clearAuthRoute() {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('authMode');
+            url.searchParams.delete('token');
+            url.searchParams.delete('email');
+            window.history.replaceState({}, document.title, url.toString());
+        },
+        defaultServiceForm() {
+            return {
+                category: 'แจ้งปัญหาการใช้งาน',
+                subject: '',
+                details: '',
+                attachments: []
+            };
+        },
+        resetServiceForm() {
+            this.serviceForm = this.defaultServiceForm();
+            this.serviceFileInputKey = Date.now();
+        },
+        async fileToDataUrl(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(String(reader.result || ''));
+                reader.onerror = () => reject(new Error(`อ่านไฟล์ ${file.name} ไม่สำเร็จ`));
+                reader.readAsDataURL(file);
+            });
+        },
+        async handleServiceFiles(event) {
+            const files = Array.from(event?.target?.files || []);
+            if (files.length === 0) return;
+
+            const currentFiles = Array.isArray(this.serviceForm.attachments) ? this.serviceForm.attachments.slice() : [];
+            if ((currentFiles.length + files.length) > 5) {
+                event.target.value = '';
+                return this.showAlert('แจ้งเตือน', 'แนบไฟล์ได้สูงสุด 5 ไฟล์ต่อคำขอ');
+            }
+
+            try {
+                for (const file of files) {
+                    if (file.size > (5 * 1024 * 1024)) {
+                        throw new Error(`ไฟล์ ${file.name} มีขนาดเกิน 5 MB`);
+                    }
+                    const dataUrl = await this.fileToDataUrl(file);
+                    currentFiles.push({
+                        name: file.name,
+                        type: file.type || 'application/octet-stream',
+                        size: file.size,
+                        dataUrl
+                    });
+                }
+                this.serviceForm.attachments = currentFiles;
+                this.serviceFileInputKey = Date.now();
+            } catch (error) {
+                this.showAlert('แนบไฟล์ไม่สำเร็จ', error.message);
+            } finally {
+                if (event?.target) event.target.value = '';
+            }
+        },
+        removeServiceAttachment(index) {
+            this.serviceForm.attachments = (this.serviceForm.attachments || []).filter((_, itemIndex) => itemIndex !== index);
+            this.serviceFileInputKey = Date.now();
+        },
+        formatFileSize(size) {
+            const bytes = Number(size || 0);
+            if (!bytes) return '0 KB';
+            if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+            return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+        },
+        formatServiceDateTime(value) {
+            if (!value) return '-';
+            const parsed = new Date(value);
+            if (isNaN(parsed.getTime())) return value;
+            return parsed.toLocaleString('th-TH', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        },
+        openServicePanel(view = null) {
+            this.showServicePanel = true;
+            if (view) this.serviceView = view;
+            if (!this.isServiceAdmin && this.serviceView === 'admin') {
+                this.serviceView = 'create';
+            }
+            this.loadServiceRequests({ force: true }).catch(error => {
+                console.error('Load service requests error:', error);
+            });
+        },
+        closeServicePanel() {
+            this.showServicePanel = false;
+        },
+        async loadServiceRequests(options = {}) {
+            const force = !!options.force;
+            if (!this.sessionToken) return [];
+            if (!force && this.serviceLoadPromise) {
+                return this.serviceLoadPromise;
+            }
+
+            const task = (async () => {
+                const response = await fetch(this.API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'getServiceRequests',
+                        payload: { sessionToken: this.sessionToken }
+                    })
+                });
+                const result = await response.json();
+                if (result.status !== 'success') {
+                    throw new Error(result.message || 'โหลดรายการ Service ไม่สำเร็จ');
+                }
+                this.serviceRequests = Array.isArray(result.requests) ? result.requests.map(item => ({
+                    ...item,
+                    statusDraft: item.status || 'ใหม่',
+                    adminNoteDraft: item.adminNote || ''
+                })) : [];
+                return this.serviceRequests;
+            })();
+
+            this.serviceLoadPromise = task;
+            try {
+                return await task;
+            } finally {
+                if (this.serviceLoadPromise === task) {
+                    this.serviceLoadPromise = null;
+                }
+            }
+        },
+        async submitForgotPassword() {
+            const identifier = String(this.authForgotForm.identifier || '').trim();
+            if (!identifier) {
+                return this.showAlert('แจ้งเตือน', 'กรุณากรอกชื่อผู้ใช้หรืออีเมลที่ลงทะเบียนไว้');
+            }
+
+            this.isLoading = true;
+            try {
+                const response = await fetch(this.API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'sendPasswordResetLink',
+                        payload: {
+                            identifier,
+                            resetBaseUrl: this.effectiveAppBaseUrl
+                        }
+                    })
+                });
+                const result = await response.json();
+                if (result.status !== 'success') {
+                    throw new Error(result.message || 'ส่งลิงก์รีเซ็ตรหัสผ่านไม่สำเร็จ');
+                }
+                this.authForgotForm.identifier = '';
+                this.authMode = 'login';
+                this.showSuccess = true;
+                this.successMsg = result.message || 'ส่งลิงก์ตั้งรหัสผ่านใหม่เรียบร้อยแล้ว';
+                setTimeout(() => this.showSuccess = false, 3000);
+            } catch (error) {
+                this.showAlert('ลืมรหัสผ่าน', error.message);
+            } finally {
+                this.isLoading = false;
+            }
+        },
+        async submitPasswordReset() {
+            const payload = {
+                email: String(this.authResetForm.email || '').trim(),
+                token: String(this.authResetForm.token || '').trim(),
+                password: String(this.authResetForm.password || ''),
+                confirmPassword: String(this.authResetForm.confirmPassword || '')
+            };
+            if (!payload.email || !payload.token || !payload.password || !payload.confirmPassword) {
+                return this.showAlert('แจ้งเตือน', 'กรุณากรอกข้อมูลตั้งรหัสผ่านใหม่ให้ครบถ้วน');
+            }
+            if (payload.password !== payload.confirmPassword) {
+                return this.showAlert('แจ้งเตือน', 'รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน');
+            }
+
+            this.isLoading = true;
+            try {
+                const response = await fetch(this.API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'resetPasswordWithToken',
+                        payload
+                    })
+                });
+                const result = await response.json();
+                if (result.status !== 'success') {
+                    throw new Error(result.message || 'ตั้งรหัสผ่านใหม่ไม่สำเร็จ');
+                }
+                this.authResetForm = { email: '', token: '', password: '', confirmPassword: '' };
+                this.authMode = 'login';
+                this.clearAuthRoute();
+                this.showSuccess = true;
+                this.successMsg = result.message || 'ตั้งรหัสผ่านใหม่เรียบร้อยแล้ว';
+                setTimeout(() => this.showSuccess = false, 3000);
+            } catch (error) {
+                this.showAlert('ตั้งรหัสผ่านใหม่ไม่สำเร็จ', error.message);
+            } finally {
+                this.isLoading = false;
+            }
+        },
+        async submitServiceRequest() {
+            const payload = {
+                category: String(this.serviceForm.category || '').trim(),
+                subject: String(this.serviceForm.subject || '').trim(),
+                details: String(this.serviceForm.details || '').trim(),
+                attachments: Array.isArray(this.serviceForm.attachments) ? this.serviceForm.attachments : [],
+                sessionToken: this.sessionToken
+            };
+            if (!payload.subject || !payload.details) {
+                return this.showAlert('แจ้งเตือน', 'กรุณากรอกหัวข้อและรายละเอียดคำขอให้ครบถ้วน');
+            }
+
+            this.isLoading = true;
+            try {
+                const response = await fetch(this.API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'createServiceRequest',
+                        payload
+                    })
+                });
+                const result = await response.json();
+                if (result.status !== 'success') {
+                    throw new Error(result.message || 'ส่งคำขอไม่สำเร็จ');
+                }
+                this.resetServiceForm();
+                await this.loadServiceRequests({ force: true });
+                this.serviceView = this.isServiceAdmin ? 'admin' : 'mine';
+                this.showSuccess = true;
+                this.successMsg = result.message || 'ส่งคำขอเรียบร้อยแล้ว';
+                setTimeout(() => this.showSuccess = false, 3000);
+            } catch (error) {
+                this.showAlert('IT Nurse Service', error.message);
+            } finally {
+                this.isLoading = false;
+            }
+        },
+        async saveServiceStatus(request) {
+            if (!this.isServiceAdmin) return;
+            this.isLoading = true;
+            try {
+                const response = await fetch(this.API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'updateServiceRequestStatus',
+                        payload: {
+                            sessionToken: this.sessionToken,
+                            requestId: request.requestId,
+                            status: String(request.statusDraft || request.status || '').trim(),
+                            adminNote: String(request.adminNoteDraft || '').trim()
+                        }
+                    })
+                });
+                const result = await response.json();
+                if (result.status !== 'success') {
+                    throw new Error(result.message || 'อัปเดตสถานะไม่สำเร็จ');
+                }
+                await this.loadServiceRequests({ force: true });
+                this.showSuccess = true;
+                this.successMsg = result.message || 'อัปเดตสถานะเรียบร้อยแล้ว';
+                setTimeout(() => this.showSuccess = false, 2500);
+            } catch (error) {
+                this.showAlert('อัปเดตสถานะไม่สำเร็จ', error.message);
+            } finally {
+                this.isLoading = false;
+            }
+        },
 
         init() {
             this.startClock();
-            this.loadInitialData();
+            const hasAuthRoute = this.applyAuthRouteFromUrl();
+            if (!hasAuthRoute) {
+                this.restoreSession();
+            }
+        },
+        setAuthenticatedUser(user, token = '') {
+            this.currentUser = user ? { ...user } : null;
+            this.isAuthenticated = !!user;
+            this.sessionToken = token || this.sessionToken || '';
+            this.nurseName = user?.fullName || '';
+            this.nursePosition = user?.position || '';
+        },
+        resetAuthForms() {
+            this.authMode = 'login';
+            this.authLoginForm = { username: '', password: '' };
+            this.authRegisterForm = { username: '', prefix: 'นางสาว', firstName: '', lastName: '', email: '', password: '', confirmPassword: '' };
+            this.authVerifyForm = { email: '', code: '' };
+            this.authForgotForm = { identifier: '' };
+            this.authResetForm = { email: '', token: '', password: '', confirmPassword: '' };
+            this.authPasswordVisibility = {
+                login: false,
+                register: false,
+                confirm: false,
+                reset: false,
+                resetConfirm: false
+            };
+        },
+        buildResourceCacheKey(resourceName, identifier = 'global') {
+            return `${resourceName}::${identifier || 'global'}`;
+        },
+        isResourceFresh(resourceName, identifier = 'global', ttl = this.resourceLoadTTL) {
+            const cacheKey = this.buildResourceCacheKey(resourceName, identifier);
+            const loadedAt = this.resourceLoadMeta[cacheKey] || 0;
+            return loadedAt > 0 && (Date.now() - loadedAt) < ttl;
+        },
+        markResourceLoaded(resourceName, identifier = 'global') {
+            const cacheKey = this.buildResourceCacheKey(resourceName, identifier);
+            this.resourceLoadMeta[cacheKey] = Date.now();
+        },
+        invalidateResource(resourceName, identifier = null) {
+            if (identifier !== null && identifier !== undefined) {
+                delete this.resourceLoadMeta[this.buildResourceCacheKey(resourceName, identifier)];
+                delete this.resourceLoadPromises[this.buildResourceCacheKey(resourceName, identifier)];
+                return;
+            }
+            Object.keys(this.resourceLoadMeta).forEach(key => {
+                if (key.startsWith(`${resourceName}::`)) delete this.resourceLoadMeta[key];
+            });
+            Object.keys(this.resourceLoadPromises).forEach(key => {
+                if (key.startsWith(`${resourceName}::`)) delete this.resourceLoadPromises[key];
+            });
+        },
+        invalidateWardPatientsCache(ward = this.currentWard) {
+            const wardKey = String(ward || '').trim();
+            if (!wardKey) return;
+            delete this.patientsCacheByWard[wardKey];
+            delete this.patientsPromiseByWard[wardKey];
+        },
+        async loadTemplateCollection(cacheKey, action, force = false) {
+            if (!force && Array.isArray(this.templateCache[cacheKey]) && this.templateCache[cacheKey].length > 0) {
+                return this.templateCache[cacheKey];
+            }
+            if (!force && this.templatePromises[cacheKey]) {
+                return this.templatePromises[cacheKey];
+            }
+
+            const task = (async () => {
+                const response = await fetch(`${this.API_URL}?action=${action}`);
+                const data = await response.json();
+                this.templateCache[cacheKey] = Array.isArray(data) ? data : [];
+                return this.templateCache[cacheKey];
+            })();
+
+            this.templatePromises[cacheKey] = task;
+            try {
+                return await task;
+            } finally {
+                if (this.templatePromises[cacheKey] === task) {
+                    this.templatePromises[cacheKey] = null;
+                }
+            }
+        },
+        async restoreSession() {
+            this.isLoading = true;
+            try {
+                const savedToken = window.localStorage.getItem(this.authSessionKey) || '';
+                if (!savedToken) {
+                    this.setAuthenticatedUser(null, '');
+                    return;
+                }
+
+                const response = await fetch(`${this.API_URL}?action=getSessionUser&sessionToken=${encodeURIComponent(savedToken)}&_=${Date.now()}`);
+                const result = await response.json();
+                if (result.status !== 'success' || !result.user) {
+                    window.localStorage.removeItem(this.authSessionKey);
+                    this.setAuthenticatedUser(null, '');
+                    return;
+                }
+
+                this.setAuthenticatedUser(result.user, savedToken);
+                await this.loadInitialData();
+            } catch (error) {
+                console.error('Restore session error:', error);
+                window.localStorage.removeItem(this.authSessionKey);
+                this.setAuthenticatedUser(null, '');
+            } finally {
+                this.isLoading = false;
+            }
+        },
+        async submitLogin() {
+            const username = String(this.authLoginForm.username || '').trim();
+            const password = String(this.authLoginForm.password || '');
+            if (!username || !password) {
+                return this.showAlert('แจ้งเตือน', 'กรุณากรอกชื่อผู้ใช้และรหัสผ่าน');
+            }
+
+            this.isLoading = true;
+            try {
+                const response = await fetch(this.API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'loginUser',
+                        payload: {
+                            username,
+                            password
+                        }
+                    })
+                });
+                const result = await response.json();
+                if (result.status !== 'success' || !result.sessionToken || !result.user) {
+                    throw new Error(result.message || 'เข้าสู่ระบบไม่สำเร็จ');
+                }
+
+                window.localStorage.setItem(this.authSessionKey, result.sessionToken);
+                this.setAuthenticatedUser(result.user, result.sessionToken);
+                this.authLoginForm.password = '';
+                await this.loadInitialData();
+                this.showSuccess = true;
+                this.successMsg = 'เข้าสู่ระบบสำเร็จ';
+                setTimeout(() => this.showSuccess = false, 2500);
+            } catch (error) {
+                this.showAlert('เข้าสู่ระบบไม่สำเร็จ', error.message);
+            } finally {
+                this.isLoading = false;
+            }
+        },
+        async submitRegistration() {
+            const form = {
+                username: String(this.authRegisterForm.username || '').trim(),
+                prefix: String(this.authRegisterForm.prefix || '').trim(),
+                firstName: String(this.authRegisterForm.firstName || '').trim(),
+                lastName: String(this.authRegisterForm.lastName || '').trim(),
+                email: String(this.authRegisterForm.email || '').trim(),
+                password: String(this.authRegisterForm.password || ''),
+                confirmPassword: String(this.authRegisterForm.confirmPassword || '')
+            };
+
+            if (!form.username || !form.prefix || !form.firstName || !form.lastName || !form.email || !form.password || !form.confirmPassword) {
+                return this.showAlert('แจ้งเตือน', 'กรุณากรอกข้อมูลลงทะเบียนให้ครบถ้วน');
+            }
+            if (form.password !== form.confirmPassword) {
+                return this.showAlert('แจ้งเตือน', 'รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน');
+            }
+
+            this.isLoading = true;
+            try {
+                const response = await fetch(this.API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'sendRegistrationVerification',
+                        payload: form
+                    })
+                });
+                const result = await response.json();
+                if (result.status !== 'success') {
+                    throw new Error(result.message || 'ส่งรหัสยืนยันไม่สำเร็จ');
+                }
+
+                this.authVerifyForm.email = result.email || form.email;
+                this.authVerifyForm.code = '';
+                this.authMode = 'verify';
+                this.authLoginForm.username = result.username || form.username;
+                this.showSuccess = true;
+                this.successMsg = result.message || 'ส่งรหัสยืนยันเรียบร้อยแล้ว';
+                setTimeout(() => this.showSuccess = false, 3000);
+            } catch (error) {
+                this.showAlert('ลงทะเบียนไม่สำเร็จ', error.message);
+            } finally {
+                this.isLoading = false;
+            }
+        },
+        async submitVerification() {
+            const email = String(this.authVerifyForm.email || '').trim();
+            const code = String(this.authVerifyForm.code || '').trim();
+            if (!email || !code) {
+                return this.showAlert('แจ้งเตือน', 'กรุณากรอกอีเมลและรหัสยืนยัน');
+            }
+
+            this.isLoading = true;
+            try {
+                const response = await fetch(this.API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'verifyRegistrationCode',
+                        payload: { email, code }
+                    })
+                });
+                const result = await response.json();
+                if (result.status !== 'success') {
+                    throw new Error(result.message || 'ยืนยันอีเมลไม่สำเร็จ');
+                }
+
+                this.authLoginForm.username = result.user?.username || this.authLoginForm.username;
+                this.authLoginForm.password = '';
+                this.authMode = 'login';
+                this.authVerifyForm.code = '';
+                this.showSuccess = true;
+                this.successMsg = result.message || 'ยืนยันอีเมลเรียบร้อยแล้ว';
+                setTimeout(() => this.showSuccess = false, 3000);
+            } catch (error) {
+                this.showAlert('ยืนยันอีเมลไม่สำเร็จ', error.message);
+            } finally {
+                this.isLoading = false;
+            }
+        },
+        async logout() {
+            const currentToken = this.sessionToken || window.localStorage.getItem(this.authSessionKey) || '';
+            this.isLoading = true;
+            try {
+                if (currentToken) {
+                    await fetch(this.API_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            action: 'logoutUser',
+                            payload: { sessionToken: currentToken }
+                        })
+                    });
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+            } finally {
+                window.localStorage.removeItem(this.authSessionKey);
+                this.setAuthenticatedUser(null, '');
+                this.resetAuthForms();
+                this.currentWard = null;
+                this.selectedPatient = null;
+                this.currentForm = null;
+                this.viewMode = 'list';
+                this.patients = [];
+                this.serviceRequests = [];
+                this.showServicePanel = false;
+                this.resetServiceForm();
+                this.isLoading = false;
+            }
         },
 
         startClock() {
@@ -885,17 +1478,34 @@ function nurseApp() {
             return this.progressNotes.filter(p => p.focus && p.focus.toLowerCase().includes(q));
         },
 
-        async loadInitialData() {
-            this.isLoading = true;
-            try {
+        async loadInitialData(options = {}) {
+            if (!options.force && this.initDataLoadedAt && (Date.now() - this.initDataLoadedAt) < this.initDataTTL) {
+                return;
+            }
+            if (!options.force && this.initDataPromise) {
+                return this.initDataPromise;
+            }
+
+            if (!options.silent) this.isLoading = true;
+            const task = (async () => {
                 const res = await fetch(`${this.API_URL}?action=getInitData`);
                 const data = await res.json();
                 this.wards = data.wards || [];
                 this.configs.depts = data.depts || [];
                 this.doctors = data.doctors || [];
                 this.nurses = data.nurses || [];
-            } catch (e) { console.error("Initialization error", e); }
-            this.isLoading = false;
+                this.initDataLoadedAt = Date.now();
+            })();
+
+            this.initDataPromise = task;
+            try {
+                await task;
+            } catch (e) {
+                console.error("Initialization error", e);
+            } finally {
+                if (this.initDataPromise === task) this.initDataPromise = null;
+                if (!options.silent) this.isLoading = false;
+            }
         },
 
         async selectWard(ward) {
@@ -904,13 +1514,46 @@ function nurseApp() {
             await this.fetchPatients();
         },
 
-        async fetchPatients() {
-            this.isLoading = true;
+        async fetchPatients(options = {}) {
+            const wardKey = String(this.currentWard || '').trim();
+            if (!wardKey) {
+                this.patients = [];
+                return [];
+            }
+            const cached = this.patientsCacheByWard[wardKey];
+            if (!options.force && cached && (Date.now() - cached.loadedAt) < this.patientsCacheTTL) {
+                this.patients = cached.data;
+                return cached.data;
+            }
+            if (!options.force && this.patientsPromiseByWard[wardKey]) {
+                return this.patientsPromiseByWard[wardKey];
+            }
+
+            if (!options.silent) this.isLoading = true;
+            const task = (async () => {
+                const res = await fetch(`${this.API_URL}?action=getPatients&ward=${encodeURIComponent(wardKey)}`);
+                const data = await res.json();
+                const patientList = Array.isArray(data) ? data : [];
+                this.patients = patientList;
+                this.patientsCacheByWard[wardKey] = {
+                    loadedAt: Date.now(),
+                    data: patientList
+                };
+                return patientList;
+            })();
+
+            this.patientsPromiseByWard[wardKey] = task;
             try {
-                const res = await fetch(`${this.API_URL}?action=getPatients&ward=${this.currentWard}`);
-                this.patients = await res.json();
-            } catch (e) { this.patients = []; }
-            this.isLoading = false;
+                return await task;
+            } catch (e) {
+                this.patients = [];
+                return [];
+            } finally {
+                if (this.patientsPromiseByWard[wardKey] === task) {
+                    delete this.patientsPromiseByWard[wardKey];
+                }
+                if (!options.silent) this.isLoading = false;
+            }
         },
 
         async openNursingChart(patient) {
@@ -1043,8 +1686,17 @@ function nurseApp() {
                 this.isLoading = false;
             }
         },
-        async loadAssessmentPedData(an) {
-            this.isLoading = true;
+        async loadAssessmentPedData(an, options = {}) {
+            const promiseKey = this.buildResourceCacheKey('assessment_ped', an);
+            if (!options.force && this.resourceLoadPromises[promiseKey]) {
+                return this.resourceLoadPromises[promiseKey];
+            }
+            if (!options.force && this.isResourceFresh('assessment_ped', an)) {
+                return this.savedAssessmentPed;
+            }
+
+            if (!options.silent) this.isLoading = true;
+            const task = (async () => {
             try {
                 const response = await fetch(`${this.API_URL}?action=getAssessmentPed&an=${an}`);
                 const data = await response.json();
@@ -1124,8 +1776,16 @@ function nurseApp() {
             } catch (err) {
                 console.error("Error loading ped assessment:", err);
                 this.savedAssessmentPed = null;
+            }
+            this.markResourceLoaded('assessment_ped', an);
+            return this.savedAssessmentPed;
+            })();
+            this.resourceLoadPromises[promiseKey] = task;
+            try {
+                return await task;
             } finally {
-                this.isLoading = false;
+                if (this.resourceLoadPromises[promiseKey] === task) delete this.resourceLoadPromises[promiseKey];
+                if (!options.silent) this.isLoading = false;
             }
         },
 
@@ -1162,8 +1822,17 @@ function nurseApp() {
                 this.isLoading = false;
             }
         },
-        async loadAssessmentData(an) {
-            this.isLoading = true; // เปิดสถานะโหลด
+        async loadAssessmentData(an, options = {}) {
+            const promiseKey = this.buildResourceCacheKey('assessment_initial', an);
+            if (!options.force && this.resourceLoadPromises[promiseKey]) {
+                return this.resourceLoadPromises[promiseKey];
+            }
+            if (!options.force && this.isResourceFresh('assessment_initial', an)) {
+                return this.savedAssessment;
+            }
+
+            if (!options.silent) this.isLoading = true; // เปิดสถานะโหลด
+            const task = (async () => {
             try {
                 // เรียกใช้ fetch ไปที่ API_URL ของคุณ เหมือนฟังก์ชันอื่นๆ
                 const response = await fetch(`${this.API_URL}?action=getAssessmentInitial&an=${an}`);
@@ -1232,8 +1901,16 @@ function nurseApp() {
             } catch (err) {
                 console.error("Error loading assessment:", err);
                 this.savedAssessment = null;
+            }
+            this.markResourceLoaded('assessment_initial', an);
+            return this.savedAssessment;
+            })();
+            this.resourceLoadPromises[promiseKey] = task;
+            try {
+                return await task;
             } finally {
-                this.isLoading = false; // ปิดสถานะโหลด
+                if (this.resourceLoadPromises[promiseKey] === task) delete this.resourceLoadPromises[promiseKey];
+                if (!options.silent) this.isLoading = false; // ปิดสถานะโหลด
             }
         },
         async openAdmitForm() {
@@ -1364,6 +2041,12 @@ function nurseApp() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action, payload }) 
                 });
+                if (action === 'movePatient') {
+                    this.invalidateWardPatientsCache(payload.oldWard);
+                    this.invalidateWardPatientsCache(payload.newWard);
+                } else {
+                    this.invalidateWardPatientsCache(this.currentWard);
+                }
                 this.successMsg = msg;
                 this.showSuccess = true;
                 setTimeout(() => { this.showSuccess = false; }, 3000);
@@ -1502,25 +2185,48 @@ function nurseApp() {
         async selectForm(form) {
             // ป้องกันการกดซ้ำที่ฟอร์มเดิม
             if (this.currentForm?.id === form.id) return;
-            
-            this.isLoading = true;
             this.currentForm = form;
             this.currentPageIndex = 0; // กลับไปหน้า 1 ของตารางเสมอเมื่อสลับฟอร์ม
+
+            const currentAN = this.selectedPatient?.an;
+            const resourceMap = {
+                assess_initial: 'assessment_initial',
+                assess_initial_ped: 'assessment_ped',
+                patient_class: 'patient_class',
+                patient_class_ped: 'patient_class_ped',
+                fall_risk: 'fall_risk',
+                braden_scale: 'braden_scale',
+                patient_edu: 'patient_edu',
+                focus_list: 'focus_list',
+                progress_note: 'progress_note'
+            };
+            const resourceName = resourceMap[form.id];
+            if (resourceName && currentAN && this.isResourceFresh(resourceName, currentAN)) {
+                return;
+            }
+
+            this.isLoading = true;
 
             try {
                 // ดึงข้อมูลล่าสุดตามฟอร์มที่เลือก
                 if (form.id === 'assess_initial') {
-                    await this.loadAssessmentData(this.selectedPatient.an);
+                    await this.loadAssessmentData(this.selectedPatient.an, { silent: true });
+                } else if (form.id === 'assess_initial_ped') {
+                    await this.loadAssessmentPedData(this.selectedPatient.an, { silent: true });
                 } else if (form.id === 'patient_class') {
-                    await this.loadClassifications(this.selectedPatient.an);
+                    await this.loadClassifications(this.selectedPatient.an, { silent: true });
+                } else if (form.id === 'patient_class_ped') {
+                    await this.loadClassifications(this.selectedPatient.an, { silent: true, pediatric: true });
                 } else if (form.id === 'fall_risk') {
-                    await this.loadFallRisk(this.selectedPatient.an);
+                    await this.loadFallRisk(this.selectedPatient.an, { silent: true });
                 }  else if (form.id === 'braden_scale') {
-                    await this.loadBraden(this.selectedPatient.an);
+                    await this.loadBraden(this.selectedPatient.an, { silent: true });
                 } else if (form.id === 'patient_edu') {
-                    await this.loadPatientEdu(this.selectedPatient.an);
+                    await this.loadPatientEdu(this.selectedPatient.an, { silent: true });
                 } else if (form.id === 'focus_list') {
+                    await this.loadFocusListInit({ silent: true });
                 } else if (form.id === 'progress_note') {
+                    await this.loadProgressNotesInit({ silent: true });
                 } else if (form.id === 'discharge_record') {
                 }
             } catch (e) {
@@ -1775,6 +2481,7 @@ function nurseApp() {
                     this.classHistoryPed = this.normalizePedClassificationHistory(rawHistory);
                     this.rebuildClassificationGrid(this.classHistoryPed);
                     this.clampCurrentPageIndex();
+                    this.markResourceLoaded('patient_class_ped', an);
                     return this.classHistoryPed;
                 }
 
@@ -1784,6 +2491,7 @@ function nurseApp() {
                 this.classHistory = this.normalizeAdultClassificationHistory(rawHistory);
                 this.rebuildClassificationGrid(this.classHistory);
                 this.clampCurrentPageIndex();
+                this.markResourceLoaded('patient_class', an);
                 return this.classHistory;
             })();
 
@@ -2901,6 +3609,7 @@ function nurseApp() {
                 this.fallHistory = this.normalizeFallRiskHistory(rawHistory);
                 this.rebuildFallGrid(this.fallHistory);
                 this.clampCurrentPageIndex();
+                this.markResourceLoaded('fall_risk', an);
                 return this.fallHistory;
             })();
 
@@ -3132,7 +3841,7 @@ function nurseApp() {
                         <div class="text-center font-bold text-[13px] mt-1 mb-2">
                             การประเมินความเสี่ยงต่อการพลัดตกหกล้ม Morse / การดึงอุปกรณ์ที่สอดใส่ในร่างกายผู้ป่วย (MAAS)<br>โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
                         </div>
-                        <div class="font-bold text-[11px] mt-1 mb-1 text-start">1.การประเมินความเสี่ยงต่อการพลัดตกหกล้ม Morse Fall Risk  Score (ประเมินทุกวันอังคารและศุกร์)</div>
+                        <div class="font-bold text-[11px] mt-1 mb-1 text-start">1.การประเมินความเสี่ยงต่อการพลัดตกหกล้ม Morse Fall Risk  Score</div>
                         <table class="w-full text-[9px] border-collapse text-left mb-2">
                             <thead>
                                 <tr class="bg-gray">
@@ -3157,7 +3866,7 @@ function nurseApp() {
                             </tbody>
                         </table>
 
-                        <div class="font-bold text-[11px] mt-1 mb-1 text-start">2.แบบประเมินความเสี่ยงต่อการดึงอุปกรณ์ที่สอดใส่ในร่างกายผู้ป่วย MAAS (ประเมินทุกเวร)</div>
+                        <div class="font-bold text-[11px] mt-1 mb-1 text-start">2.แบบประเมินความเสี่ยงต่อการดึงอุปกรณ์ที่สอดใส่ในร่างกายผู้ป่วย (MAAS)</div>
                         <table class="w-full text-[9px] border-collapse text-left mb-2">
                             <thead>
                                 <tr class="bg-gray">
@@ -3359,8 +4068,9 @@ function nurseApp() {
             this.loadBradenByDate();
             this.showBradenModal = true;
         },
-        async loadBraden(an) {
-            this.isLoading = true;
+        async loadBraden(an, options = {}) {
+            if (!options.force && this.isResourceFresh('braden_scale', an)) return this.bradenHistory;
+            if (!options.silent) this.isLoading = true;
             try {
                 const r = await fetch(`${this.API_URL}?action=getBradenScale&an=${an}`);
                 const data = await r.json();
@@ -3406,8 +4116,9 @@ function nurseApp() {
                     this.bradenForm.s4_count = last.S4_Count || '';
                 }
                 this.loadBradenByDate();
+                this.markResourceLoaded('braden_scale', an);
             } catch(e) { console.error(e); }
-            this.isLoading = false;
+            if (!options.silent) this.isLoading = false;
         },
         
         loadBradenByDate() {
@@ -3767,8 +4478,9 @@ function nurseApp() {
             <script>window.onload=()=>{setTimeout(()=>{window.print();},800)};</script></body></html>`);
             pri.document.close();
         },
-        async loadPatientEdu(an) {
-            this.isLoading = true;
+        async loadPatientEdu(an, options = {}) {
+            if (!options.force && this.isResourceFresh('patient_edu', an)) return this.eduForm;
+            if (!options.silent) this.isLoading = true;
             this.isEduEditing = false; // ปิดโหมดแก้ไขไว้เสมอตอนเริ่มเปิด
             
             try {
@@ -3802,12 +4514,13 @@ function nurseApp() {
                 } else {
                     this.eduForm = base;
                 }
+                this.markResourceLoaded('patient_edu', an);
             } catch (e) { 
                 console.error(e); 
                 this.eduForm = this.defaultEduForm();
             }
             
-            this.isLoading = false;
+            if (!options.silent) this.isLoading = false;
         },    
             async savePatientEdu() {
                 this.isLoading = true;
@@ -4149,20 +4862,25 @@ function nurseApp() {
                 this.focusModal.show = false;
             }
         },
-        async loadFocusListInit() {
-            this.isLoading = true;
+        async loadFocusListInit(options = {}) {
+            const an = this.selectedPatient?.an;
+            if (!an) return [];
+            if (!options.force && this.isResourceFresh('focus_list', an)) {
+                return this.focusList;
+            }
+            if (!options.silent) this.isLoading = true;
             try {
                 // โหลด List ของคนไข้
-                const res = await fetch(`${this.API_URL}?action=getFocusList&an=${this.selectedPatient.an}`);
+                const res = await fetch(`${this.API_URL}?action=getFocusList&an=${an}`);
                 this.focusList = await res.json() || [];
                 
                 // โหลด Template ทั้งหมด
-                const resT = await fetch(`${this.API_URL}?action=getFocusTemplates`);
-                this.focusTemplates = await resT.json() || [];
+                this.focusTemplates = await this.loadTemplateCollection('focusTemplates', 'getFocusTemplates', options.force === true);
                 
                 this.clearFocusForm();
+                this.markResourceLoaded('focus_list', an);
             } catch (e) { console.error(e); }
-            this.isLoading = false;
+            if (!options.silent) this.isLoading = false;
         },
 
         clearFocusForm() {
@@ -4228,6 +4946,7 @@ function nurseApp() {
                 const out = await res.json();
                 
                 if(out.status === 'success') {
+                    this.markResourceLoaded('focus_list', this.selectedPatient.an);
                     // แสดงแจ้งเตือนสีเขียวมุมขวาบนเบาๆ ว่าบันทึกสำเร็จ
                     this.showSuccess = true;
                     this.successMsg = 'ซิงค์ข้อมูลลงฐานข้อมูลเรียบร้อย';
@@ -4407,29 +5126,34 @@ function nurseApp() {
         // ==========================================
         // ฟังก์ชันสำหรับ Nursing Progress Note
         // ==========================================
-        async loadProgressNotesInit() {
-            this.isLoading = true;
+        async loadProgressNotesInit(options = {}) {
+            const an = this.selectedPatient?.an;
+            if (!an) return [];
+            if (!options.force && this.isResourceFresh('progress_note', an)) {
+                return this.progressNotes;
+            }
+            if (!options.silent) this.isLoading = true;
             try {
                 // ดึง Note ของผู้ป่วย
-                const res = await fetch(`${this.API_URL}?action=getNursingNotes&an=${this.selectedPatient.an}`);
+                const res = await fetch(`${this.API_URL}?action=getNursingNotes&an=${an}`);
                 let notes = await res.json() || [];
                 
                 // สั่งเรียงลำดับจาก "ใหม่ล่าสุด" ไป "เก่า" (อิงจาก ID ที่ตั้งเป็น Timestamp ไว้)
                 this.progressNotes = notes.sort((a, b) => Number(b.id) - Number(a.id));
                 
                 // ดึง Template กลาง
-                const resT = await fetch(`${this.API_URL}?action=getNursingTemplates`);
-                this.nursingTemplates = await resT.json() || [];
+                this.nursingTemplates = await this.loadTemplateCollection('nursingTemplates', 'getNursingTemplates', options.force === true);
                 
                 // ตรวจสอบ Focus List เผื่อมีการสั่งซิงค์ข้ามไฟล์
                 if (!this.focusList || this.focusList.length === 0) {
-                    const resF = await fetch(`${this.API_URL}?action=getFocusList&an=${this.selectedPatient.an}`);
+                    const resF = await fetch(`${this.API_URL}?action=getFocusList&an=${an}`);
                     this.focusList = await resF.json() || [];
                 }
 
                 this.clearProgressForm();
+                this.markResourceLoaded('progress_note', an);
             } catch (e) { console.error(e); }
-            this.isLoading = false;
+            if (!options.silent) this.isLoading = false;
         },
 
         clearProgressForm() {
@@ -4494,6 +5218,7 @@ function nurseApp() {
                 if (result.status !== 'success') {
                     throw new Error(result.message || 'บันทึก Nursing Progress Note ไม่สำเร็จ');
                 }
+                this.markResourceLoaded('progress_note', this.selectedPatient.an);
                 
                 this.showSuccess = true; this.successMsg = 'ซิงค์ข้อมูลลงฐานข้อมูลเรียบร้อย';
                 setTimeout(() => { this.showSuccess = false; }, 3000);
