@@ -3885,7 +3885,7 @@ function nurseApp() {
                         <div class="text-center font-bold text-[13px] mt-1 mb-2">
                             การประเมินความเสี่ยงต่อการพลัดตกหกล้ม Morse / การดึงอุปกรณ์ที่สอดใส่ในร่างกายผู้ป่วย (MAAS)<br>โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
                         </div>
-                        <div class="font-bold text-[11px] mt-1 mb-1 text-start">1.การประเมินความเสี่ยงต่อการพลัดตกหกล้ม Morse Fall Risk  Score</div>
+                        <div class="font-bold text-[11px] mt-1 mb-1 text-start">1.การประเมินความเสี่ยงต่อการพลัดตกหกล้ม Morse Fall Risk  Score ประเมินทุกวันอังคารและวันศุกร์</div>
                         <table class="w-full text-[9px] border-collapse text-left mb-2">
                             <thead>
                                 <tr class="bg-gray">
@@ -3910,7 +3910,7 @@ function nurseApp() {
                             </tbody>
                         </table>
 
-                        <div class="font-bold text-[11px] mt-1 mb-1 text-start">2.แบบประเมินความเสี่ยงต่อการดึงอุปกรณ์ที่สอดใส่ในร่างกายผู้ป่วย (MAAS)</div>
+                        <div class="font-bold text-[11px] mt-1 mb-1 text-start">2.แบบประเมินความเสี่ยงต่อการดึงอุปกรณ์ที่สอดใส่ในร่างกายผู้ป่วย MAAS  ประเมินทุกเวร</div>
                         <table class="w-full text-[9px] border-collapse text-left mb-2">
                             <thead>
                                 <tr class="bg-gray">
