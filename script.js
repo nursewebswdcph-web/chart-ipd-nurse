@@ -15,6 +15,9 @@ function nurseApp() {
         sessionToken: '',
         authSessionKey: 'ipd_nurse_session_token',
         authMode: 'login',
+        deferredInstallPrompt: null,
+        canInstallApp: false,
+        isAppInstalled: false,
         initDataLoadedAt: 0,
         initDataTTL: 300000,
         initDataPromise: null,
@@ -1087,9 +1090,50 @@ function nurseApp() {
                 this.isLoading = false;
             }
         },
+        setupPwaInstallPrompt() {
+            this.isAppInstalled = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+            window.addEventListener('beforeinstallprompt', (event) => {
+                event.preventDefault();
+                this.deferredInstallPrompt = event;
+                this.canInstallApp = true;
+            });
+            window.addEventListener('appinstalled', () => {
+                this.deferredInstallPrompt = null;
+                this.canInstallApp = false;
+                this.isAppInstalled = true;
+                this.showSuccess = true;
+                this.successMsg = 'ติดตั้งแอปบนเครื่องเรียบร้อยแล้ว';
+                setTimeout(() => this.showSuccess = false, 2500);
+            });
+        },
+        async registerServiceWorker() {
+            if (!('serviceWorker' in navigator)) return;
+            if (!window.isSecureContext) return;
+            try {
+                await navigator.serviceWorker.register('./sw.js');
+            } catch (error) {
+                console.error('Service worker registration failed:', error);
+            }
+        },
+        async installApp() {
+            if (!this.deferredInstallPrompt) {
+                return this.showAlert('ติดตั้งแอป', 'หากไม่เห็นปุ่มติดตั้งจากระบบ ให้เปิดผ่าน Chrome หรือ Edge บนเว็บ HTTPS แล้วลองใหม่อีกครั้ง');
+            }
+            try {
+                await this.deferredInstallPrompt.prompt();
+                await this.deferredInstallPrompt.userChoice;
+            } catch (error) {
+                console.error('Install app error:', error);
+            } finally {
+                this.deferredInstallPrompt = null;
+                this.canInstallApp = false;
+            }
+        },
 
         init() {
             this.startClock();
+            this.setupPwaInstallPrompt();
+            this.registerServiceWorker();
             const hasAuthRoute = this.applyAuthRouteFromUrl();
             if (!hasAuthRoute) {
                 this.restoreSession();
