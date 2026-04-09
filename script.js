@@ -54,7 +54,7 @@ function nurseApp() {
         serviceRequests: [],
         serviceStatuses: ['ใหม่', 'รับเรื่องแล้ว', 'กำลังดำเนินการ', 'รอข้อมูลเพิ่ม', 'เสร็จสิ้น', 'ปิดงาน'],
         serviceCategories: ['แจ้งปัญหาการใช้งาน', 'คำขอพิเศษเพิ่มเติม', 'ขอปรับปรุงแบบฟอร์ม', 'ขอสิทธิ์/บัญชีผู้ใช้', 'อื่นๆ'],
-        serviceForm: { category: 'แจ้งปัญหาการใช้งาน', subject: '', details: '', attachments: [] },
+        serviceForm: { category: 'แจ้งปัญหาการใช้งาน', department: '', subject: '', details: '', attachments: [] },
         serviceFileInputKey: Date.now(),
         nurses: [],
         showNurseListFor: null,
@@ -832,6 +832,7 @@ function nurseApp() {
         defaultServiceForm() {
             return {
                 category: 'แจ้งปัญหาการใช้งาน',
+                department: this.currentWard || '',
                 subject: '',
                 details: '',
                 attachments: []
@@ -1026,13 +1027,14 @@ function nurseApp() {
         async submitServiceRequest() {
             const payload = {
                 category: String(this.serviceForm.category || '').trim(),
+                department: String(this.serviceForm.department || '').trim(),
                 subject: String(this.serviceForm.subject || '').trim(),
                 details: String(this.serviceForm.details || '').trim(),
                 attachments: Array.isArray(this.serviceForm.attachments) ? this.serviceForm.attachments : [],
                 sessionToken: this.sessionToken
             };
-            if (!payload.subject || !payload.details) {
-                return this.showAlert('แจ้งเตือน', 'กรุณากรอกหัวข้อและรายละเอียดคำขอให้ครบถ้วน');
+            if (!payload.department || !payload.subject || !payload.details) {
+                return this.showAlert('แจ้งเตือน', 'กรุณากรอกหน่วยงาน หัวข้อ และรายละเอียดคำขอให้ครบถ้วน');
             }
 
             this.isLoading = true;
@@ -3885,7 +3887,7 @@ function nurseApp() {
                         <div class="text-center font-bold text-[13px] mt-1 mb-2">
                             การประเมินความเสี่ยงต่อการพลัดตกหกล้ม Morse / การดึงอุปกรณ์ที่สอดใส่ในร่างกายผู้ป่วย (MAAS)<br>โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน
                         </div>
-                        <div class="font-bold text-[11px] mt-1 mb-1 text-start">1.การประเมินความเสี่ยงต่อการพลัดตกหกล้ม Morse Fall Risk  Score ประเมินทุกวันอังคารและวันศุกร์</div>
+                        <div class="font-bold text-[11px] mt-1 mb-1 text-start">1.การประเมินความเสี่ยงต่อการพลัดตกหกล้ม Morse Fall Risk  Score (ประเมินทุกวันอังคารและวันศุกร์)</div>
                         <table class="w-full text-[9px] border-collapse text-left mb-2">
                             <thead>
                                 <tr class="bg-gray">
@@ -3910,7 +3912,7 @@ function nurseApp() {
                             </tbody>
                         </table>
 
-                        <div class="font-bold text-[11px] mt-1 mb-1 text-start">2.แบบประเมินความเสี่ยงต่อการดึงอุปกรณ์ที่สอดใส่ในร่างกายผู้ป่วย MAAS  ประเมินทุกเวร</div>
+                        <div class="font-bold text-[11px] mt-1 mb-1 text-start">2.แบบประเมินความเสี่ยงต่อการดึงอุปกรณ์ที่สอดใส่ในร่างกายผู้ป่วย MAAS (ประเมินทุกวัน ทุกเวร)</div>
                         <table class="w-full text-[9px] border-collapse text-left mb-2">
                             <thead>
                                 <tr class="bg-gray">
