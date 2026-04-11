@@ -5620,9 +5620,9 @@ function nurseApp() {
                         background: #fff; page-break-after: always; overflow: hidden;
                     }
                     .print-header-top-right { position: absolute; top: 10mm; right: 10mm; text-align: right; font-size: 8px; line-height: 1.2; }
-                    .main-title { text-align: center; font-weight: bold; font-size: 14pt; margin-bottom: 10px; line-height: 1.4; }
+                    .main-title { text-align: center; font-weight: bold; font-size: 12pt; margin-bottom: 10px; line-height: 1.4; }
                     
-                    .content-section { font-size: 11pt; line-height: 1.5; margin-bottom: 8px; }
+                    .content-section { font-size: 9pt; line-height: 1.5; margin-bottom: 8px; }
                     .indent { padding-left: 20px; }
                     .dot-line { border-bottom: 1px dotted #000; display: inline-block; min-width: 40px; }
                     
