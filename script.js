@@ -5613,7 +5613,7 @@ function nurseApp() {
                 <title>แบบบันทึกการพยาบาลผู้ป่วยจำหน่าย</title>
                 <style>
                     @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap');
-                    body { font-family: 'Sarabun', sans-serif; font-size: 11pt; margin: 0; padding: 0; color: #000; background: #525659; }
+                    body { font-family: 'Sarabun', sans-serif; font-size: 10pt; margin: 0; padding: 0; color: #000; background: #525659; }
                     .a4-page { 
                         width: 210mm; height: 296mm; margin: 10mm auto; 
                         padding: 15mm 12mm 45mm 12mm; position: relative; box-sizing: border-box; 
@@ -5622,12 +5622,12 @@ function nurseApp() {
                     .print-header-top-right { position: absolute; top: 10mm; right: 10mm; text-align: right; font-size: 8px; line-height: 1.2; }
                     .main-title { text-align: center; font-weight: bold; font-size: 12pt; margin-bottom: 10px; line-height: 1.4; }
                     
-                    .content-section { font-size: 9pt; line-height: 1.5; margin-bottom: 8px; }
+                    .content-section { font-size: 10pt; line-height: 1; margin-bottom: 8px; }
                     .indent { padding-left: 20px; }
                     .dot-line { border-bottom: 1px dotted #000; display: inline-block; min-width: 40px; }
                     
                     .vs-box { display: flex; justify-content: space-around; font-weight: bold; margin: 5px 0 10px 0; }
-                    .edu-box { border: 1px solid #000; padding: 10px; margin-top: 5px; margin-bottom: 10px; }
+                    .edu-box { border: 1px solid #000; padding: 10px; margin-top: 5px; margin-bottom: 10px; font-size: 10pt; }
                     .edu-title { text-align: center; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 5px; margin-bottom: 5px; }
 
                     /* CSS Footer Fixed Container */
