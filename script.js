@@ -2410,7 +2410,7 @@ function nurseApp() {
                                 margin: 0 !important; 
                                 position: relative;
                                 page-break-after: always; 
-                                overflow: hidden;
+                                overflow: visible;
                                 line-height: 1.15 !important; 
                                 /* 🔴 ปรับ Padding ด้านล่างให้มากขึ้น (ประมาณ 75px) เพื่อไม่ให้เนื้อหาถูกกรอบผู้ป่วยบัง */
                                 padding-bottom: 75px !important; 
@@ -2420,6 +2420,28 @@ function nurseApp() {
                             }
 
                             /* CSS สำหรับ Global Footer ให้โผล่ขอบล่างทุกหน้า */
+                            .a4-page .flex > div,
+                            .a4-page .flex > label,
+                            .a4-page .grid > div,
+                            .a4-page .grid > label {
+                                min-width: 0 !important;
+                            }
+                            .a4-page label.inline-flex {
+                                flex-wrap: wrap;
+                                align-items: flex-start;
+                                row-gap: 2px;
+                            }
+                            .a4-page div[x-text],
+                            .a4-page span.border-b[x-text] {
+                                white-space: normal !important;
+                                overflow-wrap: anywhere;
+                                word-break: break-word;
+                                max-width: 100% !important;
+                                min-width: 0 !important;
+                            }
+                            .a4-page span.border-b.inline-block[x-text] {
+                                vertical-align: bottom;
+                            }
                             .print-global-footer {
                                 position: fixed;
                                 bottom: 0;
