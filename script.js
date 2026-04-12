@@ -74,7 +74,9 @@ function nurseApp() {
         currentForm: null, 
         showAssessmentPreview: false, 
         savedAssessment: null,
+        savedAssessmentAn: '',
         savedAssessmentPed: null,
+        savedAssessmentPedAn: '',
         showBradenModal: false,
         showBradenGuidelineModal: false,
         showBradenSummaryModal: false,
@@ -1194,6 +1196,76 @@ function nurseApp() {
             delete this.patientsCacheByWard[wardKey];
             delete this.patientsPromiseByWard[wardKey];
         },
+        hasAssessmentDataFor(an) {
+            const targetAn = String(an || '').trim();
+            return !!this.savedAssessment && !!targetAn && String(this.savedAssessmentAn || '').trim() === targetAn;
+        },
+        hasAssessmentPedDataFor(an) {
+            const targetAn = String(an || '').trim();
+            return !!this.savedAssessmentPed && !!targetAn && String(this.savedAssessmentPedAn || '').trim() === targetAn;
+        },
+        dispatchFormSyncEvents(el) {
+            if (!el || typeof el.dispatchEvent !== 'function') return;
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+        },
+        normalizeStoredFormValueForElement(el, value) {
+            let val = value;
+            if (el?.type === 'time' && val && String(val).includes('1899-12-30')) {
+                const parts = String(val).split('T');
+                val = parts.length > 1 ? parts[1].substring(0, 5) : '';
+            } else if (el?.type === 'time' && val && String(val).includes('T')) {
+                val = String(val).split('T')[1]?.substring(0, 5) || '';
+            } else if (el?.type === 'date' && val && String(val).includes('T')) {
+                val = String(val).split('T')[0];
+            }
+            return val ?? '';
+        },
+        populateFormFromStoredData(formId, data) {
+            const form = document.getElementById(formId);
+            if (!form || !data || typeof data !== 'object') return false;
+
+            form.reset();
+
+            Object.keys(data).forEach(key => {
+                const el = form.elements[key];
+                if (!el) return;
+
+                const isGroupedInput = typeof el.length === 'number' && el.tagName !== 'SELECT' && !el.type;
+                if (isGroupedInput) {
+                    const savedValues = Array.isArray(data[key])
+                        ? data[key].map(v => String(v).trim())
+                        : String(data[key] ?? '').split(',').map(v => v.trim()).filter(Boolean);
+
+                    Array.from(el).forEach(inputNode => {
+                        if (!inputNode) return;
+                        if (inputNode.type === 'radio') {
+                            const shouldCheck = String(inputNode.value) === String(data[key] ?? '');
+                            inputNode.checked = shouldCheck;
+                            if (shouldCheck) this.dispatchFormSyncEvents(inputNode);
+                        } else if (inputNode.type === 'checkbox') {
+                            inputNode.checked = savedValues.includes(String(inputNode.value).trim());
+                            this.dispatchFormSyncEvents(inputNode);
+                        } else {
+                            inputNode.value = this.normalizeStoredFormValueForElement(inputNode, data[key]);
+                            this.dispatchFormSyncEvents(inputNode);
+                        }
+                    });
+                    return;
+                }
+
+                if (el.type === 'checkbox') {
+                    el.checked = (data[key] === 'on' || data[key] === true || data[key] === el.value);
+                    this.dispatchFormSyncEvents(el);
+                    return;
+                }
+
+                el.value = this.normalizeStoredFormValueForElement(el, data[key]);
+                this.dispatchFormSyncEvents(el);
+            });
+
+            return true;
+        },
         async loadTemplateCollection(cacheKey, action, force = false) {
             if (!force && Array.isArray(this.templateCache[cacheKey]) && this.templateCache[cacheKey].length > 0) {
                 return this.templateCache[cacheKey];
@@ -1611,8 +1683,10 @@ function nurseApp() {
             this.isAdult = this.checkAgeGroup(patientAge);
             
             // 2. ล้างข้อมูลเก่าของคนไข้คนก่อนหน้าทิ้งให้หมด
-            this.savedAssessment = null;
+            this.savedAssessment = null;                             
+            this.savedAssessmentAn = '';
             this.savedAssessmentPed = null; // ✅ ล้างค่าฟอร์มเด็กด้วย
+            this.savedAssessmentPedAn = '';
             this.classHistory = []; 
             this.currentPageIndex = 0;
             
@@ -1718,6 +1792,7 @@ function nurseApp() {
                         Date: this.selectedPatient?.date,
                         Time: this.selectedPatient?.time 
                     };
+                    this.savedAssessmentAn = String(this.selectedPatient?.an || '');
         
                     // หากกดปุ่มพิมพ์ ให้ทำงานต่อทันที
                     if (shouldPrint) {
@@ -1737,7 +1812,7 @@ function nurseApp() {
             if (!options.force && this.resourceLoadPromises[promiseKey]) {
                 return this.resourceLoadPromises[promiseKey];
             }
-            if (!options.force && this.isResourceFresh('assessment_ped', an)) {
+            if (!options.force && this.isResourceFresh('assessment_ped', an) && this.hasAssessmentPedDataFor(an)) {
                 return this.savedAssessmentPed;
             }
 
@@ -1749,39 +1824,17 @@ function nurseApp() {
         
                 if (data && Object.keys(data).length > 0) {
                     this.savedAssessmentPed = data;
+                    this.savedAssessmentPedAn = String(an || '');
                     this.searchNurse = data['ped_AssessorName'] || '';
                     this.nursePosition = data['ped_AssessorPosition'] || '';
                     this.$nextTick(() => {
                         setTimeout(() => {
-                            const form = document.getElementById('assessment-form-ped');
-                            if (form) {
-                                Object.keys(data).forEach(key => {
-                                    const el = form.elements[key];
-                                    if (!el) return;
-                                    
-                                    if (el.length && el.tagName !== 'SELECT') {
-                                        Array.from(el).forEach(inputNode => {
-                                            if (inputNode.type === 'radio') {
-                                                inputNode.checked = (inputNode.value === data[key]);
-                                            } else if (inputNode.type === 'checkbox') {
-                                                const savedValues = data[key] ? data[key].toString().split(',').map(v => v.trim()) : [];
-                                                inputNode.checked = savedValues.includes(inputNode.value);
-                                            }
-                                        });
-                                    } else {
-                                        if (el.type === 'checkbox') {
-                                            el.checked = (data[key] === 'on' || data[key] === true || data[key] === el.value);
-                                        } else {
-                                            el.value = data[key];
-                                            if (typeof el.dispatchEvent === 'function') el.dispatchEvent(new Event('input')); 
-                                        }
-                                    }
-                                });
-                            }
+                            this.populateFormFromStoredData('assessment-form-ped', data);
                         }, 100);
                     });
                 } else {
                     this.savedAssessmentPed = null;
+                    this.savedAssessmentPedAn = '';
                     // Auto-fill ข้อมูลแรกรับและที่อยู่ตาม Requirement
                     this.$nextTick(() => {
                         const formElement = document.getElementById('assessment-form-ped');
@@ -1822,6 +1875,7 @@ function nurseApp() {
             } catch (err) {
                 console.error("Error loading ped assessment:", err);
                 this.savedAssessmentPed = null;
+                this.savedAssessmentPedAn = '';
             }
             this.markResourceLoaded('assessment_ped', an);
             return this.savedAssessmentPed;
@@ -1861,6 +1915,7 @@ function nurseApp() {
                     this.showSuccess = true;
                     setTimeout(() => this.showSuccess = false, 3000);
                     this.savedAssessmentPed = { ...data };
+                    this.savedAssessmentPedAn = String(this.selectedPatient?.an || '');
                 }
             } catch (error) {
                 this.showAlert('Error', 'เกิดข้อผิดพลาด: ' + error.message);
@@ -1873,7 +1928,7 @@ function nurseApp() {
             if (!options.force && this.resourceLoadPromises[promiseKey]) {
                 return this.resourceLoadPromises[promiseKey];
             }
-            if (!options.force && this.isResourceFresh('assessment_initial', an)) {
+            if (!options.force && this.isResourceFresh('assessment_initial', an) && this.hasAssessmentDataFor(an)) {
                 return this.savedAssessment;
             }
 
@@ -1887,10 +1942,13 @@ function nurseApp() {
                 if (data && Object.keys(data).length > 0) {
                     // 🟢 มีข้อมูลแล้ว -> เก็บใส่ตัวแปรและเปิดโหมด A4 Preview ทันที
                     this.savedAssessment = data;
+                    this.savedAssessmentAn = String(an || '');
                     
                     // ยัดค่าเดิมกลับเข้าฟอร์มด้วย เผื่อกรณีที่ผู้ใช้กดปุ่ม "แก้ไขข้อมูล"
                     this.$nextTick(() => {
                         setTimeout(() => {
+                            this.populateFormFromStoredData('assessment-form-v2', data);
+                            return;
                             const form = document.getElementById('assessment-form-v2');
                             if (form) {
                                 Object.keys(data).forEach(key => {
@@ -1943,10 +2001,12 @@ function nurseApp() {
                 } else {
                     // 🔴 ถ้ายังไม่มีข้อมูล -> เปิดเป็นหน้าฟอร์มกรอกว่างๆ 
                     this.savedAssessment = null;
+                    this.savedAssessmentAn = '';
                 }
             } catch (err) {
                 console.error("Error loading assessment:", err);
                 this.savedAssessment = null;
+                this.savedAssessmentAn = '';
             }
             this.markResourceLoaded('assessment_initial', an);
             return this.savedAssessment;
@@ -2248,7 +2308,9 @@ function nurseApp() {
             };
             const resourceName = resourceMap[form.id];
             if (resourceName && currentAN && this.isResourceFresh(resourceName, currentAN)) {
-                return;
+                if (resourceName === 'assessment_initial' && this.hasAssessmentDataFor(currentAN)) return;
+                if (resourceName === 'assessment_ped' && this.hasAssessmentPedDataFor(currentAN)) return;
+                if (!['assessment_initial', 'assessment_ped'].includes(resourceName)) return;
             }
 
             this.isLoading = true;
@@ -2380,8 +2442,15 @@ function nurseApp() {
             
             return `${d} ${m} ${y}`;
         },
-        printAssessment() {
+        async printAssessment() {
             // 1. ดึงเนื้อหา HTML จากเทมเพลตที่จัดวางไว้แล้ว
+            if (this.selectedPatient?.an && !this.hasAssessmentDataFor(this.selectedPatient.an)) {
+                await this.loadAssessmentData(this.selectedPatient.an, { silent: true });
+            }
+            if (!this.savedAssessment) {
+                this.showAlert('แจ้งเตือน', 'ยังไม่มีข้อมูลแบบประเมินประวัติและสมรรถนะผู้ป่วยแรกรับที่บันทึกไว้');
+                return;
+            }
             const printContent = document.getElementById('a4-print-area').innerHTML;
             const iframe = document.getElementById('print-frame');
             const pri = iframe.contentWindow;
