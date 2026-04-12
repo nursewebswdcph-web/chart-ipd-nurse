@@ -84,6 +84,28 @@
             page-break-after: auto;
             break-after: auto;
         }
+        #a4-print-area .flex > div,
+        #a4-print-area .flex > label,
+        #a4-print-area .grid > div,
+        #a4-print-area .grid > label {
+            min-width: 0 !important;
+        }
+        #a4-print-area label.inline-flex {
+            flex-wrap: wrap;
+            align-items: flex-start;
+            row-gap: 2px;
+        }
+        #a4-print-area div[x-text],
+        #a4-print-area span.border-b[x-text] {
+            white-space: normal !important;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            max-width: 100% !important;
+            min-width: 0 !important;
+        }
+        #a4-print-area span.border-b.inline-block[x-text] {
+            vertical-align: bottom;
+        }
         /* =========================
            ตารางแบ่งหน้าได้
         ========================= */
