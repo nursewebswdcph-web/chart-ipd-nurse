@@ -39,6 +39,25 @@
         position: relative;
         box-sizing: border-box;
     }
+    .print-multiline-field {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        line-height: 1.35;
+    }
+    .print-multiline-field--3 {
+        min-height: calc(1.35em * 3);
+        padding: 0 2px 2px 0;
+        background-image: repeating-linear-gradient(
+            to bottom,
+            transparent 0,
+            transparent calc(1.35em - 1px),
+            #000 calc(1.35em - 1px),
+            #000 1.35em
+        );
+        background-repeat: repeat-y;
+        background-size: 100% 1.35em;
+    }
     .checkbox-box {
         display: inline-flex;
         align-items: center;
@@ -1670,7 +1689,7 @@
                                             </div>
                                             <div class="flex mt-1">
                                                 <div class="w-24">ประวัติการเจ็บป่วย</div>
-                                                <div class="flex-1 border-b border-dotted border-black" x-text="savedAssessment?.PresentIllness"></div>
+                                                <div class="flex-1 print-multiline-field print-multiline-field--3" x-text="savedAssessment?.PresentIllness"></div>
                                             </div>
                                             <div class="flex mt-1">
                                                 <div class="w-24">อาการแสดงแรกรับ</div>
