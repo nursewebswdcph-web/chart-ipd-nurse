@@ -2498,15 +2498,9 @@ function nurseApp() {
                             .print-multiline-field--3 {
                                 min-height: calc(1.35em * 3);
                                 padding: 0 2px 2px 0;
-                                background-image: repeating-linear-gradient(
-                                    to bottom,
-                                    transparent 0,
-                                    transparent calc(1.35em - 1px),
-                                    #000 calc(1.35em - 1px),
-                                    #000 1.35em
-                                );
-                                background-repeat: repeat-y;
-                                background-size: 100% 1.35em;
+                                background-image: radial-gradient(circle at 1.5px calc(100% - 1px), #000 0.9px, transparent 1px);
+                                background-repeat: repeat;
+                                background-size: 6px 1.35em;
                             }
                             .a4-page .flex > div,
                             .a4-page .flex > label,
