@@ -2489,6 +2489,25 @@ function nurseApp() {
                             }
 
                             /* CSS สำหรับ Global Footer ให้โผล่ขอบล่างทุกหน้า */
+                            .print-multiline-field {
+                                white-space: pre-wrap;
+                                overflow-wrap: anywhere;
+                                word-break: break-word;
+                                line-height: 1.35;
+                            }
+                            .print-multiline-field--3 {
+                                min-height: calc(1.35em * 3);
+                                padding: 0 2px 2px 0;
+                                background-image: repeating-linear-gradient(
+                                    to bottom,
+                                    transparent 0,
+                                    transparent calc(1.35em - 1px),
+                                    #000 calc(1.35em - 1px),
+                                    #000 1.35em
+                                );
+                                background-repeat: repeat-y;
+                                background-size: 100% 1.35em;
+                            }
                             .a4-page .flex > div,
                             .a4-page .flex > label,
                             .a4-page .grid > div,
