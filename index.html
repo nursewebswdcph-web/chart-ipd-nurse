@@ -4944,7 +4944,7 @@
         <div @click.away="showFallShiftModal = false" class="bg-white w-full max-w-3xl max-h-[90vh] overflow-hidden rounded-[2rem] shadow-2xl border border-slate-200 flex flex-col">
             <div class="px-6 py-4 border-b border-slate-200 bg-amber-50 flex items-center justify-between">
                 <div>
-                    <div class="text-[11px] font-black uppercase tracking-[0.2em] text-amber-500">Morse / MAAS ประเมินทุกวันอังคาร และวันศุกร์</div>
+                    <div class="text-[11px] font-black uppercase tracking-[0.2em] text-amber-500">Morse / MAAS </div>
                     <h3 class="text-xl font-black text-amber-900 mt-1">ประเมินรายเวร</h3>
                     <p class="text-sm text-slate-500 mt-1"><span x-text="formatThaiDateShort(fallShiftForm.evalDate)"></span> • <span x-text="fallShiftForm.shift"></span></p>
                 </div>
@@ -4952,7 +4952,7 @@
             </div>
             <div class="p-6 overflow-y-auto space-y-4">
                 <div class="rounded-2xl border border-amber-100 overflow-hidden">
-                    <div class="px-4 py-2 bg-amber-100/70 text-sm font-black text-amber-900">Morse Fall Scale ประเมินทุกวัน ทุกเวร</div>
+                    <div class="px-4 py-2 bg-amber-100/70 text-sm font-black text-amber-900">Morse Fall Scale ประเมินทุกวันอังคาร และวันศุกร์ </div>
                     <div class="p-4 space-y-3">
                         <template x-for="(item, idx) in fallRiskMorseQuestions" :key="`fall-modal-${idx}`">
                             <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 space-y-3">
@@ -4974,7 +4974,7 @@
                     </div>
                 </div>
                 <div class="rounded-2xl border border-blue-100 overflow-hidden">
-                    <div class="px-4 py-2 bg-blue-100/70 text-sm font-black text-blue-900">MAAS</div>
+                    <div class="px-4 py-2 bg-blue-100/70 text-sm font-black text-blue-900">MAAS ประเมินทุกวัน ทุกเวร</div>
                     <div class="p-4 space-y-3">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                             <template x-for="item in fallRiskMaasOptions" :key="`fall-maas-${item.value}`">
