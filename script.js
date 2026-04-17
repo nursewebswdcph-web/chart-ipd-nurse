@@ -4302,6 +4302,19 @@ function nurseApp() {
                 this.bradenForm.s3_appearance = ''; this.bradenForm.assessor = '';
             }
         },
+        hasBradenSummaryData(record) {
+            if (!record || typeof record !== 'object') return false;
+            return [
+                record.S4_DischargeDate,
+                record.S4_Outcome,
+                record.S4_UlcerDate,
+                record.S4_Location,
+                record.S4_Size,
+                record.S4_Appearance,
+                record.S4_Stage,
+                record.S4_Count
+            ].some(value => String(value || '').trim() !== '');
+        },
         async saveBraden() {
             this.isLoading = true;
             const payload = { ...this.bradenForm, an: this.selectedPatient.an, hn: this.selectedPatient.hn, ward: this.currentWard };
@@ -4313,7 +4326,8 @@ function nurseApp() {
                     this.successMsg = 'บันทึกข้อมูลแบบประเมินเรียบร้อย';
                     setTimeout(() => { this.showSuccess = false; }, 3000);
                     
-                    this.loadBraden(this.selectedPatient.an);
+                    this.invalidateResource('braden_scale', payload.an);
+                    await this.loadBraden(payload.an, { force: true, silent: true });
                     this.showBradenModal = false; // ปิดแค่ฟอร์มบันทึก แล้วจบเลย
                 }
             } catch(e) { alert('เกิดข้อผิดพลาดในการบันทึก'); }
@@ -4365,7 +4379,8 @@ function nurseApp() {
                     
                     // โหลดข้อมูลใหม่เพื่อให้หน้าประวัติอัปเดต
                     if(typeof this.loadBraden === 'function') {
-                        this.loadBraden(payload.an);
+                        this.invalidateResource('braden_scale', payload.an);
+                        await this.loadBraden(payload.an, { force: true, silent: true });
                     } else if(typeof this.loadBradenHistory === 'function') {
                         this.loadBradenHistory(payload.an);
                     }
@@ -4380,7 +4395,8 @@ function nurseApp() {
             }
         },
         printBraden() {
-            let records = [...this.bradenHistory].sort((a, b) => new Date(a.EvalDate) - new Date(b.EvalDate));
+            const sourceRecords = Array.isArray(this.bradenHistory) ? [...this.bradenHistory] : [];
+            let records = [...sourceRecords].sort((a, b) => new Date(a.EvalDate) - new Date(b.EvalDate));
             if(records.length === 0) { alert("ไม่พบข้อมูลการประเมินเพื่อพิมพ์ กรุณาบันทึกข้อมูลก่อน"); return; }
             
             // ฟังก์ชันจัดการวันที่และปี พ.ศ. (เขียนแยก Manual เพื่อป้องกันปัญหาเบราว์เซอร์บวกปี 543 ซ้ำซ้อน)
@@ -4398,7 +4414,18 @@ function nurseApp() {
 
             let chunks = [];
             for(let i=0; i<records.length; i+=10) chunks.push(records.slice(i, i+10));
-            const lastRec = records[records.length-1];
+            const lastRec = { ...(records[records.length-1] || {}) };
+            const summaryRec = [...sourceRecords].reverse().find(record => this.hasBradenSummaryData(record)) || lastRec;
+            if (summaryRec) {
+                lastRec.S4_DischargeDate = summaryRec.S4_DischargeDate || lastRec.S4_DischargeDate || '';
+                lastRec.S4_Outcome = summaryRec.S4_Outcome || lastRec.S4_Outcome || '';
+                lastRec.S4_UlcerDate = summaryRec.S4_UlcerDate || lastRec.S4_UlcerDate || '';
+                lastRec.S4_Location = summaryRec.S4_Location || lastRec.S4_Location || '';
+                lastRec.S4_Size = summaryRec.S4_Size || lastRec.S4_Size || '';
+                lastRec.S4_Appearance = summaryRec.S4_Appearance || lastRec.S4_Appearance || '';
+                lastRec.S4_Stage = summaryRec.S4_Stage || lastRec.S4_Stage || '';
+                lastRec.S4_Count = summaryRec.S4_Count || lastRec.S4_Count || '';
+            }
             let html = '';
 
             chunks.forEach((chunk, index) => {
