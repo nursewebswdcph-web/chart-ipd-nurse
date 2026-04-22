@@ -94,19 +94,21 @@ function nurseApp() {
             s4_dischargeDate: '', s4_outcome: '', s4_ulcerDate: '', s4_location: '', s4_size: '', s4_appearance: '', s4_stage: '', s4_count: ''
         },
          defaultEduForm() {
+            const defaultName = this.getDefaultSignatureName();
+            const defaultPosition = this.getDefaultSignaturePosition();
             return {
-                D1: { checked: false, text1: '', date: '', provider: '', pos: '', receiver: '' },
-                M1: { checked: false, text1: '', text2: '', date: '', provider: '', pos: '', receiver: '' },
-                E1: { checked: false, options: [], date: '', provider: '', pos: '', receiver: '' },
-                E2: { checked: false, options: [], date: '', provider: '', pos: '', receiver: '' },
-                T1: { checked: false, options: [], text1: '', text2: '', date: '', provider: '', pos: '', receiver: '' },
-                T2: { checked: false, options: [], text1: '', date: '', provider: '', pos: '', receiver: '' },
-                T3: { checked: false, options: [], date: '', provider: '', pos: '', receiver: '' },
-                H1: { checked: false, options: [], date: '', provider: '', pos: '', receiver: '' },
-                O1: { checked: false, text1: '', text2: '', text3: '', date: '', provider: '', pos: '', receiver: '' },
-                O2: { checked: false, options: [], text1: '', date: '', provider: '', pos: '', receiver: '' },
-                O3: { checked: false, date: '', provider: '', pos: '', receiver: '' },
-                Diet1: { checked: false, text1: '', text2: '', text3: '', date: '', provider: '', pos: '', receiver: '' }
+                D1: { checked: false, text1: '', date: '', provider: defaultName, pos: defaultPosition, receiver: '' },
+                M1: { checked: false, text1: '', text2: '', date: '', provider: defaultName, pos: defaultPosition, receiver: '' },
+                E1: { checked: false, options: [], date: '', provider: defaultName, pos: defaultPosition, receiver: '' },
+                E2: { checked: false, options: [], date: '', provider: defaultName, pos: defaultPosition, receiver: '' },
+                T1: { checked: false, options: [], text1: '', text2: '', date: '', provider: defaultName, pos: defaultPosition, receiver: '' },
+                T2: { checked: false, options: [], text1: '', date: '', provider: defaultName, pos: defaultPosition, receiver: '' },
+                T3: { checked: false, options: [], date: '', provider: defaultName, pos: defaultPosition, receiver: '' },
+                H1: { checked: false, options: [], date: '', provider: defaultName, pos: defaultPosition, receiver: '' },
+                O1: { checked: false, text1: '', text2: '', text3: '', date: '', provider: defaultName, pos: defaultPosition, receiver: '' },
+                O2: { checked: false, options: [], text1: '', date: '', provider: defaultName, pos: defaultPosition, receiver: '' },
+                O3: { checked: false, date: '', provider: defaultName, pos: defaultPosition, receiver: '' },
+                Diet1: { checked: false, text1: '', text2: '', text3: '', date: '', provider: defaultName, pos: defaultPosition, receiver: '' }
             };
         }, 
         // สถานะของ Focus List
@@ -256,6 +258,71 @@ function nurseApp() {
             if (shift.includes('เช้า') || shift.includes('เข้า')) return 'เช้า';
             if (shift.includes('บ่าย')) return 'บ่าย';
             return shift;
+        },
+        getCurrentTimeInput(date = new Date()) {
+            const currentDate = date instanceof Date ? date : new Date(date);
+            return `${String(currentDate.getHours()).padStart(2, '0')}:${String(currentDate.getMinutes()).padStart(2, '0')}`;
+        },
+        getCurrentShiftKey(date = new Date()) {
+            const currentDate = date instanceof Date ? date : new Date(date);
+            const hours = currentDate.getHours();
+            if (hours < 8) return 'ดึก';
+            if (hours < 16) return 'เช้า';
+            return 'บ่าย';
+        },
+        getCurrentShiftLabel(withTimeRange = false, date = new Date()) {
+            const shiftKey = this.getCurrentShiftKey(date);
+            if (!withTimeRange) return shiftKey;
+            const shiftLabelMap = {
+                'ดึก': 'ดึก (00.00-08.00)',
+                'เช้า': 'เช้า (08.00-16.00)',
+                'บ่าย': 'บ่าย (16.00-24.00)'
+            };
+            return shiftLabelMap[shiftKey] || shiftKey;
+        },
+        getDefaultSignatureName() {
+            return String(this.currentUser?.fullName || this.nurseName || '').trim();
+        },
+        getDefaultSignaturePosition() {
+            return String(this.currentUser?.position || this.nursePosition || '').trim();
+        },
+        applyEduSignatureDefaults(form = this.eduForm) {
+            if (!form || typeof form !== 'object') return form;
+            const defaultName = this.getDefaultSignatureName();
+            const defaultPosition = this.getDefaultSignaturePosition();
+            Object.keys(form).forEach(key => {
+                const section = form[key];
+                if (!section || typeof section !== 'object') return;
+                if (Object.prototype.hasOwnProperty.call(section, 'provider')) {
+                    if (!String(section.provider || '').trim()) section.provider = defaultName;
+                    if (!String(section.pos || '').trim()) section.pos = defaultPosition;
+                }
+            });
+            return form;
+        },
+        applyCurrentUserDefaults() {
+            const defaultName = this.getDefaultSignatureName();
+            const defaultPosition = this.getDefaultSignaturePosition();
+            if (!defaultName && !defaultPosition) return;
+
+            if (!String(this.searchNurse || '').trim()) this.searchNurse = defaultName;
+
+            if (this.classForm && !String(this.classForm.assessor || '').trim()) this.classForm.assessor = defaultName;
+            if (this.pedShiftForm && !String(this.pedShiftForm.assessor || '').trim()) this.pedShiftForm.assessor = defaultName;
+            if (this.fallShiftForm && !String(this.fallShiftForm.assessor || '').trim()) this.fallShiftForm.assessor = defaultName;
+            if (this.bradenForm && !String(this.bradenForm.assessor || '').trim()) this.bradenForm.assessor = defaultName;
+
+            if (this.pnForm) {
+                if (!String(this.pnForm.nurse || '').trim()) this.pnForm.nurse = defaultName;
+                if (!String(this.pnForm.pos || '').trim()) this.pnForm.pos = defaultPosition;
+            }
+
+            if (this.dischargeForm && typeof this.dischargeForm === 'object') {
+                if (!String(this.dischargeForm.nurseName || '').trim()) this.dischargeForm.nurseName = defaultName;
+                if (!String(this.dischargeForm.pos || '').trim()) this.dischargeForm.pos = defaultPosition;
+            }
+
+            if (this.eduForm) this.applyEduSignatureDefaults(this.eduForm);
         },
         normalizeTimestampValue(value, fallbackDate = '') {
             if (value) {
@@ -642,7 +709,7 @@ function nurseApp() {
                 evalDate: date,
                 shift,
                 scores: Array.from({ length: 8 }, (_, index) => cell.scores[index] ?? ''),
-                assessor: cell.assessor || ''
+                assessor: cell.assessor || this.getDefaultSignatureName()
             };
             this.showClassModal = true;
         },
@@ -652,7 +719,7 @@ function nurseApp() {
                 evalDate: date,
                 shift,
                 scores: Array.from({ length: 10 }, (_, index) => cell.scores[index] ?? ''),
-                assessor: cell.assessor || ''
+                assessor: cell.assessor || this.getDefaultSignatureName()
             };
             this.showPedShiftModal = true;
         },
@@ -663,7 +730,7 @@ function nurseApp() {
                 shift,
                 scores: Array.from({ length: 6 }, (_, index) => cell.scores[index] ?? ''),
                 maas: cell.maas ?? '',
-                assessor: cell.assessor || ''
+                assessor: cell.assessor || this.getDefaultSignatureName()
             };
             this.showFallShiftModal = true;
         },
@@ -1149,6 +1216,7 @@ function nurseApp() {
             this.sessionToken = token || this.sessionToken || '';
             this.nurseName = user?.fullName || '';
             this.nursePosition = user?.position || '';
+            this.applyCurrentUserDefaults();
         },
         resetAuthForms() {
             this.authMode = 'login';
@@ -1746,6 +1814,13 @@ function nurseApp() {
                             Object.entries(fields).forEach(([id, val]) => {
                                 if (formElement.elements[id]) formElement.elements[id].value = val || '';
                             });
+                            if (formElement.elements['Assessor_Name']) {
+                                formElement.elements['Assessor_Name'].value = this.getDefaultSignatureName();
+                                this.searchNurse = formElement.elements['Assessor_Name'].value || '';
+                            }
+                            if (formElement.elements['Assessor_Pos']) {
+                                formElement.elements['Assessor_Pos'].value = this.getDefaultSignaturePosition();
+                            }
                         }
                     }
                 });
@@ -1869,6 +1944,14 @@ function nurseApp() {
                             Object.entries(fields).forEach(([id, val]) => {
                                 if (formElement.elements[id]) formElement.elements[id].value = val || '';
                             });
+                            if (formElement.elements['ped_AssessorName']) {
+                                formElement.elements['ped_AssessorName'].value = this.getDefaultSignatureName();
+                                this.searchNurse = formElement.elements['ped_AssessorName'].value || '';
+                            }
+                            if (formElement.elements['ped_AssessorPosition']) {
+                                formElement.elements['ped_AssessorPosition'].value = this.getDefaultSignaturePosition();
+                                this.nursePosition = formElement.elements['ped_AssessorPosition'].value || this.nursePosition;
+                            }
                         }
                     });
                 }
@@ -2964,8 +3047,8 @@ function nurseApp() {
                             <th class="text-left">ผู้ประเมิน</th>
                             ${pageData.map(day => SHIFT_ORDER.map(shift => {
                                 const rawAssessor = this.getGridCell(day.date, shift).assessor || '';
-                                const assessor = this.formatPrintAssessorName(rawAssessor);
-                                return `<td style="${this.getPrintAssessorStyle(rawAssessor, 5.5, 3.8, 7)}">${assessor}</td>`;
+                                const assessor = this.formatPrintShortRnName(rawAssessor);
+                                return `<td style="${this.getPrintAssessorStyle(rawAssessor, 5.2, 3.6, 10, assessor)}">${assessor}</td>`;
                             }).join('')).join('')}
                             ${Array((daysPerPage - pageData.length) * 3).fill('<td></td>').join('')}
                         </tr>
@@ -3465,9 +3548,13 @@ function nurseApp() {
         formatPrintAssessorName(fullName) {
             return this.formatShortName(fullName);
         },
-        getPrintAssessorStyle(fullName, basePt = 6, minPt = 4.2, fitChars = 7) {
-            const shortName = this.formatPrintAssessorName(fullName);
-            const extraChars = Math.max(shortName.length - fitChars, 0);
+        formatPrintShortRnName(fullName) {
+            const shortName = this.formatShortName(fullName);
+            return shortName ? `${shortName} RN` : '';
+        },
+        getPrintAssessorStyle(fullName, basePt = 6, minPt = 4.2, fitChars = 7, renderedLabel = '') {
+            const label = renderedLabel || this.formatPrintAssessorName(fullName);
+            const extraChars = Math.max(label.length - fitChars, 0);
             const fontSize = Math.max(minPt, Number((basePt - (extraChars * 0.3)).toFixed(2)));
             return `font-size:${fontSize}pt; line-height:1; white-space:nowrap; overflow:hidden;`;
         },
@@ -3557,7 +3644,8 @@ function nurseApp() {
 
                 const assessorRow = buildShiftCells(page, (day, shift) => {
                     const cell = this.getClassificationPrintCell(day.date, shift);
-                    return `<td class="border border-black text-gray-800 font-normal leading-tight" style="${this.getPrintAssessorStyle(cell.assessor, 5.8, 4.1, 7)}">${this.escapeHtml(this.formatPrintAssessorName(cell.assessor))}</td>`;
+                    const assessorLabel = this.formatPrintShortRnName(cell.assessor);
+                    return `<td class="border border-black text-gray-800 font-normal leading-tight" style="${this.getPrintAssessorStyle(cell.assessor, 5.2, 3.8, 10, assessorLabel)}">${this.escapeHtml(assessorLabel)}</td>`;
                 });
 
                 const dayHeaders = page.map(day => `<th colspan="3" class="border border-black font-bold py-1">${this.escapeHtml(day.formattedDate)}</th>`).join('');
@@ -3962,7 +4050,8 @@ function nurseApp() {
 
                 const morseAssessorRow = buildShiftCells(page, (day, shift) => {
                     const cell = this.getFallPrintCell(day.date, shift);
-                    return `<td class="border border-black text-center" style="${this.getPrintAssessorStyle(cell.assessor, 5.4, 3.9, 7)}">${this.escapeHtml(this.formatPrintAssessorName(cell.assessor))}</td>`;
+                    const assessorLabel = this.formatPrintShortRnName(cell.assessor);
+                    return `<td class="border border-black text-center" style="${this.getPrintAssessorStyle(cell.assessor, 5.1, 3.7, 10, assessorLabel)}">${this.escapeHtml(assessorLabel)}</td>`;
                 });
 
                 const maasBody = maasRows.map(row => {
@@ -3980,7 +4069,8 @@ function nurseApp() {
 
                 const maasAssessorRow = buildShiftCells(page, (day, shift) => {
                     const cell = this.getFallPrintCell(day.date, shift);
-                    return `<td class="border border-black text-center" style="${this.getPrintAssessorStyle(cell.assessor, 5.4, 3.9, 7)}">${this.escapeHtml(this.formatPrintAssessorName(cell.assessor))}</td>`;
+                    const assessorLabel = this.formatPrintShortRnName(cell.assessor);
+                    return `<td class="border border-black text-center" style="${this.getPrintAssessorStyle(cell.assessor, 5.1, 3.7, 10, assessorLabel)}">${this.escapeHtml(assessorLabel)}</td>`;
                 });
 
                 return `
@@ -4293,13 +4383,13 @@ function nurseApp() {
                 this.bradenForm.s3_location = existing.S3_Location || ''; 
                 this.bradenForm.s3_stage = existing.S3_Stage || '';
                 this.bradenForm.s3_appearance = existing.S3_Appearance || ''; 
-                this.bradenForm.assessor = existing.Assessor || '';
+                this.bradenForm.assessor = existing.Assessor || this.getDefaultSignatureName();
             } else {
                 this.bradenForm.s1_m1 = null; this.bradenForm.s1_m2 = null; this.bradenForm.s1_m3 = null;
                 this.bradenForm.s1_m4 = null; this.bradenForm.s1_m5 = null; this.bradenForm.s1_m6 = null;
                 this.bradenForm.totalScore = 0;
                 this.bradenForm.s3_location = ''; this.bradenForm.s3_stage = ''; 
-                this.bradenForm.s3_appearance = ''; this.bradenForm.assessor = '';
+                this.bradenForm.s3_appearance = ''; this.bradenForm.assessor = this.getDefaultSignatureName();
             }
         },
         hasBradenSummaryData(record) {
@@ -4456,8 +4546,9 @@ function nurseApp() {
                 let totalRows = `<tr class="bg-gray"><td colspan="2" style="text-align:right; font-weight:bold; padding-right:10px;">คะแนนรวม</td>`;
                 let assessorRows = `<tr><td colspan="2" style="text-align:right; font-weight:bold; padding-right:10px;">พยาบาลผู้ประเมิน</td>`;
                 for(let i=0; i<10; i++) {
+                    const assessorLabel = chunk[i] ? this.formatPrintShortRnName(chunk[i].Assessor || '') : '';
                     totalRows += `<td class="text-center font-bold text-blue-800">${chunk[i] ? chunk[i].TotalScore || 0 : ''}</td>`;
-                    assessorRows += `<td class="text-center" style="font-size:10px; white-space:nowrap; overflow:hidden;">${chunk[i] ? chunk[i].Assessor || '' : ''}</td>`;
+                    assessorRows += `<td class="text-center" style="${this.getPrintAssessorStyle(assessorLabel, 8.4, 6.2, 12, assessorLabel)}">${assessorLabel}</td>`;
                 }
                 totalRows += '</tr>'; assessorRows += '</tr>';
 
@@ -4474,6 +4565,7 @@ function nurseApp() {
                         }
                     }
                     
+                    const assessorLabel = this.formatPrintShortRnName(r.Assessor || '');
                     section3Rows += `
                         <tr style="height: 26px;">
                             ${i===0 ? `<td rowspan="10" style="text-align:center; width:22%; padding:0; vertical-align:middle;"><img src="https://www.weymouthphysiotherapy.com/wp-content/uploads/2018/02/Body-chart.jpg" style="width:100%; max-height:240px; object-fit:contain;"></td>` : ''}
@@ -4481,7 +4573,7 @@ function nurseApp() {
                             <td style="width:20%; padding-left:5px;">${r.S3_Location||''}</td>
                             <td class="text-center" style="width:10%;">${r.S3_Stage||''}</td>
                             <td style="width:21%; padding-left:5px;">${r.S3_Appearance||''}</td>
-                            <td class="text-center" style="width:15%;">${r.Assessor||''}</td>
+                            <td class="text-center" style="width:15%; ${this.getPrintAssessorStyle(assessorLabel, 8.4, 6.2, 12, assessorLabel)}">${assessorLabel}</td>
                         </tr>
                     `;
                 }
@@ -4684,17 +4776,18 @@ function nurseApp() {
                     if(this.eduForm.T1) this.eduForm.T1.options = ensureArray(this.eduForm.T1.options);
                     if(this.eduForm.T2) this.eduForm.T2.options = ensureArray(this.eduForm.T2.options);
                     if(this.eduForm.T3) this.eduForm.T3.options = ensureArray(this.eduForm.T3.options);
-                    if(this.eduForm.H1) this.eduForm.H1.options = ensureArray(this.eduForm.H1.options);
-                    if(this.eduForm.O2) this.eduForm.O2.options = ensureArray(this.eduForm.O2.options);
-                    // ---------------------------------------------------------
-                    
+                if(this.eduForm.H1) this.eduForm.H1.options = ensureArray(this.eduForm.H1.options);
+                if(this.eduForm.O2) this.eduForm.O2.options = ensureArray(this.eduForm.O2.options);
+                // ---------------------------------------------------------
+                
                 } else {
                     this.eduForm = base;
                 }
+                this.applyEduSignatureDefaults(this.eduForm);
                 this.markResourceLoaded('patient_edu', an);
             } catch (e) { 
                 console.error(e); 
-                this.eduForm = this.defaultEduForm();
+                this.eduForm = this.applyEduSignatureDefaults(this.defaultEduForm());
             }
             
             if (!options.silent) this.isLoading = false;
@@ -5066,8 +5159,7 @@ function nurseApp() {
         },
 
         getTodayDateInput() {
-            const d = new Date();
-            return d.toISOString().split('T')[0];
+            return this.getLocalYYYYMMDD(new Date());
         },
 
         async addOrUpdateFocus() {
@@ -5659,7 +5751,7 @@ function nurseApp() {
         // ------------------------------------------
         defaultDischargeForm() {
             return {
-                date: this.getTodayDateInput(), exitDate: this.getTodayDateInput(), time: new Date().toTimeString().slice(0, 5),
+                date: this.getTodayDateInput(), exitDate: this.getTodayDateInput(), time: this.getCurrentTimeInput(),
                 type: '', condition: '', symptom: '',
                 bt: '', pr: '', rr: '', bp: '',
                 d1: false, d2: false, d3: false, d4: false, d_other: false, d_other_text: '',
@@ -5670,7 +5762,7 @@ function nurseApp() {
                 med_status: '', med_text: '',
                 fu_status: '', fu_text: '', wound_care: false, wound_date: '', cont_other: false, cont_text: '',
                 care_loc: '', care_loc_text1: '', care_loc_text2: '', care_loc_text3: '', care_loc_text4: '', care_loc_text5: '',
-                receiverName: '', relation: '', nurseName: this.nurseName || '', pos: this.nursePosition || ''
+                receiverName: '', relation: '', nurseName: this.getDefaultSignatureName(), pos: this.getDefaultSignaturePosition()
             };
         },
         async loadDischargeRecordInit() {
@@ -5680,6 +5772,8 @@ function nurseApp() {
                 const data = await res.json();
                 // ถ้ามีข้อมูลเดิมให้ดึงมาแสดง ถ้าไม่มีให้ใช้ฟอร์มเปล่า
                 this.dischargeForm = (data && Object.keys(data).length > 0) ? data : this.defaultDischargeForm();
+                if (!String(this.dischargeForm.nurseName || '').trim()) this.dischargeForm.nurseName = this.getDefaultSignatureName();
+                if (!String(this.dischargeForm.pos || '').trim()) this.dischargeForm.pos = this.getDefaultSignaturePosition();
             } catch (e) { 
                 console.error(e); 
                 this.dischargeForm = this.defaultDischargeForm(); 
@@ -6624,6 +6718,33 @@ function nurseApp() {
             </html>
             `);
             printWindow.document.close();
+        },
+        openClassModal() {
+            this.classForm = {
+                evalDate: this.getTodayDateInput(),
+                shift: this.getCurrentShiftKey(),
+                scores: Array(8).fill(''),
+                assessor: this.getDefaultSignatureName()
+            };
+            this.showClassModal = true;
+        },
+        clearProgressForm() {
+            this.pnForm = {
+                id: '',
+                date: this.getTodayDateInput(),
+                shift: this.getCurrentShiftLabel(true),
+                time: this.getCurrentTimeInput(),
+                focus: '',
+                s: '',
+                o: '',
+                i: '',
+                e: '',
+                eTime: '',
+                nurse: this.getDefaultSignatureName(),
+                pos: this.getDefaultSignaturePosition(),
+                addToFocusList: false
+            };
+            this.editingProgressIndex = -1;
         },
     };
 }
