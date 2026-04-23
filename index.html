@@ -75,8 +75,12 @@
             height: auto !important;
             overflow: visible !important;
             background: white !important;
+            font-family: 'Sarabun', sans-serif !important;
             /* กัน Chrome scale */
             zoom: 1;
+        }
+        body, body * {
+            font-family: 'Sarabun', sans-serif !important;
         }
         /* ซ่อน UI */
         .no-print {
@@ -699,19 +703,19 @@
         
                 <div class="lg:col-span-2">
                     <div class="bg-white rounded-[2.5rem] p-8 shadow-md border border-slate-50 min-h-full">
-                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 relative" @click.away="showPrintDropdown = false; showAddDocumentDropdown = false">
+                        <div class="flex flex-col lg:flex-row gap-6 lg:gap-8 mb-8 relative" @click.away="showPrintDropdown = false; showAddDocumentDropdown = false">
                             <h4 class="font-black text-xl text-slate-800 flex items-center gap-3">
                                 <div class="w-2 h-8 bg-indigo-500 rounded-full"></div> แบบบันทึกทางการพยาบาล
                             </h4>
                             
-                            <div class="flex items-center gap-3">
+                            <div class="order-first flex items-center gap-3 mb-1">
                                 <div class="relative z-[60]">
-                                    <button @click="showAddDocumentDropdown = !showAddDocumentDropdown" class="px-5 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-xl font-bold shadow-sm hover:bg-slate-50 transition flex items-center gap-2 text-sm">
+                                    <button @click="showAddDocumentDropdown = !showAddDocumentDropdown" class="px-5 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-xl font-bold shadow-sm hover:bg-slate-50 transition flex items-center gap-2 text-sm min-w-[220px] justify-center">
                                         <i class="fa-solid fa-square-plus text-emerald-600"></i>
                                         <span>เพิ่มรายการเอกสาร</span>
                                         <i class="fa-solid fa-chevron-down text-xs text-slate-400"></i>
                                     </button>
-                                    <div x-show="showAddDocumentDropdown" style="display: none;" class="absolute right-0 top-full mt-2 w-80 bg-white border border-slate-200 shadow-2xl rounded-2xl overflow-hidden" x-transition>
+                                    <div x-show="showAddDocumentDropdown" style="display: none;" class="absolute left-0 top-full mt-2 w-80 max-w-[calc(100vw-3rem)] bg-white border border-slate-200 shadow-2xl rounded-2xl overflow-hidden" x-transition>
                                         <div class="bg-slate-50 px-4 py-3 border-b border-slate-200">
                                             <div class="font-bold text-slate-700">เอกสารเพิ่มเติม</div>
                                             <div class="text-xs text-slate-500 mt-1">เพิ่มฟอร์มนอกเหนือจากเอกสารพื้นฐาน 8 รายการ</div>
@@ -818,7 +822,8 @@
             <div class="flex flex-1 overflow-hidden">
                 <aside 
                     :class="isSidebarCollapsed ? 'w-20' : 'w-96'" 
-                    class="border-r border-slate-200 bg-white transition-all duration-300 ease-in-out flex flex-col relative z-50 no-print">
+                    class="border-r border-slate-200 bg-white transition-all duration-300 ease-in-out flex flex-col relative z-50 no-print"
+                    @click.away="showAddDocumentDropdown = false">
                     
                     <div class="p-4 flex justify-center border-b border-slate-50">
                         <button @click="isSidebarCollapsed = !isSidebarCollapsed" 
@@ -828,8 +833,35 @@
                     </div>
                 
                     <div class="flex-1 overflow-y-auto p-3 space-y-2">
-                        <div x-show="!isSidebarCollapsed" class="px-3 mb-4 mt-2" x-transition>
+                        <div x-show="!isSidebarCollapsed" class="sticky top-0 z-20 bg-white px-3 pt-2 pb-4 mb-4 border-b border-slate-100 space-y-4" x-transition>
                             <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Nursing Forms</h4>
+                        </div>
+
+                        <div x-show="!isSidebarCollapsed" class="sticky top-10 z-20 bg-white pb-4 mb-4" x-transition>
+                            <div class="relative">
+                                <button @click="showAddDocumentDropdown = !showAddDocumentDropdown" class="w-full px-4 py-3 bg-white border border-slate-300 text-slate-700 rounded-2xl font-bold shadow-sm hover:bg-slate-50 transition flex items-center justify-center gap-2 text-sm">
+                                    <i class="fa-solid fa-square-plus text-emerald-600"></i>
+                                    <span>เพิ่มรายการเอกสาร</span>
+                                    <i class="fa-solid fa-chevron-down text-xs text-slate-400"></i>
+                                </button>
+                                <div x-show="showAddDocumentDropdown" style="display: none;" class="absolute left-0 right-0 top-full mt-2 bg-white border border-slate-200 shadow-2xl rounded-2xl overflow-hidden" x-transition>
+                                    <div class="bg-slate-50 px-4 py-3 border-b border-slate-200">
+                                        <div class="font-bold text-slate-700">เอกสารเพิ่มเติม</div>
+                                        <div class="text-xs text-slate-500 mt-1">แสดงเฉพาะรายการที่ยังไม่ได้เพิ่มเข้ามา</div>
+                                    </div>
+                                    <div class="p-2 max-h-[50vh] overflow-y-auto space-y-1">
+                                        <template x-if="addableExtraForms.length === 0">
+                                            <div class="px-3 py-4 text-sm text-slate-500 text-center">ไม่มีรายการเอกสารเพิ่มเติมคงเหลือ</div>
+                                        </template>
+                                        <template x-for="opt in addableExtraForms" :key="opt.id">
+                                            <button @click="addForm(opt); showAddDocumentDropdown = false; selectForm(opt)" class="w-full text-left px-3 py-3 rounded-xl hover:bg-emerald-50 border border-transparent hover:border-emerald-200 transition">
+                                                <div class="font-bold text-slate-700" x-text="opt.title"></div>
+                                                <div class="text-xs text-slate-500 mt-1">เพิ่มเอกสารเข้ารายการและเปิดฟอร์มทันที</div>
+                                            </button>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                 
                         <nav class="space-y-1.5">
@@ -4444,7 +4476,7 @@
                     </div>
                 </template>
                 <template x-if="currentForm?.id === 'nutrition_assessment'">
-                    <div x-init="loadNutritionAssessmentInit()" class="space-y-4 pb-10">
+                    <div x-init="loadNutritionAssessmentInit()" x-effect="syncNutritionComputedFields()" class="space-y-4 pb-10">
                         <div class="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-emerald-200 sticky top-0 z-30 gap-4">
                             <h2 class="text-xl font-black text-emerald-700"><i class="fa-solid fa-apple-whole mr-2"></i>แบบคัดกรองและประเมินภาวะโภชนาการ</h2>
                             <div class="flex flex-wrap gap-2">
@@ -4507,7 +4539,7 @@
                                 </div>
                                 <div>
                                     <label class="block font-bold text-slate-700 mb-1">BMI</label>
-                                    <input type="number" step="0.1" x-model="nutritionForm.bmi" @change="autoSaveNutrition()" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-emerald-500">
+                                    <input type="number" step="0.1" x-model="nutritionForm.bmi" readonly class="w-full border border-slate-300 rounded-lg p-2 bg-slate-50 text-slate-700">
                                 </div>
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -4580,7 +4612,7 @@
                                                 <div class="font-bold text-slate-800 mb-2">2. น้ำหนักและ BMI</div>
                                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                     <div><label class="block text-sm font-bold text-slate-700 mb-1">น้ำหนัก (กก.)</label><input type="number" step="0.1" x-model="evalData.weightKg" class="w-full border border-slate-300 rounded-lg p-2"></div>
-                                                    <div><label class="block text-sm font-bold text-slate-700 mb-1">BMI</label><input type="number" step="0.1" x-model="evalData.bmiValue" class="w-full border border-slate-300 rounded-lg p-2"></div>
+                                                    <div><label class="block text-sm font-bold text-slate-700 mb-1">BMI</label><input type="number" step="0.1" x-model="evalData.bmiValue" readonly class="w-full border border-slate-300 rounded-lg p-2 bg-slate-50 text-slate-700"></div>
                                                 </div>
                                                 <div class="mt-3 flex flex-wrap gap-4 text-sm">
                                                     <label class="flex items-center gap-2"><input type="radio" :name="'weightMethod-' + evalIndex" x-model="evalData.weightMethod" value="lying"> ชั่งในท่านอน (1)</label>
@@ -4719,6 +4751,93 @@
                                 </div>
                             </div>
                         </template>
+
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-5">
+                            <div class="border-b border-slate-200 pb-4">
+                                <h3 class="text-lg font-black text-slate-800">GUIDE TO MAKE DIET ORDER</h3>
+                                <p class="text-sm text-slate-500 mt-1">ข้อมูลหน้าที่ 2 ของเอกสารต้นฉบับ</p>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div><label class="block text-sm font-bold text-slate-700 mb-1">Weight (kg.)</label><input type="number" step="0.1" x-model="nutritionForm.dietOrder.weight" class="w-full border border-slate-300 rounded-lg p-2"></div>
+                                <div><label class="block text-sm font-bold text-slate-700 mb-1">Height (cm.)</label><input type="number" step="0.1" x-model="nutritionForm.dietOrder.height" class="w-full border border-slate-300 rounded-lg p-2"></div>
+                                <div><label class="block text-sm font-bold text-slate-700 mb-1">IBW (kg.)</label><input type="number" step="0.1" x-model="nutritionForm.dietOrder.ibw" class="w-full border border-slate-300 rounded-lg p-2"></div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                <div class="border border-slate-200 rounded-xl p-4 space-y-2">
+                                    <div class="font-bold text-slate-800">Energy Requirement</div>
+                                    <label class="block"><input type="radio" x-model="nutritionForm.dietOrder.energyChoice" value="25"> 25 kcal/IBW</label>
+                                    <label class="block"><input type="radio" x-model="nutritionForm.dietOrder.energyChoice" value="30"> 30 kcal/IBW</label>
+                                    <label class="block"><input type="radio" x-model="nutritionForm.dietOrder.energyChoice" value="35"> 35 kcal/IBW</label>
+                                    <label class="block"><input type="radio" x-model="nutritionForm.dietOrder.energyChoice" value="other"> Other</label>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <input type="text" x-model="nutritionForm.dietOrder.energyOtherLabel" class="border border-slate-300 rounded-lg p-2" placeholder="Other">
+                                        <input type="text" x-model="nutritionForm.dietOrder.energyPerDay" class="border border-slate-300 rounded-lg p-2" placeholder="Kcal/day">
+                                    </div>
+                                </div>
+                                <div class="border border-slate-200 rounded-xl p-4 space-y-2">
+                                    <div class="font-bold text-slate-800">Protein Requirement</div>
+                                    <label class="block"><input type="radio" x-model="nutritionForm.dietOrder.proteinChoice" value="1.0"> 1.0 g/IBW</label>
+                                    <label class="block"><input type="radio" x-model="nutritionForm.dietOrder.proteinChoice" value="1.2"> 1.2 g/IBW</label>
+                                    <label class="block"><input type="radio" x-model="nutritionForm.dietOrder.proteinChoice" value="1.3"> 1.3 g/IBW</label>
+                                    <label class="block"><input type="radio" x-model="nutritionForm.dietOrder.proteinChoice" value="1.5"> 1.5 g/IBW</label>
+                                    <label class="block"><input type="radio" x-model="nutritionForm.dietOrder.proteinChoice" value="other"> Other</label>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <input type="text" x-model="nutritionForm.dietOrder.proteinOtherLabel" class="border border-slate-300 rounded-lg p-2" placeholder="Other">
+                                        <input type="text" x-model="nutritionForm.dietOrder.proteinPerDay" class="border border-slate-300 rounded-lg p-2" placeholder="g/day">
+                                    </div>
+                                </div>
+                                <div class="border border-slate-200 rounded-xl p-4 md:col-span-2">
+                                    <div class="font-bold text-slate-800 mb-2">Diet</div>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                        <label><input type="checkbox" value="Regular diet" x-model="nutritionForm.dietOrder.dietPrimary"> Regular diet</label>
+                                        <label><input type="checkbox" value="Soft diet" x-model="nutritionForm.dietOrder.dietPrimary"> Soft diet</label>
+                                        <label><input type="checkbox" value="Full liquid diet" x-model="nutritionForm.dietOrder.dietPrimary"> Full liquid diet</label>
+                                        <label><input type="checkbox" value="Clear liquid diet" x-model="nutritionForm.dietOrder.dietPrimary"> Clear liquid diet</label>
+                                        <label><input type="checkbox" value="DM" x-model="nutritionForm.dietOrder.dietPrimary"> DM</label>
+                                        <label><input type="checkbox" value="Low salt" x-model="nutritionForm.dietOrder.dietPrimary"> Low salt</label>
+                                        <label><input type="checkbox" value="Low fat" x-model="nutritionForm.dietOrder.dietPrimary"> Low fat</label>
+                                    </div>
+                                    <input type="text" x-model="nutritionForm.dietOrder.dietPrimaryOther" class="mt-2 w-full border border-slate-300 rounded-lg p-2" placeholder="Other">
+                                    <input type="text" x-model="nutritionForm.dietOrder.requiredDiet" class="mt-2 w-full border border-slate-300 rounded-lg p-2" placeholder="Required diet =">
+                                </div>
+                                <div class="border border-slate-200 rounded-xl p-4">
+                                    <div class="font-bold text-slate-800 mb-2">Oral Supplement</div>
+                                    <div class="space-y-1">
+                                        <label class="block"><input type="checkbox" value="Standard formula" x-model="nutritionForm.dietOrder.oralSupplement"> Standard formula</label>
+                                        <label class="block"><input type="checkbox" value="DM formula" x-model="nutritionForm.dietOrder.oralSupplement"> DM formula</label>
+                                        <label class="block"><input type="checkbox" value="Renal dialysis formula" x-model="nutritionForm.dietOrder.oralSupplement"> Renal dialysis formula</label>
+                                        <label class="block"><input type="checkbox" value="Cancer formula" x-model="nutritionForm.dietOrder.oralSupplement"> Cancer formula</label>
+                                    </div>
+                                    <input type="text" x-model="nutritionForm.dietOrder.oralSupplementOther" class="mt-2 w-full border border-slate-300 rounded-lg p-2" placeholder="Other">
+                                    <div class="grid grid-cols-2 gap-2 mt-2">
+                                        <input type="text" x-model="nutritionForm.dietOrder.oralMlPerMeal" class="border border-slate-300 rounded-lg p-2" placeholder="ml/meal">
+                                        <input type="text" x-model="nutritionForm.dietOrder.oralMealsPerDay" class="border border-slate-300 rounded-lg p-2" placeholder="meal/day">
+                                    </div>
+                                </div>
+                                <div class="border border-slate-200 rounded-xl p-4">
+                                    <div class="font-bold text-slate-800 mb-2">Tube Feeding</div>
+                                    <div class="space-y-1">
+                                        <label class="block"><input type="checkbox" value="Standard formula" x-model="nutritionForm.dietOrder.tubeFeeding"> Standard formula</label>
+                                        <label class="block"><input type="checkbox" value="DM formula" x-model="nutritionForm.dietOrder.tubeFeeding"> DM formula</label>
+                                        <label class="block"><input type="checkbox" value="Renal dialysis formula" x-model="nutritionForm.dietOrder.tubeFeeding"> Renal dialysis formula</label>
+                                        <label class="block"><input type="checkbox" value="Cancer formula" x-model="nutritionForm.dietOrder.tubeFeeding"> Cancer formula</label>
+                                        <label class="block"><input type="checkbox" value="Pulmonary disease formula" x-model="nutritionForm.dietOrder.tubeFeeding"> Pulmonary disease formula</label>
+                                        <label class="block"><input type="checkbox" value="Hepatic encephalopathy formula" x-model="nutritionForm.dietOrder.tubeFeeding"> Hepatic encephalopathy formula</label>
+                                    </div>
+                                    <input type="text" x-model="nutritionForm.dietOrder.tubeFeedingBd" class="mt-2 w-full border border-slate-300 rounded-lg p-2" placeholder="BD">
+                                    <input type="text" x-model="nutritionForm.dietOrder.tubeFeedingOther" class="mt-2 w-full border border-slate-300 rounded-lg p-2" placeholder="Other">
+                                    <div class="grid grid-cols-2 gap-2 mt-2">
+                                        <input type="text" x-model="nutritionForm.dietOrder.tubeMlPerMeal" class="border border-slate-300 rounded-lg p-2" placeholder="ml/meal">
+                                        <input type="text" x-model="nutritionForm.dietOrder.tubeMealsPerDay" class="border border-slate-300 rounded-lg p-2" placeholder="meal/day">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div><label class="block text-sm font-bold text-slate-700 mb-1">Ordered by</label><input type="text" x-model="nutritionForm.dietOrder.orderedBy" class="w-full border border-slate-300 rounded-lg p-2"></div>
+                                <div><label class="block text-sm font-bold text-slate-700 mb-1">Date</label><input type="date" x-model="nutritionForm.dietOrder.orderDate" class="w-full border border-slate-300 rounded-lg p-2"></div>
+                                <div><label class="block text-sm font-bold text-slate-700 mb-1">Time</label><input type="time" x-model="nutritionForm.dietOrder.orderTime" class="w-full border border-slate-300 rounded-lg p-2"></div>
+                            </div>
+                        </div>
                     </div>
                 </template>
                 <template x-if="currentForm?.id === 'discharge_record'">
