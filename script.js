@@ -135,7 +135,9 @@ function nurseApp() {
         pnForm: { id: '', date: '', shift: 'เช้า (08.00-16.00)', time: '', focus: '', s: '', o: '', i: '', e: '', eTime: '', nurse: '', pos: '', addToFocusList: false },
 
         dischargeForm: {},
+        nutritionForm: { evaluations: [] },
         showNurseListForDischarge: false,
+        showAddDocumentDropdown: false,
         
         isSidebarCollapsed: false, // สถานะการพับ Sidebar
         
@@ -153,6 +155,31 @@ function nurseApp() {
             { id: 'focus_list', title: '6. Focus List', icon: 'fa-list-check', isMain: true },
             { id: 'progress_note', title: '7. Nursing Progress Note', icon: 'fa-notes-medical', isMain: true },
             { id: 'discharge_record', title: '8. แบบบันทึกการพยาบาลผู้ป่วยจำหน่าย', icon: 'fa-door-open', isMain: true }
+        ],
+        availableExtraForms: [
+            { id: 'nutrition_assessment', title: '9. แบบคัดกรองและประเมินภาวะโภชนาการ', icon: 'fa-apple-whole', isMain: false }
+        ],
+        nutritionScreeningQuestions: [
+            'ผู้ป่วยมีน้ำหนักตัวลดลง โดยไม่ได้ตั้งใจในช่วง 6 เดือนที่ผ่านมาหรือไม่',
+            'ผู้ป่วยได้รับอาหารน้อยกว่าที่เคยได้ (>7วัน)',
+            'BMI < 18.5 หรือ ≥ 25.0 กก./ตร.ม. หรือไม่',
+            'ผู้ป่วยมีภาวะวิกฤต หรือกึ่งวิกฤตร่วมด้วยหรือไม่'
+        ],
+        nutritionDiseaseOptions: [
+            { id: 'dm', label: 'DM (เบาหวาน)', score: 3 },
+            { id: 'ckd_esrd', label: 'CKD-ESRD (ไตเรื้อรัง)', score: 3 },
+            { id: 'cld', label: 'CLD/Cirrhosis/Hepatic encephalopathy (ตับเรื้อรัง)', score: 3 },
+            { id: 'solid_cancer', label: 'Solid cancer (มะเร็งทั่วไป)', score: 3 },
+            { id: 'chf', label: 'Chronic heart failure (หัวใจล้มเหลวเรื้อรัง)', score: 3 },
+            { id: 'copd', label: 'COPD (ปอดอุดกั้นเรื้อรัง)', score: 3 },
+            { id: 'severe_head_injury', label: 'Severe head injury (บาดเจ็บศีรษะรุนแรง)', score: 3 },
+            { id: 'hip_fracture', label: 'Hip fracture (ข้อสะโพกหัก)', score: 3 },
+            { id: 'burn', label: '≥2o of burn (แผลไฟไหม้ระดับ 2 ขึ้นไป)', score: 3 },
+            { id: 'stroke', label: 'Stroke/CVA (อัมพาต)', score: 6 },
+            { id: 'hematologic', label: 'Malignant hematologic disease / Bone marrow transplant', score: 6 },
+            { id: 'severe_pneumonia', label: 'Severe Pneumonia (ปอดบวมขั้นรุนแรง)', score: 6 },
+            { id: 'multiple_fracture', label: 'Multiple Fracture (กระดูกหักหลายตำแหน่ง)', score: 6 },
+            { id: 'critical', label: 'Critically ill (ผู้ป่วยวิกฤต)', score: 6 }
         ],
         classForm: {
             evalDate: new Date().toISOString().split('T')[0],
@@ -217,6 +244,10 @@ function nurseApp() {
         },
         shiftOrder: ['ดึก', 'เช้า', 'บ่าย'],
         shiftPriorityMap: { 'ดึก': 1, 'เช้า': 2, 'บ่าย': 3 },
+
+        get addableExtraForms() {
+            return (this.availableExtraForms || []).filter(opt => !this.activeForms.some(form => form.id === opt.id));
+        },
 
         dateKeyToLocalDate(dateKey) {
             if (!dateKey) return null;
@@ -2388,6 +2419,8 @@ function nurseApp() {
                 patient_edu: 'patient_edu',
                 focus_list: 'focus_list',
                 progress_note: 'progress_note'
+                ,
+                nutrition_assessment: 'nutrition_assessment'
             };
             const resourceName = resourceMap[form.id];
             if (resourceName && currentAN && this.isResourceFresh(resourceName, currentAN)) {
@@ -2418,6 +2451,8 @@ function nurseApp() {
                     await this.loadFocusListInit({ silent: true });
                 } else if (form.id === 'progress_note') {
                     await this.loadProgressNotesInit({ silent: true });
+                } else if (form.id === 'nutrition_assessment') {
+                    await this.loadNutritionAssessmentInit();
                 } else if (form.id === 'discharge_record') {
                 }
             } catch (e) {
@@ -2431,7 +2466,6 @@ function nurseApp() {
             if (!this.activeForms.find(f => f.id === opt.id)) {
                 this.activeForms.push({ ...opt, isMain: false });
             }
-            this.currentForm = opt;
         },
 
         removeForm(id) {
@@ -5748,6 +5782,247 @@ function nurseApp() {
         },
         // ------------------------------------------
         // แบบบันทึกการพยาบาลผู้ป่วยจำหน่าย
+        defaultNutritionEvaluation() {
+            return {
+                date: '',
+                screeningAnswers: ['', '', '', ''],
+                measuredHeight: '',
+                measuredLength: '',
+                armSpan: '',
+                relativeHeight: '',
+                weightKg: '',
+                weightMethod: 'standing',
+                bmiValue: '',
+                nutritionLabMode: 'bmi',
+                bmiRange: 'normal',
+                albuminRange: 'gt_3_5',
+                tlcRange: 'gt_1500',
+                bodyShape: 'normal',
+                weightChange: 'same',
+                foodTexture: 'normal',
+                foodAmount: 'same',
+                chewing: 'normal',
+                giProblem: 'normal',
+                eatingProblem: 'normal',
+                foodAccess: 'normal',
+                diseases: [],
+                otherDiseaseChecked: false,
+                otherDiseaseText: '',
+                otherDiseaseScore: 3
+            };
+        },
+        defaultNutritionForm() {
+            return {
+                ward: this.currentWard || '',
+                patientName: this.selectedPatient?.name || '',
+                gender: '',
+                age: '',
+                hn: this.selectedPatient?.hn || '',
+                an: this.selectedPatient?.an || '',
+                diagnosis: this.selectedPatient?.dx || '',
+                currentWeight: '',
+                usualWeight: '',
+                assessmentMethod: 'scale',
+                assessmentMethodOther: '',
+                height: '',
+                bmi: '',
+                infoSource: 'patient',
+                infoSourceOther: '',
+                evaluations: [this.defaultNutritionEvaluation(), this.defaultNutritionEvaluation(), this.defaultNutritionEvaluation()]
+            };
+        },
+        normalizeNutritionForm(data) {
+            const base = this.defaultNutritionForm();
+            const incoming = data && typeof data === 'object' ? data : {};
+            const evaluations = Array.isArray(incoming.evaluations) ? incoming.evaluations : [];
+            base.evaluations = [0, 1, 2].map(idx => ({ ...this.defaultNutritionEvaluation(), ...(evaluations[idx] || {}) }));
+            return { ...base, ...incoming, evaluations: base.evaluations };
+        },
+        getNutritionWeightMethodScore(value) {
+            return value === 'lying' ? 1 : 0;
+        },
+        getNutritionRangeScore(map, key) {
+            return Object.prototype.hasOwnProperty.call(map, key) ? map[key] : 0;
+        },
+        getNutritionScreeningYesCount(evalData) {
+            return (evalData?.screeningAnswers || []).filter(v => v === 'yes').length;
+        },
+        getNutritionScreeningResult(evalData) {
+            return this.getNutritionScreeningYesCount(evalData) >= 2
+                ? 'ถ้าตอบใช่ ≥2 ข้อ ให้ประเมินภาวะโภชนาการ'
+                : 'ถ้าตอบใช่ ≤1 ข้อ ให้ประเมินซ้ำครั้งถัดไป';
+        },
+        getNutritionNafTotal(evalData) {
+            if (!evalData) return 0;
+            const bmiScores = { lt_17: 2, between_17_18: 1, normal: 0, ge_30: 1 };
+            const albuminScores = { lte_2_5: 3, between_2_6_2_9: 2, between_3_0_3_5: 1, gt_3_5: 0 };
+            const tlcScores = { lte_1000: 3, between_1001_1200: 2, between_1201_1500: 1, gt_1500: 0 };
+            const singleScores = {
+                bodyShape: { very_thin: 2, thin: 1, obese: 1, normal: 0 },
+                weightChange: { down: 2, up: 1, unknown: 0, same: 0 },
+                foodTexture: { liquid: 2, semi_liquid: 2, soft: 1, normal: 0 },
+                foodAmount: { very_low: 2, low: 1, more: 0, same: 0 },
+                chewing: { choking: 2, tube_or_swallow: 2, normal: 0 },
+                giProblem: { diarrhea: 2, abdominal_pain: 2, normal: 0 },
+                eatingProblem: { vomiting: 2, nausea: 2, normal: 0 },
+                foodAccess: { bedridden: 2, need_help: 1, limited: 0, normal: 0 }
+            };
+            let total = this.getNutritionWeightMethodScore(evalData.weightMethod);
+            if (evalData.nutritionLabMode === 'albumin') total += this.getNutritionRangeScore(albuminScores, evalData.albuminRange);
+            else if (evalData.nutritionLabMode === 'tlc') total += this.getNutritionRangeScore(tlcScores, evalData.tlcRange);
+            else total += this.getNutritionRangeScore(bmiScores, evalData.bmiRange);
+            Object.keys(singleScores).forEach(key => {
+                total += this.getNutritionRangeScore(singleScores[key], evalData[key]);
+            });
+            (evalData.diseases || []).forEach(id => {
+                const found = this.nutritionDiseaseOptions.find(item => item.id === id);
+                total += found ? Number(found.score || 0) : 0;
+            });
+            if (evalData.otherDiseaseChecked) total += Number(evalData.otherDiseaseScore || 0);
+            return total;
+        },
+        getNutritionNafLevel(evalData) {
+            const total = this.getNutritionNafTotal(evalData);
+            if (total >= 11) return 'C';
+            if (total >= 6) return 'B';
+            return 'A';
+        },
+        getNutritionNafLevelText(evalData) {
+            const level = this.getNutritionNafLevel(evalData);
+            if (level === 'C') return 'Severe malnutrition';
+            if (level === 'B') return 'Moderate malnutrition';
+            return 'Normal-Mild malnutrition';
+        },
+        async loadNutritionAssessmentInit() {
+            this.isLoading = true;
+            try {
+                const res = await fetch(`${this.API_URL}?action=getNutritionAssessment&an=${this.selectedPatient.an}`);
+                const data = await res.json();
+                this.nutritionForm = this.normalizeNutritionForm(data);
+            } catch (e) {
+                console.error(e);
+                this.nutritionForm = this.defaultNutritionForm();
+            } finally {
+                this.isLoading = false;
+            }
+        },
+        async saveNutritionManual() {
+            if (!this.selectedPatient) return;
+            this.isLoading = true;
+            try {
+                const payload = {
+                    an: this.selectedPatient.an,
+                    hn: this.selectedPatient.hn,
+                    ward: this.currentWard,
+                    formData: this.nutritionForm
+                };
+                const response = await fetch(this.API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'saveNutritionAssessment', payload })
+                });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    this.successMsg = 'บันทึกแบบคัดกรองและประเมินภาวะโภชนาการเรียบร้อย';
+                    this.showSuccess = true;
+                    setTimeout(() => this.showSuccess = false, 3000);
+                }
+            } catch (e) {
+                console.error('Save nutrition assessment error:', e);
+                alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+            } finally {
+                this.isLoading = false;
+            }
+        },
+        autoSaveNutrition() {
+            // intentionally manual save only
+        },
+        printNutritionAssessment() {
+            const d = this.normalizeNutritionForm(this.nutritionForm);
+            const ck = (condition) => condition ? '☑' : '☐';
+            const val = (input) => this.escapeHtml(String(input || ''));
+            const formatDate = (dateStr) => dateStr ? this.escapeHtml(this.formatThaiDateShort(dateStr)) : '........................';
+            const screeningRows = this.nutritionScreeningQuestions.map((question, qIdx) => `
+                <tr>
+                    <td style="border:1px solid #000; padding:6px; vertical-align:top;">${qIdx + 1}. ${this.escapeHtml(question)}</td>
+                    ${d.evaluations.map(evalData => `<td style="border:1px solid #000; padding:6px; text-align:center;">${ck(evalData.screeningAnswers[qIdx] === 'yes')} ใช่<br>${ck(evalData.screeningAnswers[qIdx] === 'no')} ไม่ใช่</td>`).join('')}
+                </tr>
+            `).join('');
+            const nafCards = d.evaluations.map((evalData, idx) => `
+                <div style="border:1px solid #000; padding:8px; margin-bottom:10px;">
+                    <div style="font-weight:bold; margin-bottom:6px;">ครั้งที่ ${idx + 1} วันที่ประเมิน ${formatDate(evalData.date)} | คะแนนรวม ${this.getNutritionNafTotal(evalData)} (${this.getNutritionNafLevel(evalData)})</div>
+                    <div>1. ส่วนสูง/ความยาวตัว/Arm span: สูง ${val(evalData.measuredHeight)} ซม. ยาวตัว ${val(evalData.measuredLength)} ซม. Arm span ${val(evalData.armSpan)} ซม. ญาติบอก ${val(evalData.relativeHeight)} ซม.</div>
+                    <div>2. น้ำหนัก ${val(evalData.weightKg)} กก. ${ck(evalData.weightMethod === 'lying')} ชั่งในท่านอน (1) ${ck(evalData.weightMethod === 'standing')} ชั่งในท่ายืน (0) ${ck(evalData.weightMethod === 'cannot')} ชั่งไม่ได้ (0) ${ck(evalData.weightMethod === 'relative')} ญาติบอก (0)</div>
+                    <div style="margin-top:4px;">${ck(evalData.nutritionLabMode === 'bmi')} BMI ${val(evalData.bmiValue)} กก./ตร.ม. ${ck(evalData.bmiRange === 'lt_17')} BMI &lt; 17.0 (2) ${ck(evalData.bmiRange === 'between_17_18')} BMI 17.0-18.0 (1) ${ck(evalData.bmiRange === 'normal')} BMI 18.1-29.9 (0) ${ck(evalData.bmiRange === 'ge_30')} BMI ≥ 30.0 (1)</div>
+                    <div>${ck(evalData.nutritionLabMode === 'albumin')} Albumin ${ck(evalData.albuminRange === 'lte_2_5')} ≤2.5 (3) ${ck(evalData.albuminRange === 'between_2_6_2_9')} 2.6-2.9 (2) ${ck(evalData.albuminRange === 'between_3_0_3_5')} 3.0-3.5 (1) ${ck(evalData.albuminRange === 'gt_3_5')} &gt;3.5 (0)</div>
+                    <div>${ck(evalData.nutritionLabMode === 'tlc')} TLC ${ck(evalData.tlcRange === 'lte_1000')} ≤1,000 (3) ${ck(evalData.tlcRange === 'between_1001_1200')} 1,001-1,200 (2) ${ck(evalData.tlcRange === 'between_1201_1500')} 1,201-1,500 (1) ${ck(evalData.tlcRange === 'gt_1500')} &gt;1,500 (0)</div>
+                    <div style="margin-top:4px;">3. รูปร่าง ${ck(evalData.bodyShape === 'very_thin')} ผอมมาก (2) ${ck(evalData.bodyShape === 'thin')} ผอม (1) ${ck(evalData.bodyShape === 'obese')} อ้วนมาก (1) ${ck(evalData.bodyShape === 'normal')} ปกติ-อ้วนปานกลาง (0)</div>
+                    <div>4. น้ำหนักเปลี่ยนใน 4 สัปดาห์ ${ck(evalData.weightChange === 'down')} ลดลง/ผอมลง (2) ${ck(evalData.weightChange === 'up')} เพิ่มขึ้น/อ้วนขึ้น (1) ${ck(evalData.weightChange === 'unknown')} ไม่ทราบ (0) ${ck(evalData.weightChange === 'same')} คงเดิม (0)</div>
+                    <div>5.1 ลักษณะอาหาร ${ck(evalData.foodTexture === 'liquid')} อาหารน้ำๆ (2) ${ck(evalData.foodTexture === 'semi_liquid')} อาหารเหลวๆ (2) ${ck(evalData.foodTexture === 'soft')} อาหารนุ่มกว่าปกติ (1) ${ck(evalData.foodTexture === 'normal')} อาหารเหมือนปกติ (0)</div>
+                    <div>5.2 ปริมาณที่กิน ${ck(evalData.foodAmount === 'very_low')} กินน้อยมาก (2) ${ck(evalData.foodAmount === 'low')} กินน้อยลง (1) ${ck(evalData.foodAmount === 'more')} กินมากขึ้น (0) ${ck(evalData.foodAmount === 'same')} กินเท่าปกติ (0)</div>
+                    <div>6.1 ปัญหาการเคี้ยวกลืน ${ck(evalData.chewing === 'choking')} สำลัก (2) ${ck(evalData.chewing === 'tube_or_swallow')} เคี้ยว/กลืนอาหาร/ได้อาหารทางสาย (2) ${ck(evalData.chewing === 'normal')} กลืนได้ปกติ (0)</div>
+                    <div>6.2 ระบบทางเดินอาหาร ${ck(evalData.giProblem === 'diarrhea')} ท้องเสีย (2) ${ck(evalData.giProblem === 'abdominal_pain')} ปวดท้อง (2) ${ck(evalData.giProblem === 'normal')} ปกติ (0)</div>
+                    <div>6.3 ระหว่างกินอาหาร ${ck(evalData.eatingProblem === 'vomiting')} อาเจียน (2) ${ck(evalData.eatingProblem === 'nausea')} คลื่นไส้ (2) ${ck(evalData.eatingProblem === 'normal')} ปกติ (0)</div>
+                    <div>7. ความสามารถในการเข้าถึงอาหาร ${ck(evalData.foodAccess === 'bedridden')} นอนติดเตียง (2) ${ck(evalData.foodAccess === 'need_help')} ต้องมีผู้ช่วยบ้าง (1) ${ck(evalData.foodAccess === 'limited')} นั่งๆนอนๆ (0) ${ck(evalData.foodAccess === 'normal')} ปกติ (0)</div>
+                    <div style="margin-top:4px;">8. โรคที่เป็นอยู่: ${(this.nutritionDiseaseOptions.filter(opt => (evalData.diseases || []).includes(opt.id)).map(opt => `${this.escapeHtml(opt.label)} (${opt.score})`).join(', ') || '-')} ${evalData.otherDiseaseChecked ? `, อื่นๆ ${val(evalData.otherDiseaseText)} (${val(evalData.otherDiseaseScore)})` : ''}</div>
+                </div>
+            `).join('');
+
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>แบบคัดกรองและประเมินภาวะโภชนาการ</title>
+                    <style>
+                        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap');
+                        body { font-family:'Sarabun', sans-serif; font-size:10pt; margin:0; padding:0; background:#fff; color:#000; }
+                        .page { width:210mm; min-height:296mm; margin:0 auto; padding:12mm; box-sizing:border-box; page-break-after:always; }
+                        .title { text-align:center; font-size:13pt; font-weight:700; line-height:1.45; margin-bottom:10px; }
+                        .section-title { font-weight:700; margin:8px 0 4px; }
+                        .line { margin-bottom:4px; }
+                        table { width:100%; border-collapse:collapse; margin-top:6px; }
+                        .small { font-size:9pt; }
+                        @page { size:A4; margin:0; }
+                    </style>
+                </head>
+                <body>
+                    <div class="page">
+                        <div class="title">แบบคัดกรองและประเมินภาวะโภชนาการ<br>กลุ่มงานโภชนศาสตร์ โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน</div>
+                        <div class="line">หอผู้ป่วย ${val(d.ward)} ชื่อ-สกุล ${val(d.patientName)} ${ck(d.gender === 'male')} ชาย ${ck(d.gender === 'female')} หญิง อายุ ${val(d.age)} ปี HN ${val(d.hn)} AN ${val(d.an)}</div>
+                        <div class="line">การวินิจฉัยโรค ${val(d.diagnosis)} น้ำหนักปัจจุบัน ${val(d.currentWeight)} กก. น้ำหนักปกติ ${val(d.usualWeight)} กก.</div>
+                        <div class="line">ประเมินโดย ${ck(d.assessmentMethod === 'scale')} ชั่ง ${ck(d.assessmentMethod === 'interview')} ซักถาม ${ck(d.assessmentMethod === 'estimate')} กะประมาณ ${d.assessmentMethod === 'other' ? `☑ อื่นๆ ${val(d.assessmentMethodOther)}` : '☐ อื่นๆ'} ส่วนสูง ${val(d.height)} ซม. BMI ${val(d.bmi)} กก./ตร.ม.</div>
+                        <div class="line">ข้อมูลจาก ${ck(d.infoSource === 'patient')} ผู้ป่วย ${ck(d.infoSource === 'relative')} ญาติ ${d.infoSource === 'other' ? `☑ อื่นๆ ${val(d.infoSourceOther)}` : '☐ อื่นๆ'}</div>
+                        <div class="section-title">แบบคัดกรองภาวะโภชนาการ : SPENT Nutrition Screening Tool</div>
+                        <table class="small">
+                            <tr>
+                                <th style="border:1px solid #000; padding:6px;">รายการประเมิน</th>
+                                <th style="border:1px solid #000; padding:6px;">ครั้งที่ 1</th>
+                                <th style="border:1px solid #000; padding:6px;">ครั้งที่ 2</th>
+                                <th style="border:1px solid #000; padding:6px;">ครั้งที่ 3</th>
+                            </tr>
+                            ${screeningRows}
+                            <tr>
+                                <td style="border:1px solid #000; padding:6px;">วันที่ประเมิน</td>
+                                ${d.evaluations.map(evalData => `<td style="border:1px solid #000; padding:6px; text-align:center;">${formatDate(evalData.date)}</td>`).join('')}
+                            </tr>
+                        </table>
+                        <div class="small" style="margin-top:6px;">ผลการคัดกรอง ${d.evaluations.map((evalData, idx) => `ครั้งที่ ${idx + 1}: ${this.escapeHtml(this.getNutritionScreeningResult(evalData))}`).join(' | ')}</div>
+                        <div class="section-title">แบบประเมินภาวะโภชนาการ : Nutrition Alert Form (NAF)</div>
+                        <div class="small">ทำเครื่องหมาย √ ในช่อง โดยเลือกเพียง 1 ช่องในแต่ละหัวข้อใหญ่และหัวข้อย่อย (ยกเว้นข้อ 6,8 เลือกได้มากกว่า 1 ช่อง) และใส่คะแนนตามตัวเลขในวงเล็บ</div>
+                        ${nafCards}
+                        <div class="small" style="margin-top:10px;">
+                            0-5 คะแนน = A (Normal-Mild malnutrition) |
+                            6-10 คะแนน = B (Moderate malnutrition) |
+                            ≥11 คะแนน = C (Severe malnutrition)
+                        </div>
+                        <div style="margin-top:18px; text-align:right;">....................................<br>ผู้ประเมิน</div>
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(() => printWindow.print(), 500);
+        },
         // ------------------------------------------
         defaultDischargeForm() {
             return {
@@ -6042,6 +6317,11 @@ function nurseApp() {
                     const data = await resD.json();
                     this.dischargeForm = (data && Object.keys(data).length > 0) ? data : this.defaultDischargeForm();
                 }
+                if (this.selectedPrintForms.includes('nutrition_assessment')) {
+                    const resNutrition = await fetch(`${this.API_URL}?action=getNutritionAssessment&an=${this.selectedPatient.an}`);
+                    const dataNutrition = await resNutrition.json();
+                    this.nutritionForm = this.normalizeNutritionForm(dataNutrition);
+                }
 
                 // 2. เทคนิค Intercept: สกัดเอาเฉพาะเนื้อหา HTML จากฟังก์ชันพิมพ์ย่อยมารวมกัน
                 const originalOpen = window.open;
@@ -6075,6 +6355,7 @@ function nurseApp() {
                         else if (formId === 'focus_list') this.printFocusList();
                         else if (formId === 'progress_note') this.printProgressNote();
                         else if (formId === 'discharge_record') this.printDischargeRecord();
+                        else if (formId === 'nutrition_assessment') this.printNutritionAssessment();
                         
                         combinedHtml += interceptedHtml; // เอาหน้ากระดาษมาต่อกัน
                         interceptedHtml = ''; 
