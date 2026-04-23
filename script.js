@@ -141,7 +141,7 @@ function nurseApp() {
         
         isSidebarCollapsed: false, // สถานะการพับ Sidebar
         
-        activeForms: [
+        baseActiveForms: [
             { id: 'assess_initial', title: '1. แบบประเมินประวัติและสมรรถนะผู้ป่วยแรกรับ (Adult)', icon: 'fa-clipboard-user', isMain: true },
             { id: 'assess_initial_ped', title: '1. แบบประเมินสภาพผู้ป่วยเด็กแรกรับ (PED)', icon: 'fa-baby', isMain: true },
             
@@ -159,6 +159,7 @@ function nurseApp() {
         availableExtraForms: [
             { id: 'nutrition_assessment', title: '9. แบบคัดกรองและประเมินภาวะโภชนาการ', icon: 'fa-apple-whole', isMain: false }
         ],
+        activeForms: [],
         nutritionScreeningQuestions: [
             'ผู้ป่วยมีน้ำหนักตัวลดลง โดยไม่ได้ตั้งใจในช่วง 6 เดือนที่ผ่านมาหรือไม่',
             'ผู้ป่วยได้รับอาหารน้อยกว่าที่เคยได้ (>7วัน)',
@@ -247,6 +248,26 @@ function nurseApp() {
 
         get addableExtraForms() {
             return (this.availableExtraForms || []).filter(opt => !this.activeForms.some(form => form.id === opt.id));
+        },
+        cloneFormDefinition(form) {
+            return JSON.parse(JSON.stringify(form));
+        },
+        resetActiveForms() {
+            this.activeForms = (this.baseActiveForms || []).map(form => this.cloneFormDefinition(form));
+        },
+        async loadDynamicExtraFormsForPatient(an) {
+            this.resetActiveForms();
+            if (!an) return;
+            try {
+                const res = await fetch(`${this.API_URL}?action=getNutritionAssessment&an=${encodeURIComponent(an)}&_=${Date.now()}`);
+                const data = await res.json();
+                const hasNutritionData = !!(data && typeof data === 'object' && Object.keys(data).length > 0);
+                if (hasNutritionData) {
+                    this.addForm(this.availableExtraForms.find(form => form.id === 'nutrition_assessment'));
+                }
+            } catch (error) {
+                console.error('loadDynamicExtraFormsForPatient error:', error);
+            }
         },
 
         dateKeyToLocalDate(dateKey) {
@@ -1233,6 +1254,7 @@ function nurseApp() {
         },
 
         init() {
+            this.resetActiveForms();
             this.startClock();
             this.setupPwaInstallPrompt();
             this.registerServiceWorker();
@@ -1776,6 +1798,7 @@ function nurseApp() {
         async openNursingChart(patient) {
             this.isLoading = true;
             this.selectedPatient = patient;
+            this.resetActiveForms();
             
             // 1. ตรวจสอบกลุ่มอายุทันทีที่กดปุ่ม Chart
             const patientAge = patient.age || patient.Age || patient.ageDisplay || patient.agedisplay || "";
@@ -1791,12 +1814,13 @@ function nurseApp() {
             
             // 3. ตั้งค่าหน้าเริ่มต้นให้ตรงกับอายุ
             const defaultFormId = this.isAdult ? 'assess_initial' : 'assess_initial_ped';
-            this.currentForm = this.activeForms.find(f => f.id === defaultFormId);
             
             this.viewMode = 'chart';
             window.scrollTo(0, 0);
 
             try {
+                await this.loadDynamicExtraFormsForPatient(patient.an);
+                this.currentForm = this.activeForms.find(f => f.id === defaultFormId);
                 // ✅ โหลดข้อมูล Form มารอไว้ (แยกผู้ใหญ่กับเด็ก)
                 const promisesToLoad = [this.loadClassifications(patient.an)];
                 if (this.isAdult) {
@@ -2354,6 +2378,7 @@ function nurseApp() {
         openPatientDetail(p) {
             if (!p) return;
             this.selectedPatient = p;
+            this.resetActiveForms();
             
             // --- ตรวจสอบอายุทุกครั้งที่คลิกดูรายละเอียด ---
             const patientAge = p.age || p.Age || p.ageDisplay || p.agedisplay || "";
@@ -2369,6 +2394,7 @@ function nurseApp() {
             // โหลดข้อมูลประวัติเบื้องต้น
             const an = p.an || p.AN;
             if (an) {
+                this.loadDynamicExtraFormsForPatient(an);
                 // ✅ แยกการโหลดข้อมูลแรกรับ ตามอายุ (ผู้ใหญ่ / เด็ก)
                 if (this.isAdult) {
                     this.loadAssessmentData(an);
@@ -2971,7 +2997,7 @@ function nurseApp() {
             <head>
                 <title>แบบบันทึกการจำแนกประเภทผู้ป่วยเด็ก</title>
                 <style>
-                    @import url('[https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700;900&display=swap](https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700;900&display=swap)');
+                    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700;900&display=swap');
                     body { font-family: 'Sarabun', sans-serif; font-size: 9pt; margin: 0; padding: 0; color: #000; }
                     /* เปลี่ยนเป็น A4 แนวตั้ง (Portrait) */
                     .a4-page { width: 210mm; height: 296mm; margin: 0 auto; padding: 10mm 10mm 15mm 10mm; position: relative; box-sizing: border-box; page-break-after: always; }
@@ -5811,6 +5837,34 @@ function nurseApp() {
                 otherDiseaseScore: 3
             };
         },
+        defaultNutritionDietOrder() {
+            return {
+                weight: '',
+                height: '',
+                ibw: '',
+                energyChoice: '',
+                energyOtherLabel: '',
+                energyPerDay: '',
+                proteinChoice: '',
+                proteinOtherLabel: '',
+                proteinPerDay: '',
+                dietPrimary: [],
+                dietPrimaryOther: '',
+                requiredDiet: '',
+                oralSupplement: [],
+                oralSupplementOther: '',
+                oralMlPerMeal: '',
+                oralMealsPerDay: '',
+                tubeFeeding: [],
+                tubeFeedingBd: '',
+                tubeFeedingOther: '',
+                tubeMlPerMeal: '',
+                tubeMealsPerDay: '',
+                orderedBy: '',
+                orderDate: '',
+                orderTime: ''
+            };
+        },
         defaultNutritionForm() {
             return {
                 ward: this.currentWard || '',
@@ -5828,7 +5882,8 @@ function nurseApp() {
                 bmi: '',
                 infoSource: 'patient',
                 infoSourceOther: '',
-                evaluations: [this.defaultNutritionEvaluation(), this.defaultNutritionEvaluation(), this.defaultNutritionEvaluation()]
+                evaluations: [this.defaultNutritionEvaluation(), this.defaultNutritionEvaluation(), this.defaultNutritionEvaluation()],
+                dietOrder: this.defaultNutritionDietOrder()
             };
         },
         normalizeNutritionForm(data) {
@@ -5836,7 +5891,68 @@ function nurseApp() {
             const incoming = data && typeof data === 'object' ? data : {};
             const evaluations = Array.isArray(incoming.evaluations) ? incoming.evaluations : [];
             base.evaluations = [0, 1, 2].map(idx => ({ ...this.defaultNutritionEvaluation(), ...(evaluations[idx] || {}) }));
-            return { ...base, ...incoming, evaluations: base.evaluations };
+            base.dietOrder = { ...this.defaultNutritionDietOrder(), ...((incoming && incoming.dietOrder) || {}) };
+            return { ...base, ...incoming, evaluations: base.evaluations, dietOrder: base.dietOrder };
+        },
+        parseNutritionNumber(value) {
+            const parsed = parseFloat(value);
+            return Number.isFinite(parsed) ? parsed : null;
+        },
+        calculateNutritionBmi(weightKg, heightCm) {
+            const weight = this.parseNutritionNumber(weightKg);
+            const height = this.parseNutritionNumber(heightCm);
+            if (!weight || !height || height <= 0) return '';
+            const bmi = weight / Math.pow(height / 100, 2);
+            return bmi > 0 ? bmi.toFixed(1) : '';
+        },
+        getNutritionBmiRange(bmiValue) {
+            const bmi = this.parseNutritionNumber(bmiValue);
+            if (bmi === null) return 'normal';
+            if (bmi < 17) return 'lt_17';
+            if (bmi <= 18) return 'between_17_18';
+            if (bmi >= 30) return 'ge_30';
+            return 'normal';
+        },
+        getNutritionEffectiveHeight(evalData) {
+            return evalData?.measuredHeight || evalData?.measuredLength || evalData?.armSpan || evalData?.relativeHeight || this.nutritionForm?.height || '';
+        },
+        calculateNutritionIBW(heightCm, gender) {
+            const height = this.parseNutritionNumber(heightCm);
+            if (!height) return '';
+            const ibw = String(gender || '').toLowerCase() === 'male' ? height - 100 : height - 105;
+            return ibw > 0 ? ibw.toFixed(1) : '';
+        },
+        syncNutritionComputedFields() {
+            if (!this.nutritionForm || typeof this.nutritionForm !== 'object') return;
+
+            const formBmi = this.calculateNutritionBmi(this.nutritionForm.currentWeight, this.nutritionForm.height);
+            if ((this.nutritionForm.bmi || '') !== formBmi) {
+                this.nutritionForm.bmi = formBmi;
+            }
+
+            const orderWeight = this.nutritionForm.currentWeight || '';
+            const orderHeight = this.nutritionForm.height || '';
+            const orderIbw = this.calculateNutritionIBW(orderHeight, this.nutritionForm.gender);
+            if ((this.nutritionForm.dietOrder.weight || '') !== String(orderWeight || '')) {
+                this.nutritionForm.dietOrder.weight = orderWeight;
+            }
+            if ((this.nutritionForm.dietOrder.height || '') !== String(orderHeight || '')) {
+                this.nutritionForm.dietOrder.height = orderHeight;
+            }
+            if ((this.nutritionForm.dietOrder.ibw || '') !== orderIbw) {
+                this.nutritionForm.dietOrder.ibw = orderIbw;
+            }
+
+            (this.nutritionForm.evaluations || []).forEach(evalData => {
+                const computedBmi = this.calculateNutritionBmi(evalData.weightKg, this.getNutritionEffectiveHeight(evalData));
+                if ((evalData.bmiValue || '') !== computedBmi) {
+                    evalData.bmiValue = computedBmi;
+                }
+                const computedRange = this.getNutritionBmiRange(computedBmi);
+                if ((evalData.bmiRange || 'normal') !== computedRange) {
+                    evalData.bmiRange = computedRange;
+                }
+            });
         },
         getNutritionWeightMethodScore(value) {
             return value === 'lying' ? 1 : 0;
@@ -5938,9 +6054,11 @@ function nurseApp() {
         },
         printNutritionAssessment() {
             const d = this.normalizeNutritionForm(this.nutritionForm);
+            const order = d.dietOrder || this.defaultNutritionDietOrder();
             const ck = (condition) => condition ? '☑' : '☐';
             const val = (input) => this.escapeHtml(String(input || ''));
             const formatDate = (dateStr) => dateStr ? this.escapeHtml(this.formatThaiDateShort(dateStr)) : '........................';
+            const joinChecks = (items = []) => items.length ? items.map(item => this.escapeHtml(item)).join(', ') : '-';
             const screeningRows = this.nutritionScreeningQuestions.map((question, qIdx) => `
                 <tr>
                     <td style="border:1px solid #000; padding:6px; vertical-align:top;">${qIdx + 1}. ${this.escapeHtml(question)}</td>
@@ -5966,6 +6084,22 @@ function nurseApp() {
                     <div style="margin-top:4px;">8. โรคที่เป็นอยู่: ${(this.nutritionDiseaseOptions.filter(opt => (evalData.diseases || []).includes(opt.id)).map(opt => `${this.escapeHtml(opt.label)} (${opt.score})`).join(', ') || '-')} ${evalData.otherDiseaseChecked ? `, อื่นๆ ${val(evalData.otherDiseaseText)} (${val(evalData.otherDiseaseScore)})` : ''}</div>
                 </div>
             `).join('');
+            const dietPage = `
+                <div class="page">
+                    <div class="title">GUIDE TO MAKE DIET ORDER</div>
+                    <div class="line">Weight ${val(order.weight)} kg. Height ${val(order.height)} cm. IBW ${val(order.ibw)} kg.</div>
+                    <table class="small">
+                        <tr><td style="border:1px solid #000; padding:6px; width:28%; font-weight:bold;">Energy Requirement</td><td style="border:1px solid #000; padding:6px;">${ck(order.energyChoice === '25')} 25 kcal/IBW ${ck(order.energyChoice === '30')} 30 kcal/IBW ${ck(order.energyChoice === '35')} 35 kcal/IBW ${ck(order.energyChoice === 'other')} Other ${val(order.energyOtherLabel)} ${val(order.energyPerDay)} Kcal/day</td></tr>
+                        <tr><td style="border:1px solid #000; padding:6px; font-weight:bold;">Protein Requirement</td><td style="border:1px solid #000; padding:6px;">${ck(order.proteinChoice === '1.0')} 1.0 g/IBW ${ck(order.proteinChoice === '1.2')} 1.2 g/IBW ${ck(order.proteinChoice === '1.3')} 1.3 g/IBW ${ck(order.proteinChoice === '1.5')} 1.5 g/IBW ${ck(order.proteinChoice === 'other')} Other ${val(order.proteinOtherLabel)} ${val(order.proteinPerDay)} g/day</td></tr>
+                        <tr><td style="border:1px solid #000; padding:6px; font-weight:bold;">Diet</td><td style="border:1px solid #000; padding:6px;">${joinChecks(order.dietPrimary)} ${order.dietPrimaryOther ? `| Other ${val(order.dietPrimaryOther)}` : ''}<br>Required diet = ${val(order.requiredDiet)}</td></tr>
+                        <tr><td style="border:1px solid #000; padding:6px; font-weight:bold;">Oral Supplement</td><td style="border:1px solid #000; padding:6px;">${joinChecks(order.oralSupplement)} ${order.oralSupplementOther ? `| Other ${val(order.oralSupplementOther)}` : ''}<br>${val(order.oralMlPerMeal)} ml/meal | ${val(order.oralMealsPerDay)} meal Frequency/day</td></tr>
+                        <tr><td style="border:1px solid #000; padding:6px; font-weight:bold;">Tube Feeding</td><td style="border:1px solid #000; padding:6px;">${joinChecks(order.tubeFeeding)} ${order.tubeFeedingBd ? `| BD ${val(order.tubeFeedingBd)}` : ''} ${order.tubeFeedingOther ? `| Other ${val(order.tubeFeedingOther)}` : ''}<br>${val(order.tubeMlPerMeal)} ml/meal | ${val(order.tubeMealsPerDay)} meal Frequency/day</td></tr>
+                    </table>
+                    <div class="small" style="margin-top:10px;">*IBW : Male = Height (cm.) – 100 , Female = Height (cm.) – 105</div>
+                    <div class="small">**Energy : 25 kcal/IBW for sedentary lifestyle, 30 kcal/IBW for normal, 35 kcal/IBW for activity lifestyle</div>
+                    <div style="margin-top:24px;">Ordered by ${val(order.orderedBy)}&nbsp;&nbsp; D/M/Y ${formatDate(order.orderDate)}&nbsp;&nbsp; Time ${val(order.orderTime)}</div>
+                </div>
+            `;
 
             const printWindow = window.open('', '_blank');
             printWindow.document.write(`
@@ -6016,6 +6150,7 @@ function nurseApp() {
                         </div>
                         <div style="margin-top:18px; text-align:right;">....................................<br>ผู้ประเมิน</div>
                     </div>
+                    ${dietPage}
                 </body>
                 </html>
             `);
@@ -6039,6 +6174,245 @@ function nurseApp() {
                 care_loc: '', care_loc_text1: '', care_loc_text2: '', care_loc_text3: '', care_loc_text4: '', care_loc_text5: '',
                 receiverName: '', relation: '', nurseName: this.getDefaultSignatureName(), pos: this.getDefaultSignaturePosition()
             };
+        },
+        printNutritionAssessment() {
+            const d = this.normalizeNutritionForm(this.nutritionForm);
+            this.syncNutritionComputedFields();
+            const order = d.dietOrder || this.defaultNutritionDietOrder();
+            const ck = (condition) => condition ? '&#10003;' : '&nbsp;';
+            const val = (input) => this.escapeHtml(String(input || ''));
+            const lineVal = (input, width = '100%') => `<span class="line-fill" style="width:${width};">${val(input)}</span>`;
+            const formatDate = (dateStr) => dateStr ? this.escapeHtml(this.formatThaiDateShort(dateStr)) : '';
+
+            const diseaseText = (evalData) => {
+                const base = this.nutritionDiseaseOptions
+                    .filter(opt => (evalData.diseases || []).includes(opt.id))
+                    .map(opt => `${this.escapeHtml(opt.label)} (${opt.score})`)
+                    .join(', ');
+                const other = evalData.otherDiseaseChecked ? `${base ? ', ' : ''}อื่นๆ ${val(evalData.otherDiseaseText)} (${val(evalData.otherDiseaseScore)})` : '';
+                return base || other ? `${base}${other}` : '-';
+            };
+
+            const nafScoreMaps = {
+                bmiRange: { lt_17: 2, between_17_18: 1, normal: 0, ge_30: 1 },
+                albuminRange: { lte_2_5: 3, between_2_6_2_9: 2, between_3_0_3_5: 1, gt_3_5: 0 },
+                tlcRange: { lte_1000: 3, between_1001_1200: 2, between_1201_1500: 1, gt_1500: 0 },
+                bodyShape: { very_thin: 2, thin: 1, obese: 1, normal: 0 },
+                weightChange: { down: 2, up: 1, unknown: 0, same: 0 },
+                foodTexture: { liquid: 2, semi_liquid: 2, soft: 1, normal: 0 },
+                foodAmount: { very_low: 2, low: 1, more: 0, same: 0 },
+                chewing: { choking: 2, tube_or_swallow: 2, normal: 0 },
+                giProblem: { diarrhea: 2, abdominal_pain: 2, normal: 0 },
+                eatingProblem: { vomiting: 2, nausea: 2, normal: 0 },
+                foodAccess: { bedridden: 2, need_help: 1, limited: 0, normal: 0 }
+            };
+
+            const nafRows = [
+                {
+                    label: '1. ส่วนสูง/ความยาวตัว/Arm span',
+                    render: e => `วัดส่วนสูง ${val(e.measuredHeight)} ซม. วัดความยาวตัว ${val(e.measuredLength)} ซม. Arm span ${val(e.armSpan)} ซม. ญาติบอก ${val(e.relativeHeight)} ซม.`,
+                    score: () => ''
+                },
+                {
+                    label: '2.1 น้ำหนัก',
+                    render: e => `${val(e.weightKg)} กก. ${ck(e.weightMethod === 'lying')} ชั่งในท่านอน (1) ${ck(e.weightMethod === 'standing')} ชั่งในท่ายืน (0) ${ck(e.weightMethod === 'cannot')} ชั่งไม่ได้ (0) ${ck(e.weightMethod === 'relative')} ญาติบอก (0)`,
+                    score: e => this.getNutritionWeightMethodScore(e.weightMethod)
+                },
+                {
+                    label: '2.2 BMI',
+                    render: e => `BMI ${val(e.bmiValue)} กก./ตร.ม. ${ck(e.bmiRange === 'lt_17')} BMI < 17.0 (2) ${ck(e.bmiRange === 'between_17_18')} BMI 17.0-18.0 (1) ${ck(e.bmiRange === 'normal')} BMI 18.1-29.9 (0) ${ck(e.bmiRange === 'ge_30')} BMI ≥ 30.0 (1)`,
+                    score: e => this.getNutritionRangeScore(nafScoreMaps.bmiRange, e.bmiRange)
+                },
+                {
+                    label: '2.3 Albumin',
+                    render: e => `${ck(e.nutritionLabMode === 'albumin')} ใช้ Albumin ${ck(e.albuminRange === 'lte_2_5')} ≤2.5 (3) ${ck(e.albuminRange === 'between_2_6_2_9')} 2.6-2.9 (2) ${ck(e.albuminRange === 'between_3_0_3_5')} 3.0-3.5 (1) ${ck(e.albuminRange === 'gt_3_5')} >3.5 (0)`,
+                    score: e => e.nutritionLabMode === 'albumin' ? this.getNutritionRangeScore(nafScoreMaps.albuminRange, e.albuminRange) : ''
+                },
+                {
+                    label: '2.4 TLC',
+                    render: e => `${ck(e.nutritionLabMode === 'tlc')} ใช้ TLC ${ck(e.tlcRange === 'lte_1000')} ≤1,000 (3) ${ck(e.tlcRange === 'between_1001_1200')} 1,001-1,200 (2) ${ck(e.tlcRange === 'between_1201_1500')} 1,201-1,500 (1) ${ck(e.tlcRange === 'gt_1500')} >1,500 (0)`,
+                    score: e => e.nutritionLabMode === 'tlc' ? this.getNutritionRangeScore(nafScoreMaps.tlcRange, e.tlcRange) : ''
+                },
+                { label: '3. รูปร่างของผู้ป่วย', render: e => `${ck(e.bodyShape === 'very_thin')} ผอมมาก (2) ${ck(e.bodyShape === 'thin')} ผอม (1) ${ck(e.bodyShape === 'obese')} อ้วนมาก (1) ${ck(e.bodyShape === 'normal')} ปกติ-อ้วนปานกลาง (0)`, score: e => this.getNutritionRangeScore(nafScoreMaps.bodyShape, e.bodyShape) },
+                { label: '4. น้ำหนักเปลี่ยนใน 4 สัปดาห์', render: e => `${ck(e.weightChange === 'down')} ลดลง/ผอมลง (2) ${ck(e.weightChange === 'up')} เพิ่มขึ้น/อ้วนขึ้น (1) ${ck(e.weightChange === 'unknown')} ไม่ทราบ (0) ${ck(e.weightChange === 'same')} คงเดิม (0)`, score: e => this.getNutritionRangeScore(nafScoreMaps.weightChange, e.weightChange) },
+                { label: '5.1 ลักษณะอาหาร', render: e => `${ck(e.foodTexture === 'liquid')} อาหารน้ำๆ (2) ${ck(e.foodTexture === 'semi_liquid')} อาหารเหลวๆ (2) ${ck(e.foodTexture === 'soft')} อาหารนุ่มกว่าปกติ (1) ${ck(e.foodTexture === 'normal')} อาหารเหมือนปกติ (0)`, score: e => this.getNutritionRangeScore(nafScoreMaps.foodTexture, e.foodTexture) },
+                { label: '5.2 ปริมาณที่กิน', render: e => `${ck(e.foodAmount === 'very_low')} กินน้อยมาก (2) ${ck(e.foodAmount === 'low')} กินน้อยลง (1) ${ck(e.foodAmount === 'more')} กินมากขึ้น (0) ${ck(e.foodAmount === 'same')} กินเท่าปกติ (0)`, score: e => this.getNutritionRangeScore(nafScoreMaps.foodAmount, e.foodAmount) },
+                { label: '6.1 ปัญหาการเคี้ยวกลืน', render: e => `${ck(e.chewing === 'choking')} สำลัก (2) ${ck(e.chewing === 'tube_or_swallow')} เคี้ยว/กลืนลำบาก/ได้อาหารทางสาย (2) ${ck(e.chewing === 'normal')} ปกติ (0)`, score: e => this.getNutritionRangeScore(nafScoreMaps.chewing, e.chewing) },
+                { label: '6.2 ปัญหาระบบทางเดินอาหาร', render: e => `${ck(e.giProblem === 'diarrhea')} ท้องเสีย (2) ${ck(e.giProblem === 'abdominal_pain')} ปวดท้อง (2) ${ck(e.giProblem === 'normal')} ปกติ (0)`, score: e => this.getNutritionRangeScore(nafScoreMaps.giProblem, e.giProblem) },
+                { label: '6.3 ปัญหาระหว่างการกินอาหาร', render: e => `${ck(e.eatingProblem === 'vomiting')} อาเจียน (2) ${ck(e.eatingProblem === 'nausea')} คลื่นไส้ (2) ${ck(e.eatingProblem === 'normal')} ปกติ (0)`, score: e => this.getNutritionRangeScore(nafScoreMaps.eatingProblem, e.eatingProblem) },
+                { label: '7. ความสามารถในการเข้าถึงอาหาร', render: e => `${ck(e.foodAccess === 'bedridden')} นอนติดเตียง (2) ${ck(e.foodAccess === 'need_help')} ต้องมีผู้ช่วยบ้าง (1) ${ck(e.foodAccess === 'limited')} นั่งๆนอนๆ (0) ${ck(e.foodAccess === 'normal')} ปกติ (0)`, score: e => this.getNutritionRangeScore(nafScoreMaps.foodAccess, e.foodAccess) },
+                { label: '8. โรคที่เป็นอยู่', render: e => diseaseText(e), score: e => {
+                    let total = 0;
+                    (e.diseases || []).forEach(id => {
+                        const found = this.nutritionDiseaseOptions.find(item => item.id === id);
+                        total += found ? Number(found.score || 0) : 0;
+                    });
+                    if (e.otherDiseaseChecked) total += Number(e.otherDiseaseScore || 0);
+                    return total;
+                }}
+            ];
+
+            const spentRows = this.nutritionScreeningQuestions.map((question, qIdx) => `
+                <tr>
+                    <td class="cell question">${qIdx + 1}. ${this.escapeHtml(question)}</td>
+                    ${d.evaluations.map(e => `
+                        <td class="cell center">
+                            <div>${ck(e.screeningAnswers[qIdx] === 'yes')} ใช่</div>
+                            <div>${ck(e.screeningAnswers[qIdx] === 'no')} ไม่ใช่</div>
+                        </td>
+                    `).join('')}
+                </tr>
+            `).join('');
+
+            const nafRowsHtml = nafRows.map(row => `
+                <tr>
+                    <td class="cell question">${row.label}</td>
+                    ${d.evaluations.map(e => `<td class="cell">${row.render(e)}</td><td class="cell center score">${row.score(e)}</td>`).join('')}
+                </tr>
+            `).join('');
+
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>แบบคัดกรองและประเมินภาวะโภชนาการ</title>
+                    <style>
+                        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap');
+                        body { font-family:'Sarabun', sans-serif; font-size:9.2pt; margin:0; padding:0; color:#000; background:#fff; }
+                        .page { width:210mm; min-height:296mm; margin:0 auto; padding:10mm 10mm 12mm; box-sizing:border-box; page-break-after:always; }
+                        .title { text-align:center; font-size:13pt; font-weight:700; line-height:1.35; margin-bottom:8px; }
+                        .section-title { font-weight:700; margin:8px 0 4px; }
+                        .line, .ordered-line, .top-line { margin-bottom:4px; }
+                        .line-fill { display:inline-block; border-bottom:1px solid #000; min-height:14px; vertical-align:bottom; }
+                        table { width:100%; border-collapse:collapse; table-layout:fixed; margin-top:6px; }
+                        .cell { border:1px solid #000; padding:4px 5px; vertical-align:top; }
+                        .question { width:28%; font-weight:700; }
+                        .center { text-align:center; vertical-align:middle; }
+                        .score { width:5%; font-weight:700; }
+                        .small { font-size:8.4pt; line-height:1.35; }
+                        .summary td { border:1px solid #000; padding:5px; }
+                        .diet-head { width:28%; font-weight:700; vertical-align:middle; }
+                        .note { font-size:8.4pt; margin-top:6px; }
+                        @page { size:A4; margin:0; }
+                    </style>
+                </head>
+                <body>
+                    <div class="page">
+                        <div class="title">แบบคัดกรองและประเมินภาวะโภชนาการ<br>กลุ่มงานโภชนศาสตร์ โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน</div>
+                        <div class="line">หอผู้ป่วย ${lineVal(d.ward, '40mm')} ชื่อ-สกุล ${lineVal(d.patientName, '72mm')} ${ck(d.gender === 'male')} ชาย ${ck(d.gender === 'female')} หญิง อายุ ${lineVal(d.age, '16mm')} ปี HN ${lineVal(d.hn, '24mm')} AN ${lineVal(d.an, '24mm')}</div>
+                        <div class="line">การวินิจฉัยโรค ${lineVal(d.diagnosis, '108mm')} น้ำหนักปัจจุบัน ${lineVal(d.currentWeight, '18mm')} กก. น้ำหนักปกติ ${lineVal(d.usualWeight, '18mm')} กก.</div>
+                        <div class="line">ประเมินโดย ${ck(d.assessmentMethod === 'scale')} ชั่ง ${ck(d.assessmentMethod === 'interview')} ซักถาม ${ck(d.assessmentMethod === 'estimate')} กะประมาณ ${ck(d.assessmentMethod === 'other')} อื่นๆ ${lineVal(d.assessmentMethodOther, '24mm')} ส่วนสูง ${lineVal(d.height, '22mm')} ซม. BMI ${lineVal(d.bmi, '22mm')} กก./ตร.ม. ข้อมูลจาก ${ck(d.infoSource === 'patient')} ผู้ป่วย ${ck(d.infoSource === 'relative')} ญาติ ${ck(d.infoSource === 'other')} อื่นๆ ${lineVal(d.infoSourceOther, '24mm')}</div>
+
+                        <div class="section-title">แบบคัดกรองภาวะโภชนาการ : SPENT Nutrition Screening Tool</div>
+                        <table class="small">
+                            <tr>
+                                <th class="cell">รายการประเมิน</th>
+                                <th class="cell center">ครั้งที่ 1</th>
+                                <th class="cell center">ครั้งที่ 2</th>
+                                <th class="cell center">ครั้งที่ 3</th>
+                            </tr>
+                            <tr>
+                                <td class="cell">วันที่ประเมิน</td>
+                                ${d.evaluations.map(e => `<td class="cell center">${formatDate(e.date) || '&nbsp;'}</td>`).join('')}
+                            </tr>
+                            ${spentRows}
+                        </table>
+                        <div class="small" style="margin-top:6px;">ผลการคัดกรอง ${d.evaluations.map((e, idx) => `ครั้งที่ ${idx + 1}: ${this.escapeHtml(this.getNutritionScreeningResult(e))}`).join(' | ')}</div>
+
+                        <div class="section-title">แบบประเมินภาวะโภชนาการ : Nutrition Alert Form (NAF)</div>
+                        <div class="small">ทำเครื่องหมาย √ ในช่อง โดยเลือกเพียง 1 ช่องในแต่ละหัวข้อใหญ่และหัวข้อย่อย ยกเว้นข้อ 6 และ 8 สามารถเลือกได้มากกว่า 1 ช่อง และใส่คะแนนตามตัวเลขในวงเล็บ</div>
+                        <table class="small">
+                            <tr>
+                                <th class="cell">หัวข้อ</th>
+                                <th class="cell center">ครั้งที่ 1</th>
+                                <th class="cell center">คะแนน</th>
+                                <th class="cell center">ครั้งที่ 2</th>
+                                <th class="cell center">คะแนน</th>
+                                <th class="cell center">ครั้งที่ 3</th>
+                                <th class="cell center">คะแนน</th>
+                            </tr>
+                            ${nafRowsHtml}
+                            <tr>
+                                <td class="cell center"><b>คะแนนรวม</b></td>
+                                ${d.evaluations.map(e => `<td class="cell center"><b>${this.getNutritionNafLevel(e)}</b></td><td class="cell center"><b>${this.getNutritionNafTotal(e)}</b></td>`).join('')}
+                            </tr>
+                        </table>
+
+                        <table class="summary small" style="margin-top:8px;">
+                            <tr><td style="width:16mm; text-align:center;">A</td><td>0 - 5 คะแนน (NAF = A : Normal-Mild malnutrition) ไม่พบความเสี่ยงต่อการเกิดภาวะทุพโภชนาการ ประเมินซ้ำภายใน 7 วัน</td></tr>
+                            <tr><td style="text-align:center;">B</td><td>6 - 10 คะแนน (NAF = B : Moderate malnutrition) แจ้งแพทย์/นักกำหนดอาหาร/นักโภชนาการ และประเมินซ้ำภายใน 3 วัน</td></tr>
+                            <tr><td style="text-align:center;">C</td><td>≥ 11 คะแนน (NAF = C : Severe malnutrition) แจ้งแพทย์/นักกำหนดอาหาร/นักโภชนาการ และดำเนินการภายใน 24 ชั่วโมง</td></tr>
+                        </table>
+                        <div style="margin-top:18px; text-align:right;">....................................<br>ผู้ประเมิน</div>
+                    </div>
+
+                    <div class="page">
+                        <div class="title">GUIDE TO MAKE DIET ORDER</div>
+                        <div class="top-line">Weight ${lineVal(order.weight, '30mm')} kg. Height ${lineVal(order.height, '30mm')} cm. IBW* ${lineVal(order.ibw, '30mm')} kg.</div>
+                        <table class="small">
+                            <tr>
+                                <td class="cell diet-head">Energy Requirement</td>
+                                <td class="cell">
+                                    <div>${ck(order.energyChoice === '25')} 25 kcal/IBW &nbsp;&nbsp; ${ck(order.energyChoice === '30')} 30 kcal/IBW</div>
+                                    <div>${ck(order.energyChoice === '35')} 35 kcal/IBW &nbsp;&nbsp; ${ck(order.energyChoice === 'other')} Other ${lineVal(order.energyOtherLabel, '46mm')} ${lineVal(order.energyPerDay, '32mm')} Kcal/day</div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="cell diet-head">Protein Requirement</td>
+                                <td class="cell">
+                                    <div>${ck(order.proteinChoice === '1.0')} 1.0 g/IBW &nbsp;&nbsp; ${ck(order.proteinChoice === '1.2')} 1.2 g/IBW &nbsp;&nbsp; ${ck(order.proteinChoice === '1.3')} 1.3 g/IBW</div>
+                                    <div>${ck(order.proteinChoice === '1.5')} 1.5 g/IBW &nbsp;&nbsp; ${ck(order.proteinChoice === 'other')} Other ${lineVal(order.proteinOtherLabel, '46mm')} ${lineVal(order.proteinPerDay, '32mm')} g/day</div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="cell diet-head">Diet</td>
+                                <td class="cell">
+                                    <div>${ck((order.dietPrimary || []).includes('Regular diet'))} Regular diet ${ck((order.dietPrimary || []).includes('DM'))} DM ${ck((order.dietPrimary || []).includes('Low salt'))} Low salt ${ck((order.dietPrimary || []).includes('Low fat'))} Low fat ${ck(!!order.dietPrimaryOther)} Other ${lineVal(order.dietPrimaryOther, '26mm')}</div>
+                                    <div>${ck((order.dietPrimary || []).includes('Soft diet'))} Soft diet ${ck((order.dietPrimary || []).includes('DM'))} DM ${ck((order.dietPrimary || []).includes('Low salt'))} Low salt ${ck((order.dietPrimary || []).includes('Low fat'))} Low fat ${ck(!!order.dietPrimaryOther)} Other ${lineVal(order.dietPrimaryOther, '26mm')}</div>
+                                    <div>${ck((order.dietPrimary || []).includes('Full liquid diet'))} Full liquid diet</div>
+                                    <div>${ck((order.dietPrimary || []).includes('Clear liquid diet'))} Clear liquid diet</div>
+                                    <div>${ck(!!order.dietPrimaryOther)} Other ${lineVal(order.dietPrimaryOther, '120mm')}</div>
+                                    <div style="margin-top:4px;">Required diet = ${lineVal(order.requiredDiet, '120mm')}</div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="cell diet-head">Oral Supplement</td>
+                                <td class="cell">
+                                    <div>${ck((order.oralSupplement || []).includes('Standard formula'))} Standard formula</div>
+                                    <div>${ck((order.oralSupplement || []).includes('DM formula'))} DM formula</div>
+                                    <div>${ck((order.oralSupplement || []).includes('Renal dialysis formula'))} Renal dialysis formula</div>
+                                    <div>${ck((order.oralSupplement || []).includes('Cancer formula'))} Cancer formula</div>
+                                    <div>${ck(!!order.oralSupplementOther)} Other ${lineVal(order.oralSupplementOther, '118mm')}</div>
+                                    <div>${ck(!!order.oralMlPerMeal)} ${lineVal(order.oralMlPerMeal, '28mm')} ml/meal</div>
+                                    <div>${ck(!!order.oralMealsPerDay)} ${lineVal(order.oralMealsPerDay, '28mm')} meal Frequency/day</div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="cell diet-head">Tube feeding</td>
+                                <td class="cell">
+                                    <div>${ck((order.tubeFeeding || []).includes('Standard formula'))} Standard formula</div>
+                                    <div>${ck((order.tubeFeeding || []).includes('DM formula'))} DM formula</div>
+                                    <div>${ck((order.tubeFeeding || []).includes('Renal dialysis formula'))} Renal dialysis formula</div>
+                                    <div>${ck((order.tubeFeeding || []).includes('Cancer formula'))} Cancer formula</div>
+                                    <div>${ck((order.tubeFeeding || []).includes('Pulmonary disease formula'))} Pulmonary disease formula</div>
+                                    <div>${ck((order.tubeFeeding || []).includes('Hepatic encephalopathy formula'))} Hepatic encephalopathy formula</div>
+                                    <div>${ck(!!order.tubeFeedingBd)} BD ${lineVal(order.tubeFeedingBd, '120mm')}</div>
+                                    <div>${ck(!!order.tubeFeedingOther)} Other ${lineVal(order.tubeFeedingOther, '118mm')}</div>
+                                    <div>${ck(!!order.tubeMlPerMeal)} ${lineVal(order.tubeMlPerMeal, '28mm')} ml/meal</div>
+                                    <div>${ck(!!order.tubeMealsPerDay)} ${lineVal(order.tubeMealsPerDay, '28mm')} meal Frequency/day</div>
+                                </td>
+                            </tr>
+                        </table>
+                        <div class="note">*IBW : Male = Height (cm.) – 100 , Female = Height (cm.) – 105</div>
+                        <div class="note">**Energy : 25 kcal/IBW for sedentary lifestyle, 30 kcal/IBW for normal, 35 kcal/IBW for activity lifestyle</div>
+                        <div class="ordered-line" style="margin-top:18px;">Ordered by ${lineVal(order.orderedBy, '58mm')} D/M/Y ${lineVal(formatDate(order.orderDate), '36mm')} Time ${lineVal(order.orderTime, '28mm')}</div>
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(() => printWindow.print(), 500);
         },
         async loadDischargeRecordInit() {
             this.isLoading = true;
