@@ -699,11 +699,36 @@
         
                 <div class="lg:col-span-2">
                     <div class="bg-white rounded-[2.5rem] p-8 shadow-md border border-slate-50 min-h-full">
-                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 relative" @click.away="showPrintDropdown = false">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 relative" @click.away="showPrintDropdown = false; showAddDocumentDropdown = false">
                             <h4 class="font-black text-xl text-slate-800 flex items-center gap-3">
                                 <div class="w-2 h-8 bg-indigo-500 rounded-full"></div> แบบบันทึกทางการพยาบาล
                             </h4>
                             
+                            <div class="flex items-center gap-3">
+                                <div class="relative z-[60]">
+                                    <button @click="showAddDocumentDropdown = !showAddDocumentDropdown" class="px-5 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-xl font-bold shadow-sm hover:bg-slate-50 transition flex items-center gap-2 text-sm">
+                                        <i class="fa-solid fa-square-plus text-emerald-600"></i>
+                                        <span>เพิ่มรายการเอกสาร</span>
+                                        <i class="fa-solid fa-chevron-down text-xs text-slate-400"></i>
+                                    </button>
+                                    <div x-show="showAddDocumentDropdown" style="display: none;" class="absolute right-0 top-full mt-2 w-80 bg-white border border-slate-200 shadow-2xl rounded-2xl overflow-hidden" x-transition>
+                                        <div class="bg-slate-50 px-4 py-3 border-b border-slate-200">
+                                            <div class="font-bold text-slate-700">เอกสารเพิ่มเติม</div>
+                                            <div class="text-xs text-slate-500 mt-1">เพิ่มฟอร์มนอกเหนือจากเอกสารพื้นฐาน 8 รายการ</div>
+                                        </div>
+                                        <div class="p-2 max-h-[50vh] overflow-y-auto space-y-1">
+                                            <template x-if="addableExtraForms.length === 0">
+                                                <div class="px-3 py-4 text-sm text-slate-500 text-center">ไม่มีรายการเอกสารเพิ่มเติมคงเหลือ</div>
+                                            </template>
+                                            <template x-for="opt in addableExtraForms" :key="opt.id">
+                                                <button @click="addForm(opt); showAddDocumentDropdown = false; viewMode = 'chart'; selectForm(opt)" class="w-full text-left px-3 py-3 rounded-xl hover:bg-emerald-50 border border-transparent hover:border-emerald-200 transition">
+                                                    <div class="font-bold text-slate-700" x-text="opt.title"></div>
+                                                    <div class="text-xs text-slate-500 mt-1">เพิ่มเข้าชุดเอกสารและเปิดฟอร์มทันที</div>
+                                                </button>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
                             <div class="hidden relative z-[60]">
                                 <button @click="showPrintDropdown = !showPrintDropdown" class="px-5 py-2.5 bg-slate-800 text-white rounded-xl font-bold shadow-md hover:bg-slate-900 transition flex items-center gap-2 text-sm">
                                     <i class="fa-solid fa-print"></i>พิมพ์เอกสารรวม (ซ่อนไว้ก่อน ยังไม่สมบูรณ์)
@@ -4414,6 +4439,284 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </template>
+                <template x-if="currentForm?.id === 'nutrition_assessment'">
+                    <div x-init="loadNutritionAssessmentInit()" class="space-y-4 pb-10">
+                        <div class="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-emerald-200 sticky top-0 z-30 gap-4">
+                            <h2 class="text-xl font-black text-emerald-700"><i class="fa-solid fa-apple-whole mr-2"></i>แบบคัดกรองและประเมินภาวะโภชนาการ</h2>
+                            <div class="flex flex-wrap gap-2">
+                                <button @click="viewMode = 'detail'" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200">กลับ</button>
+                                <button @click="saveNutritionManual()" class="px-6 py-3 bg-emerald-600 text-white rounded-2xl font-bold shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all active:scale-95 flex items-center gap-2">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i>บันทึกข้อมูล
+                                </button>
+                                <button @click="printNutritionAssessment()" class="px-4 py-2 bg-slate-800 text-white rounded-xl font-bold shadow-md hover:bg-slate-900"><i class="fa-solid fa-print mr-2"></i>พิมพ์เอกสาร</button>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+                            <div class="border-b border-slate-200 pb-4">
+                                <h3 class="text-lg font-black text-slate-800">ข้อมูลหัวเอกสาร</h3>
+                                <p class="text-sm text-slate-500 mt-1">อ้างอิงจากไฟล์ “แบบคัดกรองและประเมินภาวะโภชนาการ” ของกลุ่มงานโภชนศาสตร์</p>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">หอผู้ป่วย</label>
+                                    <input type="text" x-model="nutritionForm.ward" @change="autoSaveNutrition()" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-emerald-500">
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="block font-bold text-slate-700 mb-1">ชื่อ-สกุล</label>
+                                    <input type="text" x-model="nutritionForm.patientName" @change="autoSaveNutrition()" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-emerald-500">
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">อายุ (ปี)</label>
+                                    <input type="number" x-model="nutritionForm.age" @change="autoSaveNutrition()" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-emerald-500">
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">เพศ</label>
+                                    <div class="flex gap-4 pt-2">
+                                        <label class="flex items-center gap-2"><input type="radio" x-model="nutritionForm.gender" value="male"> ชาย</label>
+                                        <label class="flex items-center gap-2"><input type="radio" x-model="nutritionForm.gender" value="female"> หญิง</label>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">HN</label>
+                                    <input type="text" x-model="nutritionForm.hn" @change="autoSaveNutrition()" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-emerald-500">
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">AN</label>
+                                    <input type="text" x-model="nutritionForm.an" @change="autoSaveNutrition()" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-emerald-500">
+                                </div>
+                                <div class="md:col-span-4">
+                                    <label class="block font-bold text-slate-700 mb-1">การวินิจฉัยโรค</label>
+                                    <input type="text" x-model="nutritionForm.diagnosis" @change="autoSaveNutrition()" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-emerald-500">
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">น้ำหนักปัจจุบัน (กก.)</label>
+                                    <input type="number" step="0.1" x-model="nutritionForm.currentWeight" @change="autoSaveNutrition()" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-emerald-500">
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">น้ำหนักปกติ (กก.)</label>
+                                    <input type="number" step="0.1" x-model="nutritionForm.usualWeight" @change="autoSaveNutrition()" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-emerald-500">
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">ส่วนสูง (ซม.)</label>
+                                    <input type="number" step="0.1" x-model="nutritionForm.height" @change="autoSaveNutrition()" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-emerald-500">
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">BMI</label>
+                                    <input type="number" step="0.1" x-model="nutritionForm.bmi" @change="autoSaveNutrition()" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-emerald-500">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                    <label class="block font-bold text-slate-700 mb-2">ประเมินโดย</label>
+                                    <div class="flex flex-wrap gap-4">
+                                        <label class="flex items-center gap-2"><input type="radio" x-model="nutritionForm.assessmentMethod" value="scale"> ชั่ง</label>
+                                        <label class="flex items-center gap-2"><input type="radio" x-model="nutritionForm.assessmentMethod" value="interview"> ซักถาม</label>
+                                        <label class="flex items-center gap-2"><input type="radio" x-model="nutritionForm.assessmentMethod" value="estimate"> กะประมาณ</label>
+                                        <label class="flex items-center gap-2"><input type="radio" x-model="nutritionForm.assessmentMethod" value="other"> อื่นๆ</label>
+                                        <input x-show="nutritionForm.assessmentMethod === 'other'" type="text" x-model="nutritionForm.assessmentMethodOther" class="border-b border-slate-400 bg-transparent outline-none px-1">
+                                    </div>
+                                </div>
+                                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                    <label class="block font-bold text-slate-700 mb-2">ข้อมูลจาก</label>
+                                    <div class="flex flex-wrap gap-4">
+                                        <label class="flex items-center gap-2"><input type="radio" x-model="nutritionForm.infoSource" value="patient"> ผู้ป่วย</label>
+                                        <label class="flex items-center gap-2"><input type="radio" x-model="nutritionForm.infoSource" value="relative"> ญาติ</label>
+                                        <label class="flex items-center gap-2"><input type="radio" x-model="nutritionForm.infoSource" value="other"> อื่นๆ</label>
+                                        <input x-show="nutritionForm.infoSource === 'other'" type="text" x-model="nutritionForm.infoSourceOther" class="border-b border-slate-400 bg-transparent outline-none px-1">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <template x-for="(evalData, evalIndex) in nutritionForm.evaluations" :key="evalIndex">
+                            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+                                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200 pb-4">
+                                    <div>
+                                        <h3 class="text-lg font-black text-slate-800" x-text="'ครั้งที่ ' + (evalIndex + 1)"></h3>
+                                        <p class="text-sm text-slate-500">SPENT Nutrition Screening Tool และ Nutrition Alert Form</p>
+                                    </div>
+                                    <div>
+                                        <label class="block font-bold text-slate-700 mb-1">วันที่ประเมิน</label>
+                                        <input type="date" x-model="evalData.date" @change="autoSaveNutrition()" class="border border-slate-300 rounded-lg p-2 outline-none focus:border-emerald-500">
+                                    </div>
+                                </div>
+
+                                <div class="space-y-4">
+                                    <div>
+                                        <h4 class="font-black text-emerald-700 mb-3">ส่วนที่ 1 แบบคัดกรองภาวะโภชนาการ : SPENT Nutrition Screening Tool</h4>
+                                        <div class="space-y-3">
+                                            <template x-for="(question, qIdx) in nutritionScreeningQuestions" :key="qIdx">
+                                                <div class="border border-slate-200 rounded-xl p-4">
+                                                    <div class="font-medium text-slate-700" x-text="(qIdx + 1) + '. ' + question"></div>
+                                                    <div class="flex gap-6 mt-3">
+                                                        <label class="flex items-center gap-2"><input type="radio" :name="'screening-' + evalIndex + '-' + qIdx" x-model="evalData.screeningAnswers[qIdx]" value="yes"> ใช่</label>
+                                                        <label class="flex items-center gap-2"><input type="radio" :name="'screening-' + evalIndex + '-' + qIdx" x-model="evalData.screeningAnswers[qIdx]" value="no"> ไม่ใช่</label>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                        </div>
+                                        <div class="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                                            ตอบ “ใช่” <span class="font-black" x-text="getNutritionScreeningYesCount(evalData)"></span> ข้อ :
+                                            <span class="font-bold" x-text="getNutritionScreeningResult(evalData)"></span>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <h4 class="font-black text-indigo-700 mb-3">ส่วนที่ 2 แบบประเมินภาวะโภชนาการ : Nutrition Alert Form (NAF)</h4>
+                                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                                            <div><label class="block text-sm font-bold text-slate-700 mb-1">วัดส่วนสูง (ซม.)</label><input type="number" step="0.1" x-model="evalData.measuredHeight" class="w-full border border-slate-300 rounded-lg p-2"></div>
+                                            <div><label class="block text-sm font-bold text-slate-700 mb-1">วัดความยาวตัว (ซม.)</label><input type="number" step="0.1" x-model="evalData.measuredLength" class="w-full border border-slate-300 rounded-lg p-2"></div>
+                                            <div><label class="block text-sm font-bold text-slate-700 mb-1">Arm span (ซม.)</label><input type="number" step="0.1" x-model="evalData.armSpan" class="w-full border border-slate-300 rounded-lg p-2"></div>
+                                            <div><label class="block text-sm font-bold text-slate-700 mb-1">ญาติบอก (ซม.)</label><input type="number" step="0.1" x-model="evalData.relativeHeight" class="w-full border border-slate-300 rounded-lg p-2"></div>
+                                        </div>
+
+                                        <div class="space-y-4">
+                                            <div class="border border-slate-200 rounded-xl p-4">
+                                                <div class="font-bold text-slate-800 mb-2">2. น้ำหนักและ BMI</div>
+                                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div><label class="block text-sm font-bold text-slate-700 mb-1">น้ำหนัก (กก.)</label><input type="number" step="0.1" x-model="evalData.weightKg" class="w-full border border-slate-300 rounded-lg p-2"></div>
+                                                    <div><label class="block text-sm font-bold text-slate-700 mb-1">BMI</label><input type="number" step="0.1" x-model="evalData.bmiValue" class="w-full border border-slate-300 rounded-lg p-2"></div>
+                                                </div>
+                                                <div class="mt-3 flex flex-wrap gap-4 text-sm">
+                                                    <label class="flex items-center gap-2"><input type="radio" :name="'weightMethod-' + evalIndex" x-model="evalData.weightMethod" value="lying"> ชั่งในท่านอน (1)</label>
+                                                    <label class="flex items-center gap-2"><input type="radio" :name="'weightMethod-' + evalIndex" x-model="evalData.weightMethod" value="standing"> ชั่งในท่ายืน (0)</label>
+                                                    <label class="flex items-center gap-2"><input type="radio" :name="'weightMethod-' + evalIndex" x-model="evalData.weightMethod" value="cannot"> ชั่งไม่ได้ (0)</label>
+                                                    <label class="flex items-center gap-2"><input type="radio" :name="'weightMethod-' + evalIndex" x-model="evalData.weightMethod" value="relative"> ญาติบอก (0)</label>
+                                                </div>
+                                                <div class="mt-3 flex flex-wrap gap-4 text-sm">
+                                                    <label class="flex items-center gap-2"><input type="radio" :name="'labMode-' + evalIndex" x-model="evalData.nutritionLabMode" value="bmi"> ใช้ BMI</label>
+                                                    <label class="flex items-center gap-2"><input type="radio" :name="'labMode-' + evalIndex" x-model="evalData.nutritionLabMode" value="albumin"> ใช้ Albumin</label>
+                                                    <label class="flex items-center gap-2"><input type="radio" :name="'labMode-' + evalIndex" x-model="evalData.nutritionLabMode" value="tlc"> ใช้ TLC</label>
+                                                </div>
+                                                <div class="mt-3 space-y-2 text-sm">
+                                                    <div>
+                                                        <div class="font-bold mb-1">BMI</div>
+                                                        <div class="flex flex-wrap gap-4">
+                                                            <label class="flex items-center gap-2"><input type="radio" :name="'bmiRange-' + evalIndex" x-model="evalData.bmiRange" value="lt_17"> BMI &lt; 17.0 (2)</label>
+                                                            <label class="flex items-center gap-2"><input type="radio" :name="'bmiRange-' + evalIndex" x-model="evalData.bmiRange" value="between_17_18"> BMI 17.0-18.0 (1)</label>
+                                                            <label class="flex items-center gap-2"><input type="radio" :name="'bmiRange-' + evalIndex" x-model="evalData.bmiRange" value="normal"> BMI 18.1-29.9 (0)</label>
+                                                            <label class="flex items-center gap-2"><input type="radio" :name="'bmiRange-' + evalIndex" x-model="evalData.bmiRange" value="ge_30"> BMI ≥ 30.0 (1)</label>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <div class="font-bold mb-1">Albumin</div>
+                                                        <div class="flex flex-wrap gap-4">
+                                                            <label class="flex items-center gap-2"><input type="radio" :name="'albuminRange-' + evalIndex" x-model="evalData.albuminRange" value="lte_2_5"> ≤2.5 g/dl (3)</label>
+                                                            <label class="flex items-center gap-2"><input type="radio" :name="'albuminRange-' + evalIndex" x-model="evalData.albuminRange" value="between_2_6_2_9"> 2.6-2.9 g/dl (2)</label>
+                                                            <label class="flex items-center gap-2"><input type="radio" :name="'albuminRange-' + evalIndex" x-model="evalData.albuminRange" value="between_3_0_3_5"> 3.0-3.5 g/dl (1)</label>
+                                                            <label class="flex items-center gap-2"><input type="radio" :name="'albuminRange-' + evalIndex" x-model="evalData.albuminRange" value="gt_3_5"> &gt;3.5 g/dl (0)</label>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <div class="font-bold mb-1">TLC</div>
+                                                        <div class="flex flex-wrap gap-4">
+                                                            <label class="flex items-center gap-2"><input type="radio" :name="'tlcRange-' + evalIndex" x-model="evalData.tlcRange" value="lte_1000"> ≤1,000 cells/mm3 (3)</label>
+                                                            <label class="flex items-center gap-2"><input type="radio" :name="'tlcRange-' + evalIndex" x-model="evalData.tlcRange" value="between_1001_1200"> 1,001-1,200 (2)</label>
+                                                            <label class="flex items-center gap-2"><input type="radio" :name="'tlcRange-' + evalIndex" x-model="evalData.tlcRange" value="between_1201_1500"> 1,201-1,500 (1)</label>
+                                                            <label class="flex items-center gap-2"><input type="radio" :name="'tlcRange-' + evalIndex" x-model="evalData.tlcRange" value="gt_1500"> &gt;1,500 (0)</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                                <div class="border border-slate-200 rounded-xl p-4">
+                                                    <div class="font-bold text-slate-800 mb-2">3. รูปร่างของผู้ป่วย</div>
+                                                    <label class="block"><input type="radio" :name="'bodyShape-' + evalIndex" x-model="evalData.bodyShape" value="very_thin"> ผอมมาก (2)</label>
+                                                    <label class="block"><input type="radio" :name="'bodyShape-' + evalIndex" x-model="evalData.bodyShape" value="thin"> ผอม (1)</label>
+                                                    <label class="block"><input type="radio" :name="'bodyShape-' + evalIndex" x-model="evalData.bodyShape" value="obese"> อ้วนมาก (1)</label>
+                                                    <label class="block"><input type="radio" :name="'bodyShape-' + evalIndex" x-model="evalData.bodyShape" value="normal"> ปกติ - อ้วนปานกลาง (0)</label>
+                                                </div>
+                                                <div class="border border-slate-200 rounded-xl p-4">
+                                                    <div class="font-bold text-slate-800 mb-2">4. น้ำหนักเปลี่ยนใน 4 สัปดาห์</div>
+                                                    <label class="block"><input type="radio" :name="'weightChange-' + evalIndex" x-model="evalData.weightChange" value="down"> ลดลง/ผอมลง (2)</label>
+                                                    <label class="block"><input type="radio" :name="'weightChange-' + evalIndex" x-model="evalData.weightChange" value="up"> เพิ่มขึ้น/อ้วนขึ้น (1)</label>
+                                                    <label class="block"><input type="radio" :name="'weightChange-' + evalIndex" x-model="evalData.weightChange" value="unknown"> ไม่ทราบ (0)</label>
+                                                    <label class="block"><input type="radio" :name="'weightChange-' + evalIndex" x-model="evalData.weightChange" value="same"> คงเดิม (0)</label>
+                                                </div>
+                                                <div class="border border-slate-200 rounded-xl p-4">
+                                                    <div class="font-bold text-slate-800 mb-2">5.1 ลักษณะอาหาร</div>
+                                                    <label class="block"><input type="radio" :name="'foodTexture-' + evalIndex" x-model="evalData.foodTexture" value="liquid"> อาหารน้ำๆ (2)</label>
+                                                    <label class="block"><input type="radio" :name="'foodTexture-' + evalIndex" x-model="evalData.foodTexture" value="semi_liquid"> อาหารเหลวๆ (2)</label>
+                                                    <label class="block"><input type="radio" :name="'foodTexture-' + evalIndex" x-model="evalData.foodTexture" value="soft"> อาหารนุ่มกว่าปกติ (1)</label>
+                                                    <label class="block"><input type="radio" :name="'foodTexture-' + evalIndex" x-model="evalData.foodTexture" value="normal"> อาหารเหมือนปกติ (0)</label>
+                                                </div>
+                                                <div class="border border-slate-200 rounded-xl p-4">
+                                                    <div class="font-bold text-slate-800 mb-2">5.2 ปริมาณที่กิน</div>
+                                                    <label class="block"><input type="radio" :name="'foodAmount-' + evalIndex" x-model="evalData.foodAmount" value="very_low"> กินน้อยมาก (2)</label>
+                                                    <label class="block"><input type="radio" :name="'foodAmount-' + evalIndex" x-model="evalData.foodAmount" value="low"> กินน้อยลง (1)</label>
+                                                    <label class="block"><input type="radio" :name="'foodAmount-' + evalIndex" x-model="evalData.foodAmount" value="more"> กินมากขึ้น (0)</label>
+                                                    <label class="block"><input type="radio" :name="'foodAmount-' + evalIndex" x-model="evalData.foodAmount" value="same"> กินเท่าปกติ (0)</label>
+                                                </div>
+                                                <div class="border border-slate-200 rounded-xl p-4">
+                                                    <div class="font-bold text-slate-800 mb-2">6.1 ปัญหาการเคี้ยวกลืนอาหาร</div>
+                                                    <label class="block"><input type="radio" :name="'chewing-' + evalIndex" x-model="evalData.chewing" value="choking"> สำลัก (2)</label>
+                                                    <label class="block"><input type="radio" :name="'chewing-' + evalIndex" x-model="evalData.chewing" value="tube_or_swallow"> เคี้ยว/กลืนอาหาร/ได้อาหารทางสาย (2)</label>
+                                                    <label class="block"><input type="radio" :name="'chewing-' + evalIndex" x-model="evalData.chewing" value="normal"> กลืนได้ปกติ (0)</label>
+                                                </div>
+                                                <div class="border border-slate-200 rounded-xl p-4">
+                                                    <div class="font-bold text-slate-800 mb-2">6.2 ปัญหาระบบทางเดินอาหาร</div>
+                                                    <label class="block"><input type="radio" :name="'gi-' + evalIndex" x-model="evalData.giProblem" value="diarrhea"> ท้องเสีย (2)</label>
+                                                    <label class="block"><input type="radio" :name="'gi-' + evalIndex" x-model="evalData.giProblem" value="abdominal_pain"> ปวดท้อง (2)</label>
+                                                    <label class="block"><input type="radio" :name="'gi-' + evalIndex" x-model="evalData.giProblem" value="normal"> ปกติ (0)</label>
+                                                </div>
+                                                <div class="border border-slate-200 rounded-xl p-4">
+                                                    <div class="font-bold text-slate-800 mb-2">6.3 ปัญหาระหว่างการกินอาหาร</div>
+                                                    <label class="block"><input type="radio" :name="'eating-' + evalIndex" x-model="evalData.eatingProblem" value="vomiting"> อาเจียน (2)</label>
+                                                    <label class="block"><input type="radio" :name="'eating-' + evalIndex" x-model="evalData.eatingProblem" value="nausea"> คลื่นไส้ (2)</label>
+                                                    <label class="block"><input type="radio" :name="'eating-' + evalIndex" x-model="evalData.eatingProblem" value="normal"> ปกติ (0)</label>
+                                                </div>
+                                                <div class="border border-slate-200 rounded-xl p-4">
+                                                    <div class="font-bold text-slate-800 mb-2">7. ความสามารถในการเข้าถึงอาหาร</div>
+                                                    <label class="block"><input type="radio" :name="'foodAccess-' + evalIndex" x-model="evalData.foodAccess" value="bedridden"> นอนติดเตียง (2)</label>
+                                                    <label class="block"><input type="radio" :name="'foodAccess-' + evalIndex" x-model="evalData.foodAccess" value="need_help"> ต้องมีผู้ช่วยบ้าง (1)</label>
+                                                    <label class="block"><input type="radio" :name="'foodAccess-' + evalIndex" x-model="evalData.foodAccess" value="limited"> นั่งๆนอนๆ (0)</label>
+                                                    <label class="block"><input type="radio" :name="'foodAccess-' + evalIndex" x-model="evalData.foodAccess" value="normal"> ปกติ (0)</label>
+                                                </div>
+                                            </div>
+
+                                            <div class="border border-slate-200 rounded-xl p-4">
+                                                <div class="font-bold text-slate-800 mb-3">8. โรคที่เป็นอยู่ (เลือกได้มากกว่า 1 ช่อง)</div>
+                                                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                                                    <template x-for="disease in nutritionDiseaseOptions" :key="disease.id">
+                                                        <label class="flex items-start gap-2">
+                                                            <input type="checkbox" :value="disease.id" x-model="evalData.diseases" class="mt-1">
+                                                            <span x-text="disease.label + ' (' + disease.score + ')'"></span>
+                                                        </label>
+                                                    </template>
+                                                    <div class="md:col-span-2 flex flex-wrap items-center gap-3 pt-2">
+                                                        <label class="flex items-center gap-2"><input type="checkbox" x-model="evalData.otherDiseaseChecked"> อื่นๆ</label>
+                                                        <input x-show="evalData.otherDiseaseChecked" type="text" x-model="evalData.otherDiseaseText" class="border-b border-slate-400 outline-none px-1 min-w-[220px]" placeholder="ระบุโรค">
+                                                        <select x-show="evalData.otherDiseaseChecked" x-model="evalData.otherDiseaseScore" class="border border-slate-300 rounded-lg p-1.5">
+                                                            <option :value="3">3 คะแนน</option>
+                                                            <option :value="6">6 คะแนน</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                                            <div class="rounded-2xl border border-indigo-200 bg-indigo-50 p-4">
+                                                <div class="text-sm text-indigo-600 font-bold">คะแนนรวม</div>
+                                                <div class="text-3xl font-black text-indigo-800" x-text="getNutritionNafTotal(evalData)"></div>
+                                            </div>
+                                            <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                                                <div class="text-sm text-amber-700 font-bold">ระดับ NAF</div>
+                                                <div class="text-3xl font-black text-amber-800" x-text="getNutritionNafLevel(evalData)"></div>
+                                            </div>
+                                            <div class="rounded-2xl border border-rose-200 bg-rose-50 p-4">
+                                                <div class="text-sm text-rose-700 font-bold">ผลแปลคะแนน</div>
+                                                <div class="text-base font-black text-rose-800" x-text="getNutritionNafLevelText(evalData)"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
                     </div>
                 </template>
                 <template x-if="currentForm?.id === 'discharge_record'">
