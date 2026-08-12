@@ -1,7 +1,7 @@
 function nurseApp() {
     return {
         // --- 1. CONFIG & STATE ---
-        API_URL: 'https://script.google.com/macros/s/AKfycbxqaydhsgGZKV8hz28qYUzsTVDl7c-DzgFZD9FDzcWE_uCnwIaJryjqiNQ2ggxOYn49/exec',
+        API_URL: 'https://script.google.com/macros/s/AKfycbzieKZwTgdI09su3pR8xD_GbjVpZFy1rfZTSYQ94gvkwJRVulp1E9FoZoAbzELG2Amy/exec',
         APP_WEB_URL: 'https://nursewebswdcph-web.github.io/chart-ipd-nurse/',
         CURRENT_VERSION: '2.2', // เวอร์ชันปัจจุบันของระบบ อัปเดตเลขนี้ทุกครั้งที่ปล่อยเวอร์ชันใหม่
         appVersionStorageKey: 'ipd_nurse_app_version',
