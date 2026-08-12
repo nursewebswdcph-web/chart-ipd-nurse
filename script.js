@@ -1,53 +1,9 @@
-// Intercept fetch to handle Google Apps Script deployment / connection errors gracefully
-const originalFetch = window.fetch;
-window.fetch = async function(resource, init) {
-    const url = typeof resource === 'string' ? resource : (resource instanceof URL ? resource.href : (resource ? resource.url : ''));
-    const isGoogleScript = url.includes('script.google.com') || url.includes('script.googleusercontent.com');
-    
-    try {
-        const response = await originalFetch(resource, init);
-        
-        if (isGoogleScript) {
-            const contentType = response.headers.get('content-type') || '';
-            if (contentType.includes('text/html') || !response.ok) {
-                const clone = response.clone();
-                const text = await clone.text();
-                if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html') || response.status === 404 || response.status === 401 || response.status === 403) {
-                    throw new Error(
-                        'ไม่สามารถเชื่อมต่อกับ Google Apps Script ได้ (ตรวจพบหน้าเว็บ HTML หรือ HTTP ' + response.status + ')\n\n' +
-                        'กรุณาตรวจสอบการตั้งค่าดังนี้:\n' +
-                        '1. ตรวจสอบว่า URL ของ API_URL ในไฟล์ script.js (บรรทัดที่ 4) ถูกต้องตรงกับ Web App URL ล่าสุด\n' +
-                        '2. ใน Google Apps Script ต้องทำการ Deploy Web App ใหม่ (New Deployment) ทุกครั้งที่มีการแก้ไขโค้ด backend\n' +
-                        '3. ตั้งค่าสิทธิ์การเข้าถึง:\n' +
-                        '   - Execute as: "Me" (ตัวฉัน/เจ้าของโครงการ)\n' +
-                        '   - Who has access: "Anyone" (ทุกคน)'
-                    );
-                }
-            }
-        }
-        return response;
-    } catch (err) {
-        if (isGoogleScript) {
-            if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError') || err.name === 'TypeError' || err.message.includes('Unexpected token')) {
-                throw new Error(
-                    'เชื่อมต่อกับ Google Apps Script Web App ล้มเหลว\n\n' +
-                    'กรุณาตรวจสอบว่า:\n' +
-                    '- อินเทอร์เน็ตของท่านเชื่อมต่ออยู่และใช้งานได้\n' +
-                    '- URL ใน script.js บรรทัดที่ 4 ถูกต้อง\n' +
-                    '- ตั้งค่า Deployment ใน Google Apps Script เป็น "Anyone" และกดอนุมัติสิทธิ์เข้าถึง (Authorize) เรียบร้อยแล้ว'
-                );
-            }
-        }
-        throw err;
-    }
-};
-
 function nurseApp() {
     return {
         // --- 1. CONFIG & STATE ---
-        API_URL: 'https://script.google.com/macros/s/AKfycbzieKZwTgdI09su3pR8xD_GbjVpZFy1rfZTSYQ94gvkwJRVulp1E9FoZoAbzELG2Amy/exec',
+        API_URL: 'https://script.google.com/macros/s/AKfycbxqaydhsgGZKV8hz28qYUzsTVDl7c-DzgFZD9FDzcWE_uCnwIaJryjqiNQ2ggxOYn49/exec',
         APP_WEB_URL: 'https://nursewebswdcph-web.github.io/chart-ipd-nurse/',
-        CURRENT_VERSION: '2.3', // เวอร์ชันปัจจุบันของระบบ อัปเดตเลขนี้ทุกครั้งที่ปล่อยเวอร์ชันใหม่
+        CURRENT_VERSION: '2.2', // เวอร์ชันปัจจุบันของระบบ อัปเดตเลขนี้ทุกครั้งที่ปล่อยเวอร์ชันใหม่
         appVersionStorageKey: 'ipd_nurse_app_version',
         showUpdateModal: false, // ควบคุมการแสดง Popup แจ้งเตือนเวอร์ชันใหม่
         isUpdatingApp: false,
@@ -132,9 +88,6 @@ function nurseApp() {
         savedAssessmentAn: '',
         savedAssessmentPed: null,
         savedAssessmentPedAn: '',
-        isSavingProgress: false,
-        progressNotesFetchError: false,
-        lastProgressNotesUpdated_at: null,
         showBradenModal: false,
         showBradenGuidelineModal: false,
         showBradenSummaryModal: false,
@@ -319,7 +272,7 @@ function nurseApp() {
             this.resetActiveForms();
             if (!an) return;
             try {
-                const res = await fetch(`${this.API_URL}?action=getNutritionAssessment&an=${encodeURIComponent(an)}&_=${Date.now()}`, { cache: 'no-store' });
+                const res = await fetch(`${this.API_URL}?action=getNutritionAssessment&an=${encodeURIComponent(an)}&_=${Date.now()}`);
                 const data = await res.json();
                 const hasNutritionData = !!(data && typeof data === 'object' && Object.keys(data).length > 0);
                 if (hasNutritionData) {
@@ -1007,7 +960,7 @@ function nurseApp() {
                     this.isLoading = true;
                     try {
                         const response = await fetch(this.API_URL, {
-                            method: 'POST', cache: 'no-store',
+                            method: 'POST',
                             body: JSON.stringify({
                                 action: 'deleteClassification',
                                 payload: {
@@ -1050,7 +1003,7 @@ function nurseApp() {
                     this.isLoading = true;
                     try {
                         const response = await fetch(this.API_URL, {
-                            method: 'POST', cache: 'no-store',
+                            method: 'POST',
                             body: JSON.stringify({
                                 action: 'deleteClassificationPed',
                                 payload: {
@@ -1093,7 +1046,7 @@ function nurseApp() {
                     this.isLoading = true;
                     try {
                         const response = await fetch(this.API_URL, {
-                            method: 'POST', cache: 'no-store',
+                            method: 'POST',
                             body: JSON.stringify({
                                 action: 'deleteFallRisk',
                                 payload: {
@@ -1251,7 +1204,7 @@ function nurseApp() {
 
             const task = (async () => {
                 const response = await fetch(this.API_URL, {
-                    method: 'POST', cache: 'no-store',
+                    method: 'POST',
                     body: JSON.stringify({
                         action: 'getServiceRequests',
                         payload: { sessionToken: this.sessionToken }
@@ -1287,7 +1240,7 @@ function nurseApp() {
             this.isLoading = true;
             try {
                 const response = await fetch(this.API_URL, {
-                    method: 'POST', cache: 'no-store',
+                    method: 'POST',
                     body: JSON.stringify({
                         action: 'sendPasswordResetLink',
                         payload: {
@@ -1328,7 +1281,7 @@ function nurseApp() {
             this.isLoading = true;
             try {
                 const response = await fetch(this.API_URL, {
-                    method: 'POST', cache: 'no-store',
+                    method: 'POST',
                     body: JSON.stringify({
                         action: 'resetPasswordWithToken',
                         payload
@@ -1366,7 +1319,7 @@ function nurseApp() {
             this.isLoading = true;
             try {
                 const response = await fetch(this.API_URL, {
-                    method: 'POST', cache: 'no-store',
+                    method: 'POST',
                     body: JSON.stringify({
                         action: 'createServiceRequest',
                         payload
@@ -1393,7 +1346,7 @@ function nurseApp() {
             this.isLoading = true;
             try {
                 const response = await fetch(this.API_URL, {
-                    method: 'POST', cache: 'no-store',
+                    method: 'POST',
                     body: JSON.stringify({
                         action: 'updateServiceRequestStatus',
                         payload: {
@@ -1645,7 +1598,7 @@ function nurseApp() {
             }
 
             const task = (async () => {
-                const response = await fetch(`${this.API_URL}?action=${action}&_=${Date.now()}`, { cache: 'no-store' });
+                const response = await fetch(`${this.API_URL}?action=${action}`);
                 const data = await response.json();
                 this.templateCache[cacheKey] = Array.isArray(data) ? data : [];
                 return this.templateCache[cacheKey];
@@ -1669,7 +1622,7 @@ function nurseApp() {
                     return;
                 }
 
-                const response = await fetch(`${this.API_URL}?action=getSessionUser&sessionToken=${encodeURIComponent(savedToken)}&_=${Date.now()}`, { cache: 'no-store' });
+                const response = await fetch(`${this.API_URL}?action=getSessionUser&sessionToken=${encodeURIComponent(savedToken)}&_=${Date.now()}`);
                 const result = await response.json();
                 if (result.status !== 'success' || !result.user) {
                     window.localStorage.removeItem(this.authSessionKey);
@@ -1681,9 +1634,6 @@ function nurseApp() {
                 await this.loadInitialData();
             } catch (error) {
                 console.error('Restore session error:', error);
-                if (error.message.includes('Google Apps Script') || error.message.includes('เชื่อมต่อ')) {
-                    this.showAlert('เกิดข้อผิดพลาดในการเชื่อมต่อ Server', error.message);
-                }
                 window.localStorage.removeItem(this.authSessionKey);
                 this.setAuthenticatedUser(null, '');
             } finally {
@@ -1699,22 +1649,16 @@ function nurseApp() {
 
             this.isLoading = true;
             try {
-                const loginPayload = JSON.stringify({
-                    action: 'loginUser',
-                    payload: { username, password }
-                });
-
-                let response = await fetch(this.API_URL, {
+                const response = await fetch(this.API_URL, {
                     method: 'POST',
-                    cache: 'no-store',
-                    headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-                    body: loginPayload
+                    body: JSON.stringify({
+                        action: 'loginUser',
+                        payload: {
+                            username,
+                            password
+                        }
+                    })
                 });
-
-                if (!response.ok) {
-                    response = await fetch(`${this.API_URL}?action=loginUser&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&_=${Date.now()}`, { cache: 'no-store' });
-                }
-
                 const result = await response.json();
                 if (result.status !== 'success' || !result.sessionToken || !result.user) {
                     throw new Error(result.message || 'เข้าสู่ระบบไม่สำเร็จ');
@@ -1723,9 +1667,9 @@ function nurseApp() {
                 window.localStorage.setItem(this.authSessionKey, result.sessionToken);
                 this.setAuthenticatedUser(result.user, result.sessionToken);
                 this.authLoginForm.password = '';
-                const initLoaded = await this.loadInitialData({ silent: true });
+                await this.loadInitialData();
                 this.showSuccess = true;
-                this.successMsg = initLoaded ? 'เข้าสู่ระบบสำเร็จ' : 'เข้าสู่ระบบสำเร็จ แต่โหลดข้อมูลเริ่มต้นไม่สำเร็จ';
+                this.successMsg = 'เข้าสู่ระบบสำเร็จ';
                 setTimeout(() => this.showSuccess = false, 2500);
             } catch (error) {
                 this.showAlert('เข้าสู่ระบบไม่สำเร็จ', error.message);
@@ -1754,7 +1698,7 @@ function nurseApp() {
             this.isLoading = true;
             try {
                 const response = await fetch(this.API_URL, {
-                    method: 'POST', cache: 'no-store',
+                    method: 'POST',
                     body: JSON.stringify({
                         action: 'sendRegistrationVerification',
                         payload: form
@@ -1788,7 +1732,7 @@ function nurseApp() {
             this.isLoading = true;
             try {
                 const response = await fetch(this.API_URL, {
-                    method: 'POST', cache: 'no-store',
+                    method: 'POST',
                     body: JSON.stringify({
                         action: 'verifyRegistrationCode',
                         payload: { email, code }
@@ -1913,7 +1857,7 @@ function nurseApp() {
             try {
                 if (currentToken) {
                     await fetch(this.API_URL, {
-                        method: 'POST', cache: 'no-store',
+                        method: 'POST',
                         body: JSON.stringify({
                             action: 'logoutUser',
                             payload: { sessionToken: currentToken }
@@ -2073,7 +2017,7 @@ function nurseApp() {
 
         async loadInitialData(options = {}) {
             if (!options.force && this.initDataLoadedAt && (Date.now() - this.initDataLoadedAt) < this.initDataTTL) {
-                return true;
+                return;
             }
             if (!options.force && this.initDataPromise) {
                 return this.initDataPromise;
@@ -2081,22 +2025,20 @@ function nurseApp() {
 
             if (!options.silent) this.isLoading = true;
             const task = (async () => {
-                const res = await fetch(`${this.API_URL}?action=getInitData&_=${Date.now()}`, { cache: 'no-store' });
+                const res = await fetch(`${this.API_URL}?action=getInitData`);
                 const data = await res.json();
                 this.wards = data.wards || [];
                 this.configs.depts = data.depts || [];
                 this.doctors = data.doctors || [];
                 this.nurses = data.nurses || [];
                 this.initDataLoadedAt = Date.now();
-                return true;
             })();
 
             this.initDataPromise = task;
             try {
-                return await task;
+                await task;
             } catch (e) {
                 console.error("Initialization error", e);
-                return false;
             } finally {
                 if (this.initDataPromise === task) this.initDataPromise = null;
                 if (!options.silent) this.isLoading = false;
@@ -2135,7 +2077,7 @@ function nurseApp() {
 
             if (!options.silent) this.isLoading = true;
             const task = (async () => {
-                const res = await fetch(`${this.API_URL}?action=getPatients&ward=${encodeURIComponent(wardKey)}&_=${Date.now()}`, { cache: 'no-store' });
+                const res = await fetch(`${this.API_URL}?action=getPatients&ward=${encodeURIComponent(wardKey)}`);
                 const data = await res.json();
                 const patientList = (Array.isArray(data) ? data : []).map((patient) => {
                     const ageDisplay = this.resolvePatientAgeDisplay(patient);
@@ -2276,7 +2218,7 @@ function nurseApp() {
             try {
                 const payload = { an: this.selectedPatient?.an, formData: data, ward: this.currentWard };
                 const res = await fetch(this.API_URL, {
-                    method: 'POST', cache: 'no-store',
+                    method: 'POST',
                     body: JSON.stringify({ action: 'saveAssessmentInitial', payload: payload })
                 });
                 const result = await res.json();
@@ -2323,7 +2265,7 @@ function nurseApp() {
             if (!options.silent) this.isLoading = true;
             const task = (async () => {
             try {
-                const response = await fetch(`${this.API_URL}?action=getAssessmentPed&an=${an}&_=${Date.now()}`, { cache: 'no-store' });
+                const response = await fetch(`${this.API_URL}?action=getAssessmentPed&an=${an}`);
                 const data = await response.json();
         
                 if (data && Object.keys(data).length > 0) {
@@ -2417,7 +2359,7 @@ function nurseApp() {
             try {
                 const payload = { an: this.selectedPatient?.an, formData: data, ward: this.currentWard, bed: this.selectedPatient?.bed };
                 const res = await fetch(this.API_URL, {
-                    method: 'POST', cache: 'no-store',
+                    method: 'POST',
                     body: JSON.stringify({ action: 'saveAssessmentPed', payload: payload })
                 });
                 const result = await res.json();
@@ -2448,7 +2390,7 @@ function nurseApp() {
             const task = (async () => {
             try {
                 // เรียกใช้ fetch ไปที่ API_URL ของคุณ เหมือนฟังก์ชันอื่นๆ
-                const response = await fetch(`${this.API_URL}?action=getAssessmentInitial&an=${an}&_=${Date.now()}`, { cache: 'no-store' });
+                const response = await fetch(`${this.API_URL}?action=getAssessmentInitial&an=${an}`);
                 const data = await response.json();
         
                 if (data && Object.keys(data).length > 0) {
@@ -2536,7 +2478,7 @@ function nurseApp() {
             this.isEditing = false;
             this.resetForm();
             try {
-                const res = await fetch(`${this.API_URL}?action=getBeds&ward=${this.currentWard}&_=${Date.now()}`, { cache: 'no-store' });
+                const res = await fetch(`${this.API_URL}?action=getBeds&ward=${this.currentWard}`);
                 this.availableBeds = await res.json();
                 this.form.date = new Date().toISOString().split('T')[0];
                 this.form.time = new Date().toLocaleTimeString('th-TH', { hour12: false, hour: '2-digit', minute: '2-digit' });
@@ -2595,7 +2537,7 @@ function nurseApp() {
                 }
         
                 // 6. โหลดเตียงว่าง และเพิ่มเตียงปัจจุบันของคนไข้เข้าไปในตัวเลือก
-                const res = await fetch(`${this.API_URL}?action=getBeds&ward=${this.currentWard}&_=${Date.now()}`, { cache: 'no-store' });
+                const res = await fetch(`${this.API_URL}?action=getBeds&ward=${this.currentWard}`);
                 let fetchedBeds = await res.json();
                 this.availableBeds = Array.isArray(fetchedBeds) ? fetchedBeds : [];
                 
@@ -2629,7 +2571,7 @@ function nurseApp() {
         async fetchMoveBeds() {
             this.isLoading = true;
             try {
-                const res = await fetch(`${this.API_URL}?action=getBeds&ward=${this.moveForm.targetWard}&_=${Date.now()}`, { cache: 'no-store' });
+                const res = await fetch(`${this.API_URL}?action=getBeds&ward=${this.moveForm.targetWard}`);
                 this.moveBeds = await res.json();
             } catch (e) { this.moveBeds = []; }
             this.isLoading = false;
@@ -2654,7 +2596,7 @@ function nurseApp() {
             this.isLoading = true;
             try {
                 await fetch(this.API_URL, { 
-                    method: 'POST', cache: 'no-store', 
+                    method: 'POST', 
                     mode: 'no-cors', 
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action, payload }) 
@@ -3193,7 +3135,7 @@ function nurseApp() {
 
             const loadTask = (async () => {
                 if (pediatric) {
-                    const res = await fetch(`${this.API_URL}?action=getClassificationsPed&an=${an}&_=${Date.now()}`, { cache: 'no-store' });
+                    const res = await fetch(`${this.API_URL}?action=getClassificationsPed&an=${an}&_=${Date.now()}`);
                     const rawHistory = await res.json();
                     if (String(this.selectedPatient?.an || this.selectedPatient?.AN || '') !== String(an)) return [];
                     this.classHistoryPed = this.normalizePedClassificationHistory(rawHistory);
@@ -3203,7 +3145,7 @@ function nurseApp() {
                     return this.classHistoryPed;
                 }
 
-                const res = await fetch(`${this.API_URL}?action=getClassifications&an=${an}&_=${Date.now()}`, { cache: 'no-store' });
+                const res = await fetch(`${this.API_URL}?action=getClassifications&an=${an}&_=${Date.now()}`);
                 const rawHistory = await res.json();
                 if (String(this.selectedPatient?.an || this.selectedPatient?.AN || '') !== String(an)) return [];
                 this.classHistory = this.normalizeAdultClassificationHistory(rawHistory);
@@ -3309,7 +3251,7 @@ function nurseApp() {
             this.isLoading = true;
             try {
                 const response = await fetch(this.API_URL, {
-                    method: 'POST', cache: 'no-store',
+                    method: 'POST',
                     body: JSON.stringify({ action: 'saveClassificationPed', payload: payload }) // 
                 });
                 
@@ -3368,7 +3310,7 @@ function nurseApp() {
                 };
                 
                 const response = await fetch(this.API_URL, {
-                    method: 'POST', cache: 'no-store',
+                    method: 'POST',
                     body: JSON.stringify({ action: 'saveClassificationPed', payload: payload }) 
                 });
                 
@@ -3604,7 +3546,7 @@ function nurseApp() {
             try {
                 for (const payload of recordsToSave) {
                     await fetch(this.API_URL, {
-                        method: 'POST', cache: 'no-store',
+                        method: 'POST',
                         mode: 'no-cors',
                         body: JSON.stringify({ action: 'saveClassification', payload })
                     });
@@ -3804,7 +3746,7 @@ function nurseApp() {
             this.isLoading = true;
             try {
                 const response = await fetch(this.API_URL, {
-                    method: 'POST', cache: 'no-store',
+                    method: 'POST',
                     body: JSON.stringify({ action: 'saveClassification', payload: payload })
                 });
                 const res = await response.json();
@@ -3862,7 +3804,7 @@ function nurseApp() {
             this.isLoading = true;
             try {
                 const response = await fetch(this.API_URL, {
-                    method: 'POST', cache: 'no-store',
+                    method: 'POST',
                     body: JSON.stringify({ action: 'saveClassificationPed', payload })
                 });
                 const res = await response.json();
@@ -3913,7 +3855,7 @@ function nurseApp() {
             this.isLoading = true;
             try {
                 const response = await fetch(this.API_URL, {
-                    method: 'POST', cache: 'no-store',
+                    method: 'POST',
                     body: JSON.stringify(payload)
                 });
                 const res = await response.json();
@@ -3971,7 +3913,7 @@ function nurseApp() {
                 };
         
                 const response = await fetch(this.API_URL, {
-                    method: 'POST', cache: 'no-store',
+                    method: 'POST',
                     body: JSON.stringify(payload)
                 });
                 const res = await response.json();
@@ -4451,7 +4393,7 @@ function nurseApp() {
             this.isLoading = true;
             try {
                 const response = await fetch(this.API_URL, {
-                    method: 'POST', cache: 'no-store',
+                    method: 'POST',
                     body: JSON.stringify({ 
                         action: 'saveDischargeDate', 
                         an: an, 
@@ -4488,7 +4430,7 @@ function nurseApp() {
             if (!options.silent) this.isLoading = true;
 
             const loadTask = (async () => {
-                const response = await fetch(`${this.API_URL}?action=getFallRisk&an=${an}&_=${Date.now()}`, { cache: 'no-store' });
+                const response = await fetch(`${this.API_URL}?action=getFallRisk&an=${an}&_=${Date.now()}`);
                 if (!response.ok) throw new Error('Network response was not ok');
                 const rawHistory = await response.json();
                 if (String(this.selectedPatient?.an || this.selectedPatient?.AN || '') !== String(an)) return [];
@@ -4574,7 +4516,7 @@ function nurseApp() {
                 // แนะนำให้ส่งข้อมูลทีละ Record เพื่อความชัวร์ หรือปรับ API ให้รับ Array (แต่เบื้องต้นแก้ให้ส่งผ่านก่อน)
                 for (const payload of recordsToSave) {
                     const response = await fetch(this.API_URL, {
-                        method: 'POST', cache: 'no-store',
+                        method: 'POST',
                         // ห้ามใส่ mode: 'no-cors'
                         body: JSON.stringify({ action: 'saveFallRisk', payload: payload })
                     });
@@ -4626,7 +4568,7 @@ function nurseApp() {
             };
     
             const response = await fetch(this.API_URL, {
-                method: 'POST', cache: 'no-store',
+                method: 'POST',
                 body: JSON.stringify(payload)
             });
             const res = await response.json();
@@ -4942,7 +4884,7 @@ function nurseApp() {
             if (!options.force && this.isResourceFresh('braden_scale', an)) return this.bradenHistory;
             if (!options.silent) this.isLoading = true;
             try {
-                const r = await fetch(`${this.API_URL}?action=getBradenScale&an=${an}&_=${Date.now()}`, { cache: 'no-store' });
+                const r = await fetch(`${this.API_URL}?action=getBradenScale&an=${an}`);
                 const data = await r.json();
                 this.bradenHistory = data;
                 
@@ -5039,7 +4981,7 @@ function nurseApp() {
             this.isLoading = true;
             const payload = { ...this.bradenForm, an: this.selectedPatient.an, hn: this.selectedPatient.hn, ward: this.currentWard };
             try {
-                const res = await fetch(this.API_URL, { method: 'POST', cache: 'no-store', body: JSON.stringify({ action: 'saveBradenScale', payload }) });
+                const res = await fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveBradenScale', payload }) });
                 const out = await res.json();
                 if(out.status === 'success') {
                     this.showSuccess = true; 
@@ -5087,7 +5029,7 @@ function nurseApp() {
 
             try {
                 const res = await fetch(this.API_URL, { 
-                    method: 'POST', cache: 'no-store', 
+                    method: 'POST', 
                     body: JSON.stringify({ action: 'saveBradenScale', payload }) 
                 });
                 const out = await res.json();
@@ -5379,7 +5321,7 @@ function nurseApp() {
             this.isEduEditing = false; // ปิดโหมดแก้ไขไว้เสมอตอนเริ่มเปิด
             
             try {
-                const res = await fetch(`${this.API_URL}?action=getPatientEdu&an=${an}&_=${Date.now()}`, { cache: 'no-store' });
+                const res = await fetch(`${this.API_URL}?action=getPatientEdu&an=${an}`);
                 const data = await res.json();
                 
                 // ใช้ค่า Default เป็นฐาน ป้องกัน error กรณีก่อนหน้ามีข้อบกพร่อง
@@ -5427,7 +5369,7 @@ function nurseApp() {
                         ward: this.currentWard,
                         formData: this.eduForm
                     };
-                    const res = await fetch(this.API_URL, { method: 'POST', cache: 'no-store', body: JSON.stringify({ action: 'savePatientEdu', payload }) });
+                    const res = await fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'savePatientEdu', payload }) });
                     const out = await res.json();
                     
                     if(out.status === 'success') {
@@ -5716,7 +5658,7 @@ function nurseApp() {
                 
                 try {
                     const payload = { problemName: pName, focus: this.focusForm.focus, goal: this.focusForm.goal };
-                    const res = await fetch(this.API_URL, { method: 'POST', cache: 'no-store', body: JSON.stringify({ action: 'saveFocusTemplate', payload }) });
+                    const res = await fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveFocusTemplate', payload }) });
                     const out = await res.json();
                     
                     if(out.status === 'success') {
@@ -5742,7 +5684,7 @@ function nurseApp() {
                         focus: this.pnForm.focus, 
                         s: this.pnForm.s, o: this.pnForm.o, i: this.pnForm.i, e: this.pnForm.e 
                     };
-                    const res = await fetch(this.API_URL, { method: 'POST', cache: 'no-store', body: JSON.stringify({ action: 'saveNursingTemplate', payload }) });
+                    const res = await fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveNursingTemplate', payload }) });
                     const out = await res.json();
                     
                     if(out.status === 'success') {
@@ -5766,7 +5708,7 @@ function nurseApp() {
             if (!options.silent) this.isLoading = true;
             try {
                 // โหลด List ของคนไข้
-                const res = await fetch(`${this.API_URL}?action=getFocusList&an=${an}&_=${Date.now()}`, { cache: 'no-store' });
+                const res = await fetch(`${this.API_URL}?action=getFocusList&an=${an}`);
                 this.focusList = await res.json() || [];
                 
                 // โหลด Template ทั้งหมด
@@ -5836,7 +5778,7 @@ function nurseApp() {
                     ward: this.currentWard,
                     focusData: this.focusList
                 };
-                const res = await fetch(this.API_URL, { method: 'POST', cache: 'no-store', body: JSON.stringify({ action: 'saveFocusList', payload }) });
+                const res = await fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveFocusList', payload }) });
                 const out = await res.json();
                 
                 if(out.status === 'success') {
@@ -6018,72 +5960,32 @@ function nurseApp() {
         // ==========================================
         async loadProgressNotesInit(options = {}) {
             const an = this.selectedPatient?.an;
-            if (!an) {
-                console.warn('[NursingNotes] loadProgressNotesInit cancelled: No AN provided');
-                return [];
-            }
+            if (!an) return [];
             if (!options.force && this.isResourceFresh('progress_note', an)) {
-                console.log('[NursingNotes] Resource is fresh, returning cached notes');
                 return this.progressNotes;
             }
             if (!options.silent) this.isLoading = true;
-            this.progressNotesFetchError = false;
-
             try {
-                console.log(`[NursingNotes] Fetching notes for AN: ${an}`);
                 // ดึง Note ของผู้ป่วย
-                const res = await fetch(`${this.API_URL}?action=getNursingNotes&an=${an}&_=${Date.now()}`, { cache: 'no-store' });
-                if (!res.ok) {
-                    throw new Error(`HTTP error! status: ${res.status}`);
-                }
-                const rawData = await res.json();
-                let notes = Array.isArray(rawData) ? rawData : [];
+                const res = await fetch(`${this.API_URL}?action=getNursingNotes&an=${an}`);
+                let notes = await res.json() || [];
                 
-                // Safe parsing and mapping of notes
-                notes = notes.map(item => ({
-                    id: String(item?.id || new Date().getTime().toString()),
-                    date: item?.date || this.getTodayDateInput(),
-                    shift: item?.shift || 'เช้า (08.00-16.00)',
-                    time: item?.time || '',
-                    focus: item?.focus || '',
-                    s: item?.s || '',
-                    o: item?.o || '',
-                    i: item?.i || '',
-                    e: item?.e || '',
-                    eTime: item?.eTime || '',
-                    nurse: item?.nurse || '',
-                    pos: item?.pos || '',
-                    updated_at: item?.updated_at || null
-                }));
-
-                // สั่งเรียงลำดับจาก "ใหม่ล่าสุด" ไป "เก่า" (อิงจาก ID หรือ Date/Time)
+                // สั่งเรียงลำดับจาก "ใหม่ล่าสุด" ไป "เก่า" (อิงจาก ID ที่ตั้งเป็น Timestamp ไว้)
                 this.progressNotes = notes.sort((a, b) => Number(b.id) - Number(a.id));
-                this.lastProgressNotesUpdated_at = new Date().toISOString();
-                console.log(`[NursingNotes] Loaded ${this.progressNotes.length} notes successfully`);
                 
                 // ดึง Template กลาง
                 this.nursingTemplates = await this.loadTemplateCollection('nursingTemplates', 'getNursingTemplates', options.force === true);
                 
                 // ตรวจสอบ Focus List เผื่อมีการสั่งซิงค์ข้ามไฟล์
                 if (!this.focusList || this.focusList.length === 0) {
-                    const resF = await fetch(`${this.API_URL}?action=getFocusList&an=${an}&_=${Date.now()}`, { cache: 'no-store' });
-                    if (resF.ok) {
-                        const focusData = await resF.json();
-                        this.focusList = Array.isArray(focusData) ? focusData : [];
-                    }
+                    const resF = await fetch(`${this.API_URL}?action=getFocusList&an=${an}`);
+                    this.focusList = await resF.json() || [];
                 }
 
                 this.clearProgressForm();
                 this.markResourceLoaded('progress_note', an);
-            } catch (e) {
-                console.error('[NursingNotes] Error loading progress notes:', e);
-                this.progressNotesFetchError = true;
-                if (!options.silent) {
-                    this.focusAlert(`ไม่สามารถโหลดประวัติบันทึกทางการพยาบาลได้: ${e.message}`);
-                }
-            } finally {
-                if (!options.silent) this.isLoading = false;
-            }
+            } catch (e) { console.error(e); }
+            if (!options.silent) this.isLoading = false;
         },
 
         clearProgressForm() {
@@ -6092,85 +5994,47 @@ function nurseApp() {
                 time: new Date().toTimeString().slice(0, 5), 
                 focus: '', s: '', o: '', i: '', e: '', eTime: '',
                 nurse: this.nurseName, pos: this.nursePosition, 
-                addToFocusList: false,
-                updated_at: null
+                addToFocusList: false 
             };
             this.editingProgressIndex = -1;
         },
 
         async addOrUpdateProgressNote() {
-            if (this.isLoading || this.isSavingProgress) {
-                console.warn('[NursingNotes] Save action ignored: System is busy (isLoading or isSavingProgress)');
-                return;
-            }
-
             if (!this.pnForm.focus || (!this.pnForm.s && !this.pnForm.o && !this.pnForm.i && !this.pnForm.e)) {
-                this.focusAlert('กรุณากรอก FOCUS และรายละเอียดอย่างน้อย 1 ช่อง (S,O,I,E)');
-                return;
+                this.focusAlert('กรุณากรอก FOCUS และรายละเอียดอย่างน้อย 1 ช่อง (S,O,I,E)'); return;
+            }
+            
+            const newItem = { ...this.pnForm, id: this.pnForm.id || new Date().getTime().toString() };
+            
+            if (this.editingProgressIndex > -1) {
+                this.progressNotes[this.editingProgressIndex] = newItem;
+            } else {
+                this.progressNotes.unshift(newItem);
             }
 
-            this.isSavingProgress = true;
-            try {
-                const nowTimestamp = new Date().toISOString();
-                const isEditMode = this.editingProgressIndex > -1 || !!this.pnForm.id;
-
-                const newItem = { 
-                    ...this.pnForm, 
-                    id: this.pnForm.id || new Date().getTime().toString(),
-                    updated_at: nowTimestamp
-                };
-                
-                // Clone existing progress notes array to trigger Alpine re-render explicitly
-                const updatedNotes = [...this.progressNotes];
-
-                if (isEditMode) {
-                    const targetIndex = this.editingProgressIndex > -1 
-                        ? this.editingProgressIndex 
-                        : updatedNotes.findIndex(n => String(n.id) === String(newItem.id));
-                    
-                    if (targetIndex > -1) {
-                        updatedNotes[targetIndex] = newItem;
-                        console.log(`[NursingNotes] Updating existing note ID: ${newItem.id} at index ${targetIndex}`);
-                    } else {
-                        updatedNotes.unshift(newItem);
-                        console.log(`[NursingNotes] Note ID specified but not found in list. Unshifting as new note ID: ${newItem.id}`);
-                    }
-                } else {
-                    updatedNotes.unshift(newItem);
-                    console.log(`[NursingNotes] Creating new note ID: ${newItem.id}`);
+            // --- ซิงค์เข้า Focus List อัตโนมัติ ---
+            if (this.pnForm.addToFocusList) {
+                // เช็คว่ามีปัญหาชื่อเดียวกันใน Focus List ไหม
+                const exist = this.focusList.find(f => f.focus === this.pnForm.focus);
+                if (!exist) {
+                    this.focusList.push({
+                        id: new Date().getTime().toString(),
+                        focus: this.pnForm.focus,
+                        goal: '-',
+                        startDate: this.pnForm.date,
+                        endDate: ''
+                    });
+                    // เซฟ Focus List ขึ้น DB ทันที
+                    const pF = { an: this.selectedPatient.an, hn: this.selectedPatient.hn, ward: this.currentWard, focusData: this.focusList };
+                    fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveFocusList', payload: pF }) });
                 }
-
-                this.progressNotes = updatedNotes;
-
-                // --- ซิงค์เข้า Focus List อัตโนมัติ ---
-                if (this.pnForm.addToFocusList) {
-                    const exist = (this.focusList || []).find(f => f && f.focus === this.pnForm.focus);
-                    if (!exist) {
-                        const newFocusList = [...(this.focusList || []), {
-                            id: new Date().getTime().toString(),
-                            focus: this.pnForm.focus,
-                            goal: '-',
-                            startDate: this.pnForm.date,
-                            endDate: ''
-                        }];
-                        this.focusList = newFocusList;
-                        const pF = { an: this.selectedPatient.an, hn: this.selectedPatient.hn, ward: this.currentWard, focusData: this.focusList };
-                        fetch(this.API_URL, { method: 'POST', cache: 'no-store', body: JSON.stringify({ action: 'saveFocusList', payload: pF }) }).catch(err => console.error('[NursingNotes] Save focus list error:', err));
-                    }
-                }
-
-                this.clearProgressForm();
-                await this.saveProgressToDB();
-            } catch (err) {
-                console.error('[NursingNotes] Error in addOrUpdateProgressNote:', err);
-                this.focusAlert(`เกิดข้อผิดพลาดขณะบันทึกข้อมูล: ${err.message}`);
-            } finally {
-                this.isSavingProgress = false;
             }
+
+            this.clearProgressForm();
+            await this.saveProgressToDB();
         },
 
         async deleteProgressNote(index) {
-            if (this.isLoading || this.isSavingProgress) return;
             this.focusModal = { show: true, type: 'confirm_progress', msg: 'ยืนยันการลบบันทึกพยาบาลนี้?', input: '', index: index };
         },
 
@@ -6180,33 +6044,19 @@ function nurseApp() {
                 return false;
             }
             try {
-                const payload = { 
-                    an: this.selectedPatient.an, 
-                    hn: this.selectedPatient.hn, 
-                    ward: this.currentWard, 
-                    noteData: this.progressNotes,
-                    last_updated_at: this.lastProgressNotesUpdated_at 
-                };
-
-                console.log('[NursingNotes] Sending save payload to API...');
-                const response = await fetch(this.API_URL, { method: 'POST', cache: 'no-store', body: JSON.stringify({ action: 'saveNursingNotes', payload }) });
-                if (!response.ok) {
-                    throw new Error(`HTTP Error status: ${response.status}`);
-                }
+                const payload = { an: this.selectedPatient.an, hn: this.selectedPatient.hn, ward: this.currentWard, noteData: this.progressNotes };
+                const response = await fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveNursingNotes', payload }) });
                 const result = await response.json();
                 if (result.status !== 'success') {
                     throw new Error(result.message || 'บันทึก Nursing Progress Note ไม่สำเร็จ');
                 }
-                
-                this.lastProgressNotesUpdated_at = new Date().toISOString();
                 this.markResourceLoaded('progress_note', this.selectedPatient.an);
                 
-                this.showSuccess = true; 
-                this.successMsg = 'ซิงค์ข้อมูลลงฐานข้อมูลเรียบร้อย';
+                this.showSuccess = true; this.successMsg = 'ซิงค์ข้อมูลลงฐานข้อมูลเรียบร้อย';
                 setTimeout(() => { this.showSuccess = false; }, 3000);
                 return true;
             } catch(e) {
-                console.error('[NursingNotes] saveProgressToDB failed:', e);
+                console.error(e);
                 this.focusAlert(`บันทึกข้อมูลไม่สำเร็จ: ${e.message}`);
                 return false;
             }
@@ -6220,7 +6070,6 @@ function nurseApp() {
 
         // --- ระบบ Template & Re-Problem ---
         saveProgressAsTemplate() {
-            if (this.isLoading || this.isSavingProgress) return;
             if (!this.pnForm.focus) { 
                 this.focusAlert('กรุณากรอก FOCUS ก่อนสร้าง Template'); return; 
             }
@@ -6254,7 +6103,7 @@ function nurseApp() {
             this.isLoading = true;
             try {
                 const payload = { ...this.newTemplateForm };
-                const res = await fetch(this.API_URL, { method: 'POST', cache: 'no-store', body: JSON.stringify({ action: 'saveNursingTemplate', payload }) });
+                const res = await fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveNursingTemplate', payload }) });
                 const out = await res.json();
                 
                 if (out.status === 'success') {
@@ -6662,7 +6511,7 @@ function nurseApp() {
         async loadNutritionAssessmentInit() {
             this.isLoading = true;
             try {
-                const res = await fetch(`${this.API_URL}?action=getNutritionAssessment&an=${this.selectedPatient.an}&_=${Date.now()}`, { cache: 'no-store' });
+                const res = await fetch(`${this.API_URL}?action=getNutritionAssessment&an=${this.selectedPatient.an}`);
                 const data = await res.json();
                 this.nutritionForm = this.normalizeNutritionForm(data);
             } catch (e) {
@@ -6683,7 +6532,7 @@ function nurseApp() {
                     formData: this.nutritionForm
                 };
                 const response = await fetch(this.API_URL, {
-                    method: 'POST', cache: 'no-store',
+                    method: 'POST',
                     body: JSON.stringify({ action: 'saveNutritionAssessment', payload })
                 });
                 const result = await response.json();
@@ -7067,7 +6916,7 @@ function nurseApp() {
         async loadDischargeRecordInit() {
             this.isLoading = true;
             try {
-                const res = await fetch(`${this.API_URL}?action=getDischargeRecord&an=${this.selectedPatient.an}&_=${Date.now()}`, { cache: 'no-store' });
+                const res = await fetch(`${this.API_URL}?action=getDischargeRecord&an=${this.selectedPatient.an}`);
                 const data = await res.json();
                 // ถ้ามีข้อมูลเดิมให้ดึงมาแสดง ถ้าไม่มีให้ใช้ฟอร์มเปล่า
                 this.dischargeForm = (data && Object.keys(data).length > 0) ? data : this.defaultDischargeForm();
@@ -7096,7 +6945,7 @@ function nurseApp() {
                 };
 
                 const response = await fetch(this.API_URL, {
-                    method: 'POST', cache: 'no-store',
+                    method: 'POST',
                     body: JSON.stringify(requestData)
                 });
                 
@@ -7324,21 +7173,21 @@ function nurseApp() {
                 if (this.selectedPrintForms.includes('braden_scale')) await this.loadBraden(this.selectedPatient.an);
                 if (this.selectedPrintForms.includes('patient_edu')) await this.loadPatientEdu(this.selectedPatient.an);
                 if (this.selectedPrintForms.includes('focus_list')) {
-                    const resF = await fetch(`${this.API_URL}?action=getFocusList&an=${this.selectedPatient.an}&_=${Date.now()}`, { cache: 'no-store' });
+                    const resF = await fetch(`${this.API_URL}?action=getFocusList&an=${this.selectedPatient.an}`);
                     this.focusList = await resF.json() || [];
                 }
                 if (this.selectedPrintForms.includes('progress_note')) {
-                    const resN = await fetch(`${this.API_URL}?action=getNursingNotes&an=${this.selectedPatient.an}&_=${Date.now()}`, { cache: 'no-store' });
+                    const resN = await fetch(`${this.API_URL}?action=getNursingNotes&an=${this.selectedPatient.an}`);
                     let notes = await resN.json() || [];
                     this.progressNotes = notes.sort((a, b) => Number(b.id) - Number(a.id));
                 }
                 if (this.selectedPrintForms.includes('discharge_record')) {
-                    const resD = await fetch(`${this.API_URL}?action=getDischargeRecord&an=${this.selectedPatient.an}&_=${Date.now()}`, { cache: 'no-store' });
+                    const resD = await fetch(`${this.API_URL}?action=getDischargeRecord&an=${this.selectedPatient.an}`);
                     const data = await resD.json();
                     this.dischargeForm = (data && Object.keys(data).length > 0) ? data : this.defaultDischargeForm();
                 }
                 if (this.selectedPrintForms.includes('nutrition_assessment')) {
-                    const resNutrition = await fetch(`${this.API_URL}?action=getNutritionAssessment&an=${this.selectedPatient.an}&_=${Date.now()}`, { cache: 'no-store' });
+                    const resNutrition = await fetch(`${this.API_URL}?action=getNutritionAssessment&an=${this.selectedPatient.an}`);
                     const dataNutrition = await resNutrition.json();
                     this.nutritionForm = this.normalizeNutritionForm(dataNutrition);
                 }
@@ -7463,7 +7312,7 @@ function nurseApp() {
             try {
                 // ลบ headers ออกเพื่อแก้ปัญหา CORS
                 const response = await fetch(this.API_URL, {
-                    method: 'POST', cache: 'no-store',
+                    method: 'POST',
                     body: JSON.stringify({
                         action: 'dischargePatient',
                         an: this.selectedPatient.an
@@ -7509,7 +7358,7 @@ function nurseApp() {
             this.dischargedPatients = [];
             try {
                 const response = await fetch(this.API_URL, {
-                    method: 'POST', cache: 'no-store',
+                    method: 'POST',
                     body: JSON.stringify({
                         action: 'searchDischargedPatients',
                         payload: { 
@@ -7558,7 +7407,7 @@ function nurseApp() {
             this.isLoading = true;
             try {
                 const response = await fetch(this.API_URL, {
-                    method: 'POST', cache: 'no-store',
+                    method: 'POST',
                     body: JSON.stringify({
                         action: 'undoDischargePatient',
                         an: this.selectedPatient.an || this.selectedPatient.AN
