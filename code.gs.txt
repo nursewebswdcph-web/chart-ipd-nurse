@@ -1,0 +1,2717 @@
+/**
+ * IPD Nurse Workbench Backend API (Full Updated 2026)
+ */
+
+function doGet(e) {
+  const action = e.parameter.action;
+  const ward = e.parameter.ward;
+  const an = e.parameter.an;
+  const sessionToken = e.parameter.sessionToken;
+  const username = e.parameter.username;
+  const password = e.parameter.password;
+  
+  if (action === 'getInitData') return res(getInitData(ward));
+  if (action === 'getSessionUser') return res(getSessionUser(sessionToken));
+  if (action === 'loginUser') return res(loginUser({ username: username, password: password }));
+  if (action === 'getBeds') return res(getBeds(ward));
+  if (action === 'getPatients') return res(getPatients(ward));
+  if (action === 'getAssessmentInitial') return res(getAssessmentInitial(an));
+  if (action === 'getAssessmentPed') return res(getAssessmentPed(an));
+  if (action === 'getClassifications') return res(getClassifications(an));
+  if (action === 'getClassificationsPed') return res(getClassificationsPed(an));
+  if (action === 'getFallRisk') return res(getFallRisk(an));
+  if (action === 'getBradenScale') return res(getBradenScale(an));
+  if (action === 'getPatientEdu') return res(getPatientEdu(an));
+  if (action === 'getFocusList') return res(getFocusList(an));
+  if (action === 'getFocusTemplates') return res(getFocusTemplates());
+  if (action === 'getNursingNotes') return res(getNursingNotes(an));
+  if (action === 'getNursingTemplates') return res(getNursingTemplates());
+  if (action === 'getDischargeRecord') return res(getDischargeRecord(an));
+  if (action === 'getNutritionAssessment') return res(getNutritionAssessment(an));
+  return HtmlService.createHtmlOutput("API is running");
+}
+
+function doPost(e) {
+  const data = JSON.parse(e.postData.contents);
+  const action = data.action;
+  const p = data.payload; // payload ที่ส่งมาจากJavaScript
+  
+  switch(action) {
+    case 'admitPatient': return res(admitPatient(p));
+    case 'editPatient': return res(editPatient(p));
+    case 'addDoctor': return res(addDoctor(p.name));
+    case 'moveBed': return res(moveBed(p));
+    case 'moveWard': return res(moveWard(p));
+    case 'discharge': return res(discharge(p));
+    case 'movePatient': return res(movePatient(p));
+    case 'saveAssessmentInitial': return res(saveAssessmentInitial(p.an, p.formData, p));
+    case 'saveAssessmentPed': return res(saveAssessmentPed(p.an, p.formData, p));
+    
+    case 'saveClassification': return res(saveClassification(p));
+    case 'saveClassificationSingle': return res(saveClassificationSingle(data)); // แก้ไขให้เป็นcase
+    case 'deleteClassification': return res(deleteClassification(p));
+    case 'saveClassificationPed': return res(saveClassificationPed(p));
+    case 'deleteClassificationPed': return res(deleteClassificationPed(p));
+    
+    case 'saveDischargeDate': return res(saveDischargeDate(p));
+    
+    case 'saveFallRisk': return res(saveFallRisk(p));
+    case 'saveFallRiskSingle': return res(saveFallRiskSingle(data)); // แก้ไขให้เป็นcase
+    case 'deleteFallRisk': return res(deleteFallRisk(p));
+    
+    case 'saveBradenScale': return res(saveBradenScale(p));
+    case 'savePatientEdu': return res(savePatientEdu(p));
+    case 'saveFocusList': return res(saveFocusList(p));
+    case 'saveFocusTemplate': return res(saveFocusTemplate(p));
+    case 'saveNursingNotes': return res(saveNursingNotes(p));
+    case 'saveNursingTemplate': return res(saveNursingTemplate(p));
+    case 'saveDischargeRecord': return res(saveDischargeRecord(p));
+    case 'saveNutritionAssessment': return res(saveNutritionAssessment(p));
+    case 'dischargePatient': return res(processDischargePatient(data));
+    case 'searchDischargedPatients': return res(searchDischargedPatients(p));
+    case 'undoDischargePatient': return res(undoDischargePatient(data));
+    case 'sendRegistrationVerification': return res(sendRegistrationVerification(p));
+    case 'verifyRegistrationCode': return res(verifyRegistrationCode(p));
+    case 'loginUser': return res(loginUser(p));
+    case 'sendPasswordResetLink': return res(sendPasswordResetLink(p));
+    case 'resetPasswordWithToken': return res(resetPasswordWithToken(p));
+    case 'logoutUser': return res(logoutUser(p));
+    case 'getSessionUser': return res(getSessionUser(p && p.sessionToken));
+    case 'createServiceRequest': return res(createServiceRequest(p));
+    case 'getServiceRequests': return res(getServiceRequests(p));
+    case 'updateServiceRequestStatus': return res(updateServiceRequestStatus(p));
+    default: return res({status: 'error', message: 'Invalid Action'});
+  }
+}
+
+function res(data) {
+  return ContentService.createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+function authorizeMailService() {
+  return MailApp.getRemainingDailyQuota();
+}
+function getAppWebUrl_() {
+  const props = PropertiesService.getScriptProperties();
+  const configured = String(props.getProperty('APP_WEB_URL') || '').trim();
+  if (configured) return configured;
+  return 'https://nursewebswdcph-web.github.io/chart-ipd-nurse/';
+}
+function truncateLineText_(value, maxLength) {
+  const text = String(value || '').trim();
+  if (!text || text.length <= maxLength) return text;
+  return text.slice(0, Math.max(0, maxLength - 1)).trim() + '…';
+}
+function buildLineServiceFlexMessage_(request, appUrl) {
+  const openUrl = String(appUrl || '').trim() || getAppWebUrl_();
+  const displayTime = request.createdAt || Utilities.formatDate(new Date(), APP_TIMEZONE, 'yyyy-MM-dd HH:mm:ss');
+  return {
+    type: 'flex',
+    altText: `IT Nurse Service: ${truncateLineText_(request.subject, 50) || request.requestId || 'มีคำขอใหม่'}`,
+    contents: {
+      type: 'bubble',
+      size: 'giga',
+      header: {
+        type: 'box',
+        layout: 'vertical',
+        backgroundColor: '#0F766E',
+        paddingAll: '16px',
+        contents: [
+          {
+            type: 'text',
+            text: 'IT Nurse Service',
+            color: '#FFFFFF',
+            weight: 'bold',
+            size: 'sm'
+          },
+          {
+            type: 'text',
+            text: 'มีคำขอใหม่เข้าระบบ',
+            color: '#D1FAE5',
+            weight: 'bold',
+            size: 'xl',
+            margin: 'sm'
+          },
+          {
+            type: 'text',
+            text: String(request.requestId || '-'),
+            color: '#CCFBF1',
+            size: 'xs',
+            margin: 'md'
+          }
+        ]
+      },
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        spacing: 'md',
+        paddingAll: '16px',
+        contents: [
+          {
+            type: 'box',
+            layout: 'vertical',
+            spacing: 'sm',
+            contents: [
+              { type: 'text', text: 'หัวข้อ', size: 'xs', color: '#64748B', weight: 'bold' },
+              { type: 'text', text: truncateLineText_(request.subject, 100) || '-', wrap: true, size: 'md', weight: 'bold', color: '#0F172A' }
+            ]
+          },
+          {
+            type: 'separator',
+            margin: 'sm'
+          },
+          {
+            type: 'box',
+            layout: 'vertical',
+            spacing: 'sm',
+            margin: 'sm',
+            contents: [
+              {
+                type: 'box',
+                layout: 'baseline',
+                spacing: 'sm',
+                contents: [
+                  { type: 'text', text: 'ผู้แจ้ง', flex: 2, size: 'sm', color: '#64748B', weight: 'bold' },
+                  { type: 'text', text: truncateLineText_(request.requesterName, 40) || '-', flex: 5, size: 'sm', color: '#0F172A', wrap: true }
+                ]
+              },
+              {
+                type: 'box',
+                layout: 'baseline',
+                spacing: 'sm',
+                contents: [
+                  { type: 'text', text: 'ประเภท', flex: 2, size: 'sm', color: '#64748B', weight: 'bold' },
+                  { type: 'text', text: truncateLineText_(request.category, 40) || '-', flex: 5, size: 'sm', color: '#0F172A', wrap: true }
+                ]
+              },
+              {
+                type: 'box',
+                layout: 'baseline',
+                spacing: 'sm',
+                contents: [
+                  { type: 'text', text: 'หน่วยงาน', flex: 2, size: 'sm', color: '#64748B', weight: 'bold' },
+                  { type: 'text', text: truncateLineText_(request.department, 40) || '-', flex: 5, size: 'sm', color: '#0F172A', wrap: true }
+                ]
+              },
+              {
+                type: 'box',
+                layout: 'baseline',
+                spacing: 'sm',
+                contents: [
+                  { type: 'text', text: 'เวลา', flex: 2, size: 'sm', color: '#64748B', weight: 'bold' },
+                  { type: 'text', text: displayTime, flex: 5, size: 'sm', color: '#0F172A', wrap: true }
+                ]
+              },
+              {
+                type: 'box',
+                layout: 'baseline',
+                spacing: 'sm',
+                contents: [
+                  { type: 'text', text: 'สถานะ', flex: 2, size: 'sm', color: '#64748B', weight: 'bold' },
+                  { type: 'text', text: truncateLineText_(request.status, 24) || 'ใหม่', flex: 5, size: 'sm', color: '#EA580C', weight: 'bold', wrap: true }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      footer: {
+        type: 'box',
+        layout: 'vertical',
+        spacing: 'sm',
+        paddingAll: '16px',
+        contents: [
+          {
+            type: 'button',
+            style: 'primary',
+            color: '#0F766E',
+            action: {
+              type: 'uri',
+              label: 'เปิดรายการในระบบ',
+              uri: openUrl
+            }
+          },
+          {
+            type: 'text',
+            text: 'แตะเพื่อเข้าไปดูและอัปเดตคำขอในหน้าเว็บ',
+            size: 'xs',
+            color: '#94A3B8',
+            wrap: true,
+            margin: 'sm',
+            align: 'center'
+          }
+        ]
+      }
+    }
+  };
+}
+function testLineNotification() {
+  const props = PropertiesService.getScriptProperties();
+  const channelAccessToken = String(props.getProperty('LINE_CHANNEL_ACCESS_TOKEN') || '').trim();
+  const adminUserId = String(props.getProperty('LINE_ADMIN_USER_ID') || '').trim();
+
+  if (!channelAccessToken) {
+    throw new Error('ยังไม่ได้ตั้งScript Property: LINE_CHANNEL_ACCESS_TOKEN');
+  }
+  if (!adminUserId) {
+    throw new Error('ยังไม่ได้ตั้งScript Property: LINE_ADMIN_USER_ID');
+  }
+  if (!/^U[0-9a-f]{32}$/i.test(adminUserId) && !/^C[0-9a-f]{32}$/i.test(adminUserId) && !/^R[0-9a-f]{32}$/i.test(adminUserId)) {
+    throw new Error('ค่าLINE_ADMIN_USER_ID ต้องเป็นuserId/groupId/roomId ของLINE เช่นUxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
+  }
+
+  const payload = {
+    to: adminUserId,
+    messages: [
+      buildLineServiceFlexMessage_({
+        requestId: 'SRV-TEST-0001',
+        requesterName: 'ทดสอบระบบ',
+        category: 'ทดสอบการเชื่อมต่อLINE',
+        department: 'ศูนย์ทดสอบระบบ',
+        subject: 'Flex Message ทำงานเรียบร้อย',
+        createdAt: Utilities.formatDate(new Date(), APP_TIMEZONE, 'yyyy-MM-dd HH:mm:ss'),
+        status: 'ใหม่'
+      }, getAppWebUrl_())
+    ]
+  };
+
+  const response = UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', {
+    method: 'post',
+    contentType: 'application/json',
+    headers: {
+      Authorization: 'Bearer ' + channelAccessToken
+    },
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  });
+
+  return {
+    statusCode: response.getResponseCode(),
+    body: response.getContentText()
+  };
+}
+const APP_TIMEZONE = 'Asia/Bangkok';
+const AUTH_SESSION_HOURS = 12;
+const AUTH_VERIFY_MINUTES = 15;
+const PASSWORD_RESET_MINUTES = 30;
+const ADMIN_USERNAME = '11450';
+const ADMIN_PASSWORD = '11450';
+const SHIFT_ORDER = {
+  'ดึก': 1,
+  'เช้า': 2,
+  'บ่าย': 3
+};
+
+// --- ฟังก์ชันดึงข้อมูลต่างๆ(คงเดิมตามระบบคุณ) ---
+// ==========================================
+// ฟังก์ชันจัดการวันที่ให้เป็นYYYY-MM-DD แบบปลอดภัย(แก้ปัญหาเวลาเหลื่อม7 ชม.)
+// ==========================================
+function formatSafeDate(value) {
+  if (!value) return "";
+  // ตรวจสอบว่าเป็นObject Date แบบชัวร์ๆ
+  if (Object.prototype.toString.call(value) === '[object Date]') {
+    return Utilities.formatDate(value, "Asia/Bangkok", "yyyy-MM-dd");
+  }
+  // หากเป็นString ที่ติดTimezone มา(เช่น2026-03-09T17:00:00.000Z)
+  if (typeof value === 'string' && value.includes('T')) {
+    return value.split('T')[0];
+  }
+  // กรณีเป็นString ปกติหรืออื่นๆ
+  return value;
+}
+function normalizeEvalDate(value) {
+  if (!value) return "";
+  if (Object.prototype.toString.call(value) === '[object Date]') {
+    return Utilities.formatDate(value, APP_TIMEZONE, "yyyy-MM-dd");
+  }
+
+  const str = String(value).trim();
+  if (!str) return "";
+
+  const isoMatch = str.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+
+  const slashMatch = str.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (slashMatch) {
+    return `${slashMatch[3]}-${String(slashMatch[2]).padStart(2, '0')}-${String(slashMatch[1]).padStart(2, '0')}`;
+  }
+
+  if (str.includes('T')) {
+    return str.split('T')[0];
+  }
+
+  const parsed = new Date(str);
+  if (!isNaN(parsed.getTime())) {
+    return Utilities.formatDate(parsed, APP_TIMEZONE, "yyyy-MM-dd");
+  }
+
+  return str;
+}
+function spreadsheetSerialToDate(value) {
+  if (typeof value !== 'number' || !isFinite(value)) return null;
+  const utcMs = Math.round((value - 25569) * 86400 * 1000);
+  const date = new Date(utcMs);
+  return isNaN(date.getTime()) ? null : date;
+}
+function normalizeSheetDisplayText(rawValue, displayValue) {
+  const displayText = String(displayValue || '').trim();
+  if (displayText) return displayText;
+  if (rawValue === null || rawValue === undefined) return '';
+  if (Object.prototype.toString.call(rawValue) === '[object Date]') {
+    return Utilities.formatDate(rawValue, APP_TIMEZONE, 'yyyy-MM-dd HH:mm:ss');
+  }
+  return String(rawValue).trim();
+}
+function normalizeCurrentPatientCell(header, rawValue, displayValue) {
+  const key = String(header || '').trim().toLowerCase();
+  if (rawValue === null || rawValue === undefined) return '';
+
+  const isDateField =
+    key === 'date' ||
+    key === 'dob' ||
+    key === 'admitdate' ||
+    key === 'dischargedate' ||
+    key === 'วันที่' ||
+    key === 'วันเกิด' ||
+    key === 'วันที่จำหน่าย';
+
+  if (isDateField) {
+    return normalizeEvalDate(rawValue) || normalizeEvalDate(displayValue) || '';
+  }
+
+  const isTimeField =
+    key === 'time' ||
+    key === 'admittime' ||
+    key === 'เวลา';
+
+  if (isTimeField) {
+    if (Object.prototype.toString.call(rawValue) === '[object Date]') {
+      return Utilities.formatDate(rawValue, APP_TIMEZONE, 'HH:mm');
+    }
+    const rawText = String(rawValue || '').trim();
+    if (!rawText) return '';
+    if (rawText.includes('T')) {
+      const timePart = rawText.split('T')[1] || '';
+      return timePart.substring(0, 5);
+    }
+    const match = rawText.match(/\d{1,2}:\d{2}/);
+    if (match) return match[0];
+    return String(displayValue || rawText).trim();
+  }
+
+  return normalizeSheetDisplayText(rawValue, displayValue);
+}
+function normalizeRegistrySearchDate(rawValue, displayValue) {
+  if (Object.prototype.toString.call(rawValue) === '[object Date]') {
+    return Utilities.formatDate(rawValue, APP_TIMEZONE, 'yyyy-MM-dd');
+  }
+  if (typeof rawValue === 'number' && isFinite(rawValue)) {
+    const parsedDate = spreadsheetSerialToDate(rawValue);
+    if (parsedDate) {
+      return Utilities.formatDate(parsedDate, APP_TIMEZONE, 'yyyy-MM-dd');
+    }
+  }
+
+  const normalizedDisplay = normalizeEvalDate(displayValue);
+  if (normalizedDisplay) return normalizedDisplay;
+
+  return normalizeEvalDate(rawValue);
+}
+function isSameSheetIdentifier(rawValue, displayValue, targetValue) {
+  const targetText = String(targetValue || '').trim();
+  if (!targetText) return false;
+  return normalizeSheetDisplayText(rawValue, displayValue) === targetText ||
+    String(rawValue || '').trim() === targetText;
+}
+function normalizeHeaderKey(value) {
+  return String(value || '').trim().toLowerCase();
+}
+function serializeRegistryHistoryValue(headerKey, rawValue, displayValue, dischargeDateValue) {
+  if (headerKey === 'an' || headerKey === 'hn' || headerKey === 'ward' || headerKey === 'bed' || headerKey === 'ตึก' || headerKey === 'เตียง') {
+    return normalizeSheetDisplayText(rawValue, displayValue);
+  }
+
+  if (headerKey === 'dischargedate' || headerKey === 'วันที่จำหน่าย') {
+    return normalizeEvalDate(dischargeDateValue || rawValue || displayValue);
+  }
+
+  if (Object.prototype.toString.call(rawValue) === '[object Date]') {
+    return Utilities.formatDate(rawValue, APP_TIMEZONE, 'yyyy-MM-dd');
+  }
+
+  return displayValue !== undefined && displayValue !== null && displayValue !== '' ? displayValue : rawValue;
+}
+function buildSerializedHistoryRow(sourceHeaders, rawRow, displayRow, targetHeaders, dischargeDateValue) {
+  const sourceIndexMap = {};
+  sourceHeaders.forEach(function(header, index) {
+    sourceIndexMap[normalizeHeaderKey(header)] = index;
+  });
+
+  return targetHeaders.map(function(targetHeader) {
+    const headerKey = normalizeHeaderKey(targetHeader);
+    const sourceIndex = sourceIndexMap[headerKey];
+    const rawValue = sourceIndex != null ? rawRow[sourceIndex] : '';
+    const displayValue = sourceIndex != null ? displayRow[sourceIndex] : '';
+    return serializeRegistryHistoryValue(headerKey, rawValue, displayValue, dischargeDateValue);
+  });
+}
+function getOrCreateNursingNotesDetailSheet() {
+  return getOrCreateSheet('Nursing_Notes_Detail', [
+    'SavedAt', 'AN', 'HN', 'Ward', 'NoteID', 'NoteDate', 'Shift', 'NoteTime',
+    'Focus', 'S', 'O', 'I', 'E', 'ETime', 'Nurse', 'Position', 'PayloadJSON'
+  ]);
+}
+function normalizeNursingNoteItem(note, defaults) {
+  const source = note || {};
+  const fallbackId = String(new Date().getTime());
+  return {
+    id: String(source.id || fallbackId),
+    date: normalizeEvalDate(source.date) || normalizeEvalDate(new Date()),
+    shift: String(source.shift || ''),
+    time: String(source.time || ''),
+    focus: String(source.focus || ''),
+    s: String(source.s || ''),
+    o: String(source.o || ''),
+    i: String(source.i || ''),
+    e: String(source.e || ''),
+    eTime: String(source.eTime || ''),
+    nurse: String(source.nurse || ''),
+    pos: String(source.pos || ''),
+    an: String(source.an || defaults.an || ''),
+    hn: String(source.hn || defaults.hn || ''),
+    ward: String(source.ward || defaults.ward || '')
+  };
+}
+function parseStoredNursingNoteRow(row) {
+  const payload = parseJsonSafely(row[16], null);
+  if (payload && typeof payload === 'object') {
+    return payload;
+  }
+  return {
+    id: String(row[4] || ''),
+    date: normalizeEvalDate(row[5]),
+    shift: String(row[6] || ''),
+    time: String(row[7] || ''),
+    focus: String(row[8] || ''),
+    s: String(row[9] || ''),
+    o: String(row[10] || ''),
+    i: String(row[11] || ''),
+    e: String(row[12] || ''),
+    eTime: String(row[13] || ''),
+    nurse: String(row[14] || ''),
+    pos: String(row[15] || '')
+  };
+}
+function normalizeEmail(value) {
+  return String(value || '').trim().toLowerCase();
+}
+function normalizeFullName(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim();
+}
+function stripThaiPersonPrefix(value) {
+  return normalizeFullName(value).replace(/^(นายแพทย์|แพทย์หญิง|ทันตแพทย์หญิง|ทันตแพทย์|นาย|นางสาว|นาง|น\.ส\.|นพ\.|พญ\.|พว\.|ทพ\.|ทญ\.)\s*/i, '').trim();
+}
+function buildFirstLastNameKey(value) {
+  return stripThaiPersonPrefix(value).replace(/\s+/g, '').toLowerCase();
+}
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
+}
+function generatePasswordSalt() {
+  return Utilities.getUuid().replace(/-/g, '').slice(0, 16);
+}
+function hashPassword(password, salt) {
+  const bytes = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256,
+    String(salt || '') + String(password || ''),
+    Utilities.Charset.UTF_8
+  );
+  return bytes.map(function(byte) {
+    const normalized = byte < 0 ? byte + 256 : byte;
+    return ('0' + normalized.toString(16)).slice(-2);
+  }).join('');
+}
+function generateNumericCode(length) {
+  let output = '';
+  for (let i = 0; i < length; i++) {
+    output += Math.floor(Math.random() * 10).toString();
+  }
+  return output;
+}
+function generateSessionToken() {
+  return Utilities.getUuid() + '-' + Utilities.getUuid();
+}
+function generateRequestId(prefix) {
+  const timestamp = Utilities.formatDate(new Date(), APP_TIMEZONE, 'yyyyMMddHHmmss');
+  return `${String(prefix || 'REQ').toUpperCase()}-${timestamp}-${Math.floor(Math.random() * 9000) + 1000}`;
+}
+function ensureSheetHeaders(sheet, headers) {
+  const targetHeaders = headers.slice();
+  const currentLastColumn = Math.max(sheet.getLastColumn(), 1);
+  if (currentLastColumn < targetHeaders.length) {
+    sheet.insertColumnsAfter(currentLastColumn, targetHeaders.length - currentLastColumn);
+  }
+  sheet.getRange(1, 1, 1, targetHeaders.length).setValues([targetHeaders]);
+  return sheet;
+}
+function getOrCreateUserAccountsSheet() {
+  return ensureSheetHeaders(getOrCreateSheet('User_Accounts', [
+    'CreatedAt', 'FullName', 'Position', 'Email', 'PasswordHash', 'Salt', 'Status', 'VerifiedAt', 'LastLoginAt', 'Username', 'Role'
+  ]), [
+    'CreatedAt', 'FullName', 'Position', 'Email', 'PasswordHash', 'Salt', 'Status', 'VerifiedAt', 'LastLoginAt', 'Username', 'Role'
+  ]);
+}
+function getOrCreateAuthVerificationSheet() {
+  return ensureSheetHeaders(getOrCreateSheet('Auth_Verifications', [
+    'CreatedAt', 'Purpose', 'Email', 'FullName', 'Position', 'PasswordHash', 'Salt', 'Code', 'ExpiresAt', 'UsedAt', 'Username'
+  ]), [
+    'CreatedAt', 'Purpose', 'Email', 'FullName', 'Position', 'PasswordHash', 'Salt', 'Code', 'ExpiresAt', 'UsedAt', 'Username'
+  ]);
+}
+function getOrCreateAuthSessionsSheet() {
+  return ensureSheetHeaders(getOrCreateSheet('Auth_Sessions', [
+    'CreatedAt', 'Token', 'Email', 'FullName', 'Position', 'ExpiresAt', 'LastSeenAt', 'Active', 'Username', 'Role'
+  ]), [
+    'CreatedAt', 'Token', 'Email', 'FullName', 'Position', 'ExpiresAt', 'LastSeenAt', 'Active', 'Username', 'Role'
+  ]);
+}
+function getOrCreatePasswordResetSheet() {
+  return ensureSheetHeaders(getOrCreateSheet('Password_Reset_Requests', [
+    'CreatedAt', 'Email', 'Username', 'FullName', 'Token', 'ExpiresAt', 'UsedAt', 'ResetUrl'
+  ]), [
+    'CreatedAt', 'Email', 'Username', 'FullName', 'Token', 'ExpiresAt', 'UsedAt', 'ResetUrl'
+  ]);
+}
+function getOrCreateServiceRequestsSheet() {
+  return ensureSheetHeaders(getOrCreateSheet('IT_Nurse_Service', [
+    'CreatedAt', 'RequestID', 'RequesterEmail', 'RequesterUsername', 'RequesterName', 'RequesterPosition',
+    'Category', 'Subject', 'Details', 'Status', 'AdminNote', 'UpdatedAt', 'UpdatedBy', 'AttachmentsJSON', 'Department'
+  ]), [
+    'CreatedAt', 'RequestID', 'RequesterEmail', 'RequesterUsername', 'RequesterName', 'RequesterPosition',
+    'Category', 'Subject', 'Details', 'Status', 'AdminNote', 'UpdatedAt', 'UpdatedBy', 'AttachmentsJSON', 'Department'
+  ]);
+}
+function getOrCreateServiceUploadFolder() {
+  const folders = DriveApp.getFoldersByName('IPD_Nurse_Service_Uploads');
+  if (folders.hasNext()) return folders.next();
+  return DriveApp.createFolder('IPD_Nurse_Service_Uploads');
+}
+function getStaffMemberByFullName(fullName) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const staffSheet = ss.getSheetByName('Staff');
+  if (!staffSheet) return null;
+  const data = staffSheet.getDataRange().getValues();
+  const targetNameKey = buildFirstLastNameKey(fullName);
+  if (!targetNameKey) return null;
+  for (let i = 1; i < data.length; i++) {
+    const staffName = normalizeFullName(data[i][0]);
+    const staffNameKey = buildFirstLastNameKey(staffName);
+    if (staffNameKey === targetNameKey) {
+      return {
+        name: staffName,
+        position: String(data[i][1] || '').trim()
+      };
+    }
+  }
+  return null;
+}
+function findUserAccountByEmail(email) {
+  const sheet = getOrCreateUserAccountsSheet();
+  const range = sheet.getDataRange();
+  const data = range.getValues();
+  const displayData = range.getDisplayValues();
+  const normalized = normalizeEmail(email);
+  for (let i = data.length - 1; i >= 1; i--) {
+    if (normalizeEmail(data[i][3]) === normalized) {
+      return { rowIndex: i + 1, values: data[i] };
+    }
+  }
+  return null;
+}
+function normalizeUsername(value) {
+  return String(value || '').trim().toLowerCase();
+}
+function findUserAccountByUsername(username) {
+  const sheet = getOrCreateUserAccountsSheet();
+  const range = sheet.getDataRange();
+  const data = range.getValues();
+  const displayData = range.getDisplayValues();
+  const normalized = normalizeUsername(username);
+  for (let i = data.length - 1; i >= 1; i--) {
+    if (normalizeUsername(data[i][9]) === normalized) {
+      return { rowIndex: i + 1, values: data[i] };
+    }
+  }
+  return null;
+}
+function findUserAccountByIdentifier(identifier) {
+  const normalized = String(identifier || '').trim();
+  if (!normalized) return null;
+  const byUsername = findUserAccountByUsername(normalized);
+  if (byUsername) return byUsername;
+  const byEmail = findUserAccountByEmail(normalized);
+  if (byEmail) return byEmail;
+  return null;
+}
+function buildPasswordResetUrl(baseUrl, token, email) {
+  const cleanBase = String(baseUrl || '').trim();
+  const separator = cleanBase.includes('?') ? '&' : '?';
+  return `${cleanBase}${separator}authMode=reset&token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
+}
+function parseDataUrl(dataUrl) {
+  const match = String(dataUrl || '').match(/^data:([^;]+);base64,(.+)$/);
+  if (!match) return null;
+  return {
+    mimeType: match[1],
+    base64: match[2]
+  };
+}
+function uploadServiceAttachments(requestId, attachments) {
+  const normalizedAttachments = Array.isArray(attachments) ? attachments : [];
+  if (normalizedAttachments.length === 0) return [];
+
+  const folder = getOrCreateServiceUploadFolder();
+  return normalizedAttachments.map(function(item, index) {
+    const parsed = parseDataUrl(item.dataUrl);
+    if (!parsed) {
+      throw new Error('ไฟล์แนบมีรูปแบบไม่ถูกต้อง');
+    }
+
+    const rawBytes = Utilities.base64Decode(parsed.base64);
+    const blob = Utilities.newBlob(rawBytes, parsed.mimeType, `${requestId}-${index + 1}-${String(item.name || 'attachment').trim() || 'attachment'}`);
+    const file = folder.createFile(blob);
+    return {
+      name: String(item.name || file.getName()).trim(),
+      url: file.getUrl(),
+      fileId: file.getId(),
+      mimeType: parsed.mimeType,
+      size: Number(item.size || rawBytes.length || 0)
+    };
+  });
+}
+function parseServiceRequestRow(row) {
+  return {
+    createdAt: row[0] instanceof Date ? Utilities.formatDate(row[0], APP_TIMEZONE, 'yyyy-MM-dd HH:mm:ss') : String(row[0] || ''),
+    requestId: String(row[1] || '').trim(),
+    requesterEmail: normalizeEmail(row[2]),
+    requesterUsername: String(row[3] || '').trim(),
+    requesterName: String(row[4] || '').trim(),
+    requesterPosition: String(row[5] || '').trim(),
+    category: String(row[6] || '').trim(),
+    subject: String(row[7] || '').trim(),
+    details: String(row[8] || '').trim(),
+    status: String(row[9] || '').trim() || 'ใหม่',
+    adminNote: String(row[10] || '').trim(),
+    updatedAt: row[11] instanceof Date ? Utilities.formatDate(row[11], APP_TIMEZONE, 'yyyy-MM-dd HH:mm:ss') : String(row[11] || ''),
+    updatedBy: String(row[12] || '').trim(),
+    attachments: parseJsonSafely(row[13], []),
+    department: String(row[14] || '').trim()
+  };
+}
+function sendLineServiceNotification_(request) {
+  const props = PropertiesService.getScriptProperties();
+  const channelAccessToken = String(props.getProperty('LINE_CHANNEL_ACCESS_TOKEN') || '').trim();
+  const adminUserId = String(props.getProperty('LINE_ADMIN_USER_ID') || '').trim();
+  if (!channelAccessToken || !adminUserId) return false;
+  const appUrl = getAppWebUrl_();
+
+  UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', {
+    method: 'post',
+    contentType: 'application/json',
+    headers: {
+      Authorization: 'Bearer ' + channelAccessToken
+    },
+    payload: JSON.stringify({
+      to: adminUserId,
+      messages: [buildLineServiceFlexMessage_(request, appUrl)]
+    }),
+    muteHttpExceptions: true
+  });
+  return true;
+}
+function buildUserResponseFromRow(row) {
+  return {
+    fullName: String(row[1] || '').trim(),
+    position: String(row[2] || '').trim(),
+    email: normalizeEmail(row[3]),
+    username: String(row[9] || '').trim(),
+    role: String(row[10] || 'user').trim() || 'user'
+  };
+}
+function createAuthSession(user) {
+  const sessionsSheet = getOrCreateAuthSessionsSheet();
+  const token = generateSessionToken();
+  const createdAt = new Date();
+  const expiresAt = new Date(createdAt.getTime() + (AUTH_SESSION_HOURS * 60 * 60 * 1000));
+  sessionsSheet.appendRow([
+    createdAt,
+    token,
+    normalizeEmail(user.email),
+    user.fullName,
+    user.position,
+    expiresAt,
+    createdAt,
+    'true',
+    String(user.username || '').trim(),
+    String(user.role || 'user').trim() || 'user'
+  ]);
+  return { token: token, expiresAt: expiresAt };
+}
+function getActiveSessionRow(token) {
+  const sessionsSheet = getOrCreateAuthSessionsSheet();
+  const data = sessionsSheet.getDataRange().getValues();
+  for (let i = data.length - 1; i >= 1; i--) {
+    if (String(data[i][1] || '') !== String(token || '')) continue;
+    if (String(data[i][7] || '').toLowerCase() !== 'true') return null;
+    if (!(data[i][5] instanceof Date) || data[i][5].getTime() < new Date().getTime()) return null;
+    return { sheet: sessionsSheet, rowIndex: i + 1, values: data[i] };
+  }
+  return null;
+}
+function requireActiveSession(sessionToken) {
+  const activeSession = getActiveSessionRow(sessionToken);
+  if (!activeSession) {
+    throw new Error('session หมดอายุหรือไม่ถูกต้อง');
+  }
+  return {
+    rowIndex: activeSession.rowIndex,
+    sheet: activeSession.sheet,
+    values: activeSession.values,
+    user: {
+      fullName: String(activeSession.values[3] || '').trim(),
+      position: String(activeSession.values[4] || '').trim(),
+      email: normalizeEmail(activeSession.values[2]),
+      username: String(activeSession.values[8] || '').trim(),
+      role: String(activeSession.values[9] || 'user').trim() || 'user'
+    }
+  };
+}
+function requireAdminSession(sessionToken) {
+  const session = requireActiveSession(sessionToken);
+  if (String(session.user.role || '').toLowerCase() !== 'admin') {
+    throw new Error('สิทธิ์ไม่เพียงพอสำหรับการจัดการรายการService');
+  }
+  return session;
+}
+function normalizeShiftLabel(value) {
+  const shift = String(value || '').trim();
+  if (!shift) return '';
+  if (shift.includes('ดึก') || shift.includes('ตึก')) return 'ดึก';
+  if (shift.includes('เช้า') || shift.includes('เข้า')) return 'เช้า';
+  if (shift.includes('บ่าย')) return 'บ่าย';
+  return shift;
+}
+function getShiftPriority(value) {
+  return SHIFT_ORDER[normalizeShiftLabel(value)] || 999;
+}
+function normalizeTimestampValue(value, fallbackDate) {
+  if (Object.prototype.toString.call(value) === '[object Date]') {
+    return value.getTime();
+  }
+
+  if (value) {
+    const parsed = new Date(value);
+    if (!isNaN(parsed.getTime())) return parsed.getTime();
+  }
+
+  const dateKey = normalizeEvalDate(fallbackDate || value);
+  if (!dateKey) return 0;
+
+  const [year, month, day] = dateKey.split('-').map(Number);
+  return new Date(year, month - 1, day, 12, 0, 0).getTime();
+}
+function findLatestMatchingRow(data, predicate, timestampColIndex) {
+  let foundRow = -1;
+  let latestTimestamp = -1;
+
+  for (let i = 1; i < data.length; i++) {
+    if (!predicate(data[i])) continue;
+
+    const rowTimestamp = normalizeTimestampValue(
+      timestampColIndex > -1 ? data[i][timestampColIndex] : '',
+      data[i][4]
+    );
+
+    if (foundRow === -1 || rowTimestamp > latestTimestamp || (rowTimestamp === latestTimestamp && i + 1 > foundRow)) {
+      foundRow = i + 1;
+      latestTimestamp = rowTimestamp;
+    }
+  }
+
+  return foundRow;
+}
+function normalizeShiftRecords(records) {
+  const latestBySlot = {};
+
+  records.forEach(function(record, index) {
+    const evalDate = normalizeEvalDate(record.evalDate || record.date);
+    const shift = normalizeShiftLabel(record.shift);
+    if (!evalDate || !shift || !SHIFT_ORDER[shift]) return;
+
+    const timestampValue = normalizeTimestampValue(record.timestamp, evalDate);
+    const key = `${evalDate}__${shift}`;
+    const normalized = Object.assign({}, record, {
+      evalDate: evalDate,
+      shift: shift,
+      _sortTimestamp: timestampValue,
+      _sourceIndex: record._sourceIndex != null ? Number(record._sourceIndex) : index
+    });
+
+    const current = latestBySlot[key];
+    if (!current ||
+        timestampValue > current._sortTimestamp ||
+        (timestampValue === current._sortTimestamp && normalized._sourceIndex > current._sourceIndex)) {
+      latestBySlot[key] = normalized;
+    }
+  });
+
+  return Object.keys(latestBySlot)
+    .map(function(key) { return latestBySlot[key]; })
+    .sort(function(a, b) {
+      if (a.evalDate !== b.evalDate) return a.evalDate < b.evalDate ? -1 : 1;
+      const shiftDiff = getShiftPriority(a.shift) - getShiftPriority(b.shift);
+      if (shiftDiff !== 0) return shiftDiff;
+      if (a._sortTimestamp !== b._sortTimestamp) return a._sortTimestamp - b._sortTimestamp;
+      return a._sourceIndex - b._sourceIndex;
+    })
+    .map(function(record) {
+      delete record._sortTimestamp;
+      delete record._sourceIndex;
+      return record;
+    });
+}
+function parseJsonSafely(value, fallback) {
+  if (!value) return fallback;
+  if (typeof value === 'object') return value;
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    return fallback;
+  }
+}
+function deleteMatchingRows(sheet, predicate) {
+  const range = sheet.getDataRange();
+  const data = range.getValues();
+  const displayData = range.getDisplayValues();
+  if (data.length <= 1) return 0;
+
+  const rowsToDelete = [];
+  for (let i = 1; i < data.length; i++) {
+    if (predicate(data[i], i + 1)) {
+      rowsToDelete.push(i + 1);
+    }
+  }
+
+  rowsToDelete.sort(function(a, b) { return b - a; });
+  rowsToDelete.forEach(function(rowNumber) {
+    sheet.deleteRow(rowNumber);
+  });
+
+  return rowsToDelete.length;
+}
+function getOrCreateSheet(sheetName, headers) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(sheetName);
+  if (!sheet) {
+    sheet = ss.insertSheet(sheetName);
+    sheet.appendRow(headers);
+  }
+  return sheet;
+}
+function getPatients(ward) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('CurrentPatients');
+  if (!sheet) return [];
+  const range = sheet.getDataRange();
+  const data = range.getValues();
+  const displayData = range.getDisplayValues();
+  if (data.length <= 1) return [];
+  
+  const headers = data[0];
+  const rows = data.slice(1);
+  const targetWard = String(ward || '').trim();
+  const WARD_COLUMN_INDEX = 2; // CurrentPatients คอลัมน์C = ward
+  
+  return rows
+    .map((row, rowIndex) => ({ row: row, displayRow: displayData[rowIndex + 1] || [] }))
+    .filter(item => {
+      if (!targetWard) return false;
+      return String(item.row[WARD_COLUMN_INDEX] || '').trim() === targetWard;
+    })
+    .map(item => {
+      const row = item.row;
+      const displayRow = item.displayRow;
+      let obj = {};
+      headers.forEach((header, i) => {
+        obj[header.toString().trim()] = normalizeCurrentPatientCell(
+          header,
+          row[i],
+          displayRow[i]
+        ); 
+      });
+      obj.date = obj.date || normalizeCurrentPatientCell('date', row[0], displayRow[0]);
+      obj.time = obj.time || normalizeCurrentPatientCell('time', row[1], displayRow[1]);
+      obj.ward = obj.ward || normalizeCurrentPatientCell('ward', row[2], displayRow[2]);
+      obj.bed = obj.bed || normalizeCurrentPatientCell('bed', row[3], displayRow[3]);
+      obj.receivedFrom = obj.receivedFrom || normalizeCurrentPatientCell('receivedFrom', row[4], displayRow[4]);
+      obj.referFrom = obj.referFrom || normalizeCurrentPatientCell('referFrom', row[5], displayRow[5]);
+      obj.hn = obj.hn || normalizeCurrentPatientCell('hn', row[6], displayRow[6]);
+      obj.an = obj.an || normalizeCurrentPatientCell('an', row[7], displayRow[7]);
+      obj.name = obj.name || normalizeCurrentPatientCell('name', row[8], displayRow[8]);
+      obj.address = obj.address || normalizeCurrentPatientCell('address', row[9], displayRow[9]);
+      obj.dob = obj.dob || normalizeCurrentPatientCell('dob', row[10], displayRow[10]);
+      obj.ageDisplay = obj.ageDisplay || normalizeCurrentPatientCell('ageDisplay', row[11], displayRow[11]);
+      obj.dept = obj.dept || normalizeCurrentPatientCell('dept', row[12], displayRow[12]);
+      obj.cc = obj.cc || normalizeCurrentPatientCell('cc', row[13], displayRow[13]);
+      obj.pi = obj.pi || normalizeCurrentPatientCell('pi', row[14], displayRow[14]);
+      obj.dx = obj.dx || normalizeCurrentPatientCell('dx', row[15], displayRow[15]);
+      obj.doctor = obj.doctor || normalizeCurrentPatientCell('doctor', row[16], displayRow[16]);
+      return obj;
+    });
+}
+
+function getInitData() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const configSheet = ss.getSheetByName('Config');
+  const configData = configSheet ? configSheet.getDataRange().getValues() : [];
+  const wards = configData.filter(r => r[0] === 'Ward').map(r => r[1]);
+  const depts = configData.filter(r => r[0] === 'Dept').map(r => r[1]);
+  
+  const docSheet = ss.getSheetByName('Doctors');
+  const doctors = docSheet ? docSheet.getDataRange().getValues().flat().filter(String) : [];
+  
+  const staffSheet = ss.getSheetByName('Staff');
+  let nurses = [];
+  if (staffSheet) {
+    const staffData = staffSheet.getDataRange().getValues();
+    // สมมติแถวแรกคือHeader (Name, Position) ดึงข้อมูลตั้งแต่แถวที่2
+    nurses = staffData.slice(1).map(row => {
+      return { name: row[0], position: row[1] };
+    });
+  }
+  
+  return { wards, depts, doctors, nurses };
+}
+
+function getBeds(ward) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Beds');
+  if (!sheet) return [];
+  const data = sheet.getDataRange().getValues();
+  return data.slice(1)
+    .filter(row => row[0].toString().trim() === ward && row[2].toString().trim() === 'ว่าง')
+    .map(row => row[1]);
+}
+
+// --- ฟังก์ชันจัดการข้อมูลคนไข้---
+
+function admitPatient(p) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  ss.getSheetByName('CurrentPatients').appendRow([
+    p.date, p.time, p.ward, p.bed, p.receivedFrom, p.referFrom,
+    p.hn, p.an, p.name, p.address, p.dob, p.ageDisplay,
+    p.dept, p.cc, p.pi, p.dx, p.doctor, 'Active'
+  ]);
+  updateBedStatus(p.ward, p.bed, 'ไม่ว่าง');
+  return {status: 'success'};
+}
+
+function discharge(p) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const currentSheet = ss.getSheetByName('CurrentPatients');
+  const historySheet = ss.getSheetByName('RegistryHistory');
+  const data = currentSheet.getDataRange().getValues();
+  
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][7].toString() === p.an.toString()) {
+      historySheet.appendRow(data[i]);
+      currentSheet.deleteRow(i + 1);
+      updateBedStatus(p.ward, p.bed, 'ว่าง');
+      break;
+    }
+  }
+  return {status: 'success'};
+}
+
+function updateBedStatus(ward, bedName, status) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Beds');
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0].toString() === ward.toString() && data[i][1].toString() === bedName.toString()) {
+      sheet.getRange(i + 1, 3).setValue(status);
+      break;
+    }
+  }
+}
+
+function editPatient(p) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('CurrentPatients');
+  const data = sheet.getDataRange().getValues();
+  let rowToUpdate = -1;
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][7].toString() === p.an.toString()) {
+      rowToUpdate = i + 1;
+      break;
+    }
+  }
+  if (rowToUpdate !== -1) {
+    sheet.getRange(rowToUpdate, 1, 1, 17).setValues([[
+      p.date, p.time, p.ward, p.bed, p.receivedFrom, p.referFrom,
+      p.hn, p.an, p.name, p.address, p.dob, p.ageDisplay,
+      p.dept, p.cc, p.pi, p.dx, p.doctor
+    ]]);
+    return {status: 'success'};
+  }
+  return {status: 'error', message: 'Not found'};
+}
+
+function movePatient(p) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('CurrentPatients');
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][7].toString() === p.an.toString()) {
+      sheet.getRange(i + 1, 3).setValue(p.newWard);
+      sheet.getRange(i + 1, 4).setValue(p.newBed);
+      updateBedStatus(p.oldWard, p.oldBed, 'ว่าง');
+      updateBedStatus(p.newWard, p.newBed, 'ไม่ว่าง');
+      break;
+    }
+  }
+  return {status: 'success'};
+}
+
+/**
+ * บันทึกแบบประเมินประวัติและสมรรถนะผู้ป่วย(FR-IPD-004)
+ * รองรับข้อมูลครบทุกหัวข้อประเมิน
+ */
+function saveAssessmentInitial(an, formData, fullPayload) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('Assessment_Initial');
+
+  // ตรวจสอบโรคประจำตัวและจับมัดรวมกัน
+  let diseases = [];
+  if(formData.Hx_HT) diseases.push('ความดันโลหิตสูง');
+  if(formData.Hx_Heart) diseases.push('โรคหัวใจ');
+  if(formData.Hx_Liver) diseases.push('โรคตับ');
+  if(formData.Hx_Kidney) diseases.push('โรคไต');
+  if(formData.Hx_DM) diseases.push('เบาหวาน');
+  if(formData.Hx_Asthma) diseases.push('หอบหืด');
+  if(formData.Hx_Epilepsy) diseases.push('ลมชัก');
+  if(formData.Hx_TB) diseases.push('วัณโรค');
+  if(formData.Hx_Cancer) diseases.push('มะเร็ง: ' + (formData.Hx_Cancer_Detail || ''));
+  if(formData.Hx_Other_Check) diseases.push('อื่นๆ: ' + (formData.Hx_Other || ''));
+  const diseasesStr = diseases.length > 0 ? diseases.join(', ') : 'ไม่มี';
+
+  // เตรียมแถวข้อมูลที่จะบันทึกให้ตรงกับ62 คอลัมน์ที่ตั้งไว้
+  const rowData = [
+    new Date(), // 1. Timestamp
+    fullPayload.hn || formData.HN || '', // 2. HN
+    an || formData.AN || '', // 3. AN
+    fullPayload.patientName || '', // 4. PatientName
+    fullPayload.ward || '', // 5. Ward
+    formData.AdmitDate || '', // 6. AdmitDate
+    formData.AdmitTime || '', // 7. AdmitTime
+    formData.AdmittedFrom || '', // 8. AdmittedFrom
+    formData.Refer || '', // 9. ReferFrom
+    formData.ArriveBy || '', // 10. ArriveBy
+    formData.InfoSource || '', // 11. InfoSource
+    (formData.MainCaregiver_Rel === 'อื่นๆ' ? (formData.MainCaregiver_Rel_Other || 'อื่นๆ') : (formData.MainCaregiver_Rel || '')) + (formData.MainCaregiver_Name ? ` (${formData.MainCaregiver_Name})` : ''), // 12. Caregiver
+
+    formData.ChiefComplaint || '', // 13. CC
+    formData.PresentIllness || '', // 14. PI
+    formData.AdmitSymptoms || '', // 15. AdmitSymptoms
+    formData.Admit_BT || '', // 16. BT
+    formData.Admit_PR || '', // 17. PR
+    formData.Admit_RR || '', // 18. RR
+    formData.Admit_BP || '', // 19. BP
+    diseasesStr, // 20. Underlying_Diseases
+
+    formData.Allergy_Status === 'เคย' ? `เคยแพ้: ${formData.Allergy_Detail || ''}` : 'ไม่เคยแพ้', // 21
+    formData.AdmitHx_Status === 'เคย' ? `เคยนอน: ${formData.AdmitHx_Disease || ''} (${formData.AdmitHx_When || ''})` : 'ไม่เคย', // 22
+    formData.Sx_Status === 'เคย' ? `เคยผ่าตัด: ${formData.Sx_Detail || ''} (${formData.Sx_When || ''})` : 'ไม่เคย', // 23
+    formData.FamilyHx_Status === 'มี' ? `มีประวัติ: ${formData.FamilyHx_Detail || ''}` : 'ไม่มีประวัติครอบครัว', // 24
+    formData.Substance_Alcohol === 'ไม่ดื่ม' || !formData.Substance_Alcohol ? 'ไม่ดื่มสุรา' : `${formData.Substance_Alcohol} (${formData.Substance_Alcohol_Vol || '-'})`, // 25
+    formData.Substance_Smoke === 'ไม่สูบ' || !formData.Substance_Smoke ? 'ไม่สูบบุหรี่' : `${formData.Substance_Smoke} (${formData.Substance_Smoke_Vol || '-'})`, // 26
+    formData.Meds_Status === 'มี' ? `ใช้ยา: ${formData.Meds_Detail || ''}` : (formData.Meds_Status === 'ยาโรคประจำตัวตามMed Reconcile' ? 'ยาโรคประจำตัวตามMed Reconcile' : 'ไม่มียาประจำ'), // 27
+
+    formData.HP_Before === 'ไม่ดี' ? `ไม่ดี: ${formData.HP_Before_Detail || ''}` : (formData.HP_Before || ''), // 28
+    formData.HP_Current_Severity || '', // 29. ความรุนแรงการเจ็บป่วยครั้งนี้(เพิ่มใหม่)
+    (formData.HP_Care || '') + (formData.HP_Care && formData.HP_Care.includes('อื่นๆ') ? ` (${formData.HP_Care_Other || ''})` : ''), // 30
+    formData.Expectation || '', // 31
+
+    `${formData.Nutri_Meals || '-'} มื้อ/วัน, ${formData.Nutri_Type || ''} ${formData.Nutri_Type && formData.Nutri_Type.includes('อาหารเฉพาะโรค') ? (formData.Nutri_Type_Detail || '') : ''}`, // 32
+    formData.Nutri_Problem_Status === 'มี' ? `มีปัญหา: ${formData.Nutri_Problem_Detail || ''}` : 'ไม่มีปัญหา', // 33
+    formData.Skin_Status === 'ไม่ปกติ' ? `ไม่ปกติ: ${formData.Skin_Detail || ''}` : 'ปกติ', // 34
+
+    `${formData.Elim_Urine_Freq || '-'} ครั้ง/วัน, ${formData.Elim_Urine_Status === 'ไม่ปกติ' ? 'ผิดปกติ: ' + (formData.Elim_Urine_Detail || '') : 'ปกติ'}`, // 35
+    `${formData.Elim_Bowel_Freq || '-'} ครั้ง/วัน, ${formData.Elim_Bowel_Status === 'ไม่ปกติ' ? 'ผิดปกติ: ' + (formData.Elim_Bowel_Detail || '') : 'ปกติ'}`, // 36
+    formData.Elim_Stoma || 'ไม่มี', // 37
+
+    `Eat:${formData.ADL_Before_Eat||''}, Oral:${formData.ADL_Before_Oral||''}, Dress:${formData.ADL_Before_Dress||''}, Walk:${formData.ADL_Before_Walk||''}, Toilet:${formData.ADL_Before_Toilet||''}, Bath:${formData.ADL_Before_Bath||''}`, // 38
+    `Eat:${formData.ADL_Current_Eat||''}, Oral:${formData.ADL_Current_Oral||''}, Dress:${formData.ADL_Current_Dress||''}, Walk:${formData.ADL_Current_Walk||''}, Toilet:${formData.ADL_Current_Toilet||''}, Bath:${formData.ADL_Current_Bath||''}`, // 39
+
+    `${formData.Sleep_Hours || '-'} ชม./วัน(${formData.Sleep_Adequacy || ''}), ปัญหา: ${formData.Sleep_Problem === 'มี' ? (formData.Sleep_Problem_Detail || '') : 'ไม่มี'}`, // 40
+
+    formData.Cogn_LOC || '', // 41
+    (formData.Cogn_Vision || '') + (formData.Cogn_Vision && formData.Cogn_Vision.includes('อื่นๆ') ? ` (${formData.Cogn_Vision_Other || ''})` : ''), // 42
+    (formData.Cogn_Speech || '') + (formData.Cogn_Speech && formData.Cogn_Speech.includes('มีปัญหา') ? ` (${formData.Cogn_Speech_Detail || ''})` : '') + (formData.Cogn_Speech && formData.Cogn_Speech.includes('ต่างประเทศ') ? ` [${formData.Cogn_Speech_Foreign || ''}]` : ''), // 43
+    (formData.Cogn_Movement || '') + (formData.Cogn_Movement && formData.Cogn_Movement.includes('อื่นๆ') ? ` (${formData.Cogn_Movement_Other || ''})` : ''), // 44
+
+    `Image: ${formData.Self_Image === 'มี' ? (formData.Self_Image_Detail || '') : (formData.Self_Image || '')} | Mood: ${formData.Self_Mood === 'มี' ? (formData.Self_Mood_Detail || '') : (formData.Self_Mood || '')} | Care: ${formData.Self_Care === 'มี' ? (formData.Self_Care_Detail || '') : (formData.Self_Care || '')}`, // 45
+
+    formData.Stress_Status === 'มี' ? `สาเหตุ: ${formData.Stress_Detail || ''} ${formData.Stress_Other || ''} | แสดงออก: ${formData.Stress_Express || ''} ${formData.Stress_Express_Other || ''} | แก้ไข: ${formData.Stress_Resolve || ''} ${formData.Stress_Resolve_Other || ''}` : 'ไม่มีเครียด', // 46
+
+    formData.Role_Impact || 'ไม่กระทบ', // 47
+
+    `Menstrual: ${formData.Sex_Menstrual === 'ไม่ปกติ' ? (formData.Sex_Menstrual_Detail || '') : (formData.Sex_Menstrual || '')} | Breast: ${formData.Sex_Breast === 'ไม่ปกติ' ? (formData.Sex_Breast_Detail || '') : (formData.Sex_Breast || '')} | Genital: ${formData.Sex_Genital === 'ไม่ปกติ' ? (formData.Sex_Genital_Detail || '') : (formData.Sex_Genital || '')}`, // 48
+
+    `Cause: ${formData.Belief_Cause || ''} ${formData.Belief_Cause_Other || ''} | Practice: ${formData.Belief_Practice === 'ต้องการ' ? (formData.Belief_Practice_Detail || '') : 'ไม่ต้องการ'} | Anchor: ${formData.Belief_Anchor === 'มี' ? (formData.Belief_Anchor_Detail || '') : 'ไม่มี'}`, // 49
+
+    formData.Involve_Status === 'ต้องการ' ? `ต้องการ: ${formData.Involve_Detail || ''} ${formData.Involve_Other || ''}` : 'ไม่ต้องการ', // 50
+
+    formData.Pain_Status === 'มี' ? `บริเวณ: ${formData.Pain_Location || '-'} (สาเหตุ: ${formData.Pain_Cause || '-'}, แบบ: ${formData.Pain_Type || '-'})` : 'ไม่มี', // 51
+    formData.Pain_Scale_Score || '0', // 52
+    formData.Pain_Impact || '', // 53
+    formData.Pain_Relief || '', // 54
+
+    `Sensory:${formData.Braden_Sensory||'-'}, Moisture:${formData.Braden_Moisture||'-'}, Activity:${formData.Braden_Activity||'-'}, Mobility:${formData.Braden_Mobility||'-'}, Nutrition:${formData.Braden_Nutrition||'-'}, Friction:${formData.Braden_Friction||'-'}`, // 55
+    fullPayload.bradenScore || '0', // 56
+    fullPayload.bradenInterpretation || '', // 57
+
+    `วัยเด็ก:${formData.Fall_Age_Child ? 'Y':'N'}, สูงอายุ:${formData.Fall_Age_Elder ? 'Y':'N'}, สมอง:${formData.Fall_Brain||'-'}, สายตา:${formData.Fall_Vision||'-'}, Hxตกหกล้ม:${formData.Fall_Hx||'-'}, การเดิน:${formData.Fall_Gait||'-'}, ใช้ยา:${formData.Fall_Meds||'-'}`, // 58
+    formData.Fall_Prevent || '', // 59
+
+    formData.Assessor_Name || '', // 60
+    formData.Assessor_Pos || '', // 61
+    (formData.Cogn_Hearing || '') + (formData.Cogn_Hearing === 'อื่นๆ' ? ` (${formData.Cogn_Hearing_Other || ''})` : ''), // 62 (คอลัมน์ใหม่ที่แทรก)
+    JSON.stringify(formData) // 63. FullJSON (ขยับมาindex 62)
+  ];
+
+  // ค้นหาว่าคนไข้AN นี้เคยประเมินแล้วหรือยัง
+  const data = sheet.getDataRange().getValues();
+  let rowIndex = -1;
+  const anString = (an || formData.AN).toString();
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][2] && data[i][2].toString() === anString) {
+      rowIndex = i + 1; // หาเจอ(อัปเดตบรรทัดเดิม)
+      break;
+    }
+  }
+
+  // บันทึกหรืออัปเดต
+  if (rowIndex !== -1) {
+    sheet.getRange(rowIndex, 1, 1, rowData.length).setValues([rowData]);
+    return { status: 'success', message: 'อัปเดตข้อมูลFR-IPD-004 (ฉบับสมบูรณ์) เรียบร้อยแล้ว' };
+  } else {
+    sheet.appendRow(rowData);
+    return { status: 'success', message: 'บันทึกข้อมูลประเมินแรกรับใหม่เรียบร้อยแล้ว' };
+  }
+}
+// ฟังก์ชันสำหรับดึงข้อมูลการประเมินแรกรับของAN นั้นๆ
+function getAssessmentInitial(an) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Assessment_Initial');
+  if (!sheet) return null;
+  
+  const data = sheet.getDataRange().getValues();
+  const anString = an.toString();
+  
+  // ค้นหาจากล่างขึ้นบน(เพื่อให้ได้ข้อมูลที่อัปเดตล่าสุด)
+  for (let i = data.length - 1; i > 0; i--) {
+    if (data[i][2] && data[i][2].toString() === anString) {
+      const jsonStr = data[i][62]; 
+      if (jsonStr) {
+        try {
+          return JSON.parse(jsonStr); // แปลงJSON กลับเป็นObject
+        } catch(e) {
+          return null;
+        }
+      }
+    }
+  }
+  return null; // ถ้าไม่พบข้อมูล
+}
+// ฟังก์ชันบันทึกหรืออัปเดตการจำแนกประเภทผู้ป่วย
+function saveClassification(p) {
+  const sheet = getOrCreateSheet('Patient_Classification', [
+    'Timestamp', 'AN', 'HN', 'Ward', 'EvalDate', 'Shift',
+    'Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6', 'Q7', 'Q8',
+    'Total', 'Category', 'Assessor'
+  ]);
+  const data = sheet.getDataRange().getValues();
+  const anString = p.an.toString();
+  const targetDate = normalizeEvalDate(p.evalDate);
+  const targetShift = normalizeShiftLabel(p.shift);
+
+  const rowIndex = findLatestMatchingRow(data, function(row) {
+    return String(row[1] || '').trim() === anString &&
+      normalizeEvalDate(row[4]) === targetDate &&
+      normalizeShiftLabel(row[5]) === targetShift;
+  }, 0);
+  
+  const rowData = [
+    new Date(), p.an, p.hn, p.ward, targetDate, targetShift,
+    p.scores[0], p.scores[1], p.scores[2], p.scores[3],
+    p.scores[4], p.scores[5], p.scores[6], p.scores[7],
+    p.total, p.category, p.assessor
+  ];
+  
+  if (rowIndex !== -1) {
+    sheet.getRange(rowIndex, 1, 1, rowData.length).setValues([rowData]);
+    return { status: 'success', message: 'อัปเดตข้อมูลเรียบร้อยแล้ว' };
+  } else {
+    sheet.appendRow(rowData);
+    return { status: 'success', message: 'บันทึกข้อมูลใหม่เรียบร้อยแล้ว' };
+  }
+}
+function saveClassificationSingle(data) {
+  return saveClassification({
+    an: data.an,
+    hn: data.hn,
+    ward: data.ward,
+    evalDate: data.evalDate,
+    shift: data.shift,
+    scores: [data.q1, data.q2, data.q3, data.q4, data.q5, data.q6, data.q7, data.q8],
+    total: data.total,
+    category: data.category,
+    assessor: data.assessor
+  });
+}
+function deleteClassification(p) {
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Patient_Classification');
+    if (!sheet) return { status: 'success', message: 'ไม่พบข้อมูลที่จะลบ', deletedCount: 0 };
+
+    const targetAN = String(p.an || '').trim();
+    const targetDate = normalizeEvalDate(p.evalDate);
+    const targetShift = normalizeShiftLabel(p.shift);
+    if (!targetAN || !targetDate || !targetShift) {
+      return { status: 'error', message: 'ข้อมูลสำหรับลบไม่ครบถ้วน' };
+    }
+
+    const deletedCount = deleteMatchingRows(sheet, function(row) {
+      return String(row[1] || '').trim() === targetAN &&
+        normalizeEvalDate(row[4]) === targetDate &&
+        normalizeShiftLabel(row[5]) === targetShift;
+    });
+
+    return {
+      status: 'success',
+      message: deletedCount > 0 ? 'ลบข้อมูลรายเวรเรียบร้อยแล้ว' : 'ไม่พบข้อมูลที่ต้องการลบ',
+      deletedCount: deletedCount
+    };
+  } catch (error) {
+    return { status: 'error', message: error.message };
+  }
+}
+
+// ฟังก์ชันดึงประวัติการจำแนกประเภทผู้ป่วย
+function getClassifications(an) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('Patient_Classification');
+    if (!sheet) return [];
+    
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return [];
+    
+    const headers = data[0].map(h => String(h).toLowerCase().trim());
+    const idxAN = headers.indexOf('an');
+    const idxDate = headers.indexOf('evaldate');
+    const idxShift = headers.indexOf('shift');
+    const idxAssessor = headers.indexOf('assessor');
+    // เพิ่มการดึงค่าTotal และCategory เพื่อให้ฝั่งหน้าเว็บมีข้อมูลนำไปแสดงผล
+    const idxTotal = headers.indexOf('total');
+    const idxCategory = headers.indexOf('category');
+    const qIndices = [1,2,3,4,5,6,7,8].map(n => headers.indexOf('q' + n));
+    
+    const results = [];
+    const targetAN = String(an).trim();
+    
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][idxAN]).trim() === targetAN) {
+        results.push({
+          timestamp: data[i][0],
+          an: targetAN,
+          evalDate: normalizeEvalDate(data[i][idxDate]),
+          shift: normalizeShiftLabel(data[i][idxShift]),
+          scores: qIndices.map(idx => (idx !== -1 && data[i][idx] !== "") ? Number(data[i][idx]) : ""),
+          total: idxTotal !== -1 ? data[i][idxTotal] : 0,
+          category: idxCategory !== -1 ? String(data[i][idxCategory]) : '',
+          assessor: String(data[i][idxAssessor] || '').trim(),
+          _sourceIndex: i
+        });
+      }
+    }
+    return normalizeShiftRecords(results);
+  } catch (e) { return []; }
+}
+function saveDischargeDate(p) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('CurrentPatients'); 
+  const data = sheet.getDataRange().getValues();
+  
+  // ค้นหาแถวโดยเช็คจากAN ในคอลัมน์H (Index 7 เพราะArray เริ่มจาก0)
+  for (let i = 1; i < data.length; i++) {
+    // data[i][7] คือคอลัมน์H
+    if (data[i][7] && data[i][7].toString() === p.an.toString()) {
+      // คอลัมน์S คือลำดับที่19
+      sheet.getRange(i + 1, 19).setValue(p.dischargeDate); 
+      return { status: 'success', message: 'บันทึกวันจำหน่ายที่คอลัมน์S เรียบร้อยแล้ว' };
+    }
+  }
+  return { status: 'error', message: 'ไม่พบAN: ' + p.an + ' ในคอลัมน์H' };
+}
+function saveFallRisk(p) {
+  let sheet = getOrCreateSheet('Fall_Risk_Morse', [
+    'Timestamp', 'AN', 'HN', 'Ward', 'EvalDate', 'Shift',
+    'M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'MorseTotal', 'MAASScore', 'Assessor'
+  ]);
+  const data = sheet.getDataRange().getValues();
+  const targetDate = normalizeEvalDate(p.evalDate);
+  const targetShift = normalizeShiftLabel(p.shift);
+  const rowIndex = findLatestMatchingRow(data, function(row) {
+    return String(row[1] || '').trim() === String(p.an).trim() &&
+      normalizeEvalDate(row[4]) === targetDate &&
+      normalizeShiftLabel(row[5]) === targetShift;
+  }, 0);
+
+  const rowData = [
+    new Date(), p.an, p.hn, p.ward, targetDate, targetShift,
+    p.m1 || 0, p.m2 || 0, p.m3 || 0, p.m4 || 0, p.m5 || 0, p.m6 || 0,
+    p.morseTotal || 0, p.maasScore || 0, p.assessor || ''
+  ];
+
+  if (rowIndex !== -1) {
+    sheet.getRange(rowIndex, 1, 1, rowData.length).setValues([rowData]);
+    return { status: 'success', message: 'อัปเดตข้อมูลเรียบร้อย' };
+  } else {
+    sheet.appendRow(rowData);
+    return { status: 'success', message: 'บันทึกข้อมูลใหม่เรียบร้อย' };
+  }
+}
+function saveFallRiskSingle(data) {
+  return saveFallRisk({
+    an: data.an,
+    hn: data.hn,
+    ward: data.ward,
+    evalDate: data.evalDate,
+    shift: data.shift,
+    m1: data.m1,
+    m2: data.m2,
+    m3: data.m3,
+    m4: data.m4,
+    m5: data.m5,
+    m6: data.m6,
+    morseTotal: data.morseTotal,
+    maasScore: data.maasScore,
+    assessor: data.assessor
+  });
+}
+function deleteFallRisk(p) {
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Fall_Risk_Morse');
+    if (!sheet) return { status: 'success', message: 'ไม่พบข้อมูลที่จะลบ', deletedCount: 0 };
+
+    const targetAN = String(p.an || '').trim();
+    const targetDate = normalizeEvalDate(p.evalDate);
+    const targetShift = normalizeShiftLabel(p.shift);
+    if (!targetAN || !targetDate || !targetShift) {
+      return { status: 'error', message: 'ข้อมูลสำหรับลบไม่ครบถ้วน' };
+    }
+
+    const deletedCount = deleteMatchingRows(sheet, function(row) {
+      return String(row[1] || '').trim() === targetAN &&
+        normalizeEvalDate(row[4]) === targetDate &&
+        normalizeShiftLabel(row[5]) === targetShift;
+    });
+
+    return {
+      status: 'success',
+      message: deletedCount > 0 ? 'ลบข้อมูลรายเวรเรียบร้อยแล้ว' : 'ไม่พบข้อมูลที่ต้องการลบ',
+      deletedCount: deletedCount
+    };
+  } catch (error) {
+    return { status: 'error', message: error.message };
+  }
+}
+
+function getFallRisk(an) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('Fall_Risk_Morse');
+    if (!sheet) return [];
+    
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return [];
+    
+    const headers = data[0].map(h => String(h).toLowerCase().trim());
+    const idxAN = headers.indexOf('an');
+    const idxDate = headers.indexOf('evaldate');
+    const idxShift = headers.indexOf('shift');
+    const idxMaas = headers.indexOf('maasscore');
+    const idxAssessor = headers.indexOf('assessor');
+    // เพิ่มการดึงค่าMorseTotal กลับมาด้วย
+    const idxMorse = headers.indexOf('morsetotal');
+    const mIndices = [1,2,3,4,5,6].map(n => headers.indexOf('m' + n));
+    
+    const results = [];
+    const targetAN = String(an).trim();
+    
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][idxAN]).trim() === targetAN) {
+        let rowObj = {
+          timestamp: data[i][0],
+          an: targetAN,
+          evalDate: normalizeEvalDate(data[i][idxDate]),
+          shift: normalizeShiftLabel(data[i][idxShift]),
+          morseTotal: idxMorse !== -1 ? data[i][idxMorse] : '',
+          maasScore: idxMaas !== -1 ? data[i][idxMaas] : '',
+          assessor: String(data[i][idxAssessor] || '').trim(),
+          _sourceIndex: i
+        };
+
+        // ใส่ค่าm1-m6
+        mIndices.forEach((idx, n) => {
+          rowObj['m' + (n+1)] = (idx !== -1 && data[i][idx] !== "") ? Number(data[i][idx]) : '';
+        });
+
+        results.push(rowObj);
+      }
+    }
+    return normalizeShiftRecords(results);
+  } catch (e) { return []; }
+}
+function getBradenScale(an) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Braden_Scale');
+  if (!sheet) return [];
+  const data = sheet.getDataRange().getValues();
+  const results = [];
+  const headers = data[0];
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][1] && data[i][1].toString() === an.toString()) {
+      let obj = {};
+      for (let j = 0; j < headers.length; j++) {
+        obj[headers[j]] = data[i][j];
+      }
+      results.push(obj);
+    }
+  }
+  return results;
+}
+
+function saveBradenScale(p) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('Braden_Scale');
+  const data = sheet.getDataRange().getValues();
+  let rowIndex = -1;
+  const targetDate = formatSafeDate(p.evalDate);
+  const targetAN = p.an.toString();
+  
+  // กรณี1: บันทึกสรุปส่วนที่4 (isSummaryOnly = true)
+  if (p.isSummaryOnly) {
+    // หาแถว'ล่าสุด' ของAN นี้(ค้นหาจากล่างขึ้นบน)
+    for (let i = data.length - 1; i >= 1; i--) {
+      if (data[i][1] && data[i][1].toString() === targetAN) {
+        rowIndex = i + 1;
+        
+        // แก้ไข: อัปเดตเฉพาะคอลัมน์S4_... (เริ่มที่คอลัมน์28 จำนวน8 คอลัมน์)
+        sheet.getRange(rowIndex, 28, 1, 8).setValues([[
+          p.s4_dischargeDate || '',
+          p.s4_outcome || '',
+          p.s4_ulcerDate || '',
+          p.s4_location || '',
+          p.s4_size || '',
+          p.s4_appearance || '',
+          p.s4_stage || '',
+          p.s4_count || ''
+        ]]);
+        return { status: 'success', message: 'บันทึกสรุปการเกิดแผลกดทับลงในข้อมูลล่าสุดเรียบร้อย' };
+      }
+    }
+    return { status: 'error', message: 'ไม่พบประวัติการประเมินแผลกดทับของผู้ป่วยรายนี้จึงไม่สามารถบันทึกสรุปได้' };
+  }
+
+  // กรณี2: บันทึกการประเมินปกติ(ส่วนที่1-3)
+  for (let i = 1; i < data.length; i++) {
+    let rowDate = formatSafeDate(data[i][4]);
+    // ค้นหาว่ามีประเมินของวันนั้นๆในAN นี้แล้วหรือยัง
+    if (data[i][1] && data[i][1].toString() === targetAN && rowDate === targetDate) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+
+  const rowData = [
+    new Date(), p.an, p.hn, p.ward, targetDate, p.admitDate, p.transferDate, p.fromWard, p.firstEvalDate, p.diagnosis, p.initialUlcer, p.initialUlcerDetail, p.albumin, p.hb, p.hct, p.bmi, p.s1_m1||0, p.s1_m2||0, p.s1_m3||0, p.s1_m4||0, p.s1_m5||0, p.s1_m6||0, p.totalScore||0, p.s3_location, p.s3_stage, p.s3_appearance, p.assessor, 
+    p.s4_dischargeDate || '', p.s4_outcome || '', p.s4_ulcerDate || '', p.s4_location || '', p.s4_size || '', p.s4_appearance || '', p.s4_stage || '', p.s4_count || ''
+  ];
+
+  if (rowIndex !== -1) {
+    sheet.getRange(rowIndex, 1, 1, rowData.length).setValues([rowData]);
+    return { status: 'success', message: 'อัปเดตข้อมูลการประเมินแผลกดทับเรียบร้อย' };
+  } else {
+    sheet.appendRow(rowData);
+    return { status: 'success', message: 'บันทึกข้อมูลแบบประเมินแผลกดทับเรียบร้อย' };
+  }
+}
+// --- ฟังก์ชันสำหรับแบบบันทึกการให้คำแนะนำ(Patient Education) ---
+function savePatientEdu(p) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('Patient_Education');
+  
+  // ถ้ายังไม่มีชีตให้สร้างใหม่และใส่หัวตาราง
+  if (!sheet) {
+    sheet = ss.insertSheet('Patient_Education');
+    sheet.appendRow(['Timestamp', 'AN', 'HN', 'Ward', 'DataJSON']);
+  }
+  
+  const data = sheet.getDataRange().getValues();
+  let rowIndex = -1;
+  
+  // ค้นหาว่าคนไข้AN นี้เคยบันทึกไว้หรือยัง
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][1].toString() === p.an.toString()) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+  
+  const rowData = [
+    new Date(),
+    p.an,
+    p.hn,
+    p.ward,
+    JSON.stringify(p.formData) // บันทึกข้อมูลทั้งก้อนเป็นJSON แถวเดียว
+  ];
+  
+  if (rowIndex !== -1) {
+    sheet.getRange(rowIndex, 1, 1, rowData.length).setValues([rowData]);
+    return { status: 'success', message: 'อัปเดตข้อมูลการให้คำแนะนำเรียบร้อย' };
+  } else {
+    sheet.appendRow(rowData);
+    return { status: 'success', message: 'บันทึกข้อมูลการให้คำแนะนำใหม่เรียบร้อย' };
+  }
+}
+
+function getPatientEdu(an) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Patient_Education');
+  if (!sheet) return {};
+  
+  const data = sheet.getDataRange().getValues();
+  for (let i = data.length - 1; i >= 1; i--) {
+    if (data[i][1].toString() === an.toString()) {
+      return JSON.parse(data[i][4] || '{}');
+    }
+  }
+  return {};
+}
+// ==========================================
+// ส่วนจัดการFocus List & Templates
+// ==========================================
+
+function saveFocusList(p) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('Focus_List');
+  if (!sheet) {
+    sheet = ss.insertSheet('Focus_List');
+    sheet.appendRow(['Timestamp', 'AN', 'HN', 'Ward', 'DataJSON']);
+  }
+  
+  const data = sheet.getDataRange().getValues();
+  let rowIndex = -1;
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][1].toString() === p.an.toString()) { rowIndex = i + 1; break; }
+  }
+  
+  const rowData = [new Date(), p.an, p.hn, p.ward, JSON.stringify(p.focusData)];
+  
+  if (rowIndex !== -1) {
+    sheet.getRange(rowIndex, 1, 1, rowData.length).setValues([rowData]);
+  } else {
+    sheet.appendRow(rowData);
+  }
+  return { status: 'success', message: 'บันทึกข้อมูลFocus List สำเร็จ' };
+}
+
+function getFocusList(an) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Focus_List');
+  if (!sheet) return [];
+  const data = sheet.getDataRange().getValues();
+  for (let i = data.length - 1; i >= 1; i--) {
+    if (data[i][1].toString() === an.toString()) return JSON.parse(data[i][4] || '[]');
+  }
+  return [];
+}
+
+function saveFocusTemplate(p) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('Focus_Templates');
+  if (!sheet) {
+    sheet = ss.insertSheet('Focus_Templates');
+    sheet.appendRow(['ID', 'ProblemName', 'Focus', 'Goal']);
+  }
+  sheet.appendRow([new Date().getTime(), p.problemName, p.focus, p.goal]);
+  return { status: 'success', message: 'บันทึกTemplate สำเร็จ' };
+}
+
+function getFocusTemplates() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Focus_Templates');
+  if (!sheet) return [];
+  const data = sheet.getDataRange().getValues();
+  let templates = [];
+  for (let i = 1; i < data.length; i++) {
+    templates.push({ id: data[i][0], problemName: data[i][1], focus: data[i][2], goal: data[i][3] });
+  }
+  return templates;
+}
+// ==========================================
+// ส่วนจัดการNursing Progress Note
+// ==========================================
+function saveNursingNotes(p) {
+  try {
+    const detailSheet = getOrCreateNursingNotesDetailSheet();
+    const noteItems = Array.isArray(p.noteData) ? p.noteData : [];
+    const defaults = {
+      an: String(p.an || ''),
+      hn: String(p.hn || ''),
+      ward: String(p.ward || '')
+    };
+    const normalizedNotes = noteItems.map(function(item) {
+      return normalizeNursingNoteItem(item, defaults);
+    });
+
+    const data = detailSheet.getDataRange().getValues();
+    const existingRowsById = {};
+    const rowsToDelete = [];
+    const incomingIds = {};
+
+    for (let i = 0; i < normalizedNotes.length; i++) {
+      incomingIds[normalizedNotes[i].id] = true;
+    }
+
+    let maxDbTimestamp = 0;
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][1] || '') !== defaults.an) continue;
+      const rowSavedAt = new Date(data[i][0]).getTime();
+      if (!isNaN(rowSavedAt) && rowSavedAt > maxDbTimestamp) {
+        maxDbTimestamp = rowSavedAt;
+      }
+      const noteId = String(data[i][4] || '');
+      if (noteId) existingRowsById[noteId] = i + 1;
+      if (noteId && !incomingIds[noteId]) rowsToDelete.push(i + 1);
+    }
+
+    if (p.last_updated_at && maxDbTimestamp > 0) {
+      const clientLastSync = new Date(p.last_updated_at).getTime();
+      if (!isNaN(clientLastSync) && maxDbTimestamp > clientLastSync + 5000) {
+        return {
+          status: 'error',
+          message: 'ข้อมูลNursing Note ็ด็รับการอัปเŨmeดŧmeจากผู้ฉ็อาmeนอmeื่meนกmeũmeอmeนmeนmeไmeห้กรุณาme๋หmeลดmeขme้meอmeมmeูmeลใหme้เปme็meน(Data conflict/Optimistic lock)'
+        };
+      }
+    }
+
+    const rowsToAppend = [];
+    normalizedNotes.forEach(function(note) {
+      const rowData = [
+        new Date(),
+        note.an,
+        note.hn,
+        note.ward,
+        note.id,
+        note.date,
+        note.shift,
+        note.time,
+        note.focus,
+        note.s,
+        note.o,
+        note.i,
+        note.e,
+        note.eTime,
+        note.nurse,
+        note.pos,
+        JSON.stringify(note)
+      ];
+
+      if (existingRowsById[note.id]) {
+        detailSheet.getRange(existingRowsById[note.id], 1, 1, rowData.length).setValues([rowData]);
+      } else {
+        rowsToAppend.push(rowData);
+      }
+    });
+
+    if (rowsToAppend.length > 0) {
+      const startRow = detailSheet.getLastRow() + 1;
+      detailSheet.getRange(startRow, 1, rowsToAppend.length, rowsToAppend[0].length).setValues(rowsToAppend);
+    }
+
+    rowsToDelete.sort(function(a, b) { return b - a; }).forEach(function(rowNumber) {
+      detailSheet.deleteRow(rowNumber);
+    });
+
+    return {
+      status: 'success',
+      message: 'บันทึกNursing Note สำเร็จ',
+      savedCount: normalizedNotes.length
+    };
+  } catch (error) {
+    return { status: 'error', message: error.message };
+  }
+}
+
+function getNursingNotes(an) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const detailSheet = ss.getSheetByName('Nursing_Notes_Detail');
+  const targetAN = String(an || '');
+
+  if (detailSheet && detailSheet.getLastRow() > 1) {
+    const detailData = detailSheet.getDataRange().getValues();
+    const notes = [];
+    for (let i = 1; i < detailData.length; i++) {
+      if (String(detailData[i][1] || '') !== targetAN) continue;
+      notes.push(parseStoredNursingNoteRow(detailData[i]));
+    }
+    if (notes.length > 0) return notes;
+  }
+
+  const legacySheet = ss.getSheetByName('Nursing_Notes');
+  if (!legacySheet) return [];
+  const data = legacySheet.getDataRange().getValues();
+  for (let i = data.length - 1; i >= 1; i--) {
+    if (String(data[i][1] || '') === targetAN) return JSON.parse(data[i][4] || '[]');
+  }
+  return [];
+}
+
+function sendRegistrationVerification(p) {
+  try {
+    const username = String((p && p.username) || '').trim();
+    const prefix = String((p && p.prefix) || '').trim();
+    const firstName = String((p && p.firstName) || '').trim();
+    const lastName = String((p && p.lastName) || '').trim();
+    const password = String((p && p.password) || '');
+    const confirmPassword = String((p && p.confirmPassword) || '');
+    const email = normalizeEmail(p && p.email);
+    const fullName = normalizeFullName([prefix, firstName, lastName].filter(String).join(' '));
+
+    if (!username || !prefix || !firstName || !lastName || !email || !password || !confirmPassword) {
+      return { status: 'error', message: 'กรุณากรอกข้อมูลลงทะเบียนให้ครบถ้วน' };
+    }
+    if (!/^[a-zA-Z0-9._-]{4,30}$/.test(username)) {
+      return { status: 'error', message: 'ชื่อผู้ใช้ต้องมี4-30 ตัวและใช้ได้เฉพาะa-z, A-Z, 0-9, จุด, ขีดล่าง, ขีดกลาง' };
+    }
+    if (!isValidEmail(email)) {
+      return { status: 'error', message: 'รูปแบบอีเมลไม่ถูกต้อง' };
+    }
+    if (password !== confirmPassword) {
+      return { status: 'error', message: 'รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน' };
+    }
+    if (password.length < 6) {
+      return { status: 'error', message: 'รหัสผ่านต้องมีอย่างน้อย6 ตัวอักษร' };
+    }
+
+    const staffMember = getStaffMemberByFullName(fullName);
+    if (!staffMember) {
+      return {
+        status: 'error',
+        message: 'ไม่พบข้อมูลในฐานข้อมูลบุคลากรกรุณาตรวจสอบข้อมูลให้ถูกต้องหรือติดต่อผู้ดูแลระบบ'
+      };
+    }
+
+    const existingUser = findUserAccountByEmail(email);
+    if (existingUser && String(existingUser.values[6] || '').toLowerCase() === 'active') {
+      return { status: 'error', message: 'อีเมลนี้ถูกลงทะเบียนใช้งานแล้ว' };
+    }
+    const existingUsername = findUserAccountByUsername(username);
+    if (existingUsername && String(existingUsername.values[6] || '').toLowerCase() === 'active') {
+      return { status: 'error', message: 'ชื่อผู้ใช้นี้ถูกใช้งานแล้วกรุณาเลือกชื่อผู้ใช้อื่น' };
+    }
+
+    const verificationSheet = getOrCreateAuthVerificationSheet();
+    const salt = generatePasswordSalt();
+    const passwordHash = hashPassword(password, salt);
+    const code = generateNumericCode(6);
+    const createdAt = new Date();
+    const expiresAt = new Date(createdAt.getTime() + (AUTH_VERIFY_MINUTES * 60 * 1000));
+
+    verificationSheet.appendRow([
+      createdAt,
+      'REGISTER',
+      email,
+      staffMember.name,
+      staffMember.position,
+      passwordHash,
+      salt,
+      code,
+      expiresAt,
+      '',
+      username
+    ]);
+
+    MailApp.sendEmail({
+      to: email,
+      subject: 'รหัสยืนยันการลงทะเบียนIPD Nurse System',
+      htmlBody:
+        '<div style="font-family:Sarabun,Arial,sans-serif;font-size:14px;line-height:1.7;">' +
+        '<p>เรียน' + staffMember.name + '</p>' +
+        '<p>รหัสยืนยันสำหรับลงทะเบียนเข้าใช้งานระบบคือ</p>' +
+        '<p style="font-size:28px;font-weight:700;letter-spacing:6px;color:#0f766e;">' + code + '</p>' +
+        '<p>รหัสนี้จะหมดอายุใน' + AUTH_VERIFY_MINUTES + ' นาที</p>' +
+        '<p>หากคุณไม่ได้ร้องขอการลงทะเบียนกรุณาเพิกเฉยอีเมลฉบับนี้</p>' +
+        '</div>',
+      name: 'IPD Nurse System'
+    });
+
+    return {
+      status: 'success',
+      message: 'ส่งรหัสยืนยันไปยังอีเมลเรียบร้อยแล้ว',
+      email: email,
+      username: username
+    };
+  } catch (error) {
+    return { status: 'error', message: error.message };
+  }
+}
+
+function verifyRegistrationCode(p) {
+  try {
+    const email = normalizeEmail(p && p.email);
+    const code = String((p && p.code) || '').trim();
+    if (!email || !code) {
+      return { status: 'error', message: 'กรุณากรอกอีเมลและรหัสยืนยัน' };
+    }
+
+    const verificationSheet = getOrCreateAuthVerificationSheet();
+    const verificationData = verificationSheet.getDataRange().getValues();
+    let matchedRowIndex = -1;
+    let matchedRow = null;
+
+    for (let i = verificationData.length - 1; i >= 1; i--) {
+      if (String(verificationData[i][1] || '') !== 'REGISTER') continue;
+      if (normalizeEmail(verificationData[i][2]) !== email) continue;
+      if (String(verificationData[i][7] || '').trim() !== code) continue;
+      if (verificationData[i][9]) continue;
+      matchedRowIndex = i + 1;
+      matchedRow = verificationData[i];
+      break;
+    }
+
+    if (!matchedRow) {
+      return { status: 'error', message: 'รหัสยืนยันไม่ถูกต้องหรือหมดอายุแล้ว' };
+    }
+
+    const expiresAt = matchedRow[8];
+    if (!(expiresAt instanceof Date) || expiresAt.getTime() < new Date().getTime()) {
+      return { status: 'error', message: 'รหัสยืนยันหมดอายุแล้วกรุณาขอรหัสใหม่' };
+    }
+
+    const usersSheet = getOrCreateUserAccountsSheet();
+    const existingUser = findUserAccountByEmail(email);
+    const rowData = [
+      existingUser ? existingUser.values[0] || new Date() : new Date(),
+      matchedRow[3],
+      matchedRow[4],
+      email,
+      matchedRow[5],
+      matchedRow[6],
+      'active',
+      new Date(),
+      '',
+      String(matchedRow[10] || '').trim(),
+      existingUser ? String(existingUser.values[10] || 'user').trim() || 'user' : 'user'
+    ];
+
+    if (existingUser) {
+      usersSheet.getRange(existingUser.rowIndex, 1, 1, rowData.length).setValues([rowData]);
+    } else {
+      usersSheet.appendRow(rowData);
+    }
+
+    verificationSheet.getRange(matchedRowIndex, 10).setValue(new Date());
+
+    return {
+      status: 'success',
+      message: 'ยืนยันอีเมลและสร้างบัญชีเรียบร้อยแล้ว',
+      user: {
+        fullName: String(matchedRow[3] || '').trim(),
+        position: String(matchedRow[4] || '').trim(),
+        email: email,
+        username: String(matchedRow[10] || '').trim()
+      }
+    };
+  } catch (error) {
+    return { status: 'error', message: error.message };
+  }
+}
+
+function sendPasswordResetLink(p) {
+  try {
+    const identifier = String((p && p.identifier) || '').trim();
+    const resetBaseUrl = String((p && p.resetBaseUrl) || '').trim();
+    if (!identifier) {
+      return { status: 'error', message: 'กรุณากรอกชื่อผู้ใช้หรืออีเมลที่ลงทะเบียนไว้' };
+    }
+
+    const userAccount = findUserAccountByIdentifier(identifier);
+    if (!userAccount || String(userAccount.values[6] || '').toLowerCase() !== 'active') {
+      return { status: 'error', message: 'ไม่พบบัญชีผู้ใช้งานที่สามารถรีเซ็ตรหัสผ่านได้' };
+    }
+
+    const user = buildUserResponseFromRow(userAccount.values);
+    if (normalizeUsername(user.username) === normalizeUsername(ADMIN_USERNAME)) {
+      return { status: 'error', message: 'บัญชีผู้ดูแลระบบนี้ไม่รองรับการรีเซ็ตผ่านอีเมลกรุณาเข้าสู่ระบบด้วยรหัสดูแลระบบโดยตรง' };
+    }
+    if (!resetBaseUrl || !/^https?:\/\//i.test(resetBaseUrl)) {
+      return { status: 'error', message: 'ไม่พบURL หน้าเว็บสำหรับสร้างลิงก์รีเซ็ตรหัสผ่านกรุณาเปิดผ่านเว็บที่deploy จริงแล้วลองอีกครั้ง' };
+    }
+
+    const sheet = getOrCreatePasswordResetSheet();
+    const createdAt = new Date();
+    const expiresAt = new Date(createdAt.getTime() + (PASSWORD_RESET_MINUTES * 60 * 1000));
+    const token = generateSessionToken();
+    const resetUrl = buildPasswordResetUrl(resetBaseUrl, token, user.email);
+
+    sheet.appendRow([
+      createdAt,
+      user.email,
+      user.username,
+      user.fullName,
+      token,
+      expiresAt,
+      '',
+      resetUrl
+    ]);
+
+    MailApp.sendEmail({
+      to: user.email,
+      subject: 'ลิงก์ตั้งรหัสผ่านใหม่IPD Nurse System',
+      htmlBody:
+        '<div style="font-family:Sarabun,Arial,sans-serif;font-size:14px;line-height:1.7;">' +
+        '<p>เรียน' + user.fullName + '</p>' +
+        '<p>มีการร้องขอตั้งรหัสผ่านใหม่สำหรับบัญชี<strong>' + user.username + '</strong></p>' +
+        '<p><a href="' + resetUrl + '" style="display:inline-block;background:#0f766e;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:10px;font-weight:700;">ตั้งรหัสผ่านใหม่</a></p>' +
+        '<p>หรือนำลิงก์นี้ไปเปิดในเบราว์เซอร์:</p>' +
+        '<p style="word-break:break-all;color:#0f172a;">' + resetUrl + '</p>' +
+        '<p>ลิงก์นี้จะหมดอายุใน' + PASSWORD_RESET_MINUTES + ' นาที</p>' +
+        '<p>หากคุณไม่ได้ร้องขอการตั้งรหัสผ่านใหม่กรุณาเพิกเฉยอีเมลฉบับนี้</p>' +
+        '</div>',
+      name: 'IPD Nurse System'
+    });
+
+    return {
+      status: 'success',
+      message: 'ส่งลิงก์ตั้งรหัสผ่านใหม่ไปยังอีเมลที่ลงทะเบียนไว้แล้ว'
+    };
+  } catch (error) {
+    return { status: 'error', message: error.message };
+  }
+}
+
+function resetPasswordWithToken(p) {
+  try {
+    const email = normalizeEmail(p && p.email);
+    const token = String((p && p.token) || '').trim();
+    const password = String((p && p.password) || '');
+    const confirmPassword = String((p && p.confirmPassword) || '');
+
+    if (!email || !token || !password || !confirmPassword) {
+      return { status: 'error', message: 'กรุณากรอกข้อมูลตั้งรหัสผ่านใหม่ให้ครบถ้วน' };
+    }
+    if (password !== confirmPassword) {
+      return { status: 'error', message: 'รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน' };
+    }
+    if (password.length < 6) {
+      return { status: 'error', message: 'รหัสผ่านต้องมีอย่างน้อย6 ตัวอักษร' };
+    }
+
+    const resetSheet = getOrCreatePasswordResetSheet();
+    const data = resetSheet.getDataRange().getValues();
+    let matchedRowIndex = -1;
+    let matchedRow = null;
+    for (let i = data.length - 1; i >= 1; i--) {
+      if (normalizeEmail(data[i][1]) !== email) continue;
+      if (String(data[i][4] || '').trim() !== token) continue;
+      if (data[i][6]) continue;
+      matchedRowIndex = i + 1;
+      matchedRow = data[i];
+      break;
+    }
+
+    if (!matchedRow) {
+      return { status: 'error', message: 'ลิงก์ตั้งรหัสผ่านใหม่ไม่ถูกต้องหรือถูกใช้งานไปแล้ว' };
+    }
+    if (!(matchedRow[5] instanceof Date) || matchedRow[5].getTime() < new Date().getTime()) {
+      return { status: 'error', message: 'ลิงก์ตั้งรหัสผ่านใหม่หมดอายุแล้วกรุณาขอใหม่อีกครั้ง' };
+    }
+
+    const userAccount = findUserAccountByEmail(email);
+    if (!userAccount || String(userAccount.values[6] || '').toLowerCase() !== 'active') {
+      return { status: 'error', message: 'ไม่พบบัญชีผู้ใช้ที่ต้องการรีเซ็ตรหัสผ่าน' };
+    }
+
+    const salt = generatePasswordSalt();
+    const passwordHash = hashPassword(password, salt);
+    const usersSheet = getOrCreateUserAccountsSheet();
+    usersSheet.getRange(userAccount.rowIndex, 5).setValue(passwordHash);
+    usersSheet.getRange(userAccount.rowIndex, 6).setValue(salt);
+    resetSheet.getRange(matchedRowIndex, 7).setValue(new Date());
+
+    return {
+      status: 'success',
+      message: 'ตั้งรหัสผ่านใหม่เรียบร้อยแล้วสามารถเข้าสู่ระบบด้วยรหัสผ่านใหม่ได้ทันที'
+    };
+  } catch (error) {
+    return { status: 'error', message: error.message };
+  }
+}
+
+function loginUser(p) {
+  try {
+    const username = String((p && p.username) || '').trim();
+    const password = String((p && p.password) || '');
+    if (!username || !password) {
+      return { status: 'error', message: 'กรุณากรอกชื่อผู้ใช้และรหัสผ่าน' };
+    }
+
+    if (normalizeUsername(username) === normalizeUsername(ADMIN_USERNAME) && password === ADMIN_PASSWORD) {
+      const adminUser = {
+        fullName: 'IT Nurse Admin',
+        position: 'System Administrator',
+        email: 'admin11450@ipdnurse.local',
+        username: ADMIN_USERNAME,
+        role: 'admin'
+      };
+      const adminSession = createAuthSession(adminUser);
+      return {
+        status: 'success',
+        message: 'เข้าสู่ระบบผู้ดูแลสำเร็จ',
+        sessionToken: adminSession.token,
+        user: adminUser
+      };
+    }
+
+    const userAccount = findUserAccountByUsername(username);
+    if (!userAccount || String(userAccount.values[6] || '').toLowerCase() !== 'active') {
+      return { status: 'error', message: 'ไม่พบบัญชีผู้ใช้งานหรือบัญชียังไม่ผ่านการยืนยันอีเมล' };
+    }
+
+    const savedHash = String(userAccount.values[4] || '');
+    const salt = String(userAccount.values[5] || '');
+    if (hashPassword(password, salt) !== savedHash) {
+      return { status: 'error', message: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' };
+    }
+
+    const session = createAuthSession(buildUserResponseFromRow(userAccount.values));
+    getOrCreateUserAccountsSheet().getRange(userAccount.rowIndex, 9).setValue(new Date());
+
+    return {
+      status: 'success',
+      message: 'เข้าสู่ระบบสำเร็จ',
+      sessionToken: session.token,
+      user: buildUserResponseFromRow(userAccount.values)
+    };
+  } catch (error) {
+    return { status: 'error', message: error.message };
+  }
+}
+
+function getSessionUser(sessionToken) {
+  try {
+    const activeSession = getActiveSessionRow(sessionToken);
+    if (!activeSession) {
+      return { status: 'error', message: 'session หมดอายุหรือไม่ถูกต้อง' };
+    }
+
+    activeSession.sheet.getRange(activeSession.rowIndex, 7).setValue(new Date());
+    return {
+      status: 'success',
+      user: {
+        fullName: String(activeSession.values[3] || '').trim(),
+        position: String(activeSession.values[4] || '').trim(),
+        email: normalizeEmail(activeSession.values[2]),
+        username: String(activeSession.values[8] || '').trim(),
+        role: String(activeSession.values[9] || 'user').trim() || 'user'
+      }
+    };
+  } catch (error) {
+    return { status: 'error', message: error.message };
+  }
+}
+
+function logoutUser(p) {
+  try {
+    const token = p && p.sessionToken;
+    if (!token) return { status: 'success', message: 'ออกจากระบบเรียบร้อยแล้ว' };
+    const sessionsSheet = getOrCreateAuthSessionsSheet();
+    const data = sessionsSheet.getDataRange().getValues();
+    for (let i = data.length - 1; i >= 1; i--) {
+      if (String(data[i][1] || '') === String(token)) {
+        sessionsSheet.getRange(i + 1, 8).setValue('false');
+        break;
+      }
+    }
+    return { status: 'success', message: 'ออกจากระบบเรียบร้อยแล้ว' };
+  } catch (error) {
+    return { status: 'error', message: error.message };
+  }
+}
+
+function createServiceRequest(p) {
+  try {
+    const session = requireActiveSession(p && p.sessionToken);
+    const department = String((p && p.department) || '').trim();
+    const subject = String((p && p.subject) || '').trim();
+    const details = String((p && p.details) || '').trim();
+    const category = String((p && p.category) || 'แจ้งปัญหาการใช้งาน').trim() || 'แจ้งปัญหาการใช้งาน';
+    const attachmentsInput = Array.isArray(p && p.attachments) ? p.attachments : [];
+
+    if (!department || !subject || !details) {
+      return { status: 'error', message: 'กรุณากรอกหน่วยงานหัวข้อและรายละเอียดคำขอให้ครบถ้วน' };
+    }
+    if (attachmentsInput.length > 5) {
+      return { status: 'error', message: 'แนบไฟล์ได้ไม่เกิน5 ไฟล์ต่อคำขอ' };
+    }
+
+    const requestId = generateRequestId('SRV');
+    const attachments = uploadServiceAttachments(requestId, attachmentsInput);
+    const now = new Date();
+    const requestRow = [
+      now,
+      requestId,
+      session.user.email,
+      session.user.username,
+      session.user.fullName,
+      session.user.position,
+      category,
+      subject,
+      details,
+      'ใหม่',
+      '',
+      now,
+      session.user.username,
+      JSON.stringify(attachments),
+      department
+    ];
+    getOrCreateServiceRequestsSheet().appendRow(requestRow);
+    const createdRequest = parseServiceRequestRow(requestRow);
+    try {
+      sendLineServiceNotification_(createdRequest);
+    } catch (notifyError) {
+      Logger.log('LINE service notify error: ' + notifyError);
+    }
+
+    return {
+      status: 'success',
+      message: 'ส่งคำขอเรียบร้อยแล้ว',
+      request: createdRequest
+    };
+  } catch (error) {
+    return { status: 'error', message: error.message };
+  }
+}
+
+function getServiceRequests(p) {
+  try {
+    const session = requireActiveSession(p && p.sessionToken);
+    const isAdmin = String(session.user.role || '').toLowerCase() === 'admin';
+    const sheet = getOrCreateServiceRequestsSheet();
+    const data = sheet.getDataRange().getValues();
+    const requests = [];
+
+    for (let i = data.length - 1; i >= 1; i--) {
+      const row = data[i];
+      if (!isAdmin && normalizeEmail(row[2]) !== session.user.email) continue;
+      requests.push(parseServiceRequestRow(row));
+    }
+
+    return {
+      status: 'success',
+      isAdmin: isAdmin,
+      requests: requests
+    };
+  } catch (error) {
+    return { status: 'error', message: error.message };
+  }
+}
+
+function updateServiceRequestStatus(p) {
+  try {
+    const adminSession = requireAdminSession(p && p.sessionToken);
+    const requestId = String((p && p.requestId) || '').trim();
+    const status = String((p && p.status) || '').trim();
+    const adminNote = String((p && p.adminNote) || '').trim();
+    if (!requestId || !status) {
+      return { status: 'error', message: 'กรุณาระบุรายการคำขอและสถานะใหม่' };
+    }
+
+    const sheet = getOrCreateServiceRequestsSheet();
+    const data = sheet.getDataRange().getValues();
+    for (let i = data.length - 1; i >= 1; i--) {
+      if (String(data[i][1] || '').trim() !== requestId) continue;
+      const now = new Date();
+      sheet.getRange(i + 1, 10).setValue(status);
+      sheet.getRange(i + 1, 11).setValue(adminNote);
+      sheet.getRange(i + 1, 12).setValue(now);
+      sheet.getRange(i + 1, 13).setValue(adminSession.user.username);
+      return { status: 'success', message: 'อัปเดตสถานะคำขอเรียบร้อยแล้ว' };
+    }
+
+    return { status: 'error', message: 'ไม่พบรายการคำขอที่ต้องการอัปเดต' };
+  } catch (error) {
+    return { status: 'error', message: error.message };
+  }
+}
+
+function saveNursingTemplate(p) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('Nursing_Templates');
+  if (!sheet) {
+    sheet = ss.insertSheet('Nursing_Templates');
+    sheet.appendRow(['ID', 'TemplateName', 'Focus', 'S', 'O', 'I', 'E']);
+  }
+  sheet.appendRow([new Date().getTime(), p.templateName, p.focus, p.s, p.o, p.i, p.e]);
+  return { status: 'success' };
+}
+
+function getNursingTemplates() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Nursing_Templates');
+  if (!sheet) return [];
+  const data = sheet.getDataRange().getValues();
+  let templates = [];
+  for (let i = 1; i < data.length; i++) {
+    templates.push({ id: data[i][0], templateName: data[i][1], focus: data[i][2], s: data[i][3], o: data[i][4], i: data[i][5], e: data[i][6] });
+  }
+  return templates;
+}
+// ==========================================
+// ส่วนจัดการแบบบันทึกการพยาบาลผู้ป่วยจำหน่าย
+// ==========================================
+function saveDischargeRecord(p) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('Discharge_Record');
+  if (!sheet) {
+    sheet = ss.insertSheet('Discharge_Record');
+    sheet.appendRow(['Timestamp', 'AN', 'HN', 'Ward', 'DataJSON']);
+  }
+  
+  const data = sheet.getDataRange().getValues();
+  let rowIndex = -1;
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][1].toString() === p.an.toString()) { rowIndex = i + 1; break; }
+  }
+  
+  const rowData = [new Date(), p.an, p.hn, p.ward, JSON.stringify(p.formData)];
+  if (rowIndex !== -1) { sheet.getRange(rowIndex, 1, 1, rowData.length).setValues([rowData]); } 
+  else { sheet.appendRow(rowData); }
+  return { status: 'success' };
+}
+
+function getDischargeRecord(an) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Discharge_Record');
+  if (!sheet) return null;
+  const data = sheet.getDataRange().getValues();
+  for (let i = data.length - 1; i >= 1; i--) {
+    if (data[i][1].toString() === an.toString()) return JSON.parse(data[i][4] || '{}');
+  }
+  return null;
+}
+
+// ==========================================
+// ฟังก์ชันย้ายผู้ป่วยไปยังRegistryHistory (แบบป้องกันError)
+// ==========================================
+function saveNutritionAssessment(p) {
+  const sheet = getOrCreateSheet('Nutrition_Assessment', ['Timestamp', 'AN', 'HN', 'Ward', 'DataJSON']);
+  const data = sheet.getDataRange().getValues();
+  let rowIndex = -1;
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][1] || '') === String(p.an || '')) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+  const rowData = [new Date(), p.an || '', p.hn || '', p.ward || '', JSON.stringify(p.formData || {})];
+  if (rowIndex !== -1) {
+    sheet.getRange(rowIndex, 1, 1, rowData.length).setValues([rowData]);
+  } else {
+    sheet.appendRow(rowData);
+  }
+  return { status: 'success' };
+}
+
+function getNutritionAssessment(an) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Nutrition_Assessment');
+  if (!sheet) return null;
+  const data = sheet.getDataRange().getValues();
+  for (let i = data.length - 1; i >= 1; i--) {
+    if (String(data[i][1] || '') === String(an || '')) return JSON.parse(data[i][4] || '{}');
+  }
+  return null;
+}
+
+function processDischargePatient(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const currentSheet = ss.getSheetByName('CurrentPatients');
+    const historySheet = ss.getSheetByName('RegistryHistory');
+    
+    if (!currentSheet || !historySheet) {
+      return { status: 'error', message: 'ไม่พบชีตCurrentPatients หรือRegistryHistory' };
+    }
+    
+    const currentRange = currentSheet.getDataRange();
+    const sheetData = currentRange.getValues();
+    const sheetDisplayData = currentRange.getDisplayValues();
+    if (sheetData.length < 2) {
+      return { status: 'error', message: 'ไม่มีรายชื่อผู้ป่วยในชีตปัจจุบัน' };
+    }
+    
+    const headers = sheetData[0];
+    const historyHeaders = historySheet.getLastRow() > 0
+      ? historySheet.getRange(1, 1, 1, historySheet.getLastColumn()).getDisplayValues()[0]
+      : headers;
+    const anIndex = headers.findIndex(h => String(h).toLowerCase() === 'an');
+    
+    // หาIndex ของWard และBed
+    const wardIndex = headers.findIndex(h => String(h).toLowerCase() === 'ward' || String(h) === 'ตึก');
+    const bedIndex = headers.findIndex(h => String(h).toLowerCase() === 'bed' || String(h) === 'เตียง');
+    
+    if (anIndex === -1) {
+      return { status: 'error', message: 'ไม่พบคอลัมน์AN ในชีตCurrentPatients' };
+    }
+    
+    let targetRow = -1;
+    let rowDataToMove = [];
+    let displayRowToMove = [];
+    let patientWard = "";
+    let patientBed = "";
+    
+    for (let i = 1; i < sheetData.length; i++) {
+      if (isSameSheetIdentifier(sheetData[i][anIndex], sheetDisplayData[i][anIndex], data.an)) {
+        targetRow = i + 1; 
+        rowDataToMove = sheetData[i];
+        displayRowToMove = sheetDisplayData[i];
+        
+        // ดึงชื่อตึกและเตียงของผู้ป่วยคนนี้ออกมา
+        if (wardIndex !== -1) patientWard = normalizeSheetDisplayText(sheetData[i][wardIndex], sheetDisplayData[i][wardIndex]);
+        if (bedIndex !== -1) patientBed = normalizeSheetDisplayText(sheetData[i][bedIndex], sheetDisplayData[i][bedIndex]);
+        break;
+      }
+    }
+    
+    if (targetRow !== -1) {
+      const serializedDischargeDate = normalizeEvalDate(new Date());
+      const historyRow = buildSerializedHistoryRow(headers, rowDataToMove, displayRowToMove, historyHeaders, serializedDischargeDate);
+      const insertRow = historySheet.getLastRow() + 1;
+      historySheet.getRange(insertRow, 1, 1, historyRow.length).setValues([historyRow]);
+
+      const textFormatColumns = [];
+      historyHeaders.forEach(function(header, index) {
+        const key = normalizeHeaderKey(header);
+        if (key === 'an' || key === 'hn' || key === 'dischargedate' || key === 'วันที่จำหน่าย') {
+          textFormatColumns.push(index + 1);
+        }
+      });
+      textFormatColumns.forEach(function(columnNumber) {
+        historySheet.getRange(insertRow, columnNumber).setNumberFormat('@');
+      });
+
+      currentSheet.deleteRow(targetRow);     
+      
+      // ✅เพิ่มคำสั่งอัปเดตสถานะเตียงเป็น'ว่าง'
+      if (patientWard && patientBed) {
+        updateBedStatus(patientWard, patientBed, 'ว่าง');
+      }
+      
+      return { status: 'success', message: 'จำหน่ายผู้ป่วยเรียบร้อย' };
+    } else {
+      return { status: 'error', message: 'ไม่พบผู้ป่วยที่ต้องการจำหน่ายในระบบ' };
+    }
+    
+  } catch (error) {
+    return { status: 'error', message: 'เซิร์ฟเวอร์ขัดข้อง: ' + error.message };
+  }
+}
+// ==========================================
+// ค้นหาผู้ป่วยที่จำหน่ายแล้ว(รายวัน/รายเดือน)
+// ==========================================
+function searchDischargedPatients(p) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const historySheet = ss.getSheetByName('RegistryHistory');
+    if (!historySheet) return { status: 'error', message: 'ไม่พบชีตRegistryHistory' };
+
+    const range = historySheet.getDataRange();
+    const data = range.getValues();
+    const displayData = range.getDisplayValues();
+    if (data.length < 2) return { status: 'success', data: [] };
+
+    const headers = displayData[0].map(function(header) {
+      return String(header || '').trim().toLowerCase();
+    });
+    const result = [];
+    const wardIndex = headers.findIndex(function(h) { return h === 'ward' || h === 'ตึก'; });
+    
+    // หาคอลัมน์วันที่จำหน่าย
+    const dateIndex = headers.findIndex(function(h) {
+      return h === 'dischargedate' || h === 'วันที่จำหน่าย';
+    });
+
+    for (let i = 1; i < data.length; i++) {
+       const rawRow = data[i];
+       const displayRow = displayData[i];
+       let obj = {};
+       headers.forEach(function(h, index) {
+         obj[h] = normalizeSheetDisplayText(rawRow[index], displayRow[index]);
+       });
+       
+       // กรองWard ก่อน
+       if (p.ward && wardIndex !== -1) {
+         const rowWard = normalizeSheetDisplayText(rawRow[wardIndex], displayRow[wardIndex]);
+         if (rowWard !== String(p.ward).trim()) continue;
+       }
+       
+       // กรองตามวันที่/ เดือนที่เลือก
+       if (dateIndex !== -1 && (p.searchDate || p.searchMonth)) {
+           const dateString = normalizeRegistrySearchDate(rawRow[dateIndex], displayRow[dateIndex]);
+           if (!dateString) continue;
+
+           if (p.searchType === 'date' && p.searchDate && dateString !== String(p.searchDate).trim()) continue;
+           if (p.searchType === 'month' && p.searchMonth && !dateString.startsWith(String(p.searchMonth).trim())) continue;
+       }
+       
+       obj.isDischarged = true; 
+       result.push(obj);
+    }
+    return { status: 'success', data: result };
+  } catch(e) {
+    return { status: 'error', message: e.message };
+  }
+}
+
+// ==========================================
+// ฟังก์ชันยกเลิกการจำหน่าย(ย้ายกลับ)
+// ==========================================
+function undoDischargePatient(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const currentSheet = ss.getSheetByName('CurrentPatients');
+    const historySheet = ss.getSheetByName('RegistryHistory');
+
+    const historyRange = historySheet.getDataRange();
+    const historyData = historyRange.getValues();
+    const historyDisplayData = historyRange.getDisplayValues();
+    const headers = historyData[0];
+    const anIndex = headers.findIndex(h => String(h).toLowerCase() === 'an');
+    
+    // หาIndex ของWard และBed
+    const wardIndex = headers.findIndex(h => String(h).toLowerCase() === 'ward' || String(h) === 'ตึก');
+    const bedIndex = headers.findIndex(h => String(h).toLowerCase() === 'bed' || String(h) === 'เตียง');
+
+    let targetRow = -1;
+    let rowDataToMove = [];
+    let patientWard = "";
+    let patientBed = "";
+
+    // หาตัวผู้ป่วยในชีตHistory
+    for (let i = 1; i < historyData.length; i++) {
+      if (isSameSheetIdentifier(historyData[i][anIndex], historyDisplayData[i][anIndex], data.an)) {
+        targetRow = i + 1; 
+        rowDataToMove = historyData[i];
+        
+        // ดึงชื่อตึกและเตียงของผู้ป่วยคนนี้ออกมา
+        if (wardIndex !== -1) patientWard = historyData[i][wardIndex];
+        if (bedIndex !== -1) patientBed = historyData[i][bedIndex];
+        break;
+      }
+    }
+
+    if (targetRow !== -1) {
+      currentSheet.appendRow(rowDataToMove); // เอาเข้าหน้าปัจจุบัน
+      historySheet.deleteRow(targetRow);     // ลบออกจากประวัติ
+      
+      // ✅เพิ่มคำสั่งเปลี่ยนสถานะเตียงกลับเป็น'ไม่ว่าง'
+      if (patientWard && patientBed) {
+        updateBedStatus(patientWard, patientBed, 'ไม่ว่าง');
+      }
+
+      return { status: 'success', message: 'ยกเลิกจำหน่ายเรียบร้อย' };
+    } else {
+      return { status: 'error', message: 'ไม่พบผู้ป่วยในระบบประวัติ' };
+    }
+  } catch (error) {
+    return { status: 'error', message: 'เซิร์ฟเวอร์ขัดข้อง: ' + error.message };
+  }
+}
+function getAssessmentPed(an) {
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Assessment_Pediatric');
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0].map(h => String(h).toLowerCase().trim());
+    const anIdx = headers.indexOf('an');
+    const formIdx = headers.indexOf('formdata');
+    
+    // ค้นหาจากแถวล่างสุดขึ้นบนเพื่อเอาข้อมูลล่าสุด
+    for (let i = data.length - 1; i > 0; i--) {
+      if (String(data[i][anIdx]) === String(an)) {
+        return JSON.parse(data[i][formIdx] || '{}');
+      }
+    }
+    return {};
+  } catch(e) { return {}; }
+}
+
+function saveAssessmentPed(an, formData, p) {
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Assessment_Pediatric');
+    const data = sheet.getDataRange().getValues();
+    const anIdx = data[0].map(h => String(h).toLowerCase().trim()).indexOf('an');
+    
+    const timestamp = new Date();
+    const payloadStr = JSON.stringify(formData);
+    
+    let rowIndex = -1;
+    for (let i = data.length - 1; i > 0; i--) {
+      if (String(data[i][anIdx]) === String(an)) {
+        rowIndex = i + 1; break;
+      }
+    }
+    
+    const rowData = [
+      timestamp, an, p.ward || '', p.ward || '', p.bed || '', 
+      formData.ped_AssessorName || '', formData.ped_AssessorPosition || '', payloadStr
+    ];
+    
+    if (rowIndex > -1) {
+      sheet.getRange(rowIndex, 1, 1, rowData.length).setValues([rowData]);
+    } else {
+      sheet.appendRow(rowData);
+    }
+    return { status: 'success', message: 'บันทึกประเมินแรกรับเด็กสำเร็จ' };
+  } catch(e) {
+    return { status: 'error', message: e.message };
+  }
+}
+function getClassificationsPed(an) {
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Classifications_Pediatric');
+    if (!sheet) return [];
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0].map(h => String(h).toLowerCase().trim());
+    const anIdx = headers.indexOf('an');
+    const timestampIdx = headers.indexOf('timestamp');
+    const evalDateIdx = headers.indexOf('evaldate');
+    const dateIdx = headers.indexOf('date');
+    const shiftIdx = headers.indexOf('shift');
+    const scoreIdx = headers.indexOf('score');
+    const classTypeIdx = headers.indexOf('classtype');
+    const assessorIdx = headers.indexOf('assessor');
+    const formDataIdx = headers.indexOf('formdata');
+
+    let result = [];
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][anIdx]) === String(an)) {
+        const formData = parseJsonSafely(formDataIdx !== -1 ? data[i][formDataIdx] : '', {});
+        result.push({
+          timestamp: timestampIdx !== -1 ? data[i][timestampIdx] : data[i][0],
+          an: data[i][anIdx],
+          ward: headers.indexOf('ward') !== -1 ? data[i][headers.indexOf('ward')] : '',
+          bed: headers.indexOf('bed') !== -1 ? data[i][headers.indexOf('bed')] : '',
+          evalDate: normalizeEvalDate(evalDateIdx !== -1 ? data[i][evalDateIdx] : data[i][dateIdx]),
+          shift: normalizeShiftLabel(data[i][shiftIdx]),
+          score: scoreIdx !== -1 ? data[i][scoreIdx] : '',
+          classType: classTypeIdx !== -1 ? data[i][classTypeIdx] : '',
+          assessor: assessorIdx !== -1 ? data[i][assessorIdx] : '',
+          formData: formData,
+          scores: [
+            formData.item1 || '', formData.item2 || '', formData.item3 || '', formData.item4 || '',
+            formData.item5 || '', formData.item6 || '', formData.item7 || '', formData.item8 || '',
+            formData.item9 || '', formData.item10 || ''
+          ],
+          _sourceIndex: i
+        });
+      }
+    }
+    return normalizeShiftRecords(result);
+  } catch(e) { return []; }
+}
+
+function saveClassificationPed(p) {
+  try {
+    const sheet = getOrCreateSheet('Classifications_Pediatric', [
+      'Timestamp', 'AN', 'Ward', 'Bed', 'EvalDate', 'Shift', 'Score', 'ClassType', 'Assessor', 'FormData'
+    ]);
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0].map(h => String(h).toLowerCase().trim());
+    const evalDateIdx = headers.indexOf('evaldate');
+    const dateIdx = headers.indexOf('date');
+    const shiftIdx = headers.indexOf('shift');
+    const targetDate = normalizeEvalDate(p.evalDate || p.date);
+    const targetShift = normalizeShiftLabel(p.shift);
+
+    const targetRow = findLatestMatchingRow(data, function(row) {
+      const rowDate = normalizeEvalDate(evalDateIdx !== -1 ? row[evalDateIdx] : row[dateIdx]);
+      return String(row[headers.indexOf('an')] || '') === String(p.an) &&
+        rowDate === targetDate &&
+        normalizeShiftLabel(row[shiftIdx]) === targetShift;
+    }, 0);
+
+    const rowData = [
+      new Date(), p.an, p.ward, p.bed, targetDate, targetShift, p.score, p.classType, p.assessor, JSON.stringify(p.formData || {})
+    ];
+    
+    if (targetRow > -1) {
+      sheet.getRange(targetRow, 1, 1, rowData.length).setValues([rowData]);
+    } else {
+      sheet.appendRow(rowData);
+    }
+    return { status: 'success', message: 'บันทึกการจำแนกประเภทผู้ป่วยเด็กสำเร็จ' };
+  } catch(e) {
+    return { status: 'error', message: e.message };
+  }
+}
+function deleteClassificationPed(p) {
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Classifications_Pediatric');
+    if (!sheet) return { status: 'success', message: 'ไม่พบข้อมูลที่จะลบ', deletedCount: 0 };
+
+    const targetAN = String(p.an || '').trim();
+    const targetDate = normalizeEvalDate(p.evalDate || p.date);
+    const targetShift = normalizeShiftLabel(p.shift);
+    if (!targetAN || !targetDate || !targetShift) {
+      return { status: 'error', message: 'ข้อมูลสำหรับลบไม่ครบถ้วน' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0].map(function(h) { return String(h).toLowerCase().trim(); });
+    const anIdx = headers.indexOf('an');
+    const evalDateIdx = headers.indexOf('evaldate');
+    const dateIdx = headers.indexOf('date');
+    const shiftIdx = headers.indexOf('shift');
+
+    const deletedCount = deleteMatchingRows(sheet, function(row) {
+      const rowDate = normalizeEvalDate(evalDateIdx !== -1 ? row[evalDateIdx] : row[dateIdx]);
+      return String(row[anIdx] || '').trim() === targetAN &&
+        rowDate === targetDate &&
+        normalizeShiftLabel(row[shiftIdx]) === targetShift;
+    });
+
+    return {
+      status: 'success',
+      message: deletedCount > 0 ? 'ลบข้อมูลรายเวรเรียบร้อยแล้ว' : 'ไม่พบข้อมูลที่ต้องการลบ',
+      deletedCount: deletedCount
+    };
+  } catch (error) {
+    return { status: 'error', message: error.message };
+  }
+}
