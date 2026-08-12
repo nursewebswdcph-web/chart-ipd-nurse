@@ -242,7 +242,7 @@
                 <div class="hospital-gradient px-8 py-8 text-white">
                     <div class="flex items-center gap-4">
                         <div class="h-16 w-16 rounded-[1.75rem] bg-white/15 border border-white/20 flex items-center justify-center shadow-inner">
-                            <img src="https://swdcph.moph.go.th/intranet/login/images/logo_swd.png" alt="Logo" class="h-11 w-11 rounded-full bg-white p-1" onerror="this.onerror=null;this.src='./icon-app.svg';">
+                            <img src="https://swdcph.moph.go.th/intranet/login/images/logo_swd.png" alt="Logo" class="h-11 w-11 rounded-full bg-white p-1">
                         </div>
                         <div>
                             <h1 class="text-2xl md:text-3xl font-black leading-tight">IPD Nurse Workbench</h1>
@@ -440,7 +440,7 @@
     <nav x-show="isAuthenticated" x-cloak class="hospital-gradient text-white shadow-lg sticky top-0 z-[1000] px-4 py-2 border-b border-white/10 no-print">
         <div class="container mx-auto flex justify-between items-center h-14">
             <div class="flex items-center space-x-3">
-                <img src="https://swdcph.moph.go.th/intranet/login/images/logo_swd.png" alt="Logo" class="h-10 w-auto bg-white rounded-full p-1 shadow-inner" onerror="this.onerror=null;this.src='./icon-app.svg';">
+                <img src="https://swdcph.moph.go.th/intranet/login/images/logo_swd.png" alt="Logo" class="h-10 w-auto bg-white rounded-full p-1 shadow-inner">
                 <div class="hidden sm:block">
                     <h1 class="text-lg font-bold leading-none">IPD Nurse Workbench</h1>
                     <p class="text-[12px] opacity-70 mt-0.5 font-light" x-text="realTimeClock"></p>
@@ -4299,23 +4299,17 @@
                             </div>
                         </div>
                 
-                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 relative">
-                            <!-- Overlay Loading Indicator for Form Loading / Saving -->
-                            <div x-show="isLoading || isSavingProgress" style="display: none;" class="absolute inset-0 bg-white/70 backdrop-blur-sm z-40 flex flex-col items-center justify-center rounded-2xl transition-all">
-                                <div class="w-10 h-10 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mb-2"></div>
-                                <span class="text-xs font-bold text-cyan-700" x-text="isLoading ? 'กำลังโหลดข้อมูลเดิม...' : 'กำลังบันทึกข้อมูล...'"></span>
-                            </div>
-
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                             <div class="flex flex-wrap justify-between items-center mb-4 gap-2">
                                 <h3 class="text-lg font-bold text-slate-700">เพิ่ม/แก้ไข บันทึกทางการพยาบาล</h3>
                                 <div class="flex gap-2">
-                                    <button @click="openReProblemModal()" :disabled="isLoading || isSavingProgress" class="px-4 py-2 bg-amber-500 text-white rounded-lg font-bold shadow-sm hover:bg-amber-600 text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                                    <button @click="openReProblemModal()" class="px-4 py-2 bg-amber-500 text-white rounded-lg font-bold shadow-sm hover:bg-amber-600 text-sm">
                                         <i class="fa-solid fa-rotate-left mr-2"></i>Re-PROBLEM
                                     </button>
-                                    <button @click="openProgressTemplateModal()" :disabled="isLoading || isSavingProgress" class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold shadow-sm hover:bg-indigo-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                                    <button @click="openProgressTemplateModal()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold shadow-sm hover:bg-indigo-700 text-sm">
                                         <i class="fa-solid fa-book-medical mr-2"></i>เลือกจาก Template
                                     </button>
-                                    <button @click="openCreateTemplateModal()" :disabled="isLoading || isSavingProgress" class="px-4 py-2 bg-purple-600 text-white rounded-lg font-bold shadow-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                                        <button @click="openCreateTemplateModal()" class="px-4 py-2 bg-purple-600 text-white rounded-lg font-bold shadow-md hover:bg-purple-700">
                                         <i class="fa-solid fa-folder-plus mr-2"></i>สร้าง Template ใหม่ 
                                     </button>
                                 </div>
@@ -4324,11 +4318,11 @@
                             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                                 <div>
                                     <label class="block text-sm font-bold text-slate-700 mb-1">วันที่</label>
-                                    <input type="date" x-model="pnForm.date" :disabled="isLoading || isSavingProgress" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-cyan-500 disabled:bg-slate-100 disabled:cursor-not-allowed">
+                                    <input type="date" x-model="pnForm.date" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-cyan-500">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-bold text-slate-700 mb-1">เวร</label>
-                                    <select x-model="pnForm.shift" :disabled="isLoading || isSavingProgress" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-cyan-500 disabled:bg-slate-100 disabled:cursor-not-allowed">
+                                    <select x-model="pnForm.shift" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-cyan-500">
                                         <option value="ดึก (00.00-08.00)">ดึก (00.00-08.00)</option>
                                         <option value="เช้า (08.00-16.00)">เช้า (08.00-16.00)</option>
                                         <option value="บ่าย (16.00-24.00)">บ่าย (16.00-24.00)</option>
@@ -4336,15 +4330,15 @@
                                 </div>
                                 <div>
                                     <label class="block text-sm font-bold text-slate-700 mb-1">Actual Time (เวลา)</label>
-                                    <input type="time" x-model="pnForm.time" :disabled="isLoading || isSavingProgress" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-cyan-500 disabled:bg-slate-100 disabled:cursor-not-allowed">
+                                    <input type="time" x-model="pnForm.time" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-cyan-500">
                                 </div>
                                 <div class="relative" @click.away="showNurseListForProgress = false">                    
                                     <label class="block text-sm font-bold text-slate-700 mb-1">พยาบาลผู้บันทึก</label>
-                                    <input type="text" x-model="pnForm.nurse" :disabled="isLoading || isSavingProgress" @focus="showNurseListForProgress = true" placeholder="ค้นหาชื่อพยาบาล..." class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-cyan-500 disabled:bg-slate-100 disabled:cursor-not-allowed">
-                                    <div class="text-[10px] text-cyan-600 font-bold mt-1" x-text="pnForm?.pos || ''"></div>
+                                    <input type="text" x-model="pnForm.nurse" @focus="showNurseListForProgress = true" placeholder="ค้นหาชื่อพยาบาล..." class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-cyan-500">
+                                    <div class="text-[10px] text-cyan-600 font-bold mt-1" x-text="pnForm.pos"></div>
                                     
                                     <div x-show="showNurseListForProgress" style="display: none;" class="absolute left-0 top-full mt-1 w-full bg-white border shadow-xl z-50 max-h-40 overflow-y-auto rounded-lg">
-                                        <template x-for="n in filteredNursesEdu(pnForm?.nurse)" :key="n.name">
+                                        <template x-for="n in filteredNursesEdu(pnForm.nurse)" :key="n.name">
                                             <div @click="pnForm.nurse = n.name; pnForm.pos = n.position; showNurseListForProgress = false" class="p-2 hover:bg-cyan-50 cursor-pointer text-xs border-b" x-text="n.name"></div>
                                         </template>
                                     </div>
@@ -4352,68 +4346,51 @@
                 
                                 <div class="col-span-1 md:col-span-4">
                                     <label class="block text-sm font-bold text-slate-700 mb-1">FOCUS / PROBLEM</label>
-                                    <input type="text" x-model="pnForm.focus" :disabled="isLoading || isSavingProgress" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-cyan-500 font-bold text-rose-600 disabled:bg-slate-100 disabled:cursor-not-allowed" placeholder="ระบุปัญหา...">
+                                    <input type="text" x-model="pnForm.focus" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-cyan-500 font-bold text-rose-600" placeholder="ระบุปัญหา...">
                                 </div>
                 
                                 <div class="col-span-1 md:col-span-4 grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                                    <div><label class="block text-sm font-bold text-slate-700 mb-1">S: Subjective Data</label><textarea x-model="pnForm.s" :disabled="isLoading || isSavingProgress" rows="4" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-cyan-500 disabled:bg-slate-100 disabled:cursor-not-allowed"></textarea></div>
-                                    <div><label class="block text-sm font-bold text-slate-700 mb-1">O: Objective Data</label><textarea x-model="pnForm.o" :disabled="isLoading || isSavingProgress" rows="4" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-cyan-500 disabled:bg-slate-100 disabled:cursor-not-allowed"></textarea></div>
-                                    <div><label class="block text-sm font-bold text-slate-700 mb-1">I: Intervention</label><textarea x-model="pnForm.i" :disabled="isLoading || isSavingProgress" rows="10" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-cyan-500 disabled:bg-slate-100 disabled:cursor-not-allowed"></textarea></div>
+                                    <div><label class="block text-sm font-bold text-slate-700 mb-1">S: Subjective Data</label><textarea x-model="pnForm.s" rows="4" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-cyan-500"></textarea></div>
+                                    <div><label class="block text-sm font-bold text-slate-700 mb-1">O: Objective Data</label><textarea x-model="pnForm.o" rows="4" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-cyan-500"></textarea></div>
+                                    <div><label class="block text-sm font-bold text-slate-700 mb-1">I: Intervention</label><textarea x-model="pnForm.i" rows="10" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-cyan-500"></textarea></div>
                                     <div class="flex flex-col">
                                     <div class="flex justify-between items-end mb-1">
                                         <label class="block text-sm font-bold text-slate-700">E: Evaluation</label>
                                         <div class="flex items-center gap-2">
                                             <span class="text-[11px] text-slate-500 font-bold">เวลาประเมินผล:</span>
-                                            <input type="time" x-model="pnForm.eTime" :disabled="isLoading || isSavingProgress" class="border border-slate-300 rounded p-1 text-xs outline-none focus:border-cyan-500 disabled:bg-slate-100 disabled:cursor-not-allowed">
+                                            <input type="time" x-model="pnForm.eTime" class="border border-slate-300 rounded p-1 text-xs outline-none focus:border-cyan-500">
                                         </div>
                                     </div>
-                                    <textarea x-model="pnForm.e" :disabled="isLoading || isSavingProgress" rows="10" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-cyan-500 flex-1 disabled:bg-slate-100 disabled:cursor-not-allowed"></textarea>
+                                    <textarea x-model="pnForm.e" rows="10" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-cyan-500 flex-1"></textarea>
                                 </div>
                                 </div>
                             </div>
                 
                             <div class="mt-4 flex flex-wrap gap-4 items-center">
                                 <label class="flex items-center gap-2 bg-emerald-50 px-3 py-2 rounded-lg border border-emerald-200 cursor-pointer">
-                                    <input type="checkbox" x-model="pnForm.addToFocusList" :disabled="isLoading || isSavingProgress" class="w-5 h-5 text-emerald-600 disabled:cursor-not-allowed">
+                                    <input type="checkbox" x-model="pnForm.addToFocusList" class="w-5 h-5 text-emerald-600">
                                     <span class="text-sm font-bold text-emerald-700">บันทึกเป็นปัญหาใหม่ลง Focus List</span>
                                 </label>
                                 
-                                <button @click="addOrUpdateProgressNote()" :disabled="isLoading || isSavingProgress" class="px-6 py-2 bg-cyan-600 text-white rounded-lg font-bold shadow-md hover:bg-cyan-700 disabled:bg-cyan-400 disabled:cursor-not-allowed flex items-center">
-                                    <i x-show="isSavingProgress" class="fa-solid fa-spinner animate-spin mr-2"></i>
-                                    <i x-show="!isSavingProgress" class="fa-solid fa-plus mr-2"></i>
-                                    <span x-text="isSavingProgress ? 'กำลังบันทึก...' : '+ บันทึกลงตาราง'"></span>
+                                <button @click="addOrUpdateProgressNote()" class="px-6 py-2 bg-cyan-600 text-white rounded-lg font-bold shadow-md hover:bg-cyan-700">
+                                    <i class="fa-solid fa-plus mr-2"></i>บันทึกลงตาราง
                                 </button>
-                                <button @click="clearProgressForm()" :disabled="isLoading || isSavingProgress" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg font-bold hover:bg-slate-300 disabled:opacity-50 disabled:cursor-not-allowed">ล้างข้อมูล</button>
-                                <button @click="saveProgressAsTemplate()" :disabled="isLoading || isSavingProgress" class="px-4 py-2 bg-indigo-500 text-white rounded-lg font-bold shadow-md hover:bg-indigo-600 ml-auto disabled:opacity-50 disabled:cursor-not-allowed flex items-center">
-                                    <i class="fa-solid fa-save mr-2"></i>
-                                    <span>บันทึกและจัดเก็บเป็น Template</span>
+                                <button @click="clearProgressForm()" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg font-bold hover:bg-slate-300">ล้างข้อมูล</button>
+                                <button @click="saveProgressAsTemplate()" class="px-4 py-2 bg-indigo-500 text-white rounded-lg font-bold shadow-md hover:bg-indigo-600 ml-auto">
+                                    <i class="fa-solid fa-save mr-2"></i>บันทึกและจัดเก็บเป็น Template
                                 </button>
                             </div>
                         </div>
                 
-                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 overflow-x-auto relative">
-                            <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 overflow-x-auto">
+                            <div class="flex justify-between items-center mb-4">
                                 <h3 class="text-lg font-bold text-slate-700">ประวัติบันทึกทางการพยาบาล</h3>
-                                <div class="flex items-center gap-2">
-                                    <button @click="loadProgressNotesInit({ force: true })" :disabled="isLoading || isSavingProgress" class="px-3 py-1 bg-cyan-50 text-cyan-700 hover:bg-cyan-100 rounded-lg text-xs font-bold border border-cyan-200 flex items-center gap-1 transition">
-                                        <i class="fa-solid fa-rotate mr-1" :class="{ 'animate-spin': isLoading }"></i> โหลดข้อมูลใหม่ (Retry/Refresh Table)
-                                    </button>
-                                    <span class="text-xs text-emerald-600 font-bold bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-                                        <i class="fa-solid fa-cloud-arrow-up mr-1"></i>ระบบบันทึกข้อมูลอัตโนมัติ
-                                    </span>
-                                </div>
-                            </div>
-
-                            <!-- Fallback UI กรณี Fetch/Render ล้มเหลว -->
-                            <div x-show="progressNotesFetchError" style="display: none;" class="p-6 my-4 bg-rose-50 border border-rose-200 rounded-xl text-center">
-                                <i class="fa-solid fa-triangle-exclamation text-rose-500 text-3xl mb-2 block"></i>
-                                <p class="text-rose-700 font-bold text-sm mb-3">ไม่สามารถโหลดข้อมูลประวัติบันทึกทางการพยาบาลได้</p>
-                                <button @click="loadProgressNotesInit({ force: true })" class="px-4 py-2 bg-rose-600 text-white rounded-lg text-xs font-bold hover:bg-rose-700 shadow-sm">
-                                    <i class="fa-solid fa-rotate mr-1"></i> โหลดข้อมูลใหม่อีกครั้ง (Retry)
-                                </button>
+                                <span class="text-xs text-emerald-600 font-bold bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+                                    <i class="fa-solid fa-cloud-arrow-up mr-1"></i>ระบบบันทึกข้อมูลอัตโนมัติ
+                                </span>
                             </div>
                             
-                            <table x-show="!progressNotesFetchError" class="w-full text-xs md:text-sm border-collapse border border-slate-300 min-w-[900px]">
+                            <table class="w-full text-xs md:text-sm border-collapse border border-slate-300 min-w-[900px]">
                                 <thead class="bg-slate-100 text-slate-700">
                                     <tr>
                                         <th class="p-2 border border-slate-300 w-[12%]">DATE / SHIFT</th>
@@ -4425,36 +4402,36 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <template x-for="(item, index) in (progressNotes || [])" :key="item?.id || index">
+                                    <template x-for="(item, index) in progressNotes" :key="item.id">
                                         <tr class="hover:bg-slate-50 transition align-top">
                                             <td class="p-2 border border-slate-300 text-center">
-                                                <div class="font-bold" x-text="formatThaiDateShort(item?.date || '')"></div>
-                                                <div class="text-slate-500 text-[11px]" x-text="item?.shift || ''"></div>
+                                                <div class="font-bold" x-text="formatThaiDateShort(item.date)"></div>
+                                                <div class="text-slate-500 text-[11px]" x-text="item.shift"></div>
                                             </td>
-                                            <td class="p-2 border border-slate-300 text-center font-bold text-cyan-700" x-text="item?.time || ''"></td>
-                                            <td class="p-2 border border-slate-300 font-bold text-rose-600 whitespace-pre-line" x-text="item?.focus || ''"></td>
+                                            <td class="p-2 border border-slate-300 text-center font-bold text-cyan-700" x-text="item.time"></td>
+                                            <td class="p-2 border border-slate-300 font-bold text-rose-600 whitespace-pre-line" x-text="item.focus"></td>
                                             <td class="p-2 border border-slate-300">
-                                                <div x-show="!!item?.s" class="mb-1"><b>S:</b> <span class="whitespace-pre-line" x-text="item?.s || ''"></span></div>
-                                                <div x-show="!!item?.o" class="mb-1"><b>O:</b> <span class="whitespace-pre-line" x-text="item?.o || ''"></span></div>
-                                                <div x-show="!!item?.i" class="mb-1"><b>I:</b> <span class="whitespace-pre-line" x-text="item?.i || ''"></span></div>
+                                                <div x-show="item.s" class="mb-1"><b>S:</b> <span class="whitespace-pre-line" x-text="item.s"></span></div>
+                                                <div x-show="item.o" class="mb-1"><b>O:</b> <span class="whitespace-pre-line" x-text="item.o"></span></div>
+                                                <div x-show="item.i" class="mb-1"><b>I:</b> <span class="whitespace-pre-line" x-text="item.i"></span></div>
                                                 
-                                                <div x-show="!!item?.e">
+                                                <div x-show="item.e">
                                                     <b>E:</b> 
-                                                    <span x-show="!!item?.eTime" class="text-[11px] text-rose-600 font-bold" x-text="'[' + (item?.eTime || '') + ' น.] '"></span>
-                                                    <span class="whitespace-pre-line" x-text="item?.e || ''"></span>
+                                                    <span x-show="item.eTime" class="text-[11px] text-rose-600 font-bold" x-text="'[' + item.eTime + ' น.] '"></span>
+                                                    <span class="whitespace-pre-line" x-text="item.e"></span>
                                                 </div>
                                             </td>
                                             <td class="p-2 border border-slate-300 text-center text-[11px]">
-                                                <div class="font-bold" x-text="item?.nurse || ''"></div>
-                                                <div class="text-slate-500" x-text="item?.pos || ''"></div>
+                                                <div class="font-bold" x-text="item.nurse"></div>
+                                                <div class="text-slate-500" x-text="item.pos"></div>
                                             </td>
                                             <td class="p-2 border border-slate-300 text-center">
-                                                <button @click="editProgressNote(index)" :disabled="isLoading || isSavingProgress" class="px-2 py-1 bg-amber-100 text-amber-700 rounded hover:bg-amber-200 mr-1 disabled:opacity-50"><i class="fa-solid fa-pen"></i></button>
-                                                <button @click="deleteProgressNote(index)" :disabled="isLoading || isSavingProgress" class="px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 disabled:opacity-50"><i class="fa-solid fa-trash"></i></button>
+                                                <button @click="editProgressNote(index)" class="px-2 py-1 bg-amber-100 text-amber-700 rounded hover:bg-amber-200 mr-1"><i class="fa-solid fa-pen"></i></button>
+                                                <button @click="deleteProgressNote(index)" class="px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200"><i class="fa-solid fa-trash"></i></button>
                                             </td>
                                         </tr>
                                     </template>
-                                    <tr x-show="!progressNotes || progressNotes.length === 0">
+                                    <tr x-show="progressNotes.length === 0">
                                         <td colspan="6" class="p-4 text-center text-slate-500 italic">ยังไม่มีบันทึกทางการพยาบาล</td>
                                     </tr>
                                 </tbody>
