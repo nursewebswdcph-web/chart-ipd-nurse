@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ipd-nurse-workbench-v2';
+const CACHE_NAME = 'ipd-nurse-workbench-v1';
 const APP_SHELL = [
   './',
   './index.html',
