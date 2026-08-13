@@ -2,8 +2,36 @@ function nurseApp() {
     return {
         // --- 1. CONFIG & STATE ---
         API_URL: 'https://script.google.com/macros/s/AKfycbzieKZwTgdI09su3pR8xD_GbjVpZFy1rfZTSYQ94gvkwJRVulp1E9FoZoAbzELG2Amy/exec',
+
+        // --- ตัวช่วยยิง API แบบมี retry อัตโนมัติ ---
+        // แก้ปัญหา Google Apps Script บางครั้งตอบ 404 (macros/echo) หรือส่ง HTML แทน JSON
+        // แบบชั่วคราว โดยเฉพาะเวลายิง POST ตามด้วย GET ติดกันเร็วๆ (เช่น login แล้วโหลดข้อมูลต่อ)
+        // ฟังก์ชันนี้จะลองใหม่อัตโนมัติก่อนที่จะโยน error ออกไปให้ผู้ใช้เห็น
+        async apiFetch(url, options = {}, retries = 2, delayMs = 700) {
+            let lastError;
+            for (let attempt = 0; attempt <= retries; attempt++) {
+                try {
+                    const response = await fetch(url, options);
+                    const text = await response.text();
+                    let data;
+                    try {
+                        data = JSON.parse(text);
+                    } catch (parseErr) {
+                        // เจอ HTML/หน้า error กลับมาแทน JSON (เช่นหน้า 404 ของ Google)
+                        throw new Error('เชื่อมต่อเซิร์ฟเวอร์ไม่สำเร็จชั่วคราว กรุณาลองใหม่');
+                    }
+                    return data;
+                } catch (err) {
+                    lastError = err;
+                    if (attempt < retries) {
+                        await new Promise((resolve) => setTimeout(resolve, delayMs * (attempt + 1)));
+                    }
+                }
+            }
+            throw lastError;
+        },
         APP_WEB_URL: 'https://nursewebswdcph-web.github.io/chart-ipd-nurse/',
-        CURRENT_VERSION: '2.2', // เวอร์ชันปัจจุบันของระบบ อัปเดตเลขนี้ทุกครั้งที่ปล่อยเวอร์ชันใหม่
+        CURRENT_VERSION: '2.2.1', // เวอร์ชันปัจจุบันของระบบ อัปเดตเลขนี้ทุกครั้งที่ปล่อยเวอร์ชันใหม่
         appVersionStorageKey: 'ipd_nurse_app_version',
         showUpdateModal: false, // ควบคุมการแสดง Popup แจ้งเตือนเวอร์ชันใหม่
         isUpdatingApp: false,
@@ -1622,8 +1650,7 @@ function nurseApp() {
                     return;
                 }
 
-                const response = await fetch(`${this.API_URL}?action=getSessionUser&sessionToken=${encodeURIComponent(savedToken)}&_=${Date.now()}`);
-                const result = await response.json();
+                const result = await this.apiFetch(`${this.API_URL}?action=getSessionUser&sessionToken=${encodeURIComponent(savedToken)}&_=${Date.now()}`);
                 if (result.status !== 'success' || !result.user) {
                     window.localStorage.removeItem(this.authSessionKey);
                     this.setAuthenticatedUser(null, '');
@@ -1649,7 +1676,7 @@ function nurseApp() {
 
             this.isLoading = true;
             try {
-                const response = await fetch(this.API_URL, {
+                const result = await this.apiFetch(this.API_URL, {
                     method: 'POST',
                     body: JSON.stringify({
                         action: 'loginUser',
@@ -1659,7 +1686,6 @@ function nurseApp() {
                         }
                     })
                 });
-                const result = await response.json();
                 if (result.status !== 'success' || !result.sessionToken || !result.user) {
                     throw new Error(result.message || 'เข้าสู่ระบบไม่สำเร็จ');
                 }
@@ -2025,8 +2051,7 @@ function nurseApp() {
 
             if (!options.silent) this.isLoading = true;
             const task = (async () => {
-                const res = await fetch(`${this.API_URL}?action=getInitData`);
-                const data = await res.json();
+                const data = await this.apiFetch(`${this.API_URL}?action=getInitData`);
                 this.wards = data.wards || [];
                 this.configs.depts = data.depts || [];
                 this.doctors = data.doctors || [];
