@@ -31,7 +31,7 @@ function nurseApp() {
             throw lastError;
         },
         APP_WEB_URL: 'https://nursewebswdcph-web.github.io/chart-ipd-nurse/',
-        CURRENT_VERSION: '2.2.1', // เวอร์ชันปัจจุบันของระบบ อัปเดตเลขนี้ทุกครั้งที่ปล่อยเวอร์ชันใหม่
+        CURRENT_VERSION: '2.2.2', // เวอร์ชันปัจจุบันของระบบ อัปเดตเลขนี้ทุกครั้งที่ปล่อยเวอร์ชันใหม่
         appVersionStorageKey: 'ipd_nurse_app_version',
         showUpdateModal: false, // ควบคุมการแสดง Popup แจ้งเตือนเวอร์ชันใหม่
         isUpdatingApp: false,
