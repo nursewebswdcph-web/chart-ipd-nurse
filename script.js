@@ -31,7 +31,7 @@ function nurseApp() {
             throw lastError;
         },
         APP_WEB_URL: 'https://nursewebswdcph-web.github.io/chart-ipd-nurse/',
-        CURRENT_VERSION: '2.2.3', // เวอร์ชันปัจจุบันของระบบ อัปเดตเลขนี้ทุกครั้งที่ปล่อยเวอร์ชันใหม่
+        CURRENT_VERSION: '2.2.31', // เวอร์ชันปัจจุบันของระบบ อัปเดตเลขนี้ทุกครั้งที่ปล่อยเวอร์ชันใหม่
         appVersionStorageKey: 'ipd_nurse_app_version',
         showUpdateModal: false, // ควบคุมการแสดง Popup แจ้งเตือนเวอร์ชันใหม่
         isUpdatingApp: false,
@@ -119,6 +119,9 @@ function nurseApp() {
         showBradenModal: false,
         showBradenGuidelineModal: false,
         showBradenSummaryModal: false,
+        showGuidelineModal: false,
+        activeGuidelineType: 'morse',
+        selectedGuidelinePatient: null,
         isEduEditing: false,
         eduForm: null, // จะถูกสร้างด้วย defaultEduForm() ตอนโหลด
 
@@ -1423,10 +1426,47 @@ function nurseApp() {
             if (!('serviceWorker' in navigator)) return;
             if (!window.isSecureContext) return;
             try {
-                await navigator.serviceWorker.register('./sw.js');
+                const reg = await navigator.serviceWorker.register('./sw.js');
+                if (reg) {
+                    // ตรวจสอบและดึงไฟล์เวอร์ชันล่าสุดจากเซิร์ฟเวอร์ทันทีทุกครั้งที่เปิดแอป
+                    reg.update();
+                    reg.onupdatefound = () => {
+                        const installingWorker = reg.installing;
+                        if (installingWorker) {
+                            installingWorker.onstatechange = () => {
+                                if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    // เมื่อมีการปล่อยเวอร์ชันใหม่ ล้างแคชและอัปเดตอัตโนมัติทันที
+                                    this.applyAppUpdateSilently();
+                                }
+                            };
+                        }
+                    };
+                }
             } catch (error) {
                 console.error('Service worker registration failed:', error);
             }
+        },
+
+        async applyAppUpdateSilently() {
+            try {
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    await Promise.all(cacheNames.map(name => caches.delete(name)));
+                }
+                if ('serviceWorker' in navigator) {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    await Promise.all(registrations.map(reg => reg.unregister()));
+                }
+                localStorage.setItem(this.appVersionStorageKey, this.CURRENT_VERSION);
+            } catch (e) {
+                console.error('Silent update error:', e);
+            }
+            window.location.reload(true);
+        },
+
+        async clearAppCacheAndReload() {
+            this.isLoading = true;
+            await this.applyAppUpdateSilently();
         },
         // ตรวจสอบเวอร์ชันของระบบเทียบกับที่บันทึกไว้ใน localStorage
         // - ถ้าไม่เคยบันทึกมาก่อน (ใช้งานครั้งแรก) จะบันทึกเวอร์ชันปัจจุบันไว้เงียบๆ ไม่แสดง popup
@@ -1697,7 +1737,13 @@ function nurseApp() {
                 window.localStorage.setItem(this.authSessionKey, result.sessionToken);
                 this.setAuthenticatedUser(result.user, result.sessionToken);
                 this.authLoginForm.password = '';
-                await this.loadInitialData();
+                
+                // ล้างแคชเบราว์เซอร์เก่าเมื่อเข้าสู่ระบบเพื่อให้แน่ใจว่าเห็นโค้ดอัปเดตเวอร์ชันล่าสุดเสมอ
+                if ('caches' in window) {
+                    caches.keys().then(names => Promise.all(names.map(name => caches.delete(name)))).catch(e => console.error(e));
+                }
+                
+                await this.loadInitialData({ force: true });
                 this.showSuccess = true;
                 this.successMsg = 'เข้าสู่ระบบสำเร็จ';
                 setTimeout(() => this.showSuccess = false, 2500);
@@ -2004,6 +2050,119 @@ function nurseApp() {
             if (n >= 13) return '(เสี่ยงปานกลาง)';
             if (n >= 10) return '(เสี่ยงสูง)';
             return '(เสี่ยงสูงมาก)';
+        },
+        openGuidelineModal(type, patient) {
+            this.activeGuidelineType = type;
+            this.selectedGuidelinePatient = patient;
+            this.showGuidelineModal = true;
+            if (type === 'braden' && patient && patient.an) {
+                this.loadBraden(patient.an, { silent: true });
+            }
+        },
+        closeGuidelineModal() {
+            this.showGuidelineModal = false;
+            this.selectedGuidelinePatient = null;
+        },
+        getReassessBradenInfo(patient) {
+            if (!patient) return { formattedDate: '-', isHighRisk: false, daysToAdd: 3, freqText: '-', lastEvalText: '-' };
+            const score = parseInt(patient.latestBraden);
+            const hasScore = !isNaN(score) && patient.latestBraden !== '';
+            const isHighRisk = hasScore && score <= 16;
+            const daysToAdd = isHighRisk ? 1 : 3;
+            
+            let baseDate = null;
+            let lastEvalText = 'ไม่มีข้อมูลประเมินล่าสุด';
+            
+            if (this.bradenHistory && this.bradenHistory.length > 0) {
+                const last = this.bradenHistory[this.bradenHistory.length - 1];
+                if (last && last.EvalDate) {
+                    const d = new Date(last.EvalDate);
+                    if (!isNaN(d.getTime())) {
+                        baseDate = d;
+                        const thMonthsShort = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+                        lastEvalText = `${d.getDate()} ${thMonthsShort[d.getMonth()]} ${d.getFullYear() + 543}`;
+                    }
+                }
+            }
+            
+            if (!baseDate) {
+                if (patient.date) {
+                    const d = new Date(patient.date);
+                    if (!isNaN(d.getTime())) baseDate = d;
+                }
+                if (!baseDate) baseDate = new Date();
+            }
+            
+            const targetDate = new Date(baseDate);
+            targetDate.setDate(targetDate.getDate() + daysToAdd);
+            
+            const thMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+            const formattedDate = `${targetDate.getDate()} ${thMonths[targetDate.getMonth()]} ${targetDate.getFullYear() + 543}`;
+            
+            return {
+                isHighRisk,
+                daysToAdd,
+                score,
+                hasScore,
+                formattedDate,
+                lastEvalText,
+                freqText: isHighRisk ? 'ประเมิน วันละ 1 ครั้ง' : 'ประเมินใหม่ทุก 3-5 วัน (ยึดที่ 3 วัน)'
+            };
+        },
+        isBradenDue(p) {
+            if (!p) return false;
+            if (!this.isPatientAdult(p)) return false;
+            const score = parseInt(p.latestBraden);
+            const hasScore = !isNaN(score) && p.latestBraden !== '';
+            
+            // ถ้ายังไม่เคยประเมินเลยสำหรับผู้ป่วยผู้ใหญ่ ให้ขึ้นเตือนครบกำหนด
+            if (!hasScore) return true;
+
+            let baseDate = null;
+            if (p.latestBradenDate) {
+                const d = new Date(p.latestBradenDate);
+                if (!isNaN(d.getTime())) baseDate = d;
+            }
+            if (!baseDate && p.date) {
+                const d = new Date(p.date);
+                if (!isNaN(d.getTime())) baseDate = d;
+            }
+            if (!baseDate) baseDate = new Date();
+
+            const daysToAdd = score <= 16 ? 1 : 3;
+            const targetDate = new Date(baseDate);
+            targetDate.setDate(targetDate.getDate() + daysToAdd);
+
+            const targetZero = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate()).getTime();
+            const todayZero = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()).getTime();
+
+            return targetZero <= todayZero;
+        },
+        getBradenNextEvalBadge(rec) {
+            if (!rec || !rec.EvalDate) return '<span class="text-slate-300">-</span>';
+            const evalDate = new Date(rec.EvalDate);
+            if (isNaN(evalDate.getTime())) return '<span class="text-slate-300">-</span>';
+
+            const score = parseInt(rec.TotalScore);
+            const isHighRisk = !isNaN(score) && score <= 16;
+            const daysToAdd = isHighRisk ? 1 : 3;
+
+            const nextDate = new Date(evalDate);
+            nextDate.setDate(nextDate.getDate() + daysToAdd);
+
+            const nextDateZero = new Date(nextDate.getFullYear(), nextDate.getMonth(), nextDate.getDate()).getTime();
+            const todayZero = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()).getTime();
+
+            const thMonthsShort = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+            const dateStr = `${nextDate.getDate()} ${thMonthsShort[nextDate.getMonth()]} ${nextDate.getFullYear() + 543}`;
+
+            if (nextDateZero < todayZero) {
+                return `<span class="bg-rose-100 text-rose-800 border border-rose-200 px-2.5 py-1 rounded-full text-xs font-black inline-flex items-center gap-1 shadow-sm"><i class="fa-solid fa-triangle-exclamation text-rose-600 text-[10px]"></i> เกินกำหนดประเมินซ้ำ (${dateStr})</span>`;
+            } else if (nextDateZero === todayZero) {
+                return `<span class="bg-amber-100 text-amber-900 border border-amber-300 px-2.5 py-1 rounded-full text-xs font-black inline-flex items-center gap-1 shadow-sm"><i class="fa-solid fa-clock text-amber-700 text-[10px]"></i> ครบประเมินวันนี้</span>`;
+            } else {
+                return `<span class="bg-slate-100 text-slate-700 border border-slate-200 px-2.5 py-1 rounded-lg text-xs font-bold">${dateStr}</span>`;
+            }
         },
         
         // 2. ฟังก์ชันเลือกผู้ป่วย (แทนที่ openPatientDetail เดิม)
@@ -5817,6 +5976,19 @@ function nurseApp() {
                 this.markResourceLoaded('focus_list', an);
             } catch (e) { console.error(e); }
             if (!options.silent) this.isLoading = false;
+        },
+
+        getActiveFocusList() {
+            if (!this.focusList || !Array.isArray(this.focusList)) return [];
+            return this.focusList.filter(item => item && item.focus && (!item.endDate || String(item.endDate).trim() === ''));
+        },
+
+        async endActiveFocusItem(fItem) {
+            if (!fItem) return;
+            const index = this.focusList.findIndex(item => item && (item.id === fItem.id || (item.focus === fItem.focus && item.startDate === fItem.startDate)));
+            if (index > -1) {
+                await this.endFocus(index);
+            }
         },
 
         clearFocusForm() {
