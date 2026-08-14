@@ -31,7 +31,7 @@ function nurseApp() {
             throw lastError;
         },
         APP_WEB_URL: 'https://nursewebswdcph-web.github.io/chart-ipd-nurse/',
-        CURRENT_VERSION: '2.2.2', // เวอร์ชันปัจจุบันของระบบ อัปเดตเลขนี้ทุกครั้งที่ปล่อยเวอร์ชันใหม่
+        CURRENT_VERSION: '2.2.3', // เวอร์ชันปัจจุบันของระบบ อัปเดตเลขนี้ทุกครั้งที่ปล่อยเวอร์ชันใหม่
         appVersionStorageKey: 'ipd_nurse_app_version',
         showUpdateModal: false, // ควบคุมการแสดง Popup แจ้งเตือนเวอร์ชันใหม่
         isUpdatingApp: false,
@@ -640,6 +640,8 @@ function nurseApp() {
             const pediatric = options.pediatric === true;
             clearTimeout(this.classificationRefreshTimer);
             this.classificationRefreshTimer = setTimeout(() => {
+                this.invalidateWardPatientsCache();
+                this.fetchPatients({ silent: true });
                 if (String(this.selectedPatient?.an || this.selectedPatient?.AN || '') !== String(an)) return;
                 this.loadClassifications(an, { force: true, silent: true, pediatric }).catch(error => {
                     console.error('Silent classification refresh error:', error);
@@ -649,6 +651,8 @@ function nurseApp() {
         scheduleFallRiskRefresh(an) {
             clearTimeout(this.fallRiskRefreshTimer);
             this.fallRiskRefreshTimer = setTimeout(() => {
+                this.invalidateWardPatientsCache();
+                this.fetchPatients({ silent: true });
                 if (String(this.selectedPatient?.an || this.selectedPatient?.AN || '') !== String(an)) return;
                 this.loadFallRisk(an, { force: true, silent: true }).catch(error => {
                     console.error('Silent fall risk refresh error:', error);
@@ -1939,7 +1943,67 @@ function nurseApp() {
         
             // ตามโจทย์: ผู้ป่วยเด็กคืออายุ 0-14 ปี (ไม่รวมอายุ 15)
             // ดังนั้นถ้าอายุมากกว่าหรือเท่ากับ 15 ถึงจะเป็นผู้ใหญ่ (isAdult = true)
-            return ageNum >= 15;
+        },
+        
+        isPatientAdult(patient) {
+            return this.checkAgeGroup(this.resolvePatientAgeDisplay(patient));
+        },
+
+        // ฟังก์ชันคืนค่า CSS class สีตามระดับความเสี่ยง
+        classificationRiskClass(val) {
+            const n = parseInt(val);
+            if (isNaN(n) || val === '' || val == null) return 'text-slate-400';
+            if (n <= 2) return 'text-emerald-600 font-black';
+            if (n === 3) return 'text-amber-600 font-black';
+            return 'text-red-600 font-black';
+        },
+        morseRiskClass(val) {
+            const n = parseInt(val);
+            if (isNaN(n) || val === '' || val == null) return 'text-slate-400';
+            if (n <= 24) return 'text-emerald-600 font-black';
+            if (n <= 44) return 'text-amber-600 font-black';
+            return 'text-red-600 font-black';
+        },
+        morseRiskLabel(val) {
+            const n = parseInt(val);
+            if (isNaN(n) || val === '' || val == null) return '';
+            if (n <= 24) return '(ต่ำ)';
+            if (n <= 44) return '(กลาง)';
+            return '(สูง)';
+        },
+        maasRiskClass(val) {
+            const n = parseInt(val);
+            if (isNaN(n) || val === '' || val == null) return 'text-slate-400';
+            if (n <= 2) return 'text-blue-500 font-black';       // ไม่รู้ตัว/สงบ — ปลอดภัย
+            if (n === 3) return 'text-emerald-600 font-black';   // ปกติ
+            if (n <= 5) return 'text-amber-600 font-black';      // ดึงต้านการรักษา
+            return 'text-red-600 font-black';                    // อันตราย
+        },
+        maasRiskLabel(val) {
+            const n = parseInt(val);
+            if (isNaN(n) || val === '' || val == null) return '';
+            if (n <= 2) return '(ไม่รู้ตัว)';
+            if (n === 3) return '(ปกติ)';
+            if (n <= 5) return '(เสี่ยง)';
+            return '(อันตราย)';
+        },
+        bradenRiskClass(val) {
+            const n = parseInt(val);
+            if (isNaN(n) || val === '' || val == null) return 'text-slate-400';
+            if (n >= 19) return 'text-emerald-600 font-black';
+            if (n >= 15) return 'text-amber-600 font-black';
+            if (n >= 13) return 'text-orange-600 font-black';
+            if (n >= 10) return 'text-red-600 font-black';
+            return 'text-red-800 font-black';
+        },
+        bradenRiskLabel(val) {
+            const n = parseInt(val);
+            if (isNaN(n) || val === '' || val == null) return '';
+            if (n >= 19) return '(ไม่มีความเสี่ยง)';
+            if (n >= 15) return '(เสี่ยงต่ำ)';
+            if (n >= 13) return '(เสี่ยงปานกลาง)';
+            if (n >= 10) return '(เสี่ยงสูง)';
+            return '(เสี่ยงสูงมาก)';
         },
         
         // 2. ฟังก์ชันเลือกผู้ป่วย (แทนที่ openPatientDetail เดิม)
@@ -2135,7 +2199,7 @@ function nurseApp() {
             }
         },
 
-        async openNursingChart(patient) {
+        async openNursingChart(patient, targetFormId = null) {
             this.isLoading = true;
             const ageDisplay = this.resolvePatientAgeDisplay(patient);
             this.selectedPatient = { ...patient, ageDisplay };
@@ -2155,13 +2219,19 @@ function nurseApp() {
             
             // 3. ตั้งค่าหน้าเริ่มต้นให้ตรงกับอายุ
             const defaultFormId = this.isAdult ? 'assess_initial' : 'assess_initial_ped';
+            const formIdToSelect = targetFormId || defaultFormId;
             
             this.viewMode = 'chart';
             window.scrollTo(0, 0);
 
             try {
                 await this.loadDynamicExtraFormsForPatient(patient.an);
-                this.currentForm = this.activeForms.find(f => f.id === defaultFormId);
+                const targetForm = this.activeForms.find(f => f.id === formIdToSelect);
+                if (targetForm) {
+                    await this.selectForm(targetForm);
+                } else {
+                    this.currentForm = this.activeForms.find(f => f.id === defaultFormId);
+                }
                 // ✅ โหลดข้อมูล Form มารอไว้ (แยกผู้ใหญ่กับเด็ก)
                 const promisesToLoad = [this.loadClassifications(patient.an)];
                 if (this.isAdult) {
@@ -5013,6 +5083,8 @@ function nurseApp() {
                     this.successMsg = 'บันทึกข้อมูลแบบประเมินเรียบร้อย';
                     setTimeout(() => { this.showSuccess = false; }, 3000);
                     
+                    this.invalidateWardPatientsCache();
+                    this.fetchPatients({ silent: true });
                     this.invalidateResource('braden_scale', payload.an);
                     await this.loadBraden(payload.an, { force: true, silent: true });
                     this.showBradenModal = false; // ปิดแค่ฟอร์มบันทึก แล้วจบเลย
@@ -5064,6 +5136,8 @@ function nurseApp() {
                     this.successMsg = 'บันทึกสรุปการเกิดแผลกดทับลงในข้อมูลล่าสุดเรียบร้อย';
                     setTimeout(() => { this.showSuccess = false; }, 3000);
                     
+                    this.invalidateWardPatientsCache();
+                    this.fetchPatients({ silent: true });
                     // โหลดข้อมูลใหม่เพื่อให้หน้าประวัติอัปเดต
                     if(typeof this.loadBraden === 'function') {
                         this.invalidateResource('braden_scale', payload.an);
