@@ -2,18 +2,121 @@
  * IPD Nurse Workbench Backend API (Full Updated 2026)
  */
 
+// ==========================================
+// Performance helpers: Cache + Lock
+// เพิ่มเพื่อ (1) ลดการอ่านชีตซ้ำๆ ให้หน้าเว็บโหลดเร็วขึ้น
+//           (2) กันข้อมูลชนกันเวลามีคนบันทึกพร้อมกันหลายคน
+// ==========================================
+
+// รอ lock ได้สูงสุดกี่ ms ก่อนจะตอบ error กลับไป (สั้นพอที่จะไม่ทำให้หน้าเว็บค้างนาน)
+const LOCK_TIMEOUT_MS = 8000;
+
+// อายุ cache (วินาที) ของแต่ละ action ที่อ่านข้อมูลซึ่งเปลี่ยนไม่บ่อย
+const CACHE_TTL_SECONDS = {
+  getInitData: 300,        // Config/Doctors/Staff แทบไม่เปลี่ยนระหว่างวัน
+  getBeds: 20,              // เตียงเปลี่ยนบ่อยกว่า (admit/discharge) จึง cache สั้นๆ พอ
+  getFocusTemplates: 600,
+  getNursingTemplates: 600
+};
+
+// action การเขียนข้อมูลที่ต้องล็อกกันชนกัน (ตัดเฉพาะที่แก้ไขชีตที่ใช้ร่วมกันหลายคน)
+const WRITE_ACTIONS_NEED_LOCK = new Set([
+  'admitPatient', 'editPatient', 'addDoctor', 'moveBed', 'moveWard', 'discharge', 'movePatient',
+  'saveAssessmentInitial', 'saveAssessmentPed',
+  'saveClassification', 'saveClassificationSingle', 'deleteClassification',
+  'saveClassificationPed', 'deleteClassificationPed',
+  'saveDischargeDate',
+  'saveFallRisk', 'saveFallRiskSingle', 'deleteFallRisk',
+  'saveBradenScale', 'savePatientEdu',
+  'saveFocusList', 'saveFocusTemplate',
+  'saveNursingNotes', 'saveNursingTemplate',
+  'saveDischargeRecord', 'saveNutritionAssessment',
+  'dischargePatient', 'undoDischargePatient',
+  'createServiceRequest', 'updateServiceRequestStatus'
+]);
+
+// เรียกฟังก์ชัน fn() โดยเช็ค cache ก่อน ถ้าไม่มีค่อยอ่านชีตจริงแล้วเก็บ cache ไว้
+function cachedCall_(cacheKey, ttlSeconds, fn) {
+  const cache = CacheService.getScriptCache();
+  try {
+    const cached = cache.get(cacheKey);
+    if (cached !== null) return JSON.parse(cached);
+  } catch (e) {
+    // อ่าน cache ไม่ได้ก็ไปอ่านชีตตามปกติ ไม่ต้องทำให้ request พัง
+  }
+
+  const result = fn();
+
+  try {
+    const json = JSON.stringify(result);
+    // CacheService จำกัดค่าไม่เกิน ~100KB ต่อ key ถ้าข้อมูลใหญ่เกินก็ข้ามการ cache ไปเฉยๆ
+    if (json.length < 95000) cache.put(cacheKey, json, ttlSeconds);
+  } catch (e) {
+    // เก็บ cache ไม่ได้ก็ไม่เป็นไร ยังคืนผลลัพธ์ปกติ
+  }
+
+  return result;
+}
+
+// ล้าง cache key ที่ระบุ (ใช้หลังบันทึกข้อมูลสำเร็จ กันข้อมูลค้าง)
+function clearCache_(keys) {
+  if (!keys || !keys.length) return;
+  try {
+    CacheService.getScriptCache().removeAll(keys);
+  } catch (e) {
+    // ล้างไม่สำเร็จก็ปล่อยให้หมดอายุเองตาม TTL (สั้นอยู่แล้ว ไม่กระทบมาก)
+  }
+}
+
+// หา cache key ของ action เขียนข้อมูล เพื่อล้างหลังบันทึกสำเร็จ
+// ใช้ TTL สั้นสำหรับ 'beds' (20 วิ) เป็นตาข่ายนิรภัยอยู่แล้ว
+// เคสไหนหา ward จาก payload ตรงๆ ไม่ได้ (เช่น dischargePatient ที่ดึง ward จากชีต) จะปล่อยให้ cache หมดอายุเอง
+function getCacheKeysToInvalidate_(action, p) {
+  switch (action) {
+    case 'addDoctor':
+      return ['initdata'];
+    case 'saveFocusTemplate':
+      return ['focustemplates'];
+    case 'saveNursingTemplate':
+      return ['nursingtemplates'];
+    case 'admitPatient':
+    case 'editPatient':
+    case 'discharge': {
+      const keys = [];
+      if (p && p.ward) keys.push('beds_' + p.ward);
+      return keys;
+    }
+    case 'moveBed':
+    case 'moveWard':
+    case 'movePatient': {
+      const keys = [];
+      if (p) {
+        if (p.ward) keys.push('beds_' + p.ward);
+        if (p.oldWard) keys.push('beds_' + p.oldWard);
+        if (p.newWard) keys.push('beds_' + p.newWard);
+        if (p.targetWard) keys.push('beds_' + p.targetWard);
+      }
+      return keys;
+    }
+    default:
+      return [];
+  }
+}
+
 function doGet(e) {
   const action = e.parameter.action;
   const ward = e.parameter.ward;
   const an = e.parameter.an;
   const sessionToken = e.parameter.sessionToken;
-  const username = e.parameter.username;
-  const password = e.parameter.password;
-  
-  if (action === 'getInitData') return res(getInitData(ward));
+
+  // action ที่อ่านข้อมูลซึ่งเปลี่ยนไม่บ่อย -> อ่านผ่าน cache ก่อน ลดการอ่านชีตซ้ำ ทำให้โหลดเร็วขึ้น
+  if (action === 'getInitData') return res(cachedCall_('initdata', CACHE_TTL_SECONDS.getInitData, function () { return getInitData(ward); }));
+  if (action === 'getBeds') return res(cachedCall_('beds_' + ward, CACHE_TTL_SECONDS.getBeds, function () { return getBeds(ward); }));
+  if (action === 'getFocusTemplates') return res(cachedCall_('focustemplates', CACHE_TTL_SECONDS.getFocusTemplates, function () { return getFocusTemplates(); }));
+  if (action === 'getNursingTemplates') return res(cachedCall_('nursingtemplates', CACHE_TTL_SECONDS.getNursingTemplates, function () { return getNursingTemplates(); }));
+
+  // action ที่เหลือ ข้อมูลเปลี่ยนบ่อยตามคนไข้แต่ละราย ไม่ cache เพื่อให้เห็นข้อมูลล่าสุดเสมอ
   if (action === 'getSessionUser') return res(getSessionUser(sessionToken));
-  if (action === 'loginUser') return res(loginUser({ username: username, password: password }));
-  if (action === 'getBeds') return res(getBeds(ward));
   if (action === 'getPatients') return res(getPatients(ward));
   if (action === 'getAssessmentInitial') return res(getAssessmentInitial(an));
   if (action === 'getAssessmentPed') return res(getAssessmentPed(an));
@@ -23,65 +126,99 @@ function doGet(e) {
   if (action === 'getBradenScale') return res(getBradenScale(an));
   if (action === 'getPatientEdu') return res(getPatientEdu(an));
   if (action === 'getFocusList') return res(getFocusList(an));
-  if (action === 'getFocusTemplates') return res(getFocusTemplates());
   if (action === 'getNursingNotes') return res(getNursingNotes(an));
-  if (action === 'getNursingTemplates') return res(getNursingTemplates());
   if (action === 'getDischargeRecord') return res(getDischargeRecord(an));
   if (action === 'getNutritionAssessment') return res(getNutritionAssessment(an));
   return HtmlService.createHtmlOutput("API is running");
 }
 
 function doPost(e) {
-  const data = JSON.parse(e.postData.contents);
-  const action = data.action;
-  const p = data.payload; // payload ที่ส่งมาจากJavaScript
-  
-  switch(action) {
-    case 'admitPatient': return res(admitPatient(p));
-    case 'editPatient': return res(editPatient(p));
-    case 'addDoctor': return res(addDoctor(p.name));
-    case 'moveBed': return res(moveBed(p));
-    case 'moveWard': return res(moveWard(p));
-    case 'discharge': return res(discharge(p));
-    case 'movePatient': return res(movePatient(p));
-    case 'saveAssessmentInitial': return res(saveAssessmentInitial(p.an, p.formData, p));
-    case 'saveAssessmentPed': return res(saveAssessmentPed(p.an, p.formData, p));
-    
-    case 'saveClassification': return res(saveClassification(p));
-    case 'saveClassificationSingle': return res(saveClassificationSingle(data)); // แก้ไขให้เป็นcase
-    case 'deleteClassification': return res(deleteClassification(p));
-    case 'saveClassificationPed': return res(saveClassificationPed(p));
-    case 'deleteClassificationPed': return res(deleteClassificationPed(p));
-    
-    case 'saveDischargeDate': return res(saveDischargeDate(p));
-    
-    case 'saveFallRisk': return res(saveFallRisk(p));
-    case 'saveFallRiskSingle': return res(saveFallRiskSingle(data)); // แก้ไขให้เป็นcase
-    case 'deleteFallRisk': return res(deleteFallRisk(p));
-    
-    case 'saveBradenScale': return res(saveBradenScale(p));
-    case 'savePatientEdu': return res(savePatientEdu(p));
-    case 'saveFocusList': return res(saveFocusList(p));
-    case 'saveFocusTemplate': return res(saveFocusTemplate(p));
-    case 'saveNursingNotes': return res(saveNursingNotes(p));
-    case 'saveNursingTemplate': return res(saveNursingTemplate(p));
-    case 'saveDischargeRecord': return res(saveDischargeRecord(p));
-    case 'saveNutritionAssessment': return res(saveNutritionAssessment(p));
-    case 'dischargePatient': return res(processDischargePatient(data));
-    case 'searchDischargedPatients': return res(searchDischargedPatients(p));
-    case 'undoDischargePatient': return res(undoDischargePatient(data));
-    case 'sendRegistrationVerification': return res(sendRegistrationVerification(p));
-    case 'verifyRegistrationCode': return res(verifyRegistrationCode(p));
-    case 'loginUser': return res(loginUser(p));
-    case 'sendPasswordResetLink': return res(sendPasswordResetLink(p));
-    case 'resetPasswordWithToken': return res(resetPasswordWithToken(p));
-    case 'logoutUser': return res(logoutUser(p));
-    case 'getSessionUser': return res(getSessionUser(p && p.sessionToken));
-    case 'createServiceRequest': return res(createServiceRequest(p));
-    case 'getServiceRequests': return res(getServiceRequests(p));
-    case 'updateServiceRequestStatus': return res(updateServiceRequestStatus(p));
-    default: return res({status: 'error', message: 'Invalid Action'});
+  let data;
+  try {
+    data = JSON.parse(e.postData.contents);
+  } catch (err) {
+    return res({ status: 'error', message: 'Invalid JSON: ' + err.message });
   }
+
+  // Route to CANDI chatbot directly if question is present
+  if (data && data.question !== undefined) {
+    return handleCandiChat_(data.question, data.context);
+  }
+
+  const action = data.action;
+  const p = data.payload; // payload ที่ส่งมาจาก JavaScript
+
+  let lock = null;
+  let result;
+
+  try {
+    // ล็อกเฉพาะ action ที่เขียนข้อมูล เพื่อกันสองคนบันทึกชนกัน
+    // (action ที่อ่านอย่างเดียว เช่น getServiceRequests จะไม่ถูกล็อก ไม่กระทบความเร็ว)
+    if (WRITE_ACTIONS_NEED_LOCK.has(action)) {
+      lock = LockService.getScriptLock();
+      const gotLock = lock.tryLock(LOCK_TIMEOUT_MS);
+      if (!gotLock) {
+        return res({ status: 'error', message: 'ระบบกำลังบันทึกข้อมูลของผู้ใช้อื่นอยู่ กรุณาลองใหม่อีกครั้งในไม่กี่วินาที' });
+      }
+    }
+
+    switch (action) {
+      case 'admitPatient': result = admitPatient(p); break;
+      case 'editPatient': result = editPatient(p); break;
+      case 'addDoctor': result = addDoctor(p.name); break;
+      case 'moveBed': result = moveBed(p); break;
+      case 'moveWard': result = moveWard(p); break;
+      case 'discharge': result = discharge(p); break;
+      case 'movePatient': result = movePatient(p); break;
+      case 'saveAssessmentInitial': result = saveAssessmentInitial(p.an, p.formData, p); break;
+      case 'saveAssessmentPed': result = saveAssessmentPed(p.an, p.formData, p); break;
+
+      case 'saveClassification': result = saveClassification(p); break;
+      case 'saveClassificationSingle': result = saveClassificationSingle(data); break; // แก้ไขให้เป็น case
+      case 'deleteClassification': result = deleteClassification(p); break;
+      case 'saveClassificationPed': result = saveClassificationPed(p); break;
+      case 'deleteClassificationPed': result = deleteClassificationPed(p); break;
+
+      case 'saveDischargeDate': result = saveDischargeDate(p); break;
+
+      case 'saveFallRisk': result = saveFallRisk(p); break;
+      case 'saveFallRiskSingle': result = saveFallRiskSingle(data); break; // แก้ไขให้เป็น case
+      case 'deleteFallRisk': result = deleteFallRisk(p); break;
+
+      case 'saveBradenScale': result = saveBradenScale(p); break;
+      case 'savePatientEdu': result = savePatientEdu(p); break;
+      case 'saveFocusList': result = saveFocusList(p); break;
+      case 'saveFocusTemplate': result = saveFocusTemplate(p); break;
+      case 'saveNursingNotes': result = saveNursingNotes(p); break;
+      case 'saveNursingTemplate': result = saveNursingTemplate(p); break;
+      case 'saveDischargeRecord': result = saveDischargeRecord(p); break;
+      case 'saveNutritionAssessment': result = saveNutritionAssessment(p); break;
+      case 'dischargePatient': result = processDischargePatient(data); break;
+      case 'searchDischargedPatients': result = searchDischargedPatients(p); break;
+      case 'undoDischargePatient': result = undoDischargePatient(data); break;
+      case 'sendRegistrationVerification': result = sendRegistrationVerification(p); break;
+      case 'verifyRegistrationCode': result = verifyRegistrationCode(p); break;
+      case 'loginUser': result = loginUser(p); break;
+      case 'sendPasswordResetLink': result = sendPasswordResetLink(p); break;
+      case 'resetPasswordWithToken': result = resetPasswordWithToken(p); break;
+      case 'logoutUser': result = logoutUser(p); break;
+      case 'getSessionUser': result = getSessionUser(p && p.sessionToken); break;
+      case 'createServiceRequest': result = createServiceRequest(p); break;
+      case 'getServiceRequests': result = getServiceRequests(p); break;
+      case 'updateServiceRequestStatus': result = updateServiceRequestStatus(p); break;
+      default: result = { status: 'error', message: 'Invalid Action' };
+    }
+  } finally {
+    if (lock) lock.releaseLock();
+  }
+
+  // ล้าง cache เฉพาะตอนบันทึกสำเร็จ (status === 'success') เพื่อไม่ให้ข้อมูลเก่าค้างเกิน TTL
+  if (result && result.status === 'success') {
+    const keysToClear = getCacheKeysToInvalidate_(action, p);
+    if (keysToClear.length) clearCache_(keysToClear);
+  }
+
+  return res(result);
 }
 
 function res(data) {
@@ -251,13 +388,13 @@ function testLineNotification() {
   const adminUserId = String(props.getProperty('LINE_ADMIN_USER_ID') || '').trim();
 
   if (!channelAccessToken) {
-    throw new Error('ยังไม่ได้ตั้งScript Property: LINE_CHANNEL_ACCESS_TOKEN');
+    throw new Error('ยังไม่ได้ตั้ง Script Property: LINE_CHANNEL_ACCESS_TOKEN');
   }
   if (!adminUserId) {
-    throw new Error('ยังไม่ได้ตั้งScript Property: LINE_ADMIN_USER_ID');
+    throw new Error('ยังไม่ได้ตั้ง Script Property: LINE_ADMIN_USER_ID');
   }
   if (!/^U[0-9a-f]{32}$/i.test(adminUserId) && !/^C[0-9a-f]{32}$/i.test(adminUserId) && !/^R[0-9a-f]{32}$/i.test(adminUserId)) {
-    throw new Error('ค่าLINE_ADMIN_USER_ID ต้องเป็นuserId/groupId/roomId ของLINE เช่นUxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
+    throw new Error('ค่า LINE_ADMIN_USER_ID ต้องเป็น userId/groupId/roomId ของ LINE เช่น Uxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
   }
 
   const payload = {
@@ -266,7 +403,7 @@ function testLineNotification() {
       buildLineServiceFlexMessage_({
         requestId: 'SRV-TEST-0001',
         requesterName: 'ทดสอบระบบ',
-        category: 'ทดสอบการเชื่อมต่อLINE',
+        category: 'ทดสอบการเชื่อมต่อ LINE',
         department: 'ศูนย์ทดสอบระบบ',
         subject: 'Flex Message ทำงานเรียบร้อย',
         createdAt: Utilities.formatDate(new Date(), APP_TIMEZONE, 'yyyy-MM-dd HH:mm:ss'),
@@ -302,21 +439,21 @@ const SHIFT_ORDER = {
   'บ่าย': 3
 };
 
-// --- ฟังก์ชันดึงข้อมูลต่างๆ(คงเดิมตามระบบคุณ) ---
+// --- ฟังก์ชันดึงข้อมูลต่างๆ (คงเดิมตามระบบคุณ) ---
 // ==========================================
-// ฟังก์ชันจัดการวันที่ให้เป็นYYYY-MM-DD แบบปลอดภัย(แก้ปัญหาเวลาเหลื่อม7 ชม.)
+// ฟังก์ชันจัดการวันที่ให้เป็น YYYY-MM-DD แบบปลอดภัย (แก้ปัญหาเวลาเหลื่อม 7 ชม.)
 // ==========================================
 function formatSafeDate(value) {
   if (!value) return "";
-  // ตรวจสอบว่าเป็นObject Date แบบชัวร์ๆ
+  // ตรวจสอบว่าเป็น Object Date แบบชัวร์ๆ
   if (Object.prototype.toString.call(value) === '[object Date]') {
     return Utilities.formatDate(value, "Asia/Bangkok", "yyyy-MM-dd");
   }
-  // หากเป็นString ที่ติดTimezone มา(เช่น2026-03-09T17:00:00.000Z)
+  // หากเป็น String ที่ติด Timezone มา (เช่น 2026-03-09T17:00:00.000Z)
   if (typeof value === 'string' && value.includes('T')) {
     return value.split('T')[0];
   }
-  // กรณีเป็นString ปกติหรืออื่นๆ
+  // กรณีเป็น String ปกติ หรืออื่นๆ
   return value;
 }
 function normalizeEvalDate(value) {
@@ -506,16 +643,16 @@ function normalizeEmail(value) {
   return String(value || '').trim().toLowerCase();
 }
 function normalizeFullName(value) {
-  return String(value || '').replace(/\s+/g, ' ').trim();
+  return String(value || '').replace(/\+/g, ' ').trim();
 }
 function stripThaiPersonPrefix(value) {
-  return normalizeFullName(value).replace(/^(นายแพทย์|แพทย์หญิง|ทันตแพทย์หญิง|ทันตแพทย์|นาย|นางสาว|นาง|น\.ส\.|นพ\.|พญ\.|พว\.|ทพ\.|ทญ\.)\s*/i, '').trim();
+  return normalizeFullName(value).replace(/^(นายแพทย์|แพทย์หญิง|ทันตแพทย์หญิง|ทันตแพทย์|นาย|นางสาว|นาง|น\\.ส\\.|นพ\\.|พญ\\.|พว\\.|ทพ\\.|ทญ\\.)\*/i, '').trim();
 }
 function buildFirstLastNameKey(value) {
-  return stripThaiPersonPrefix(value).replace(/\s+/g, '').toLowerCase();
+  return stripThaiPersonPrefix(value).replace(/\+/g, '').toLowerCase();
 }
 function isValidEmail(value) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
+  return /^[^\@]+@[^\@]+\\.[^\@]+$/.test(String(value || '').trim());
 }
 function generatePasswordSalt() {
   return Utilities.getUuid().replace(/-/g, '').slice(0, 16);
@@ -789,7 +926,7 @@ function requireActiveSession(sessionToken) {
 function requireAdminSession(sessionToken) {
   const session = requireActiveSession(sessionToken);
   if (String(session.user.role || '').toLowerCase() !== 'admin') {
-    throw new Error('สิทธิ์ไม่เพียงพอสำหรับการจัดการรายการService');
+    throw new Error('สิทธิ์ไม่เพียงพอสำหรับการจัดการรายการ Service');
   }
   return session;
 }
@@ -918,6 +1055,106 @@ function getOrCreateSheet(sheetName, headers) {
   }
   return sheet;
 }
+function getLatestScoresMap() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  
+  // 1. Patient_Classification (Adult) -> map of AN -> Category / Score
+  const classMap = {};
+  const classSheet = ss.getSheetByName('Patient_Classification');
+  if (classSheet) {
+    const data = classSheet.getDataRange().getValues();
+    if (data.length > 1) {
+      const headers = data[0].map(h => String(h).toLowerCase().trim());
+      const idxAN = headers.indexOf('an');
+      const idxCategory = headers.indexOf('category');
+      const idxTotal = headers.indexOf('total');
+      if (idxAN !== -1) {
+        for (let i = 1; i < data.length; i++) {
+          const an = String(data[i][idxAN]).trim();
+          if (an) {
+            const category = idxCategory !== -1 ? String(data[i][idxCategory]).trim() : '';
+            const total = idxTotal !== -1 ? String(data[i][idxTotal]).trim() : '';
+            classMap[an] = { category, total };
+          }
+        }
+      }
+    }
+  }
+
+  // 2. Classifications_Pediatric (Child) -> map of AN -> ClassType / Score
+  const classPedMap = {};
+  const classPedSheet = ss.getSheetByName('Classifications_Pediatric');
+  if (classPedSheet) {
+    const data = classPedSheet.getDataRange().getValues();
+    if (data.length > 1) {
+      const headers = data[0].map(h => String(h).toLowerCase().trim());
+      const idxAN = headers.indexOf('an');
+      const idxClassType = headers.indexOf('classtype');
+      const idxScore = headers.indexOf('score');
+      if (idxAN !== -1) {
+        for (let i = 1; i < data.length; i++) {
+          const an = String(data[i][idxAN]).trim();
+          if (an) {
+            const classType = idxClassType !== -1 ? String(data[i][idxClassType]).trim() : '';
+            const score = idxScore !== -1 ? String(data[i][idxScore]).trim() : '';
+            classPedMap[an] = { classType, score };
+          }
+        }
+      }
+    }
+  }
+
+  // 3. Fall_Risk_Morse (Adult Morse score + MAAS score) -> map of AN -> latest MorseTotal & MAASScore
+  const morseMap = {};
+  const maasMap = {};
+  const morseSheet = ss.getSheetByName('Fall_Risk_Morse');
+  if (morseSheet) {
+    const data = morseSheet.getDataRange().getValues();
+    if (data.length > 1) {
+      const headers = data[0].map(h => String(h).toLowerCase().trim());
+      const idxAN = headers.indexOf('an');
+      const idxMorse = headers.indexOf('morsetotal');
+      const idxMaas = headers.indexOf('maasscore');
+      if (idxAN !== -1) {
+        for (let i = 1; i < data.length; i++) {
+          const an = String(data[i][idxAN]).trim();
+          if (an) {
+            if (idxMorse !== -1) morseMap[an] = String(data[i][idxMorse]).trim();
+            if (idxMaas !== -1) maasMap[an] = String(data[i][idxMaas]).trim();
+          }
+        }
+      }
+    }
+  }
+
+  // 4. Braden_Scale (Adult Braden score) -> map of AN -> TotalScore & EvalDate
+  const bradenMap = {};
+  const bradenDateMap = {};
+  const bradenSheet = ss.getSheetByName('Braden_Scale');
+  if (bradenSheet) {
+    const data = bradenSheet.getDataRange().getValues();
+    if (data.length > 1) {
+      const headers = data[0].map(h => String(h).toLowerCase().trim());
+      const idxAN = headers.indexOf('an');
+      const idxTotalScore = headers.indexOf('totalscore');
+      const idxEvalDate = headers.indexOf('evaldate');
+      if (idxAN !== -1 && idxTotalScore !== -1) {
+        for (let i = 1; i < data.length; i++) {
+          const an = String(data[i][idxAN]).trim();
+          if (an) {
+            bradenMap[an] = String(data[i][idxTotalScore]).trim();
+            if (idxEvalDate !== -1 && data[i][idxEvalDate]) {
+              bradenDateMap[an] = String(data[i][idxEvalDate]).trim();
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return { classMap, classPedMap, morseMap, maasMap, bradenMap, bradenDateMap };
+}
+
 function getPatients(ward) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('CurrentPatients');
@@ -930,8 +1167,10 @@ function getPatients(ward) {
   const headers = data[0];
   const rows = data.slice(1);
   const targetWard = String(ward || '').trim();
-  const WARD_COLUMN_INDEX = 2; // CurrentPatients คอลัมน์C = ward
+  const WARD_COLUMN_INDEX = 2; // CurrentPatients คอลัมน์ C = ward
   
+  const scores = getLatestScoresMap();
+
   return rows
     .map((row, rowIndex) => ({ row: row, displayRow: displayData[rowIndex + 1] || [] }))
     .filter(item => {
@@ -966,6 +1205,15 @@ function getPatients(ward) {
       obj.pi = obj.pi || normalizeCurrentPatientCell('pi', row[14], displayRow[14]);
       obj.dx = obj.dx || normalizeCurrentPatientCell('dx', row[15], displayRow[15]);
       obj.doctor = obj.doctor || normalizeCurrentPatientCell('doctor', row[16], displayRow[16]);
+      
+      const anStr = String(obj.an).trim();
+      obj.latestClass = scores.classMap[anStr] || null;
+      obj.latestClassPed = scores.classPedMap[anStr] || null;
+      obj.latestMorse = scores.morseMap[anStr] || '';
+      obj.latestMaas = scores.maasMap[anStr] || '';
+      obj.latestBraden = scores.bradenMap[anStr] || '';
+      obj.latestBradenDate = scores.bradenDateMap[anStr] || '';
+      
       return obj;
     });
 }
@@ -984,7 +1232,7 @@ function getInitData() {
   let nurses = [];
   if (staffSheet) {
     const staffData = staffSheet.getDataRange().getValues();
-    // สมมติแถวแรกคือHeader (Name, Position) ดึงข้อมูลตั้งแต่แถวที่2
+    // สมมติ แถวแรกคือ Header (Name, Position) ดึงข้อมูลตั้งแต่แถวที่ 2
     nurses = staffData.slice(1).map(row => {
       return { name: row[0], position: row[1] };
     });
@@ -1003,7 +1251,7 @@ function getBeds(ward) {
     .map(row => row[1]);
 }
 
-// --- ฟังก์ชันจัดการข้อมูลคนไข้---
+// --- ฟังก์ชันจัดการข้อมูลคนไข้ ---
 
 function admitPatient(p) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -1083,14 +1331,14 @@ function movePatient(p) {
 }
 
 /**
- * บันทึกแบบประเมินประวัติและสมรรถนะผู้ป่วย(FR-IPD-004)
+ * บันทึกแบบประเมินประวัติและสมรรถนะผู้ป่วย (FR-IPD-004)
  * รองรับข้อมูลครบทุกหัวข้อประเมิน
  */
 function saveAssessmentInitial(an, formData, fullPayload) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName('Assessment_Initial');
 
-  // ตรวจสอบโรคประจำตัวและจับมัดรวมกัน
+  // ตรวจสอบโรคประจำตัว และจับมัดรวมกัน
   let diseases = [];
   if(formData.Hx_HT) diseases.push('ความดันโลหิตสูง');
   if(formData.Hx_Heart) diseases.push('โรคหัวใจ');
@@ -1104,7 +1352,7 @@ function saveAssessmentInitial(an, formData, fullPayload) {
   if(formData.Hx_Other_Check) diseases.push('อื่นๆ: ' + (formData.Hx_Other || ''));
   const diseasesStr = diseases.length > 0 ? diseases.join(', ') : 'ไม่มี';
 
-  // เตรียมแถวข้อมูลที่จะบันทึกให้ตรงกับ62 คอลัมน์ที่ตั้งไว้
+  // เตรียมแถวข้อมูลที่จะบันทึกให้ตรงกับ 62 คอลัมน์ที่ตั้งไว้
   const rowData = [
     new Date(), // 1. Timestamp
     fullPayload.hn || formData.HN || '', // 2. HN
@@ -1134,10 +1382,10 @@ function saveAssessmentInitial(an, formData, fullPayload) {
     formData.FamilyHx_Status === 'มี' ? `มีประวัติ: ${formData.FamilyHx_Detail || ''}` : 'ไม่มีประวัติครอบครัว', // 24
     formData.Substance_Alcohol === 'ไม่ดื่ม' || !formData.Substance_Alcohol ? 'ไม่ดื่มสุรา' : `${formData.Substance_Alcohol} (${formData.Substance_Alcohol_Vol || '-'})`, // 25
     formData.Substance_Smoke === 'ไม่สูบ' || !formData.Substance_Smoke ? 'ไม่สูบบุหรี่' : `${formData.Substance_Smoke} (${formData.Substance_Smoke_Vol || '-'})`, // 26
-    formData.Meds_Status === 'มี' ? `ใช้ยา: ${formData.Meds_Detail || ''}` : (formData.Meds_Status === 'ยาโรคประจำตัวตามMed Reconcile' ? 'ยาโรคประจำตัวตามMed Reconcile' : 'ไม่มียาประจำ'), // 27
+    formData.Meds_Status === 'มี' ? `ใช้ยา: ${formData.Meds_Detail || ''}` : (formData.Meds_Status === 'ยาโรคประจำตัวตาม Med Reconcile' ? 'ยาโรคประจำตัวตาม Med Reconcile' : 'ไม่มียาประจำ'), // 27
 
     formData.HP_Before === 'ไม่ดี' ? `ไม่ดี: ${formData.HP_Before_Detail || ''}` : (formData.HP_Before || ''), // 28
-    formData.HP_Current_Severity || '', // 29. ความรุนแรงการเจ็บป่วยครั้งนี้(เพิ่มใหม่)
+    formData.HP_Current_Severity || '', // 29. ความรุนแรงการเจ็บป่วยครั้งนี้ (เพิ่มใหม่)
     (formData.HP_Care || '') + (formData.HP_Care && formData.HP_Care.includes('อื่นๆ') ? ` (${formData.HP_Care_Other || ''})` : ''), // 30
     formData.Expectation || '', // 31
 
@@ -1152,7 +1400,7 @@ function saveAssessmentInitial(an, formData, fullPayload) {
     `Eat:${formData.ADL_Before_Eat||''}, Oral:${formData.ADL_Before_Oral||''}, Dress:${formData.ADL_Before_Dress||''}, Walk:${formData.ADL_Before_Walk||''}, Toilet:${formData.ADL_Before_Toilet||''}, Bath:${formData.ADL_Before_Bath||''}`, // 38
     `Eat:${formData.ADL_Current_Eat||''}, Oral:${formData.ADL_Current_Oral||''}, Dress:${formData.ADL_Current_Dress||''}, Walk:${formData.ADL_Current_Walk||''}, Toilet:${formData.ADL_Current_Toilet||''}, Bath:${formData.ADL_Current_Bath||''}`, // 39
 
-    `${formData.Sleep_Hours || '-'} ชม./วัน(${formData.Sleep_Adequacy || ''}), ปัญหา: ${formData.Sleep_Problem === 'มี' ? (formData.Sleep_Problem_Detail || '') : 'ไม่มี'}`, // 40
+    `${formData.Sleep_Hours || '-'} ชม./วัน (${formData.Sleep_Adequacy || ''}), ปัญหา: ${formData.Sleep_Problem === 'มี' ? (formData.Sleep_Problem_Detail || '') : 'ไม่มี'}`, // 40
 
     formData.Cogn_LOC || '', // 41
     (formData.Cogn_Vision || '') + (formData.Cogn_Vision && formData.Cogn_Vision.includes('อื่นๆ') ? ` (${formData.Cogn_Vision_Other || ''})` : ''), // 42
@@ -1186,17 +1434,17 @@ function saveAssessmentInitial(an, formData, fullPayload) {
     formData.Assessor_Name || '', // 60
     formData.Assessor_Pos || '', // 61
     (formData.Cogn_Hearing || '') + (formData.Cogn_Hearing === 'อื่นๆ' ? ` (${formData.Cogn_Hearing_Other || ''})` : ''), // 62 (คอลัมน์ใหม่ที่แทรก)
-    JSON.stringify(formData) // 63. FullJSON (ขยับมาindex 62)
+    JSON.stringify(formData) // 63. FullJSON (ขยับมา index 62)
   ];
 
-  // ค้นหาว่าคนไข้AN นี้เคยประเมินแล้วหรือยัง
+  // ค้นหาว่าคนไข้ AN นี้เคยประเมินแล้วหรือยัง
   const data = sheet.getDataRange().getValues();
   let rowIndex = -1;
   const anString = (an || formData.AN).toString();
 
   for (let i = 1; i < data.length; i++) {
     if (data[i][2] && data[i][2].toString() === anString) {
-      rowIndex = i + 1; // หาเจอ(อัปเดตบรรทัดเดิม)
+      rowIndex = i + 1; // หาเจอ (อัปเดตบรรทัดเดิม)
       break;
     }
   }
@@ -1204,13 +1452,13 @@ function saveAssessmentInitial(an, formData, fullPayload) {
   // บันทึกหรืออัปเดต
   if (rowIndex !== -1) {
     sheet.getRange(rowIndex, 1, 1, rowData.length).setValues([rowData]);
-    return { status: 'success', message: 'อัปเดตข้อมูลFR-IPD-004 (ฉบับสมบูรณ์) เรียบร้อยแล้ว' };
+    return { status: 'success', message: 'อัปเดตข้อมูล FR-IPD-004 (ฉบับสมบูรณ์) เรียบร้อยแล้ว' };
   } else {
     sheet.appendRow(rowData);
     return { status: 'success', message: 'บันทึกข้อมูลประเมินแรกรับใหม่เรียบร้อยแล้ว' };
   }
 }
-// ฟังก์ชันสำหรับดึงข้อมูลการประเมินแรกรับของAN นั้นๆ
+// ฟังก์ชันสำหรับดึงข้อมูลการประเมินแรกรับของ AN นั้นๆ
 function getAssessmentInitial(an) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('Assessment_Initial');
@@ -1219,13 +1467,13 @@ function getAssessmentInitial(an) {
   const data = sheet.getDataRange().getValues();
   const anString = an.toString();
   
-  // ค้นหาจากล่างขึ้นบน(เพื่อให้ได้ข้อมูลที่อัปเดตล่าสุด)
+  // ค้นหาจากล่างขึ้นบน (เพื่อให้ได้ข้อมูลที่อัปเดตล่าสุด)
   for (let i = data.length - 1; i > 0; i--) {
     if (data[i][2] && data[i][2].toString() === anString) {
       const jsonStr = data[i][62]; 
       if (jsonStr) {
         try {
-          return JSON.parse(jsonStr); // แปลงJSON กลับเป็นObject
+          return JSON.parse(jsonStr); // แปลง JSON กลับเป็น Object
         } catch(e) {
           return null;
         }
@@ -1323,7 +1571,7 @@ function getClassifications(an) {
     const idxDate = headers.indexOf('evaldate');
     const idxShift = headers.indexOf('shift');
     const idxAssessor = headers.indexOf('assessor');
-    // เพิ่มการดึงค่าTotal และCategory เพื่อให้ฝั่งหน้าเว็บมีข้อมูลนำไปแสดงผล
+    // เพิ่มการดึงค่า Total และ Category เพื่อให้ฝั่งหน้าเว็บมีข้อมูลนำไปแสดงผล
     const idxTotal = headers.indexOf('total');
     const idxCategory = headers.indexOf('category');
     const qIndices = [1,2,3,4,5,6,7,8].map(n => headers.indexOf('q' + n));
@@ -1354,16 +1602,16 @@ function saveDischargeDate(p) {
   const sheet = ss.getSheetByName('CurrentPatients'); 
   const data = sheet.getDataRange().getValues();
   
-  // ค้นหาแถวโดยเช็คจากAN ในคอลัมน์H (Index 7 เพราะArray เริ่มจาก0)
+  // ค้นหาแถวโดยเช็คจาก AN ในคอลัมน์ H (Index 7 เพราะ Array เริ่มจาก 0)
   for (let i = 1; i < data.length; i++) {
-    // data[i][7] คือคอลัมน์H
+    // data[i][7] คือ คอลัมน์ H
     if (data[i][7] && data[i][7].toString() === p.an.toString()) {
-      // คอลัมน์S คือลำดับที่19
+      // คอลัมน์ S คือ ลำดับที่ 19
       sheet.getRange(i + 1, 19).setValue(p.dischargeDate); 
-      return { status: 'success', message: 'บันทึกวันจำหน่ายที่คอลัมน์S เรียบร้อยแล้ว' };
+      return { status: 'success', message: 'บันทึกวันจำหน่ายที่คอลัมน์ S เรียบร้อยแล้ว' };
     }
   }
-  return { status: 'error', message: 'ไม่พบAN: ' + p.an + ' ในคอลัมน์H' };
+  return { status: 'error', message: 'ไม่พบ AN: ' + p.an + ' ในคอลัมน์ H' };
 }
 function saveFallRisk(p) {
   let sheet = getOrCreateSheet('Fall_Risk_Morse', [
@@ -1454,7 +1702,7 @@ function getFallRisk(an) {
     const idxShift = headers.indexOf('shift');
     const idxMaas = headers.indexOf('maasscore');
     const idxAssessor = headers.indexOf('assessor');
-    // เพิ่มการดึงค่าMorseTotal กลับมาด้วย
+    // เพิ่มการดึงค่า MorseTotal กลับมาด้วย
     const idxMorse = headers.indexOf('morsetotal');
     const mIndices = [1,2,3,4,5,6].map(n => headers.indexOf('m' + n));
     
@@ -1474,7 +1722,7 @@ function getFallRisk(an) {
           _sourceIndex: i
         };
 
-        // ใส่ค่าm1-m6
+        // ใส่ค่า m1-m6
         mIndices.forEach((idx, n) => {
           rowObj['m' + (n+1)] = (idx !== -1 && data[i][idx] !== "") ? Number(data[i][idx]) : '';
         });
@@ -1512,14 +1760,14 @@ function saveBradenScale(p) {
   const targetDate = formatSafeDate(p.evalDate);
   const targetAN = p.an.toString();
   
-  // กรณี1: บันทึกสรุปส่วนที่4 (isSummaryOnly = true)
+  // กรณี 1: บันทึกสรุปส่วนที่ 4 (isSummaryOnly = true)
   if (p.isSummaryOnly) {
-    // หาแถว'ล่าสุด' ของAN นี้(ค้นหาจากล่างขึ้นบน)
+    // หาแถว 'ล่าสุด' ของ AN นี้ (ค้นหาจากล่างขึ้นบน)
     for (let i = data.length - 1; i >= 1; i--) {
       if (data[i][1] && data[i][1].toString() === targetAN) {
         rowIndex = i + 1;
         
-        // แก้ไข: อัปเดตเฉพาะคอลัมน์S4_... (เริ่มที่คอลัมน์28 จำนวน8 คอลัมน์)
+        // แก้ไข: อัปเดตเฉพาะคอลัมน์ S4_... (เริ่มที่คอลัมน์ 28 จำนวน 8 คอลัมน์)
         sheet.getRange(rowIndex, 28, 1, 8).setValues([[
           p.s4_dischargeDate || '',
           p.s4_outcome || '',
@@ -1533,13 +1781,13 @@ function saveBradenScale(p) {
         return { status: 'success', message: 'บันทึกสรุปการเกิดแผลกดทับลงในข้อมูลล่าสุดเรียบร้อย' };
       }
     }
-    return { status: 'error', message: 'ไม่พบประวัติการประเมินแผลกดทับของผู้ป่วยรายนี้จึงไม่สามารถบันทึกสรุปได้' };
+    return { status: 'error', message: 'ไม่พบประวัติการประเมินแผลกดทับของผู้ป่วยรายนี้ จึงไม่สามารถบันทึกสรุปได้' };
   }
 
-  // กรณี2: บันทึกการประเมินปกติ(ส่วนที่1-3)
+  // กรณี 2: บันทึกการประเมินปกติ (ส่วนที่ 1-3)
   for (let i = 1; i < data.length; i++) {
     let rowDate = formatSafeDate(data[i][4]);
-    // ค้นหาว่ามีประเมินของวันนั้นๆในAN นี้แล้วหรือยัง
+    // ค้นหาว่ามีประเมินของวันนั้นๆ ใน AN นี้แล้วหรือยัง
     if (data[i][1] && data[i][1].toString() === targetAN && rowDate === targetDate) {
       rowIndex = i + 1;
       break;
@@ -1559,12 +1807,12 @@ function saveBradenScale(p) {
     return { status: 'success', message: 'บันทึกข้อมูลแบบประเมินแผลกดทับเรียบร้อย' };
   }
 }
-// --- ฟังก์ชันสำหรับแบบบันทึกการให้คำแนะนำ(Patient Education) ---
+// --- ฟังก์ชันสำหรับแบบบันทึกการให้คำแนะนำ (Patient Education) ---
 function savePatientEdu(p) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName('Patient_Education');
   
-  // ถ้ายังไม่มีชีตให้สร้างใหม่และใส่หัวตาราง
+  // ถ้ายังไม่มีชีต ให้สร้างใหม่และใส่หัวตาราง
   if (!sheet) {
     sheet = ss.insertSheet('Patient_Education');
     sheet.appendRow(['Timestamp', 'AN', 'HN', 'Ward', 'DataJSON']);
@@ -1573,7 +1821,7 @@ function savePatientEdu(p) {
   const data = sheet.getDataRange().getValues();
   let rowIndex = -1;
   
-  // ค้นหาว่าคนไข้AN นี้เคยบันทึกไว้หรือยัง
+  // ค้นหาว่าคนไข้ AN นี้เคยบันทึกไว้หรือยัง
   for (let i = 1; i < data.length; i++) {
     if (data[i][1].toString() === p.an.toString()) {
       rowIndex = i + 1;
@@ -1586,7 +1834,7 @@ function savePatientEdu(p) {
     p.an,
     p.hn,
     p.ward,
-    JSON.stringify(p.formData) // บันทึกข้อมูลทั้งก้อนเป็นJSON แถวเดียว
+    JSON.stringify(p.formData) // บันทึกข้อมูลทั้งก้อนเป็น JSON แถวเดียว
   ];
   
   if (rowIndex !== -1) {
@@ -1612,7 +1860,7 @@ function getPatientEdu(an) {
   return {};
 }
 // ==========================================
-// ส่วนจัดการFocus List & Templates
+// ส่วนจัดการ Focus List & Templates
 // ==========================================
 
 function saveFocusList(p) {
@@ -1636,7 +1884,7 @@ function saveFocusList(p) {
   } else {
     sheet.appendRow(rowData);
   }
-  return { status: 'success', message: 'บันทึกข้อมูลFocus List สำเร็จ' };
+  return { status: 'success', message: 'บันทึกข้อมูล Focus List สำเร็จ' };
 }
 
 function getFocusList(an) {
@@ -1658,7 +1906,7 @@ function saveFocusTemplate(p) {
     sheet.appendRow(['ID', 'ProblemName', 'Focus', 'Goal']);
   }
   sheet.appendRow([new Date().getTime(), p.problemName, p.focus, p.goal]);
-  return { status: 'success', message: 'บันทึกTemplate สำเร็จ' };
+  return { status: 'success', message: 'บันทึก Template สำเร็จ' };
 }
 
 function getFocusTemplates() {
@@ -1673,7 +1921,7 @@ function getFocusTemplates() {
   return templates;
 }
 // ==========================================
-// ส่วนจัดการNursing Progress Note
+// ส่วนจัดการ Nursing Progress Note
 // ==========================================
 function saveNursingNotes(p) {
   try {
@@ -1697,26 +1945,11 @@ function saveNursingNotes(p) {
       incomingIds[normalizedNotes[i].id] = true;
     }
 
-    let maxDbTimestamp = 0;
     for (let i = 1; i < data.length; i++) {
       if (String(data[i][1] || '') !== defaults.an) continue;
-      const rowSavedAt = new Date(data[i][0]).getTime();
-      if (!isNaN(rowSavedAt) && rowSavedAt > maxDbTimestamp) {
-        maxDbTimestamp = rowSavedAt;
-      }
       const noteId = String(data[i][4] || '');
       if (noteId) existingRowsById[noteId] = i + 1;
       if (noteId && !incomingIds[noteId]) rowsToDelete.push(i + 1);
-    }
-
-    if (p.last_updated_at && maxDbTimestamp > 0) {
-      const clientLastSync = new Date(p.last_updated_at).getTime();
-      if (!isNaN(clientLastSync) && maxDbTimestamp > clientLastSync + 5000) {
-        return {
-          status: 'error',
-          message: 'ข้อมูลNursing Note ็ด็รับการอัปเŨmeดŧmeจากผู้ฉ็อาmeนอmeื่meนกmeũmeอmeนmeนmeไmeห้กรุณาme๋หmeลดmeขme้meอmeมmeูmeลใหme้เปme็meน(Data conflict/Optimistic lock)'
-        };
-      }
     }
 
     const rowsToAppend = [];
@@ -1759,7 +1992,7 @@ function saveNursingNotes(p) {
 
     return {
       status: 'success',
-      message: 'บันทึกNursing Note สำเร็จ',
+      message: 'บันทึก Nursing Note สำเร็จ',
       savedCount: normalizedNotes.length
     };
   } catch (error) {
@@ -1806,7 +2039,7 @@ function sendRegistrationVerification(p) {
       return { status: 'error', message: 'กรุณากรอกข้อมูลลงทะเบียนให้ครบถ้วน' };
     }
     if (!/^[a-zA-Z0-9._-]{4,30}$/.test(username)) {
-      return { status: 'error', message: 'ชื่อผู้ใช้ต้องมี4-30 ตัวและใช้ได้เฉพาะa-z, A-Z, 0-9, จุด, ขีดล่าง, ขีดกลาง' };
+      return { status: 'error', message: 'ชื่อผู้ใช้ต้องมี 4-30 ตัว และใช้ได้เฉพาะ a-z, A-Z, 0-9, จุด, ขีดล่าง, ขีดกลาง' };
     }
     if (!isValidEmail(email)) {
       return { status: 'error', message: 'รูปแบบอีเมลไม่ถูกต้อง' };
@@ -1815,14 +2048,14 @@ function sendRegistrationVerification(p) {
       return { status: 'error', message: 'รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน' };
     }
     if (password.length < 6) {
-      return { status: 'error', message: 'รหัสผ่านต้องมีอย่างน้อย6 ตัวอักษร' };
+      return { status: 'error', message: 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร' };
     }
 
     const staffMember = getStaffMemberByFullName(fullName);
     if (!staffMember) {
       return {
         status: 'error',
-        message: 'ไม่พบข้อมูลในฐานข้อมูลบุคลากรกรุณาตรวจสอบข้อมูลให้ถูกต้องหรือติดต่อผู้ดูแลระบบ'
+        message: 'ไม่พบข้อมูลในฐานข้อมูลบุคลากร กรุณาตรวจสอบข้อมูลให้ถูกต้อง หรือติดต่อผู้ดูแลระบบ'
       };
     }
 
@@ -1832,7 +2065,7 @@ function sendRegistrationVerification(p) {
     }
     const existingUsername = findUserAccountByUsername(username);
     if (existingUsername && String(existingUsername.values[6] || '').toLowerCase() === 'active') {
-      return { status: 'error', message: 'ชื่อผู้ใช้นี้ถูกใช้งานแล้วกรุณาเลือกชื่อผู้ใช้อื่น' };
+      return { status: 'error', message: 'ชื่อผู้ใช้นี้ถูกใช้งานแล้ว กรุณาเลือกชื่อผู้ใช้อื่น' };
     }
 
     const verificationSheet = getOrCreateAuthVerificationSheet();
@@ -1858,14 +2091,14 @@ function sendRegistrationVerification(p) {
 
     MailApp.sendEmail({
       to: email,
-      subject: 'รหัสยืนยันการลงทะเบียนIPD Nurse System',
+      subject: 'รหัสยืนยันการลงทะเบียน IPD Nurse System',
       htmlBody:
         '<div style="font-family:Sarabun,Arial,sans-serif;font-size:14px;line-height:1.7;">' +
-        '<p>เรียน' + staffMember.name + '</p>' +
+        '<p>เรียน ' + staffMember.name + '</p>' +
         '<p>รหัสยืนยันสำหรับลงทะเบียนเข้าใช้งานระบบคือ</p>' +
         '<p style="font-size:28px;font-weight:700;letter-spacing:6px;color:#0f766e;">' + code + '</p>' +
-        '<p>รหัสนี้จะหมดอายุใน' + AUTH_VERIFY_MINUTES + ' นาที</p>' +
-        '<p>หากคุณไม่ได้ร้องขอการลงทะเบียนกรุณาเพิกเฉยอีเมลฉบับนี้</p>' +
+        '<p>รหัสนี้จะหมดอายุใน ' + AUTH_VERIFY_MINUTES + ' นาที</p>' +
+        '<p>หากคุณไม่ได้ร้องขอการลงทะเบียน กรุณาเพิกเฉยอีเมลฉบับนี้</p>' +
         '</div>',
       name: 'IPD Nurse System'
     });
@@ -1910,7 +2143,7 @@ function verifyRegistrationCode(p) {
 
     const expiresAt = matchedRow[8];
     if (!(expiresAt instanceof Date) || expiresAt.getTime() < new Date().getTime()) {
-      return { status: 'error', message: 'รหัสยืนยันหมดอายุแล้วกรุณาขอรหัสใหม่' };
+      return { status: 'error', message: 'รหัสยืนยันหมดอายุแล้ว กรุณาขอรหัสใหม่' };
     }
 
     const usersSheet = getOrCreateUserAccountsSheet();
@@ -1967,10 +2200,10 @@ function sendPasswordResetLink(p) {
 
     const user = buildUserResponseFromRow(userAccount.values);
     if (normalizeUsername(user.username) === normalizeUsername(ADMIN_USERNAME)) {
-      return { status: 'error', message: 'บัญชีผู้ดูแลระบบนี้ไม่รองรับการรีเซ็ตผ่านอีเมลกรุณาเข้าสู่ระบบด้วยรหัสดูแลระบบโดยตรง' };
+      return { status: 'error', message: 'บัญชีผู้ดูแลระบบนี้ไม่รองรับการรีเซ็ตผ่านอีเมล กรุณาเข้าสู่ระบบด้วยรหัสดูแลระบบโดยตรง' };
     }
     if (!resetBaseUrl || !/^https?:\/\//i.test(resetBaseUrl)) {
-      return { status: 'error', message: 'ไม่พบURL หน้าเว็บสำหรับสร้างลิงก์รีเซ็ตรหัสผ่านกรุณาเปิดผ่านเว็บที่deploy จริงแล้วลองอีกครั้ง' };
+      return { status: 'error', message: 'ไม่พบ URL หน้าเว็บสำหรับสร้างลิงก์รีเซ็ตรหัสผ่าน กรุณาเปิดผ่านเว็บที่ deploy จริงแล้วลองอีกครั้ง' };
     }
 
     const sheet = getOrCreatePasswordResetSheet();
@@ -1992,16 +2225,16 @@ function sendPasswordResetLink(p) {
 
     MailApp.sendEmail({
       to: user.email,
-      subject: 'ลิงก์ตั้งรหัสผ่านใหม่IPD Nurse System',
+      subject: 'ลิงก์ตั้งรหัสผ่านใหม่ IPD Nurse System',
       htmlBody:
         '<div style="font-family:Sarabun,Arial,sans-serif;font-size:14px;line-height:1.7;">' +
-        '<p>เรียน' + user.fullName + '</p>' +
-        '<p>มีการร้องขอตั้งรหัสผ่านใหม่สำหรับบัญชี<strong>' + user.username + '</strong></p>' +
+        '<p>เรียน ' + user.fullName + '</p>' +
+        '<p>มีการร้องขอตั้งรหัสผ่านใหม่สำหรับบัญชี <strong>' + user.username + '</strong></p>' +
         '<p><a href="' + resetUrl + '" style="display:inline-block;background:#0f766e;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:10px;font-weight:700;">ตั้งรหัสผ่านใหม่</a></p>' +
         '<p>หรือนำลิงก์นี้ไปเปิดในเบราว์เซอร์:</p>' +
         '<p style="word-break:break-all;color:#0f172a;">' + resetUrl + '</p>' +
-        '<p>ลิงก์นี้จะหมดอายุใน' + PASSWORD_RESET_MINUTES + ' นาที</p>' +
-        '<p>หากคุณไม่ได้ร้องขอการตั้งรหัสผ่านใหม่กรุณาเพิกเฉยอีเมลฉบับนี้</p>' +
+        '<p>ลิงก์นี้จะหมดอายุใน ' + PASSWORD_RESET_MINUTES + ' นาที</p>' +
+        '<p>หากคุณไม่ได้ร้องขอการตั้งรหัสผ่านใหม่ กรุณาเพิกเฉยอีเมลฉบับนี้</p>' +
         '</div>',
       name: 'IPD Nurse System'
     });
@@ -2029,7 +2262,7 @@ function resetPasswordWithToken(p) {
       return { status: 'error', message: 'รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน' };
     }
     if (password.length < 6) {
-      return { status: 'error', message: 'รหัสผ่านต้องมีอย่างน้อย6 ตัวอักษร' };
+      return { status: 'error', message: 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร' };
     }
 
     const resetSheet = getOrCreatePasswordResetSheet();
@@ -2049,7 +2282,7 @@ function resetPasswordWithToken(p) {
       return { status: 'error', message: 'ลิงก์ตั้งรหัสผ่านใหม่ไม่ถูกต้องหรือถูกใช้งานไปแล้ว' };
     }
     if (!(matchedRow[5] instanceof Date) || matchedRow[5].getTime() < new Date().getTime()) {
-      return { status: 'error', message: 'ลิงก์ตั้งรหัสผ่านใหม่หมดอายุแล้วกรุณาขอใหม่อีกครั้ง' };
+      return { status: 'error', message: 'ลิงก์ตั้งรหัสผ่านใหม่หมดอายุแล้ว กรุณาขอใหม่อีกครั้ง' };
     }
 
     const userAccount = findUserAccountByEmail(email);
@@ -2066,7 +2299,7 @@ function resetPasswordWithToken(p) {
 
     return {
       status: 'success',
-      message: 'ตั้งรหัสผ่านใหม่เรียบร้อยแล้วสามารถเข้าสู่ระบบด้วยรหัสผ่านใหม่ได้ทันที'
+      message: 'ตั้งรหัสผ่านใหม่เรียบร้อยแล้ว สามารถเข้าสู่ระบบด้วยรหัสผ่านใหม่ได้ทันที'
     };
   } catch (error) {
     return { status: 'error', message: error.message };
@@ -2100,7 +2333,7 @@ function loginUser(p) {
 
     const userAccount = findUserAccountByUsername(username);
     if (!userAccount || String(userAccount.values[6] || '').toLowerCase() !== 'active') {
-      return { status: 'error', message: 'ไม่พบบัญชีผู้ใช้งานหรือบัญชียังไม่ผ่านการยืนยันอีเมล' };
+      return { status: 'error', message: 'ไม่พบบัญชีผู้ใช้งาน หรือบัญชียังไม่ผ่านการยืนยันอีเมล' };
     }
 
     const savedHash = String(userAccount.values[4] || '');
@@ -2174,10 +2407,10 @@ function createServiceRequest(p) {
     const attachmentsInput = Array.isArray(p && p.attachments) ? p.attachments : [];
 
     if (!department || !subject || !details) {
-      return { status: 'error', message: 'กรุณากรอกหน่วยงานหัวข้อและรายละเอียดคำขอให้ครบถ้วน' };
+      return { status: 'error', message: 'กรุณากรอกหน่วยงาน หัวข้อ และรายละเอียดคำขอให้ครบถ้วน' };
     }
     if (attachmentsInput.length > 5) {
-      return { status: 'error', message: 'แนบไฟล์ได้ไม่เกิน5 ไฟล์ต่อคำขอ' };
+      return { status: 'error', message: 'แนบไฟล์ได้ไม่เกิน 5 ไฟล์ต่อคำขอ' };
     }
 
     const requestId = generateRequestId('SRV');
@@ -2293,7 +2526,7 @@ function getNursingTemplates() {
   return templates;
 }
 // ==========================================
-// ส่วนจัดการแบบบันทึกการพยาบาลผู้ป่วยจำหน่าย
+// ส่วนจัดการ แบบบันทึกการพยาบาลผู้ป่วยจำหน่าย
 // ==========================================
 function saveDischargeRecord(p) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -2327,7 +2560,7 @@ function getDischargeRecord(an) {
 }
 
 // ==========================================
-// ฟังก์ชันย้ายผู้ป่วยไปยังRegistryHistory (แบบป้องกันError)
+// ฟังก์ชันย้ายผู้ป่วยไปยัง RegistryHistory (แบบป้องกัน Error)
 // ==========================================
 function saveNutritionAssessment(p) {
   const sheet = getOrCreateSheet('Nutrition_Assessment', ['Timestamp', 'AN', 'HN', 'Ward', 'DataJSON']);
@@ -2366,7 +2599,7 @@ function processDischargePatient(data) {
     const historySheet = ss.getSheetByName('RegistryHistory');
     
     if (!currentSheet || !historySheet) {
-      return { status: 'error', message: 'ไม่พบชีตCurrentPatients หรือRegistryHistory' };
+      return { status: 'error', message: 'ไม่พบชีต CurrentPatients หรือ RegistryHistory' };
     }
     
     const currentRange = currentSheet.getDataRange();
@@ -2382,12 +2615,12 @@ function processDischargePatient(data) {
       : headers;
     const anIndex = headers.findIndex(h => String(h).toLowerCase() === 'an');
     
-    // หาIndex ของWard และBed
+    // หา Index ของ Ward และ Bed
     const wardIndex = headers.findIndex(h => String(h).toLowerCase() === 'ward' || String(h) === 'ตึก');
     const bedIndex = headers.findIndex(h => String(h).toLowerCase() === 'bed' || String(h) === 'เตียง');
     
     if (anIndex === -1) {
-      return { status: 'error', message: 'ไม่พบคอลัมน์AN ในชีตCurrentPatients' };
+      return { status: 'error', message: 'ไม่พบคอลัมน์ AN ในชีต CurrentPatients' };
     }
     
     let targetRow = -1;
@@ -2428,7 +2661,7 @@ function processDischargePatient(data) {
 
       currentSheet.deleteRow(targetRow);     
       
-      // ✅เพิ่มคำสั่งอัปเดตสถานะเตียงเป็น'ว่าง'
+      // ✅ เพิ่มคำสั่งอัปเดตสถานะเตียงเป็น 'ว่าง'
       if (patientWard && patientBed) {
         updateBedStatus(patientWard, patientBed, 'ว่าง');
       }
@@ -2443,13 +2676,13 @@ function processDischargePatient(data) {
   }
 }
 // ==========================================
-// ค้นหาผู้ป่วยที่จำหน่ายแล้ว(รายวัน/รายเดือน)
+// ค้นหาผู้ป่วยที่จำหน่ายแล้ว (รายวัน/รายเดือน)
 // ==========================================
 function searchDischargedPatients(p) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const historySheet = ss.getSheetByName('RegistryHistory');
-    if (!historySheet) return { status: 'error', message: 'ไม่พบชีตRegistryHistory' };
+    if (!historySheet) return { status: 'error', message: 'ไม่พบชีต RegistryHistory' };
 
     const range = historySheet.getDataRange();
     const data = range.getValues();
@@ -2462,7 +2695,7 @@ function searchDischargedPatients(p) {
     const result = [];
     const wardIndex = headers.findIndex(function(h) { return h === 'ward' || h === 'ตึก'; });
     
-    // หาคอลัมน์วันที่จำหน่าย
+    // หาคอลัมน์ วันที่จำหน่าย
     const dateIndex = headers.findIndex(function(h) {
       return h === 'dischargedate' || h === 'วันที่จำหน่าย';
     });
@@ -2475,13 +2708,13 @@ function searchDischargedPatients(p) {
          obj[h] = normalizeSheetDisplayText(rawRow[index], displayRow[index]);
        });
        
-       // กรองWard ก่อน
+       // กรอง Ward ก่อน
        if (p.ward && wardIndex !== -1) {
          const rowWard = normalizeSheetDisplayText(rawRow[wardIndex], displayRow[wardIndex]);
          if (rowWard !== String(p.ward).trim()) continue;
        }
        
-       // กรองตามวันที่/ เดือนที่เลือก
+       // กรองตามวันที่ / เดือนที่เลือก
        if (dateIndex !== -1 && (p.searchDate || p.searchMonth)) {
            const dateString = normalizeRegistrySearchDate(rawRow[dateIndex], displayRow[dateIndex]);
            if (!dateString) continue;
@@ -2500,7 +2733,7 @@ function searchDischargedPatients(p) {
 }
 
 // ==========================================
-// ฟังก์ชันยกเลิกการจำหน่าย(ย้ายกลับ)
+// ฟังก์ชัน ยกเลิกการจำหน่าย (ย้ายกลับ)
 // ==========================================
 function undoDischargePatient(data) {
   try {
@@ -2514,7 +2747,7 @@ function undoDischargePatient(data) {
     const headers = historyData[0];
     const anIndex = headers.findIndex(h => String(h).toLowerCase() === 'an');
     
-    // หาIndex ของWard และBed
+    // หา Index ของ Ward และ Bed
     const wardIndex = headers.findIndex(h => String(h).toLowerCase() === 'ward' || String(h) === 'ตึก');
     const bedIndex = headers.findIndex(h => String(h).toLowerCase() === 'bed' || String(h) === 'เตียง');
 
@@ -2523,7 +2756,7 @@ function undoDischargePatient(data) {
     let patientWard = "";
     let patientBed = "";
 
-    // หาตัวผู้ป่วยในชีตHistory
+    // หาตัวผู้ป่วยในชีต History
     for (let i = 1; i < historyData.length; i++) {
       if (isSameSheetIdentifier(historyData[i][anIndex], historyDisplayData[i][anIndex], data.an)) {
         targetRow = i + 1; 
@@ -2540,7 +2773,7 @@ function undoDischargePatient(data) {
       currentSheet.appendRow(rowDataToMove); // เอาเข้าหน้าปัจจุบัน
       historySheet.deleteRow(targetRow);     // ลบออกจากประวัติ
       
-      // ✅เพิ่มคำสั่งเปลี่ยนสถานะเตียงกลับเป็น'ไม่ว่าง'
+      // ✅ เพิ่มคำสั่งเปลี่ยนสถานะเตียงกลับเป็น 'ไม่ว่าง'
       if (patientWard && patientBed) {
         updateBedStatus(patientWard, patientBed, 'ไม่ว่าง');
       }
@@ -2561,7 +2794,7 @@ function getAssessmentPed(an) {
     const anIdx = headers.indexOf('an');
     const formIdx = headers.indexOf('formdata');
     
-    // ค้นหาจากแถวล่างสุดขึ้นบนเพื่อเอาข้อมูลล่าสุด
+    // ค้นหาจากแถวล่างสุดขึ้นบน เพื่อเอาข้อมูลล่าสุด
     for (let i = data.length - 1; i > 0; i--) {
       if (String(data[i][anIdx]) === String(an)) {
         return JSON.parse(data[i][formIdx] || '{}');
@@ -2715,3 +2948,147 @@ function deleteClassificationPed(p) {
     return { status: 'error', message: error.message };
   }
 }
+
+/**
+ * ==========================================================================
+ * CANDI AI Assistant Backend Integration - Gemini 2.0 API Caller
+ * ==========================================================================
+ */
+
+/**
+ * Calls Gemini 2.0 Flash API to generate clinical decision support response
+ * @param {string} question - Question from the nurse
+ * @param {Object} context - PDPA masked patient context
+ * @returns {TextOutput} JSON response
+ */
+function handleCandiChat_(question, context) {
+  const props = PropertiesService.getScriptProperties();
+  const apiKey = props.getProperty('GEMINI_API_KEY');
+  
+  if (!apiKey || apiKey.trim() === '') {
+    return res({
+      status: 'error',
+      message: 'CANDI กำลังอยู่ในช่วงพัฒนาค่ะ (กรุณาตั้งค่า GEMINI_API_KEY ใน Script Properties ของ Google Apps Script ก่อนเริ่มใช้งานนะคะ)'
+    });
+  }
+
+  // Gemini 1.5 Flash API Endpoint
+  const url = 'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=' + apiKey;
+
+  // Format the PDPA de-identified patient context for the model
+  let contextPrompt = '';
+  if (context) {
+    const focusItemsStr = (context.focusList && context.focusList.length > 0)
+      ? context.focusList.map(function(item) {
+          return '- ปัญหา: ' + (item.focus || '-') + ' | เป้าหมาย: ' + (item.goal || '-') + ' (เริ่ม: ' + (item.startDate || '-') + ')';
+        }).join('\n')
+      : 'ไม่มี (หรือยังไม่ได้ประเมิน)';
+
+    contextPrompt = '\n\n' +
+      '=== ข้อมูลบริบทผู้ป่วยปัจจุบัน (ระบุตัวตนแบบเข้ารหัส PDPA เรียบร้อยแล้ว) ===\n' +
+      '• เตียง (BED): ' + (context.bed || '-') + '\n' +
+      '• ชื่อผู้ป่วย (Masked): ' + (context.patientName || '-') + '\n' +
+      '• HN (Masked): ' + (context.hn || '-') + '\n' +
+      '• AN (Masked): ' + (context.an || '-') + '\n' +
+      '• รายการ Focus List ปัจจุบัน:\n' + focusItemsStr + '\n' +
+      '• บันทึกการพยาบาล (Nursing Note - S.O.I.E.) ล่าสุด:\n' +
+      '  - S (Subjective): ' + (context.noteS || 'ไม่มีข้อมูล') + '\n' +
+      '  - O (Objective): ' + (context.noteO || 'ไม่มีข้อมูล') + '\n' +
+      '  - I (Intervention): ' + (context.noteI || 'ไม่มีข้อมูล') + '\n' +
+      '  - E (Evaluation): ' + (context.noteE || 'ไม่มีข้อมูล') + '\n' +
+      '===============================================================\n';
+  }
+
+  // Define System Instructions for the Clinical Assistant
+  const systemInstruction = 
+    'คุณคือ "น้อง CANDI" (Clinical Assistant & Nursing Decision Intelligence) ' +
+    'พยาบาลผู้ช่วย AI ประจำ IPD Nurse Workbench ของโรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน\n\n' +
+    'หน้าที่ของคุณ:\n' +
+    '1. วิเคราะห์ข้อมูลบริบทผู้ป่วยที่พยาบาลส่งมาให้ (HN/AN, เตียง, Focus List, บันทึกความก้าวหน้าทางการพยาบาล S-O-I-E Note)\n' +
+    '2. สนับสนุนการตัดสินใจเชิงคลินิก (Clinical Decision Support: CDS) โดยให้การประเมินเฝ้าระวัง เช่น เฝ้าระวังอาการหลังผ่าตัด (Post-op care), การปรับระดับอาหารตามอาการ (Step diet progression), ภาวะน้ำตาลในเลือดต่ำ (Hypoglycemia), ความเสี่ยงต่อการติดเชื้อ (Infection risk) และความเสี่ยงฉุกเฉินต่างๆ\n' +
+    '3. ช่วยร่างบันทึกทางการพยาบาลในรูปแบบ SOAP Note หรือ Focus Note (S-O-I-E) เพื่อความรวดเร็วและถูกต้องตามหลัก CPG (Clinical Practice Guidelines)\n\n' +
+    'น้ำเสียงและรูปแบบคำตอบ:\n' +
+    '- พูดจาสุภาพ น่ารัก เป็นมิตร โดยใช้คำลงท้าย "ค่ะ/นะคะ"\n' +
+    '- อธิบายข้อมูลเชิงลึกในลักษณะที่ สรุปตรงประเด็นทางการแพทย์/การพยาบาล อ่านเข้าใจได้รวดเร็ว เหมาะสำหรับการปฏิบัติงานจริงของพยาบาล\n' +
+    '- ใช้ Bullet point หรือการจัดระเบียบหัวข้อให้แจ่มแจ้ง\n\n' +
+    'ข้อกำหนดด้านความปลอดภัย (Clinical Guardrail & Disclaimer):\n' +
+    '- คุณต้องระบุข้อความสั้นๆ เสมอในส่วนท้ายหรือในเนื้อหาของคำตอบว่า:\n' +
+    '  "น้อง CANDI เป็นระบบช่วยตัดสินใจเชิงคลินิก การตัดสินใจทางการพยาบาลและการบันทึกข้อมูลจริงขึ้นอยู่กับพยาบาลวิชาชีพผู้ดูแล"\n' +
+    '- ห้ามเปิดเผยข้อมูลที่เป็นส่วนตัวของผู้ป่วยจริง หากตรวจพบชื่อจริงให้แนะนำให้กรองออก\n\n' +
+    'หากพยาบาลร้องขอให้ "ร่าง Nursing Note (SOAP)" หรือ "ร่าง S-O-I-E" ให้คุณจัดรูปแบบคำตอบให้มีสัญลักษณ์ขึ้นต้นหัวข้อชัดเจนดังนี้ เพื่อให้ระบบป้อนข้อมูลอัตโนมัติบนหน้าเว็บบริหารจัดการได้ง่าย:\n' +
+    'S: [ข้อความข้อมูลอัตวิสัย]\n' +
+    'O: [ข้อความข้อมูลวัตถุวิสัย]\n' +
+    'I: [ข้อความกิจกรรมการพยาบาล]\n' +
+    'E: [ข้อความการประเมินผลลัพธ์]\n' +
+    'พร้อมทั้งสรุปประเด็นสั้นๆ ก่อนเริ่มโครงสร้าง';
+
+  const requestPayload = {
+    contents: [
+      {
+        parts: [
+          { text: 'คำสั่ง/คำถามจากพยาบาล: ' + question + contextPrompt }
+        ]
+      }
+    ],
+    systemInstruction: {
+      parts: [
+        { text: systemInstruction }
+      ]
+    },
+    generationConfig: {
+      temperature: 0.2,
+      maxOutputTokens: 1200
+    }
+  };
+
+  const fetchOptions = {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify(requestPayload),
+    muteHttpExceptions: true
+  };
+
+  try {
+    const response = UrlFetchApp.fetch(url, fetchOptions);
+    const responseCode = response.getResponseCode();
+    const responseText = response.getContentText();
+    
+    if (responseCode !== 200) {
+      return res({
+        status: 'error',
+        message: 'CANDI กำลังอยู่ในช่วงพัฒนาค่ะ (ติดต่อกับ Gemini API ไม่สำเร็จ HTTP ' + responseCode + ')'
+      });
+    }
+    
+    const responseJson = JSON.parse(responseText);
+    
+    // Extract generated text from response structure
+    let replyText = '';
+    if (responseJson.candidates && 
+        responseJson.candidates[0] && 
+        responseJson.candidates[0].content && 
+        responseJson.candidates[0].content.parts && 
+        responseJson.candidates[0].content.parts[0]) {
+      replyText = responseJson.candidates[0].content.parts[0].text;
+    }
+    
+    if (!replyText || replyText.trim() === '') {
+      return res({
+        status: 'error',
+        message: 'ไม่ได้รับข้อความตอบกลับจาก AI โมเดล โปรดตรวจสอบความถูกต้องของ API Key หรือโควต้าการใช้งาน'
+      });
+    }
+    
+    return res({
+      status: 'success',
+      reply: replyText
+    });
+
+  } catch (error) {
+    return res({
+      status: 'error',
+      message: 'CANDI กำลังอยู่ในช่วงพัฒนาค่ะ (เกิดข้อผิดพลาดทางเทคนิคของเซิร์ฟเวอร์: ' + error.message + ')'
+    });
+  }
+}
+
