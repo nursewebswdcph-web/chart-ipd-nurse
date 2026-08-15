@@ -82,6 +82,20 @@
     box-shadow: 0 4px 8px -2px rgba(0, 168, 150, 0.15);
 }
 
+/* Quick Action Chips show/hide toggle */
+#candi-quick-chips-icon {
+    transition: transform 0.25s ease;
+}
+#candi-quick-chips-icon.rotate-180 {
+    transform: rotate(-90deg);
+}
+#candi-quick-chips-body {
+    max-height: 6rem;
+}
+#candi-quick-chips-body.hidden {
+    display: none;
+}
+
 /* Action button for Copy to SOIE Form inside Chat Bubbles */
 .candi-action-btn {
     display: inline-flex;
