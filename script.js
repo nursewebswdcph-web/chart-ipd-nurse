@@ -2193,15 +2193,26 @@ function nurseApp() {
             }
         },
         get patientSummary() {
-            if (!this.patients || this.patients.length === 0) return { total: 0, deptStr: 'ยังไม่มีข้อมูลผู้ป่วย' };
+            if (!this.patients || this.patients.length === 0) return { total: 0, adultCount: 0, pedCount: 0, classCounts: null, classEntries: [], deptStr: 'ยังไม่มีข้อมูลผู้ป่วย' };
             const total = this.patients.length;
+            const adultCount = this.patients.filter(p => this.isPatientAdult(p)).length;
+            const pedCount = total - adultCount;
             const counts = this.patients.reduce((acc, p) => {
                 const d = p.dept || 'ไม่ระบุ';
                 acc[d] = (acc[d] || 0) + 1;
                 return acc;
             }, {});
             const deptStr = Object.entries(counts).map(([n, c]) => `${n} ${c} ราย`).join(' • ');
-            return { total, deptStr };
+            // นับจำนวนตามประเภท 1-5 (รวมผู้ใหญ่และเด็ก)
+            const classCounts = {};
+            this.patients.forEach(p => {
+                const cat = this.isPatientAdult(p)
+                    ? (p.latestClass ? String(p.latestClass.category) : null)
+                    : (p.latestClassPed ? String(p.latestClassPed.classType) : null);
+                if (cat) classCounts[cat] = (classCounts[cat] || 0) + 1;
+            });
+            const classEntries = Object.keys(classCounts).sort().map(k => [k, classCounts[k]]);
+            return { total, adultCount, pedCount, classCounts: classEntries.length > 0 ? classCounts : null, classEntries, deptStr };
         },
 
         get filteredPatients() {
