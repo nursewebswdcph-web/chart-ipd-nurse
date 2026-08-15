@@ -18,6 +18,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- CANDI AI Assistant Components -->
+    <link rel="stylesheet" href="style.css?v=20260815_08">
+    <script src="app.js?v=20260815_08" charset="UTF-8" defer></script>
 
     <style>
     body { font-family: 'Sarabun', sans-serif; background-color: #f1f5f9; color: #1e293b; }
@@ -460,6 +463,11 @@
                 <button x-show="canInstallApp && !isAppInstalled" @click="installApp()" type="button" class="inline-flex items-center gap-2 rounded-xl bg-emerald-500/90 hover:bg-emerald-400 border border-emerald-300/30 px-3 py-2 text-sm font-bold transition-colors">
                     <i class="fa-solid fa-download"></i>
                     <span class="hidden sm:inline">ติดตั้งแอป</span>
+                </button>
+                <!-- IT Nurse Service Button in Headbar -->
+                <button @click="openServicePanel(isServiceAdmin ? 'admin' : 'create')" type="button" class="inline-flex items-center gap-2 rounded-xl bg-teal-500/40 hover:bg-teal-500/60 border border-teal-400/30 px-3 py-2 text-sm font-bold transition-colors">
+                    <i class="fa-solid fa-headset text-teal-200"></i>
+                    <span class="hidden md:inline" x-text="isServiceAdmin ? 'จัดการ Service' : 'แจ้งปัญหา IT'"></span>
                 </button>
                 <template x-if="currentUser">
                     <div class="hidden md:flex flex-col text-right leading-tight">
@@ -5626,15 +5634,7 @@
         </div>
     </div>
 
-    <button x-show="isAuthenticated" x-cloak @click="openServicePanel(isServiceAdmin ? 'admin' : 'create')" type="button" class="no-print fixed bottom-6 right-6 z-[16000] inline-flex items-center gap-3 rounded-full bg-teal-600 px-5 py-4 text-white shadow-2xl shadow-teal-200 hover:bg-teal-700 transition-all">
-        <span class="flex h-11 w-11 items-center justify-center rounded-full bg-white/15 border border-white/15">
-            <i class="fa-solid fa-headset text-lg"></i>
-        </span>
-        <span class="text-left leading-tight">
-            <span class="block text-sm font-black">IT Nurse Service</span>
-            <span class="block text-[11px] text-white/75" x-text="isServiceAdmin ? 'จัดการคำขอ Service' : 'แจ้งปัญหา / ขอปรับปรุงระบบ'"></span>
-        </span>
-    </button>
+
 
     <footer class="no-print px-4 pb-8">
         <div class="container mx-auto">
@@ -5643,7 +5643,7 @@
                     © 2026 IPD Nurse System All rights reserved. | Developed by Natnarinthorn.
                 </div>
                 <div class="font-bold uppercase tracking-[0.18em] text-slate-400 md:text-right">
-                    V2.2.31 Digitalized
+                    V2.4 Digitalized
                 </div>
             </div>
         </div>
@@ -6384,6 +6384,115 @@
         </div>
     </div>
     </div>
+
+    <!-- ==========================================
+         CANDI AI Nursing Assistant UI Components
+         ========================================== -->
+    <!-- Floating Action Button (FAB) -->
+    <div id="candi-fab-container" class="no-print fixed z-[15000] bottom-[90px] right-[20px] flex flex-col items-center select-none">
+        <span class="candi-badge mb-1 text-[10px] font-black bg-white text-[#00a896] px-2.5 py-0.5 rounded-full shadow-lg border-2 border-[#00a896] animate-bounce">
+            CANDI
+        </span>
+        <button id="candi-fab" class="relative w-20 h-20 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 group focus:outline-none">
+            <span class="absolute w-16 h-16 rounded-full bg-teal-400/20 blur-md group-hover:bg-teal-400/35 transition-all duration-300"></span>
+            <img src="https://lh3.googleusercontent.com/d/1cymwqVSDoNg2zSoyFTCpIvLjePjEAJkL" alt="CANDI" class="relative w-full h-full object-contain transform transition-transform duration-300 group-hover:rotate-3 drop-shadow-xl">
+        </button>
+    </div>
+
+    <!-- Chat Panel Popup -->
+    <div id="candi-chat-panel" class="no-print hidden fixed z-[15000] bottom-[160px] right-[20px] w-[380px] h-[540px] bg-white rounded-3xl shadow-2xl border border-slate-150 flex flex-col overflow-hidden transition-all duration-300 transform scale-95 opacity-0 origin-bottom-right">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-[#00a896] to-[#02c39a] p-4 text-white flex justify-between items-center shadow-md">
+            <div class="flex items-center gap-3">
+                <div class="relative w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-inner border border-white/25 overflow-hidden">
+                    <img src="https://lh3.googleusercontent.com/d/1cymwqVSDoNg2zSoyFTCpIvLjePjEAJkL" alt="CANDI" class="w-full h-full object-cover p-0.5 rounded-full">
+                    <span class="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-white animate-pulse"></span>
+                </div>
+                <div>
+                    <h3 class="font-black text-sm tracking-wide">น้อง CANDI</h3>
+                    <p class="text-[10px] text-teal-100 flex items-center gap-1 font-bold">
+                        <i class="fa-solid fa-circle text-[5px] text-emerald-300 animate-pulse"></i>
+                        AI Clinical Assistant
+                    </p>
+                </div>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <button id="candi-clear-btn" class="px-2.5 py-1 rounded-xl bg-rose-500 hover:bg-rose-600 border border-rose-450 text-[10px] font-black flex items-center gap-1 text-white shadow-md transition-all active:scale-95 cursor-pointer" title="ล้างการสนทนา เพื่อเริ่มประเมินผู้ป่วยรายใหม่">
+                    <i class="fa-solid fa-arrows-rotate"></i>
+                    <span>ล้าง/จบสนทนา</span>
+                </button>
+                <button id="candi-close-btn" class="w-8 h-8 rounded-full bg-black/10 hover:bg-black/20 flex items-center justify-center text-white transition-all active:scale-90">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Clinical Guardrail (Static top warning) -->
+        <div class="bg-amber-50 border-b border-amber-100 px-3 py-2 text-[10px] text-amber-700 flex gap-2 items-start leading-tight">
+            <i class="fa-solid fa-triangle-exclamation text-amber-600 mt-0.5 flex-shrink-0"></i>
+            <span class="font-bold">
+                น้อง CANDI เป็นระบบช่วยตัดสินใจเชิงคลินิก การตัดสินใจทางการพยาบาลและการบันทึกข้อมูลจริงขึ้นอยู่กับพยาบาลวิชาชีพผู้ดูแล
+            </span>
+        </div>
+
+        <!-- Messages Container -->
+        <div id="candi-messages" class="flex-1 p-4 overflow-y-auto space-y-4 bg-slate-50">
+            <!-- Welcome message from CANDI -->
+            <div class="candi-message-row flex items-start gap-2 max-w-[85%] candi-fade-in">
+                <div class="w-7 h-7 rounded-full bg-white border border-teal-200 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <img src="https://lh3.googleusercontent.com/d/1cymwqVSDoNg2zSoyFTCpIvLjePjEAJkL" alt="CANDI" class="w-full h-full object-cover p-0.5 rounded-full">
+                </div>
+                <div class="bg-white text-slate-700 text-xs font-semibold px-3 py-2.5 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 leading-relaxed">
+                    สวัสดีค่ะ พี่พยาบาล! หนูคือ <span class="text-[#00a896] font-bold">น้อง CANDI</span> AI ประจำตึกผู้ป่วยในค่ะ 🩺
+                    <br><br>
+                    เมื่อพี่กดเลือกเตียงผู้ป่วยแล้ว พี่สามารถพิมพ์ปรึกษาเกี่ยวกับกรณีนั้น หรือเลือกใช้ปุ่มทางลัดด้านล่างนี้ได้เลยนะคะ 👇
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Indicator (Hidden by default) -->
+        <div id="candi-loading" class="hidden px-4 py-2 bg-slate-50 flex items-center gap-2">
+            <div class="w-7 h-7 rounded-full bg-white border border-teal-200 flex items-center justify-center overflow-hidden flex-shrink-0">
+                <img src="https://lh3.googleusercontent.com/d/1cymwqVSDoNg2zSoyFTCpIvLjePjEAJkL" alt="CANDI" class="w-full h-full object-cover p-0.5 rounded-full">
+            </div>
+            <div class="bg-teal-50 border border-teal-100 text-teal-800 text-[11px] font-bold px-3 py-2 rounded-2xl rounded-tl-none shadow-sm flex items-center gap-2">
+                <div class="flex space-x-1">
+                    <div class="w-1.5 h-1.5 bg-teal-600 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                    <div class="w-1.5 h-1.5 bg-teal-600 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                    <div class="w-1.5 h-1.5 bg-teal-600 rounded-full animate-bounce" style="animation-delay: 0.3s"></div>
+                </div>
+                <span>กำลังวิเคราะห์ข้อมูลเชิงลึก...</span>
+            </div>
+        </div>
+
+        <!-- Quick Action Chips -->
+        <div id="candi-quick-chips" class="p-3 bg-slate-50 border-t border-slate-100 flex flex-col gap-1.5 select-none">
+            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider pl-1">ทางเลือกช่วยเหลือด่วน</span>
+            <div class="flex flex-wrap gap-1.5 overflow-x-auto max-h-24 py-1">
+                <button class="candi-chip px-2.5 py-1 bg-white hover:bg-teal-50 text-slate-600 hover:text-teal-700 rounded-full border border-slate-200 hover:border-teal-200 text-[11px] font-bold shadow-sm transition-all flex items-center gap-1 active:scale-95 flex-shrink-0" data-question="🎯 สรุปความเสี่ยงวิกฤตรายนี้">
+                    🎯 สรุปความเสี่ยงวิกฤตรายนี้
+                </button>
+                <button class="candi-chip px-2.5 py-1 bg-white hover:bg-teal-50 text-slate-600 hover:text-teal-700 rounded-full border border-slate-200 hover:border-teal-200 text-[11px] font-bold shadow-sm transition-all flex items-center gap-1 active:scale-95 flex-shrink-0" data-question="📝 ร่าง Nursing Note (SOAP)">
+                    📝 ร่าง Nursing Note (SOAP)
+                </button>
+                <button class="candi-chip px-2.5 py-1 bg-white hover:bg-teal-50 text-slate-600 hover:text-teal-700 rounded-full border border-slate-200 hover:border-teal-200 text-[11px] font-bold shadow-sm transition-all flex items-center gap-1 active:scale-95 flex-shrink-0" data-question="💊 กำหนดรายการปัญหาสุขภาพ และเป้าหมาย (Focus list)">
+                    💊 กำหนดรายการปัญหาสุขภาพ
+                </button>
+                <button class="candi-chip px-2.5 py-1 bg-white hover:bg-teal-50 text-slate-600 hover:text-teal-700 rounded-full border border-slate-200 hover:border-teal-200 text-[11px] font-bold shadow-sm transition-all flex items-center gap-1 active:scale-95 flex-shrink-0" data-question="🍞 คำแนะนำก่อนจำหน่ายตามหลัก DMETHOD">
+                    🍞 คำแนะนำก่อนจำหน่าย DMETHOD
+                </button>
+            </div>
+        </div>
+
+        <!-- Input Form -->
+        <form id="candi-input-form" class="p-3 bg-white border-t border-slate-100 flex gap-2 items-center">
+            <input type="text" id="candi-input" placeholder="พิมพ์คุยกับน้อง CANDI หรือร่าง SOAP..." class="flex-1 bg-slate-100 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-700 outline-none focus:bg-white focus:border-teal-500 transition-all shadow-inner" required autocomplete="off">
+            <button type="submit" id="candi-send-btn" class="w-9 h-9 rounded-xl bg-[#00a896] hover:bg-[#028074] text-white flex items-center justify-center transition-all active:scale-90 shadow-md">
+                <i class="fa-solid fa-paper-plane text-xs"></i>
+            </button>
+        </form>
+    </div>
+
     <iframe id="print-frame" style="display:none;"></iframe>
     </body>
 </html>
