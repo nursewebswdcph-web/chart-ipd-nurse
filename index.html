@@ -574,209 +574,211 @@
                     </div>
                 </div>
             </div>
-        
-            <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead class="bg-slate-50/80 border-b border-slate-100">
-                            <tr class="text-slate-400 text-[10px] uppercase font-bold tracking-widest">
-                                <th class="p-5 text-center w-24">Chart</th>
-                                <th class="p-5 w-24 text-center">เตียง</th>
-                                <th class="p-5">ข้อมูลผู้ป่วย</th>
-                                <th class="p-5">แผนก / แพทย์</th>
-                                <th class="p-5 text-center">Admit / LOS</th>
-                                <th class="p-5 text-center">ประเมินล่าสุด</th>
-                                <th class="p-5 text-center">ทางลัดเอกสาร</th>
-                                <th class="p-5 text-right"></th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            <template x-for="p in filteredPatients" :key="p.an">
-                                <tr @click="openPatientDetail(p)" class="hover:bg-slate-50/80 transition-all cursor-pointer group">
-                                    <td class="p-4 text-center">
-                                        <button @click.stop="openNursingChart(p)" 
-                                                class="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl shadow-md transition-all active:scale-95 border-2 border-indigo-100 min-w-[90px]">
-                                            <i class="fa-solid fa-file-medical text-sm"></i>
-                                            <span class="font-bold text-xs tracking-wide">Chart</span>
+    <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-slate-50/80 border-b border-slate-100">
+                    <tr class="text-slate-400 text-[10px] uppercase font-bold tracking-widest">
+                        <th class="p-5 text-center w-24">Chart</th>
+                        <th class="p-5 w-24 text-center">เตียง</th>
+                        <th class="p-5">ข้อมูลผู้ป่วย</th>
+                        <th class="p-5">แผนก / แพทย์</th>
+                        <th class="p-5 text-center">Admit / LOS</th>
+                        <th class="p-5 text-center">ประเมินล่าสุด</th>
+                        <th class="p-5 text-right"></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    <template x-for="p in filteredPatients" :key="p.an">
+                        <tr @click="openPatientDetail(p)" class="hover:bg-slate-50/80 transition-all cursor-pointer group">
+                            <td class="p-4 text-center">
+                                <button @click.stop="openNursingChart(p)"
+                                        class="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl shadow-md transition-all active:scale-95 border-2 border-indigo-100 min-w-[90px]">
+                                    <i class="fa-solid fa-file-medical text-sm"></i>
+                                    <span class="font-bold text-xs tracking-wide">Chart</span>
+                                </button>
+                            </td>
+                            <td class="p-4 text-center">
+                                <span class="bg-emerald-100 text-emerald-800 px-4 py-2 rounded-2xl font-black text-base border border-emerald-200 shadow-sm inline-block min-w-[60px]" x-text="p.bed"></span>
+                            </td>
+                            <td class="p-4">
+                                <div class="font-black text-slate-800 text-lg leading-tight group-hover:text-indigo-600 transition-colors" x-text="p.name"></div>
+                                <div class="flex items-center gap-2 text-[11px] text-slate-400 font-bold mt-1.5">
+                                    <span class="bg-slate-100 px-1.5 py-0.5 rounded text-slate-500" x-text="'HN: ' + p.hn"></span>
+                                    <span class="bg-indigo-50 px-1.5 py-0.5 rounded text-indigo-500" x-text="'AN: ' + p.an"></span>
+                                </div>
+                            </td>
+                            <td class="p-4">
+                                <div class="text-[13px] font-bold text-slate-600" x-text="p.dept"></div>
+                                <div class="text-[11px] text-emerald-600 mt-1 font-bold flex items-center gap-1">
+                                    <i class="fa-solid fa-user-doctor text-[10px]"></i>
+                                    <span x-text="p.doctor"></span>
+                                </div>
+                            </td>
+                            <td class="p-4 text-center">
+                                <div class="text-[11px] text-slate-400 mb-1" x-text="formatThaiDate(p.date)"></div>
+                                <div class="bg-slate-200 px-3 py-1 rounded-lg inline-block font-black text-slate-700 text-[12px]" x-text="calculateLOS(p.date) + ' วัน'"></div>
+                            </td>
+                            <td class="p-4" @click.stop="">
+                                <!-- ประเมินล่าสุด -->
+                                <div class="text-[11px] space-y-1.5 select-none min-w-[220px]">
+                                    <!-- Adult Assessment Scores -->
+                                    <template x-if="isPatientAdult(p)">
+                                        <div class="space-y-1.5">
+                                            <!-- จำแนกประเภท -->
+                                            <div class="flex items-center gap-1.5">
+                                                <span class="bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded text-[10px] font-bold border border-rose-100 whitespace-nowrap">จำแนกประเภท</span>
+                                                <template x-if="p.latestClass">
+                                                    <span>
+                                                        <span :class="classificationRiskClass(p.latestClass.category)" x-text="'ประเภท ' + p.latestClass.category"></span>
+                                                        <span class="text-slate-400 ml-1" x-text="'(' + p.latestClass.total + ' คะแนน)'"></span>
+                                                    </span>
+                                                </template>
+                                                <template x-if="!p.latestClass">
+                                                    <span class="text-slate-300">-</span>
+                                                </template>
+                                            </div>
+                                            <!-- Morse Fall Scale & MAAS -->
+                                            <div class="flex items-center gap-1.5 flex-wrap">
+                                                <!-- Morse Button -->
+                                                <button @click.stop="openGuidelineModal('morse', p)" class="inline-flex items-center gap-1 hover:bg-orange-100/70 p-0.5 rounded-md transition-all cursor-pointer text-left group" title="ดูแนวปฏิบัติ Morse">
+                                                    <span class="bg-orange-50 group-hover:bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded text-[10px] font-bold border border-orange-200 whitespace-nowrap flex items-center gap-1">
+                                                        Morse <i class="fa-solid fa-circle-info text-[9px]"></i>
+                                                    </span>
+                                                    <template x-if="p.latestMorse !== ''">
+                                                        <span>
+                                                            <span :class="morseRiskClass(p.latestMorse)" x-text="p.latestMorse + ' คะแนน'"></span>
+                                                            <span class="text-slate-400 ml-1 text-[10px]" x-text="morseRiskLabel(p.latestMorse)"></span>
+                                                        </span>
+                                                    </template>
+                                                    <template x-if="p.latestMorse === ''">
+                                                        <span class="text-slate-300">-</span>
+                                                    </template>
+                                                </button>
+                                                <span class="text-slate-300 mx-0.5">/</span>
+                                                <!-- MAAS Button -->
+                                                <button @click.stop="openGuidelineModal('maas', p)" class="inline-flex items-center gap-1 hover:bg-purple-100/70 p-0.5 rounded-md transition-all cursor-pointer text-left group" title="ดูแนวปฏิบัติ MAAS">
+                                                    <span class="bg-purple-50 group-hover:bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded text-[10px] font-bold border border-purple-200 whitespace-nowrap flex items-center gap-1">
+                                                        MAAS <i class="fa-solid fa-circle-info text-[9px]"></i>
+                                                    </span>
+                                                    <template x-if="p.latestMaas !== '' && p.latestMaas != null">
+                                                        <span>
+                                                            <span :class="maasRiskClass(p.latestMaas)" x-text="'ระดับ ' + p.latestMaas"></span>
+                                                            <span class="text-slate-400 ml-1 text-[10px]" x-text="maasRiskLabel(p.latestMaas)"></span>
+                                                        </span>
+                                                    </template>
+                                                    <template x-if="p.latestMaas === '' || p.latestMaas == null">
+                                                        <span class="text-slate-300">-</span>
+                                                    </template>
+                                                </button>
+                                            </div>
+                                            <!-- Braden Scale Button -->
+                                            <div class="flex items-center gap-1.5">
+                                                <button @click.stop="openGuidelineModal('braden', p)" class="inline-flex items-center gap-1 hover:bg-blue-100/70 p-0.5 rounded-md transition-all cursor-pointer text-left group" title="ดูแนวปฏิบัติ Braden">
+                                                    <span class="bg-blue-50 group-hover:bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded text-[10px] font-bold border border-blue-200 whitespace-nowrap flex items-center gap-1">
+                                                        Braden <i class="fa-solid fa-circle-info text-[9px]"></i>
+                                                    </span>
+                                                    <template x-if="p.latestBraden !== ''">
+                                                        <span>
+                                                            <span :class="bradenRiskClass(p.latestBraden)" x-text="p.latestBraden + ' คะแนน'"></span>
+                                                            <span class="text-slate-400 ml-1 text-[10px]" x-text="bradenRiskLabel(p.latestBraden)"></span>
+                                                        </span>
+                                                    </template>
+                                                    <template x-if="p.latestBraden === ''">
+                                                        <span class="text-slate-300">-</span>
+                                                    </template>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </template>
+                                    <!-- Pediatric Assessment Scores -->
+                                    <template x-if="!isPatientAdult(p)">
+                                        <div class="space-y-1.5">
+                                            <!-- จำแนกประเภท เด็ก -->
+                                            <div class="flex items-center gap-1.5">
+                                                <span class="bg-fuchsia-50 text-fuchsia-600 px-1.5 py-0.5 rounded text-[10px] font-bold border border-fuchsia-100 whitespace-nowrap">จำแนกประเภท</span>
+                                                <template x-if="p.latestClassPed">
+                                                    <span>
+                                                        <span :class="classificationRiskClass(p.latestClassPed.classType)" x-text="'ประเภท ' + p.latestClassPed.classType"></span>
+                                                        <span class="text-slate-400 ml-1" x-text="'(' + p.latestClassPed.score + ' คะแนน)'"></span>
+                                                    </span>
+                                                </template>
+                                                <template x-if="!p.latestClassPed">
+                                                    <span class="text-slate-300">-</span>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </td>
+                            <td class="p-4 text-right pr-8">
+                                <i class="fa-solid fa-circle-chevron-right text-slate-200 group-hover:text-indigo-500 group-hover:translate-x-1 text-2xl transition-all"></i>
+                            </td>
+                        </tr>
+    
+                        <!-- =========================================================
+                             แถวใหม่: ทางลัดเอกสาร (ย้ายออกจากคอลัมน์ขวาสุดเดิม)
+                             จัดเรียงปุ่มทั้งหมดเป็นแถวเดียวแนวนอนด้วย flex + flex-wrap
+                             td colspan="4" ผสานคอลัมน์ตั้งแต่ "ข้อมูลผู้ป่วย" ถึง "ประเมินล่าสุด"
+                             ========================================================= -->
+                        <tr class="bg-slate-50/50 hover:bg-slate-50/50 border-b border-slate-100" @click.stop="">
+                            <td class="px-4 pb-3 pt-0" colspan="2"></td>
+                            <td class="px-4 pb-3 pt-0" colspan="4">
+                                <div class="flex flex-row items-center gap-2 flex-wrap">
+                                    <!-- ใบซักประวัติแรกรับ: ม่วง -->
+                                    <template x-if="isPatientAdult(p)">
+                                        <button @click="openNursingChart(p, 'assess_initial')" class="bg-violet-50 hover:bg-violet-100 text-violet-700 hover:text-violet-900 text-[11px] px-2.5 py-1.5 rounded-lg border border-violet-200 hover:border-violet-400 transition-all font-bold shadow-sm whitespace-nowrap">ใบซักประวัติแรกรับ</button>
+                                    </template>
+                                    <template x-if="!isPatientAdult(p)">
+                                        <button @click="openNursingChart(p, 'assess_initial_ped')" class="bg-fuchsia-50 hover:bg-fuchsia-100 text-fuchsia-700 hover:text-fuchsia-900 text-[11px] px-2.5 py-1.5 rounded-lg border border-fuchsia-200 hover:border-fuchsia-400 transition-all font-bold shadow-sm whitespace-nowrap">ใบซักประวัติแรกรับ</button>
+                                    </template>
+    
+                                    <!-- ใบประเภท: แดง -->
+                                    <template x-if="isPatientAdult(p)">
+                                        <button @click="openNursingChart(p, 'patient_class')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-900 text-[11px] px-2.5 py-1.5 rounded-lg border border-rose-200 hover:border-rose-400 transition-all font-bold shadow-sm whitespace-nowrap">ใบประเภท</button>
+                                    </template>
+                                    <template x-if="!isPatientAdult(p)">
+                                        <button @click="openNursingChart(p, 'patient_class_ped')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-900 text-[11px] px-2.5 py-1.5 rounded-lg border border-rose-200 hover:border-rose-400 transition-all font-bold shadow-sm whitespace-nowrap">ใบประเภท</button>
+                                    </template>
+    
+                                    <!-- Morse/MAAS: ส้ม (เฉพาะผู้ใหญ่) -->
+                                    <template x-if="isPatientAdult(p)">
+                                        <button @click="openNursingChart(p, 'fall_risk')" class="bg-orange-50 hover:bg-orange-100 text-orange-700 hover:text-orange-900 text-[11px] px-2.5 py-1.5 rounded-lg border border-orange-200 hover:border-orange-400 transition-all font-bold shadow-sm whitespace-nowrap">Morse/MAAS</button>
+                                    </template>
+    
+                                    <!-- ประเมินแผลกดทับ: น้ำเงิน (เฉพาะผู้ใหญ่) -->
+                                    <template x-if="isPatientAdult(p)">
+                                        <button @click="openNursingChart(p, 'braden_scale')"
+                                                class="text-[11px] px-2.5 py-1.5 rounded-lg border transition-all font-bold shadow-sm flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                                                :class="isBradenDue(p) ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-300 hover:border-rose-400' : 'bg-blue-50 hover:bg-blue-100 text-blue-700 hover:text-blue-900 border-blue-200 hover:border-blue-400'">
+                                            <template x-if="isBradenDue(p)">
+                                                <i class="fa-solid fa-bell text-rose-500 animate-bounce text-xs" title="ครบกำหนดประเมินซ้ำแผลกดทับ (ยึดเวลา 00.00 น.)"></i>
+                                            </template>
+                                            <span>ประเมินแผลกดทับ</span>
                                         </button>
-                                    </td>
-                                    <td class="p-4 text-center">
-                                        <span class="bg-emerald-100 text-emerald-800 px-4 py-2 rounded-2xl font-black text-base border border-emerald-200 shadow-sm inline-block min-w-[60px]" x-text="p.bed"></span>
-                                    </td>
-                                    <td class="p-4">
-                                        <div class="font-black text-slate-800 text-lg leading-tight group-hover:text-indigo-600 transition-colors" x-text="p.name"></div>
-                                        <div class="flex items-center gap-2 text-[11px] text-slate-400 font-bold mt-1.5">
-                                            <span class="bg-slate-100 px-1.5 py-0.5 rounded text-slate-500" x-text="'HN: ' + p.hn"></span>
-                                            <span class="bg-indigo-50 px-1.5 py-0.5 rounded text-indigo-500" x-text="'AN: ' + p.an"></span>
-                                        </div>
-                                    </td>
-                                    <td class="p-4">
-                                        <div class="text-[13px] font-bold text-slate-600" x-text="p.dept"></div>
-                                        <div class="text-[11px] text-emerald-600 mt-1 font-bold flex items-center gap-1">
-                                            <i class="fa-solid fa-user-doctor text-[10px]"></i>
-                                            <span x-text="p.doctor"></span>
-                                        </div>
-                                    </td>
-                                    <td class="p-4 text-center">
-                                        <div class="text-[11px] text-slate-400 mb-1" x-text="formatThaiDate(p.date)"></div>
-                                        <div class="bg-slate-200 px-3 py-1 rounded-lg inline-block font-black text-slate-700 text-[12px]" x-text="calculateLOS(p.date) + ' วัน'"></div>
-                                    </td>
-                                    <td class="p-4" @click.stop="">
-                                        <!-- ประเมินล่าสุด -->
-                                        <div class="text-[11px] space-y-1.5 select-none min-w-[220px]">
-                                            <!-- Adult Assessment Scores -->
-                                            <template x-if="isPatientAdult(p)">
-                                                <div class="space-y-1.5">
-                                                    <!-- จำแนกประเภท -->
-                                                    <div class="flex items-center gap-1.5">
-                                                        <span class="bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded text-[10px] font-bold border border-rose-100 whitespace-nowrap">จำแนกประเภท</span>
-                                                        <template x-if="p.latestClass">
-                                                            <span>
-                                                                <span :class="classificationRiskClass(p.latestClass.category)" x-text="'ประเภท ' + p.latestClass.category"></span>
-                                                                <span class="text-slate-400 ml-1" x-text="'(' + p.latestClass.total + ' คะแนน)'"></span>
-                                                            </span>
-                                                        </template>
-                                                        <template x-if="!p.latestClass">
-                                                            <span class="text-slate-300">-</span>
-                                                        </template>
-                                                    </div>
-                                                    <!-- Morse Fall Scale & MAAS -->
-                                                    <div class="flex items-center gap-1.5 flex-wrap">
-                                                        <!-- Morse Button -->
-                                                        <button @click.stop="openGuidelineModal('morse', p)" class="inline-flex items-center gap-1 hover:bg-orange-100/70 p-0.5 rounded-md transition-all cursor-pointer text-left group" title="ดูแนวปฏิบัติ Morse">
-                                                            <span class="bg-orange-50 group-hover:bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded text-[10px] font-bold border border-orange-200 whitespace-nowrap flex items-center gap-1">
-                                                                Morse <i class="fa-solid fa-circle-info text-[9px]"></i>
-                                                            </span>
-                                                            <template x-if="p.latestMorse !== ''">
-                                                                <span>
-                                                                    <span :class="morseRiskClass(p.latestMorse)" x-text="p.latestMorse + ' คะแนน'"></span>
-                                                                    <span class="text-slate-400 ml-1 text-[10px]" x-text="morseRiskLabel(p.latestMorse)"></span>
-                                                                </span>
-                                                            </template>
-                                                            <template x-if="p.latestMorse === ''">
-                                                                <span class="text-slate-300">-</span>
-                                                            </template>
-                                                        </button>
-                                                        <span class="text-slate-300 mx-0.5">/</span>
-                                                        <!-- MAAS Button -->
-                                                        <button @click.stop="openGuidelineModal('maas', p)" class="inline-flex items-center gap-1 hover:bg-purple-100/70 p-0.5 rounded-md transition-all cursor-pointer text-left group" title="ดูแนวปฏิบัติ MAAS">
-                                                            <span class="bg-purple-50 group-hover:bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded text-[10px] font-bold border border-purple-200 whitespace-nowrap flex items-center gap-1">
-                                                                MAAS <i class="fa-solid fa-circle-info text-[9px]"></i>
-                                                            </span>
-                                                            <template x-if="p.latestMaas !== '' && p.latestMaas != null">
-                                                                <span>
-                                                                    <span :class="maasRiskClass(p.latestMaas)" x-text="'ระดับ ' + p.latestMaas"></span>
-                                                                    <span class="text-slate-400 ml-1 text-[10px]" x-text="maasRiskLabel(p.latestMaas)"></span>
-                                                                </span>
-                                                            </template>
-                                                            <template x-if="p.latestMaas === '' || p.latestMaas == null">
-                                                                <span class="text-slate-300">-</span>
-                                                            </template>
-                                                        </button>
-                                                    </div>
-                                                    <!-- Braden Scale Button -->
-                                                    <div class="flex items-center gap-1.5">
-                                                        <button @click.stop="openGuidelineModal('braden', p)" class="inline-flex items-center gap-1 hover:bg-blue-100/70 p-0.5 rounded-md transition-all cursor-pointer text-left group" title="ดูแนวปฏิบัติ Braden">
-                                                            <span class="bg-blue-50 group-hover:bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded text-[10px] font-bold border border-blue-200 whitespace-nowrap flex items-center gap-1">
-                                                                Braden <i class="fa-solid fa-circle-info text-[9px]"></i>
-                                                            </span>
-                                                            <template x-if="p.latestBraden !== ''">
-                                                                <span>
-                                                                    <span :class="bradenRiskClass(p.latestBraden)" x-text="p.latestBraden + ' คะแนน'"></span>
-                                                                    <span class="text-slate-400 ml-1 text-[10px]" x-text="bradenRiskLabel(p.latestBraden)"></span>
-                                                                </span>
-                                                            </template>
-                                                            <template x-if="p.latestBraden === ''">
-                                                                <span class="text-slate-300">-</span>
-                                                            </template>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </template>
-                                            <!-- Pediatric Assessment Scores -->
-                                            <template x-if="!isPatientAdult(p)">
-                                                <div class="space-y-1.5">
-                                                    <!-- จำแนกประเภท เด็ก -->
-                                                    <div class="flex items-center gap-1.5">
-                                                        <span class="bg-fuchsia-50 text-fuchsia-600 px-1.5 py-0.5 rounded text-[10px] font-bold border border-fuchsia-100 whitespace-nowrap">จำแนกประเภท</span>
-                                                        <template x-if="p.latestClassPed">
-                                                            <span>
-                                                                <span :class="classificationRiskClass(p.latestClassPed.classType)" x-text="'ประเภท ' + p.latestClassPed.classType"></span>
-                                                                <span class="text-slate-400 ml-1" x-text="'(' + p.latestClassPed.score + ' คะแนน)'"></span>
-                                                            </span>
-                                                        </template>
-                                                        <template x-if="!p.latestClassPed">
-                                                            <span class="text-slate-300">-</span>
-                                                        </template>
-                                                    </div>
-                                                </div>
-                                            </template>
-                                        </div>
-                                    </td>
-                                    <td class="p-4" @click.stop="">
-                                        <!-- ทางลัดเอกสาร -->
-                                        <div class="flex flex-col gap-1.5 max-w-[450px]">
-                                            <!-- Row 1 -->
-                                            <div class="flex flex-wrap gap-1">
-                                                <!-- ใบซักประวัติแรกรับ: ม่วง -->
-                                                <template x-if="isPatientAdult(p)">
-                                                    <button @click="openNursingChart(p, 'assess_initial')" class="bg-violet-50 hover:bg-violet-100 text-violet-700 hover:text-violet-900 text-[11px] px-2.5 py-1.5 rounded-lg border border-violet-200 hover:border-violet-400 transition-all font-bold shadow-sm">ใบซักประวัติแรกรับ</button>
-                                                </template>
-                                                <template x-if="!isPatientAdult(p)">
-                                                    <button @click="openNursingChart(p, 'assess_initial_ped')" class="bg-fuchsia-50 hover:bg-fuchsia-100 text-fuchsia-700 hover:text-fuchsia-900 text-[11px] px-2.5 py-1.5 rounded-lg border border-fuchsia-200 hover:border-fuchsia-400 transition-all font-bold shadow-sm">ใบซักประวัติแรกรับ</button>
-                                                </template>
-
-                                                <!-- ใบประเภท: แดง -->
-                                                <template x-if="isPatientAdult(p)">
-                                                    <button @click="openNursingChart(p, 'patient_class')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-900 text-[11px] px-2.5 py-1.5 rounded-lg border border-rose-200 hover:border-rose-400 transition-all font-bold shadow-sm">ใบประเภท</button>
-                                                </template>
-                                                <template x-if="!isPatientAdult(p)">
-                                                    <button @click="openNursingChart(p, 'patient_class_ped')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-900 text-[11px] px-2.5 py-1.5 rounded-lg border border-rose-200 hover:border-rose-400 transition-all font-bold shadow-sm">ใบประเภท</button>
-                                                </template>
-
-                                                <!-- Morse/MAAS: ส้ม -->
-                                                <template x-if="isPatientAdult(p)">
-                                                    <button @click="openNursingChart(p, 'fall_risk')" class="bg-orange-50 hover:bg-orange-100 text-orange-700 hover:text-orange-900 text-[11px] px-2.5 py-1.5 rounded-lg border border-orange-200 hover:border-orange-400 transition-all font-bold shadow-sm">Morse/MAAS</button>
-                                                </template>
-
-                                                <!-- ประเมินแผลกดทับ: น้ำเงิน -->
-                                                <template x-if="isPatientAdult(p)">
-                                                    <button @click="openNursingChart(p, 'braden_scale')" 
-                                                            class="text-[11px] px-2.5 py-1.5 rounded-lg border transition-all font-bold shadow-sm flex items-center gap-1.5 cursor-pointer"
-                                                            :class="isBradenDue(p) ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-300 hover:border-rose-400' : 'bg-blue-50 hover:bg-blue-100 text-blue-700 hover:text-blue-900 border-blue-200 hover:border-blue-400'">
-                                                        <template x-if="isBradenDue(p)">
-                                                            <i class="fa-solid fa-bell text-rose-500 animate-bounce text-xs" title="ครบกำหนดประเมินซ้ำแผลกดทับ (ยึดเวลา 00.00 น.)"></i>
-                                                        </template>
-                                                        <span>ประเมินแผลกดทับ</span>
-                                                    </button>
-                                                </template>
-                                            </div>
-                                            <!-- Row 2 -->
-                                            <div class="flex flex-wrap gap-1">
-                                                <!-- Discharge Plan: เขียว -->
-                                                <button @click="openNursingChart(p, 'patient_edu')" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 hover:text-emerald-900 text-[11px] px-2.5 py-1.5 rounded-lg border border-emerald-200 hover:border-emerald-400 transition-all font-bold shadow-sm">แบบบันทึก Discharge Plan</button>
-                                                <!-- Focus List: ฟ้า -->
-                                                <button @click="openNursingChart(p, 'focus_list')" class="bg-cyan-50 hover:bg-cyan-100 text-cyan-700 hover:text-cyan-900 text-[11px] px-2.5 py-1.5 rounded-lg border border-cyan-200 hover:border-cyan-400 transition-all font-bold shadow-sm">Focus List</button>
-                                                <!-- Nurse's note: เขียวเข้ม -->
-                                                <button @click="openNursingChart(p, 'progress_note')" class="bg-teal-50 hover:bg-teal-100 text-teal-700 hover:text-teal-900 text-[11px] px-2.5 py-1.5 rounded-lg border border-teal-200 hover:border-teal-400 transition-all font-bold shadow-sm">Nurse's note</button>
-                                                <!-- ใบจำหน่าย: แดงเข้ม -->
-                                                <button @click="openNursingChart(p, 'discharge_record')" class="bg-red-50 hover:bg-red-100 text-red-700 hover:text-red-900 text-[11px] px-2.5 py-1.5 rounded-lg border border-red-200 hover:border-red-400 transition-all font-bold shadow-sm">ใบจำหน่าย</button>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="p-4 text-right pr-8">
-                                        <i class="fa-solid fa-circle-chevron-right text-slate-200 group-hover:text-indigo-500 group-hover:translate-x-1 text-2xl transition-all"></i>
-                                    </td>
-                                </tr>
-                            </template>
-                        </tbody>
-                    </table>
-                </div>
-                <div x-show="filteredPatients.length === 0" class="p-20 text-center text-slate-300">
-                    <i class="fa-solid fa-folder-open text-6xl mb-4 opacity-20"></i>
-                    <p class="font-bold">ไม่พบข้อมูลผู้ป่วย</p>
-                </div>
-            </div>
+                                    </template>
+    
+                                    <!-- Discharge Plan: เขียว -->
+                                    <button @click="openNursingChart(p, 'patient_edu')" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 hover:text-emerald-900 text-[11px] px-2.5 py-1.5 rounded-lg border border-emerald-200 hover:border-emerald-400 transition-all font-bold shadow-sm whitespace-nowrap">แบบบันทึก Discharge Plan</button>
+                                    <!-- Focus List: ฟ้า -->
+                                    <button @click="openNursingChart(p, 'focus_list')" class="bg-cyan-50 hover:bg-cyan-100 text-cyan-700 hover:text-cyan-900 text-[11px] px-2.5 py-1.5 rounded-lg border border-cyan-200 hover:border-cyan-400 transition-all font-bold shadow-sm whitespace-nowrap">Focus List</button>
+                                    <!-- Nurse's note: เขียวเข้ม -->
+                                    <button @click="openNursingChart(p, 'progress_note')" class="bg-teal-50 hover:bg-teal-100 text-teal-700 hover:text-teal-900 text-[11px] px-2.5 py-1.5 rounded-lg border border-teal-200 hover:border-teal-400 transition-all font-bold shadow-sm whitespace-nowrap">Nurse's note</button>
+                                    <!-- ใบจำหน่าย: แดงเข้ม -->
+                                    <button @click="openNursingChart(p, 'discharge_record')" class="bg-red-50 hover:bg-red-100 text-red-700 hover:text-red-900 text-[11px] px-2.5 py-1.5 rounded-lg border border-red-200 hover:border-red-400 transition-all font-bold shadow-sm whitespace-nowrap">ใบจำหน่าย</button>
+                                </div>
+                            </td>
+                            <td class="px-4 pb-3 pt-0"></td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+        <div x-show="filteredPatients.length === 0" class="p-20 text-center text-slate-300">
+            <i class="fa-solid fa-folder-open text-6xl mb-4 opacity-20"></i>
+            <p class="font-bold">ไม่พบข้อมูลผู้ป่วย</p>
+        </div>
+    </div>
         </div>
         <div x-show="viewMode === 'history'" x-cloak class="mt-6 bg-white rounded-2xl shadow-sm p-6">
             <div class="flex items-center justify-between mb-6 border-b pb-4">
