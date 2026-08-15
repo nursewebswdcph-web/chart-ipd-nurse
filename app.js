@@ -228,10 +228,23 @@
         const messagesContainer = document.getElementById('candi-messages');
         const loadingIndicator = document.getElementById('candi-loading');
         const quickChips = document.querySelectorAll('.candi-chip');
+        const quickChipsToggle = document.getElementById('candi-quick-chips-toggle');
+        const quickChipsBody = document.getElementById('candi-quick-chips-body');
+        const quickChipsIcon = document.getElementById('candi-quick-chips-icon');
 
         if (!fab || !chatPanel || !closeBtn || !inputForm || !inputField || !messagesContainer) {
             console.error('CANDI Elements not found in DOM.');
             return;
+        }
+
+        // Toggle visibility of the "quick action" chip tray, to free up
+        // vertical space for reading longer chat replies.
+        if (quickChipsToggle && quickChipsBody && quickChipsIcon) {
+            quickChipsToggle.addEventListener('click', () => {
+                const isHidden = quickChipsBody.classList.toggle('hidden');
+                quickChipsToggle.setAttribute('aria-expanded', String(!isHidden));
+                quickChipsIcon.classList.toggle('rotate-180', isHidden);
+            });
         }
 
         // Clear panel / reset conversation
