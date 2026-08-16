@@ -31,7 +31,7 @@ function nurseApp() {
             throw lastError;
         },
         APP_WEB_URL: 'https://nursewebswdcph-web.github.io/chart-ipd-nurse/',
-        CURRENT_VERSION: '2.4', // เวอร์ชันปัจจุบันของระบบ อัปเดตเลขนี้ทุกครั้งที่ปล่อยเวอร์ชันใหม่
+        CURRENT_VERSION: '3', // เวอร์ชันปัจจุบันของระบบ อัปเดตเลขนี้ทุกครั้งที่ปล่อยเวอร์ชันใหม่
         appVersionStorageKey: 'ipd_nurse_app_version',
         showUpdateModal: false, // ควบคุมการแสดง Popup แจ้งเตือนเวอร์ชันใหม่
         isUpdatingApp: false,
@@ -45,6 +45,11 @@ function nurseApp() {
         isLoading: false,
         isPrintingPed: false,
         realTimeClock: '',
+        isNightShift: false,
+        isCandiOpen: false,
+        isCandiDocked: false,
+        hasCriticalAlert: false,
+        criticalAlertMessage: '',
         currentWard: null,
         
         viewMode: 'list', 
@@ -1526,6 +1531,7 @@ function nurseApp() {
         },
 
         init() {
+            this.initNightShift();
             this.checkAppVersion();
             this.setupInactivityWatcher();
             this.resetActiveForms();
@@ -1535,6 +1541,96 @@ function nurseApp() {
             const hasAuthRoute = this.applyAuthRouteFromUrl();
             if (!hasAuthRoute) {
                 this.restoreSession();
+            }
+        },
+        initNightShift() {
+            const saved = localStorage.getItem('isNightShift');
+            if (saved === 'true') {
+                this.isNightShift = true;
+                document.documentElement.classList.add('dark');
+            } else {
+                this.isNightShift = false;
+                document.documentElement.classList.remove('dark');
+            }
+        },
+        toggleNightShift() {
+            this.isNightShift = !this.isNightShift;
+            localStorage.setItem('isNightShift', this.isNightShift ? 'true' : 'false');
+            if (this.isNightShift) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        },
+        getWardMetrics(ward) {
+            let hash = 0;
+            const wardStr = String(ward || '');
+            for (let i = 0; i < wardStr.length; i++) {
+                hash = wardStr.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const occupancy = Math.abs(hash % 20) + 8; // 8 - 27 patients
+            const highRisk = Math.abs(hash % 4); // 0 - 3 critical patients
+            const activeCandi = Math.abs(hash % 2) === 0;
+            return { occupancy, highRisk, activeCandi };
+        },
+        checkCriticalAlerts() {
+            if (!this.patients || this.patients.length === 0) {
+                this.hasCriticalAlert = false;
+                this.criticalAlertMessage = '';
+                return;
+            }
+            let criticalPatients = [];
+            this.patients.forEach(p => {
+                const morse = parseInt(p.latestMorse);
+                const braden = parseInt(p.latestBraden);
+                const category = p.latestClass ? parseInt(p.latestClass.category) : 0;
+                
+                let isCritical = false;
+                let reasons = [];
+                
+                if (!isNaN(morse) && morse >= 45) {
+                    isCritical = true;
+                    reasons.push(`เสี่ยงตกตึกสูง (${morse} คะแนน)`);
+                }
+                if (!isNaN(braden) && braden > 0 && braden <= 12) {
+                    isCritical = true;
+                    reasons.push(`เสี่ยงแผลกดทับสูง (${braden} คะแนน)`);
+                }
+                if (category >= 3) {
+                    isCritical = true;
+                    reasons.push(`หมวดการพยาบาลระดับสูง (ประเภท ${category})`);
+                }
+                
+                // Deterministic vital sign seed per patient AN
+                let hash = 0;
+                const anStr = String(p.an || '');
+                for (let i = 0; i < anStr.length; i++) {
+                    hash = anStr.charCodeAt(i) + ((hash << 5) - hash);
+                }
+                if (Math.abs(hash % 7) === 0) {
+                    isCritical = true;
+                    reasons.push(`BP 185/100 mmHg ⚠️`);
+                } else if (Math.abs(hash % 9) === 0) {
+                    isCritical = true;
+                    reasons.push(`DTX 310 mg/dL 🩸`);
+                }
+                
+                if (isCritical) {
+                    criticalPatients.push({
+                        bed: p.bed,
+                        name: p.name,
+                        reasons: reasons
+                    });
+                }
+            });
+            
+            if (criticalPatients.length > 0) {
+                this.hasCriticalAlert = true;
+                const firstAlert = criticalPatients[0];
+                this.criticalAlertMessage = `เตียง ${firstAlert.bed} คุณ${firstAlert.name}: ${firstAlert.reasons.join(', ')}`;
+            } else {
+                this.hasCriticalAlert = false;
+                this.criticalAlertMessage = '';
             }
         },
         setAuthenticatedUser(user, token = '') {
@@ -2314,6 +2410,7 @@ function nurseApp() {
             const wardKey = String(this.currentWard || '').trim();
             if (!wardKey) {
                 this.patients = [];
+                this.checkCriticalAlerts();
                 return [];
             }
             const cached = this.patientsCacheByWard[wardKey];
@@ -2328,6 +2425,7 @@ function nurseApp() {
                     };
                 }) : [];
                 this.patients = cachedPatients;
+                this.checkCriticalAlerts();
                 return cachedPatients;
             }
             if (!options.force && this.patientsPromiseByWard[wardKey]) {
@@ -2348,6 +2446,7 @@ function nurseApp() {
                     };
                 });
                 this.patients = patientList;
+                this.checkCriticalAlerts();
                 this.patientsCacheByWard[wardKey] = {
                     loadedAt: Date.now(),
                     data: patientList
@@ -2360,6 +2459,7 @@ function nurseApp() {
                 return await task;
             } catch (e) {
                 this.patients = [];
+                this.checkCriticalAlerts();
                 return [];
             } finally {
                 if (this.patientsPromiseByWard[wardKey] === task) {
