@@ -9,6 +9,19 @@
         initCandi();
     });
 
+    // Rolling conversation history sent to the backend on every request, so
+    // Gemini can "remember" its own previous turn (e.g. the follow-up question
+    // it asked about meds/procedures before drafting a SOIE note). Each HTTP
+    // call to the Web App is otherwise stateless.
+    // Kept small (last N turns) to control payload/token size.
+    let candiConversationHistory = [];
+    let candiHistoryPatientAN = null;
+    const CANDI_HISTORY_MAX_TURNS = 8;
+
+    function resetCandiHistory() {
+        candiConversationHistory = [];
+    }
+
     // Helper to get AlpineJS State
     function getAlpineApp() {
         const appElement = document.querySelector('[x-data="nurseApp()"]') || document.body;
@@ -130,46 +143,65 @@
     }
 
     /**
-     * Parse SOIE from a plain text block
+     * Parse FOCUS/PROBLEM + SOIE from a plain text block.
+     * Handles both the simple legacy style ("S: text") and the richer
+     * bulleted/bold style CANDI now uses for drafted Nursing Progress Notes:
+     *   • **FOCUS / PROBLEM:** ...
+     *   • **S (Subjective):** ...
+     *   • **O (Objective):** ...
+     *   • **I (Intervention):** ...
+     *   • **E (Evaluation):** ...
      */
     function extractSOIE(text) {
-        let s = '', o = '', i = '', e = '';
+        let focus = '', s = '', o = '', i = '', e = '';
         const lines = text.split('\n');
         let currentSection = null;
 
+        // Strip leading bullet markers (•, -, *) and markdown bold (**) so the
+        // label regexes below only need to match the plain label text.
+        function stripDecoration(line) {
+            return line
+                .replace(/^[\s\u2022\-\*]+/, '')  // leading bullet / dash / asterisk
+                .replace(/\*\*/g, '')              // markdown bold markers anywhere
+                .trim();
+        }
+
+        const FOCUS_RE = /^(?:FOCUS\s*\/?\s*PROBLEM|FOCUS|PROBLEM|ปัญหา)\s*(?:\([^)]*\))?\s*[:\-\u2013\u2014]/i;
+        const S_RE = /^S\s*(?:\([^)]*\))?\s*[:\-\u2013\u2014]/i;
+        const O_RE = /^O\s*(?:\([^)]*\))?\s*[:\-\u2013\u2014]/i;
+        const I_RE = /^I\s*(?:\([^)]*\))?\s*[:\-\u2013\u2014]/i;
+        const E_RE = /^E\s*(?:\([^)]*\))?\s*[:\-\u2013\u2014]/i;
+
         for (let line of lines) {
-            const cleanLine = line.trim();
-            
-            // Check for S: Subjective
-            if (/^(?:-|\*)*\s*S\s*[:\-\u2013\u2014]/i.test(cleanLine)) {
+            const cleanLine = stripDecoration(line.trim());
+
+            if (FOCUS_RE.test(cleanLine)) {
+                currentSection = 'focus';
+                focus += cleanLine.replace(FOCUS_RE, '').trim() + '\n';
+            } else if (S_RE.test(cleanLine)) {
                 currentSection = 's';
-                s += cleanLine.replace(/^(?:-|\*)*\s*S\s*[:\-\u2013\u2014]\s*/i, '') + '\n';
-            } 
-            // Check for O: Objective
-            else if (/^(?:-|\*)*\s*O\s*[:\-\u2013\u2014]/i.test(cleanLine)) {
+                s += cleanLine.replace(S_RE, '').trim() + '\n';
+            } else if (O_RE.test(cleanLine)) {
                 currentSection = 'o';
-                o += cleanLine.replace(/^(?:-|\*)*\s*O\s*[:\-\u2013\u2014]\s*/i, '') + '\n';
-            } 
-            // Check for I: Intervention
-            else if (/^(?:-|\*)*\s*I\s*[:\-\u2013\u2014]/i.test(cleanLine)) {
+                o += cleanLine.replace(O_RE, '').trim() + '\n';
+            } else if (I_RE.test(cleanLine)) {
                 currentSection = 'i';
-                i += cleanLine.replace(/^(?:-|\*)*\s*I\s*[:\-\u2013\u2014]\s*/i, '') + '\n';
-            } 
-            // Check for E: Evaluation
-            else if (/^(?:-|\*)*\s*E\s*[:\-\u2013\u2014]/i.test(cleanLine)) {
+                i += cleanLine.replace(I_RE, '').trim() + '\n';
+            } else if (E_RE.test(cleanLine)) {
                 currentSection = 'e';
-                e += cleanLine.replace(/^(?:-|\*)*\s*E\s*[:\-\u2013\u2014]\s*/i, '') + '\n';
-            } 
-            // Append to current section
-            else if (currentSection) {
-                if (currentSection === 's') s += line + '\n';
-                else if (currentSection === 'o') o += line + '\n';
-                else if (currentSection === 'i') i += line + '\n';
-                else if (currentSection === 'e') e += line + '\n';
+                e += cleanLine.replace(E_RE, '').trim() + '\n';
+            } else if (currentSection && cleanLine) {
+                // Continuation line belonging to the current section
+                if (currentSection === 'focus') focus += cleanLine + '\n';
+                else if (currentSection === 's') s += cleanLine + '\n';
+                else if (currentSection === 'o') o += cleanLine + '\n';
+                else if (currentSection === 'i') i += cleanLine + '\n';
+                else if (currentSection === 'e') e += cleanLine + '\n';
             }
         }
 
         return {
+            focus: focus.trim(),
             s: s.trim(),
             o: o.trim(),
             i: i.trim(),
@@ -189,7 +221,7 @@
         const parsed = extractSOIE(text);
 
         // Check if there is actual content
-        if (!parsed.s && !parsed.o && !parsed.i && !parsed.e) {
+        if (!parsed.focus && !parsed.s && !parsed.o && !parsed.i && !parsed.e) {
             alert('ไม่พบข้อมูลบันทึกในรูปแบบ S-O-I-E จากคำตอบของน้อง CANDI ค่ะ');
             return;
         }
@@ -197,6 +229,7 @@
         const app = getAlpineApp();
         if (app && app.pnForm) {
             // Assign to Alpine models
+            if (parsed.focus) app.pnForm.focus = parsed.focus;
             app.pnForm.s = parsed.s || '';
             app.pnForm.o = parsed.o || '';
             app.pnForm.i = parsed.i || '';
@@ -289,6 +322,9 @@
         if (clearBtn) {
             clearBtn.addEventListener('click', () => {
                 if (confirm('คุณต้องการจบการสนทนานี้ และล้างความจำเพื่อเริ่มประเมินผู้ป่วยรายใหม่ใช่หรือไม่คะ?')) {
+                    // Reset the AI conversation memory along with the visible chat
+                    resetCandiHistory();
+                    candiHistoryPatientAN = null;
                     // Reset messagesContainer content to just the welcome message
                     messagesContainer.innerHTML = `
                         <!-- Welcome message from CANDI -->
@@ -442,7 +478,7 @@
             // Add "Copy to Form" buttons on assistant bubble
             if (sender === 'assistant') {
                 const parsed = extractSOIE(text);
-                if (parsed.s || parsed.o || parsed.i || parsed.e) {
+                if (parsed.focus || parsed.s || parsed.o || parsed.i || parsed.e) {
                     const copyBtn = document.createElement('button');
                     copyBtn.className = 'candi-action-btn';
                     copyBtn.innerHTML = '<i class="fa-solid fa-copy"></i> คัดลอกลงฟอร์ม Note';
@@ -487,6 +523,15 @@
                 return;
             }
 
+            // If the nurse switched to a different patient since the last message,
+            // wipe the AI's conversation memory so clinical context never leaks
+            // between two different patients' cases.
+            const currentAN = rawContext.an || null;
+            if (candiHistoryPatientAN !== null && currentAN !== candiHistoryPatientAN) {
+                resetCandiHistory();
+            }
+            candiHistoryPatientAN = currentAN;
+
             // De-identify context (PDPA compliance)
             const deIdentifiedContext = deIdentifyContext(rawContext);
 
@@ -507,7 +552,8 @@
                     method: 'POST',
                     body: JSON.stringify({
                         question: question,
-                        context: deIdentifiedContext
+                        context: deIdentifiedContext,
+                        history: candiConversationHistory.slice(-CANDI_HISTORY_MAX_TURNS)
                     })
                 });
 
@@ -522,6 +568,14 @@
 
                 if (data.status === 'success' && data.reply) {
                     appendMessage('assistant', data.reply);
+                    // Remember this exchange so the next request can include it,
+                    // letting CANDI recall its own previous question (needed for
+                    // the 2-step "ask about meds, then draft SOIE note" flow).
+                    candiConversationHistory.push({ role: 'user', text: question });
+                    candiConversationHistory.push({ role: 'assistant', text: data.reply });
+                    if (candiConversationHistory.length > CANDI_HISTORY_MAX_TURNS) {
+                        candiConversationHistory = candiConversationHistory.slice(-CANDI_HISTORY_MAX_TURNS);
+                    }
                 } else {
                     const errorMsg = data.message || 'เกิดข้อผิดพลาดในการประมวลผลคำตอบชั่วคราวค่ะ';
                     const prefix = errorMsg.includes('CANDI กำลังอยู่ในช่วงพัฒนาค่ะ') ? '' : 'CANDI กำลังอยู่ในช่วงพัฒนาค่ะ ';
