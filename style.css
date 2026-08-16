@@ -185,7 +185,14 @@ body.candi-docked-active {
     border-right: none !important;
     border-bottom: none !important;
     transform: none !important;
-    z-index: 900 !important; /* behind top nav which has 1000 */
+    /* z-index สูงพอที่จะอยู่เหนือหน้าเวชระเบียนผู้ป่วยแบบเต็มจอ (viewMode==='chart'
+       ใช้ z-index: 5000) ไม่เช่นนั้นเมื่อปักหมุดแล้วเปิดดูชาร์ตผู้ป่วย แผงแชทจะถูก
+       บังอยู่ข้างหลัง แต่ยังต่ำกว่า modal ยืนยันการทำงานต่างๆ ในหน้าชาร์ต (เช่น
+       ย้ายเตียง/จำหน่ายผู้ป่วย ซึ่งใช้ z-index ตั้งแต่ 12000 ขึ้นไป) เพื่อให้ modal
+       เหล่านั้นยังคงแสดงทับแผงแชทได้ตามปกติ ส่วน top nav (z-index: 1000) ไม่ได้
+       ทับซ้อนกับแผงแชทที่ปักหมุดอยู่แล้วในเชิงตำแหน่ง (แผงเริ่มที่ top: 56px ใต้ nav)
+       จึงไม่จำเป็นต้องมี z-index ต่ำกว่า nav อีกต่อไป */
+    z-index: 5500 !important;
 }
 
 html.dark #candi-chat-panel.docked {
@@ -280,4 +287,3 @@ html.dark #candi-input:focus {
     border-color: #00a896 !important;
     background-color: #1e293b !important;
 }
-
