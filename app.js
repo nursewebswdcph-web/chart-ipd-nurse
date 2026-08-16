@@ -285,6 +285,12 @@
             // Allow DOM display rendering before adding active class for transition
             setTimeout(() => {
                 chatPanel.classList.toggle('active');
+                
+                const app = getAlpineApp();
+                if (app) {
+                    app.isCandiOpen = chatPanel.classList.contains('active');
+                }
+                
                 if (chatPanel.classList.contains('active')) {
                     inputField.focus();
                     scrollToBottom();
@@ -295,9 +301,43 @@
         // Close panel
         closeBtn.addEventListener('click', () => {
             chatPanel.classList.remove('active');
+            
+            const app = getAlpineApp();
+            if (app) {
+                app.isCandiOpen = false;
+            }
+            
             setTimeout(() => {
                 chatPanel.classList.add('hidden');
             }, 300); // match transition speed
+        });
+
+        // Ctrl + K Command Palette Shortcut
+        window.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+                e.preventDefault();
+                
+                const isHidden = chatPanel.classList.contains('hidden') || !chatPanel.classList.contains('active');
+                if (isHidden) {
+                    chatPanel.classList.remove('hidden');
+                    setTimeout(() => {
+                        chatPanel.classList.add('active');
+                        inputField.focus();
+                        scrollToBottom();
+                        
+                        const app = getAlpineApp();
+                        if (app) app.isCandiOpen = true;
+                    }, 20);
+                } else {
+                    chatPanel.classList.remove('active');
+                    setTimeout(() => {
+                        chatPanel.classList.add('hidden');
+                        
+                        const app = getAlpineApp();
+                        if (app) app.isCandiOpen = false;
+                    }, 300);
+                }
+            }
         });
 
         // Quick action chips click handler
