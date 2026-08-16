@@ -6552,11 +6552,10 @@
     <!-- Floating Action Button (FAB) -->
      <!-- Floating Action Button (FAB) -->
     <div id="candi-fab-container" x-show="!(isCandiOpen && isCandiDocked)" class="no-print fixed z-[15000] bottom-[90px] right-[20px] flex flex-col items-center select-none">
-        <span class="candi-badge mb-1.5 text-[10px] font-black bg-white text-[#00a896] px-2.5 py-0.5 rounded-full shadow-lg border-2 border-[#00a896] animate-bounce">
+        <span class="candi-badge mb-1.5 text-[10px] font-black bg-white text-[#00a896] px-2.5 py-0.5 rounded-full shadow-lg border-2 border-[#00a896]">
             CANDI
         </span>
-        <button id="candi-fab" :class="hasCriticalAlert ? 'candi-alert-pulse' : ''" class="relative w-28 h-28 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 group focus:outline-none cursor-pointer">
-            <span class="absolute w-[90px] h-[90px] rounded-full blur-md transition-all duration-300" :class="hasCriticalAlert ? 'bg-rose-500/20' : 'bg-teal-400/20 group-hover:bg-teal-400/35'"></span>
+        <button id="candi-fab" class="relative w-28 h-28 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 group focus:outline-none cursor-pointer">
             <img src="https://lh3.googleusercontent.com/d/1cymwqVSDoNg2zSoyFTCpIvLjePjEAJkL" alt="CANDI" class="relative w-full h-full object-contain transform transition-transform duration-300 group-hover:rotate-3 drop-shadow-xl">
         </button>
     </div>
@@ -6568,7 +6567,7 @@
             <div class="flex items-center gap-3">
                 <div class="relative w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-inner border border-white/25 overflow-hidden">
                     <img src="https://lh3.googleusercontent.com/d/1cymwqVSDoNg2zSoyFTCpIvLjePjEAJkL" alt="CANDI" class="w-full h-full object-cover p-0.5 rounded-full">
-                    <span class="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-white animate-pulse"></span>
+                    <span class="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-white"></span>
                 </div>
                 <div>
                     <h3 class="font-black text-sm tracking-wide">น้อง CANDI</h3>
