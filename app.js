@@ -215,6 +215,44 @@
         }
     };
 
+    // Global copy focus list to form handler
+    window.candiCopyToFocusForm = function (btn) {
+        const wrapper = btn.closest('.candi-msg-content-wrapper');
+        if (!wrapper) return;
+
+        const textContentEl = wrapper.querySelector('.candi-msg-content');
+        if (!textContentEl) return;
+
+        const text = textContentEl.innerText;
+        
+        // Use Regex to extract the first Focus and Goal from the structured text
+        const problemMatch = text.match(/ปัญหา\s*\(Focus\/Problem\):\s*([^\n]+)/);
+        const goalMatch = text.match(/เป้าหมาย\s*\(Goal\/Outcomes\):\s*([^\n]+)/);
+        
+        const focusInput = document.getElementById('focus-problem-input');
+        const goalInput = document.getElementById('focus-goal-input');
+
+        if (focusInput && goalInput) {
+            focusInput.value = problemMatch ? problemMatch[1].trim() : '';
+            goalInput.value = goalMatch ? goalMatch[1].trim() : '';
+            
+            // Trigger input events for Alpine/listeners
+            focusInput.dispatchEvent(new Event('input', { bubbles: true }));
+            goalInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+            const app = getAlpineApp();
+            if (app && app.showSuccess !== undefined) {
+                app.successMsg = 'คัดลอกปัญหาและเป้าหมายลงช่องป้อนข้อมูลแล้วค่ะ 📝';
+                app.showSuccess = true;
+                setTimeout(() => { app.showSuccess = false; }, 3000);
+            } else {
+                alert('คัดลอกปัญหาสุขภาพและเป้าหมายลงช่องป้อนข้อมูลเรียบร้อยแล้วค่ะ');
+            }
+        } else {
+            alert('ไม่พบช่องกรอกข้อมูล Focus List บนหน้าจอค่ะ (ID: focus-problem-input, focus-goal-input)');
+        }
+    };
+
     /**
      * Initialize DOM elements and event listeners
      */
@@ -401,7 +439,7 @@
             bubble.appendChild(textSpan);
             bubbleWrapper.appendChild(bubble);
 
-            // Add "Copy to Form" button if SOIE pattern matches on assistant bubble
+            // Add "Copy to Form" buttons on assistant bubble
             if (sender === 'assistant') {
                 const parsed = extractSOIE(text);
                 if (parsed.s || parsed.o || parsed.i || parsed.e) {
@@ -410,6 +448,14 @@
                     copyBtn.innerHTML = '<i class="fa-solid fa-copy"></i> คัดลอกลงฟอร์ม Note';
                     copyBtn.setAttribute('onclick', 'candiCopyToForm(this)');
                     bubbleWrapper.appendChild(copyBtn);
+                }
+                
+                if (text.includes('รายการปัญหาสุขภาพและเป้าหมายที่แนะนำ') || text.includes('ปัญหา (Focus/Problem):')) {
+                    const copyFocusBtn = document.createElement('button');
+                    copyFocusBtn.className = 'candi-action-btn';
+                    copyFocusBtn.innerHTML = '<i class="fa-solid fa-clipboard-list"></i> คัดลอกใส่ฟอร์ม Focus List';
+                    copyFocusBtn.setAttribute('onclick', 'candiCopyToFocusForm(this)');
+                    bubbleWrapper.appendChild(copyFocusBtn);
                 }
             }
 
