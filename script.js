@@ -2474,6 +2474,11 @@ function nurseApp() {
             const ageDisplay = this.resolvePatientAgeDisplay(patient);
             this.selectedPatient = { ...patient, ageDisplay };
             this.resetActiveForms();
+            // ✅ เคลียร์ฟอร์มที่เลือกไว้ของคนไข้คนก่อนหน้าทิ้งก่อนเสมอ
+            // (ถ้าไม่เคลียร์ ตอนกดปุ่มฟอร์มเดิม เช่น "Nurse's note" ของคนไข้คนใหม่
+            //  selectForm() จะเจอว่า currentForm.id ตรงกับฟอร์มเดิม แล้ว return ทันที
+            //  โดยไม่โหลดข้อมูลใหม่ ทำให้ค้างข้อมูลของคนไข้คนเก่าอยู่)
+            this.currentForm = null;
             
             // 1. ตรวจสอบกลุ่มอายุทันทีที่กดปุ่ม Chart
             const patientAge = ageDisplay || patient.age || patient.Age || patient.ageDisplay || patient.agedisplay || "";
@@ -6359,9 +6364,13 @@ function nurseApp() {
                 this.nursingTemplates = await this.loadTemplateCollection('nursingTemplates', 'getNursingTemplates', options.force === true);
                 
                 // ตรวจสอบ Focus List เผื่อมีการสั่งซิงค์ข้ามไฟล์
-                if (!this.focusList || this.focusList.length === 0) {
+                // ✅ เช็คจาก isResourceFresh ของคนไข้คนนี้ (an) แทนการเช็คแค่ "ว่างหรือไม่"
+                //    เพราะถ้าเช็คแค่ความว่าง จะทำให้ Focus List ของคนไข้คนก่อนหน้า (ที่ยังไม่ว่าง)
+                //    ค้างอยู่ไม่ถูกโหลดใหม่เมื่อสลับไปดูคนไข้คนใหม่
+                if (!this.isResourceFresh('focus_list', an)) {
                     const resF = await fetch(`${this.API_URL}?action=getFocusList&an=${an}`);
                     this.focusList = await resF.json() || [];
+                    this.markResourceLoaded('focus_list', an);
                 }
 
                 this.clearProgressForm();
