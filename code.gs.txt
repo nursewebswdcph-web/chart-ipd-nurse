@@ -142,7 +142,7 @@ function doPost(e) {
 
   // Route to CANDI chatbot directly if question is present
   if (data && data.question !== undefined) {
-    return handleCandiChat_(data.question, data.context);
+    return handleCandiChat_(data.question, data.context, data.history);
   }
 
   const action = data.action;
@@ -2961,7 +2961,7 @@ function deleteClassificationPed(p) {
  * @param {Object} context - PDPA masked patient context
  * @returns {TextOutput} JSON response
  */
-function handleCandiChat_(question, context) {
+function handleCandiChat_(question, context, history) {
   const props = PropertiesService.getScriptProperties();
   const apiKey = props.getProperty('GEMINI_API_KEY');
   
@@ -2972,11 +2972,37 @@ function handleCandiChat_(question, context) {
     });
   }
 
-  // Gemini 1.5 Flash API Endpoint
-  const url = 'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=' + apiKey;
+  // Gemini 3.5 Flash API Endpoint
+  // หมายเหตุ: gemini-1.5-flash ถูก Google ปิดให้บริการไปแล้วตั้งแต่ 29 ก.ย. 2025
+  // ทำให้เรียก API แล้วได้ HTTP 404 (models/gemini-1.5-flash is not found)
+  // ใช้ gemini-3.5-flash ซึ่งเป็นรุ่นที่ Google แนะนำให้ใช้แทนรุ่นเก่าในปัจจุบัน (GA)
+  const GEMINI_MODEL = 'gemini-3.5-flash';
+  const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + GEMINI_MODEL + ':generateContent?key=' + apiKey;
+
+  // คำนวณ "วันนี้" จริงจากนาฬิกาเซิร์ฟเวอร์ (โซนเวลาไทยเสมอ ไม่พึ่งพา Timezone
+  // ที่ตั้งไว้ในโปรเจกต์ Apps Script) แล้วส่งให้โมเดลรู้ตรงๆ เพราะ Gemini ไม่มี
+  // การเข้าถึงนาฬิกาจริงและไม่ควรปล่อยให้โมเดลคำนวณ/เดาวันที่ปัจจุบันเอง
+  // (สาเหตุเดิมของปัญหาวันที่คลาดเคลื่อน เช่น บอกผิดว่า "วันนี้" คือเมื่อวาน)
+  const THAI_MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
+    'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  const THAI_WEEKDAYS = ['วันอาทิตย์','วันจันทร์','วันอังคาร','วันพุธ','วันพฤหัสบดี','วันศุกร์','วันเสาร์'];
+  const nowParts = Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyy-MM-dd-u').split('-');
+  const gYear = parseInt(nowParts[0], 10);
+  const gMonth = parseInt(nowParts[1], 10);
+  const gDay = parseInt(nowParts[2], 10);
+  const weekdayIdx = parseInt(nowParts[3], 10) % 7; // 'u' = ISO day (1-7, Mon-Sun) -> normalize to 0=Sun
+  const buddhistYear = gYear + 543;
+  const pad2 = function(n) { return (n < 10 ? '0' : '') + n; };
+  const todayNumeric = pad2(gDay) + '/' + pad2(gMonth) + '/' + buddhistYear;
+  const todayThaiText = THAI_WEEKDAYS[weekdayIdx] + 'ที่ ' + gDay + ' ' + THAI_MONTHS[gMonth - 1] + ' พ.ศ. ' + buddhistYear;
 
   // Format the PDPA de-identified patient context for the model
-  let contextPrompt = '';
+  const todayBlock = '\n\n' +
+    '=== วันที่ปัจจุบันจริง (อ้างอิงจากนาฬิกาเซิร์ฟเวอร์ ใช้ค่านี้เป็น "วันนี้" เสมอ ห้ามคำนวณหรือเดาวันที่เอง) ===\n' +
+    '• วันนี้คือ: ' + todayThaiText + ' (' + todayNumeric + ' แบบ วัน/เดือน/ปี พ.ศ.)\n' +
+    '===============================================================\n';
+
+  let contextPrompt = todayBlock;
   if (context) {
     const focusItemsStr = (context.focusList && context.focusList.length > 0)
       ? context.focusList.map(function(item) {
@@ -2984,7 +3010,7 @@ function handleCandiChat_(question, context) {
         }).join('\n')
       : 'ไม่มี (หรือยังไม่ได้ประเมิน)';
 
-    contextPrompt = '\n\n' +
+    contextPrompt += '\n' +
       '=== ข้อมูลบริบทผู้ป่วยปัจจุบัน (ระบุตัวตนแบบเข้ารหัส PDPA เรียบร้อยแล้ว) ===\n' +
       '• เตียง (BED): ' + (context.bed || '-') + '\n' +
       '• ชื่อผู้ป่วย (Masked): ' + (context.patientName || '-') + '\n' +
@@ -3003,41 +3029,78 @@ function handleCandiChat_(question, context) {
   const systemInstruction = 
     'คุณคือ "น้อง CANDI" (Clinical Assistant & Nursing Decision Intelligence) ' +
     'พยาบาลผู้ช่วย AI ประจำ IPD Nurse Workbench ของโรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน\n\n' +
-    'หน้าที่ของคุณ:\n' +
-    '1. วิเคราะห์ข้อมูลบริบทผู้ป่วยที่พยาบาลส่งมาให้ (HN/AN, เตียง, Focus List, บันทึกความก้าวหน้าทางการพยาบาล S-O-I-E Note)\n' +
-    '2. สนับสนุนการตัดสินใจเชิงคลินิก (Clinical Decision Support: CDS) โดยให้การประเมินเฝ้าระวัง เช่น เฝ้าระวังอาการหลังผ่าตัด (Post-op care), การปรับระดับอาหารตามอาการ (Step diet progression), ภาวะน้ำตาลในเลือดต่ำ (Hypoglycemia), ความเสี่ยงต่อการติดเชื้อ (Infection risk) และความเสี่ยงฉุกเฉินต่างๆ\n' +
-    '3. ช่วยร่างบันทึกทางการพยาบาลในรูปแบบ SOAP Note หรือ Focus Note (S-O-I-E) เพื่อความรวดเร็วและถูกต้องตามหลัก CPG (Clinical Practice Guidelines)\n\n' +
+    'หน้าที่ของคุณในฐานะ Clinical AI Co-pilot:\n' +
+    '1. การโต้ตอบเชิงคลินิกทั่วไป (General Clinical Q&A): อธิบายพยาธิสภาพของโรค, ข้อควรระวังของยา (รวมถึง High Alert Drugs: HAD), การคำนวณอัตราการหยดสารน้ำ/ยา, การดูแลผู้ป่วยก่อน-หลังผ่าตัด (Pre/Post-Op), การสังเกตสิ่งคัดหลั่ง และการแปลผลค่า LAB/สัญญาณชีพวิกฤต ตามหลัก CPG\n' +
+    '2. Goal Suggestion Feature: หากพยาบาลถามถึง "เป้าหมาย" หรือพิมพ์ชื่อปัญหาสุขภาพมา ให้วิเคราะห์และตอบ "เป้าหมายทางการพยาบาลและเกณฑ์การประเมิน (Goal/Outcomes)" ที่เป็น Smart Goals วัดผลได้จริงให้สอดคล้องกับปัญหานั้นทันที\n' +
+    '3. การร่างรายการปัญหาสุขภาพ (Focus List): เมื่อพยาบาลขอให้กำหนด Focus List หรือวิเคราะห์ปัญหาสุขภาพ คุณต้องตอบกลับโดยมีรูปแบบหัวข้อและสัญลักษณ์ดังนี้เป๊ะๆ (ห้ามเปลี่ยนแปลง):\n' +
+    '🎯 **รายการปัญหาสุขภาพและเป้าหมายที่แนะนำ (Focus List)**\n\n' +
+    '📌 **ลำดับที่ 1**\n' +
+    '• **ปัญหา (Focus/Problem):** [ระบุปัญหาการพยาบาล]\n' +
+    '• **เป้าหมาย (Goal/Outcomes):** [ระบุเป้าหมายและตัวชี้วัด เช่น V/S, Lab, อาการ]\n\n' +
+    '📌 **ลำดับที่ 2**\n' +
+    '• **ปัญหา (Focus/Problem):** [ระบุปัญหาการพยาบาล]\n' +
+    '• **เป้าหมาย (Goal/Outcomes):** [ระบุเป้าหมายและตัวชี้วัด]\n\n' +
+    '4. Predictive Risk & Early Warning: คำนวณและประเมินความเสี่ยงล่วงหน้า (เช่น NEWS2/MEWS, Braden Scale, Morse Fall Scale) พร้อมข้อเสนอแนะการเฝ้าระวังเมื่อได้รับข้อมูลที่เกี่ยวข้อง\n' +
+    '5. Automated SBAR Handover: เมื่อสั่งสรุปรับ-ส่งเวร ให้เรียบเรียงข้อมูลผู้ป่วยเป็นโครงสร้าง SBAR (Situation, Background, Assessment, Recommendation)\n' +
+    '6. High Alert Drug Double-Checker: ตรวจสอบความเสี่ยง อัตราการหยดยา HAD และ IV Compatibility เมื่อมีการถามถึงยาความเสี่ยงสูง\n' +
+    '7. Discharge Education (DMETHOD): สรุปแผนคำแนะนำผู้ป่วยก่อนกลับบ้านภาษาเข้าใจง่ายตามหลัก DMETHOD\n' +
+    '8. ช่วยร่างบันทึกความก้าวหน้าทางการพยาบาล (Nursing Progress Note - SOIE) แบบโต้ตอบ 2 ขั้นตอน:\n' +
+    '   ▸ ขั้นตอนที่ 1 (ถามข้อมูลเพิ่มก่อนเสมอ): เมื่อพยาบาลขอให้คุณช่วยเขียน/ร่าง Nurse Note หรือ Nursing Progress Note ในเรื่องใดก็ตาม และในบทสนทนา (รวมข้อความก่อนหน้าทั้งหมด) ยังไม่มีการระบุข้อมูลยา สารน้ำ หรือหัตถการพิเศษที่ทำเพิ่มเติมให้ผู้ป่วยในเวรนี้ ห้ามร่างบันทึกทันทีเด็ดขาด ให้คุณตอบกลับด้วยข้อความคำถามนี้เป๊ะๆ เท่านั้น (ห้ามดัดแปลงถ้อยคำ ห้ามต่อท้ายด้วยเนื้อหาอื่น):\n' +
+    '     "รับทราบค่ะ เพื่อให้ Nurse Note สมบูรณ์และถูกต้องตามจริง ในเวรนี้มียา สารน้ำ หรือหัตถการพิเศษที่ทำเพิ่มเติมให้ผู้ป่วยรายนี้ไหมคะ? (หากไม่มี พิมพ์ \'ไม่มี\' หรือระบุเพิ่มเติมได้เลยค่ะ)"\n' +
+    '   ▸ ขั้นตอนที่ 2 (ร่างบันทึกทันที): เมื่อพยาบาลตอบกลับคำถามข้างต้นของคุณแล้ว (ไม่ว่าจะระบุรายละเอียดยา/สารน้ำ/หัตถการเพิ่มเติม หรือตอบเพียงว่า "ไม่มี") ให้คุณนำ (ก) ข้อมูลบริบทผู้ป่วยที่ได้รับ (ข) หัวข้อ/ปัญหาที่พยาบาลแจ้งไว้ในข้อความก่อนหน้า และ (ค) คำตอบล่าสุดของพยาบาลเรื่องยา/หัตถการ มาร่างเป็น Nursing Progress Note ทันที โดยต้องตอบในรูปแบบนี้เป๊ะๆ เท่านั้น (ห้ามเปลี่ยนสัญลักษณ์ หัวข้อ หรือโครงสร้าง):\n' +
+    '     📝 **ร่าง Nursing Progress Note (SOIE)**\n\n' +
+    '     • **FOCUS / PROBLEM:** [ระบุปัญหา]\n' +
+    '     • **S (Subjective):** [อาการแสดง/คำบอกเล่า]\n' +
+    '     • **O (Objective):** [V/S, ค่า Lab, ลักษณะแผล/สายระบาย]\n' +
+    '     • **I (Intervention):** [กิจกรรมการพยาบาล ยา หัตถการที่ให้ รวมข้อมูลยา/สารน้ำ/หัตถการที่พยาบาลเพิ่งแจ้งเพิ่มเติมด้วย]\n' +
+    '     • **E (Evaluation):** [การประเมินผลหลังการพยาบาล]\n' +
+    '   ▸ ข้อยกเว้น: หากพยาบาลระบุรายละเอียดยา/สารน้ำ/หัตถการมาครบถ้วนตั้งแต่คำถามแรกอยู่แล้ว ให้ข้ามขั้นตอนที่ 1 ไปร่างบันทึกตามขั้นตอนที่ 2 ได้ทันที ไม่ต้องถามซ้ำ\n\n' +
     'น้ำเสียงและรูปแบบคำตอบ:\n' +
     '- พูดจาสุภาพ น่ารัก เป็นมิตร โดยใช้คำลงท้าย "ค่ะ/นะคะ"\n' +
-    '- อธิบายข้อมูลเชิงลึกในลักษณะที่ สรุปตรงประเด็นทางการแพทย์/การพยาบาล อ่านเข้าใจได้รวดเร็ว เหมาะสำหรับการปฏิบัติงานจริงของพยาบาล\n' +
-    '- ใช้ Bullet point หรือการจัดระเบียบหัวข้อให้แจ่มแจ้ง\n\n' +
+    '- อธิบายข้อมูลเชิงลึกสรุปตรงประเด็น อ่านเข้าใจรวดเร็ว ใช้ Bullet point เพื่อให้อ่านง่าย\n\n' +
     'ข้อกำหนดด้านความปลอดภัย (Clinical Guardrail & Disclaimer):\n' +
+    '- ห้ามคำนวณ อนุมาน หรือเดาวันที่ "วันนี้" ด้วยตัวเองเด็ดขาด ให้ใช้ค่าที่ระบุไว้ในหัวข้อ "วันที่ปัจจุบันจริง" ในบริบทที่ได้รับเท่านั้นเป็นค่าวันที่ปัจจุบันเสมอ เมื่อต้องอ้างอิงวันที่สัมพัทธ์ เช่น "เมื่อวาน" หรือ "2 วันก่อน" ให้คำนวณจากค่านั้นเท่านั้น\n' +
     '- คุณต้องระบุข้อความสั้นๆ เสมอในส่วนท้ายหรือในเนื้อหาของคำตอบว่า:\n' +
     '  "น้อง CANDI เป็นระบบช่วยตัดสินใจเชิงคลินิก การตัดสินใจทางการพยาบาลและการบันทึกข้อมูลจริงขึ้นอยู่กับพยาบาลวิชาชีพผู้ดูแล"\n' +
-    '- ห้ามเปิดเผยข้อมูลที่เป็นส่วนตัวของผู้ป่วยจริง หากตรวจพบชื่อจริงให้แนะนำให้กรองออก\n\n' +
-    'หากพยาบาลร้องขอให้ "ร่าง Nursing Note (SOAP)" หรือ "ร่าง S-O-I-E" ให้คุณจัดรูปแบบคำตอบให้มีสัญลักษณ์ขึ้นต้นหัวข้อชัดเจนดังนี้ เพื่อให้ระบบป้อนข้อมูลอัตโนมัติบนหน้าเว็บบริหารจัดการได้ง่าย:\n' +
-    'S: [ข้อความข้อมูลอัตวิสัย]\n' +
-    'O: [ข้อความข้อมูลวัตถุวิสัย]\n' +
-    'I: [ข้อความกิจกรรมการพยาบาล]\n' +
-    'E: [ข้อความการประเมินผลลัพธ์]\n' +
-    'พร้อมทั้งสรุปประเด็นสั้นๆ ก่อนเริ่มโครงสร้าง';
+    '- ห้ามเปิดเผยข้อมูลส่วนตัวของผู้ป่วยจริง หากมีชื่อจริงให้แจ้งให้กรองออก';
+
+  // Build the conversation "contents" array from prior turns (if provided by the
+  // client) so the model can remember its own previous question — this is what
+  // makes the 2-step "ask about meds/procedures, then draft SOIE" flow work,
+  // since each HTTP request to this Web App is otherwise stateless.
+  const contents = [];
+  if (history && history.length) {
+    for (let h = 0; h < history.length; h++) {
+      const turn = history[h];
+      if (!turn || !turn.text) continue;
+      const role = (turn.role === 'assistant' || turn.role === 'model') ? 'model' : 'user';
+      contents.push({ role: role, parts: [{ text: String(turn.text) }] });
+    }
+  }
+  contents.push({
+    role: 'user',
+    parts: [
+      { text: 'คำสั่ง/คำถามจากพยาบาล: ' + question + contextPrompt }
+    ]
+  });
 
   const requestPayload = {
-    contents: [
-      {
-        parts: [
-          { text: 'คำสั่ง/คำถามจากพยาบาล: ' + question + contextPrompt }
-        ]
-      }
-    ],
+    contents: contents,
     systemInstruction: {
       parts: [
         { text: systemInstruction }
       ]
     },
     generationConfig: {
-      temperature: 0.2,
-      maxOutputTokens: 1200
+      // maxOutputTokens ต้องมากพอ เพราะ Gemini 3.x เป็น "reasoning model" ที่นับ
+      // โทเคนที่ใช้ "คิด" (thinking) รวมอยู่ใน maxOutputTokens ด้วย ถ้าตั้งค่าน้อย
+      // เกินไป คำตอบจะถูกตัดกลางประโยค
+      maxOutputTokens: 8192,
+      // thinkingLevel: "low" ให้โมเดลคิดสั้นๆ ก่อนตอบ สมดุลระหว่างความเร็วกับ
+      // ความรอบคอบของคำตอบ (ปรับกลับจาก "minimal" ตามที่ต้องการ)
+      thinkingConfig: {
+        thinkingLevel: 'low'
+      }
     }
   };
 
@@ -3049,27 +3112,57 @@ function handleCandiChat_(question, context) {
   };
 
   try {
-    const response = UrlFetchApp.fetch(url, fetchOptions);
-    const responseCode = response.getResponseCode();
-    const responseText = response.getContentText();
+    // Retry with exponential backoff on transient Gemini errors (503 = server
+    // overloaded, 429 = rate limited). These usually resolve within a couple
+    // seconds, so retrying automatically here saves the nurse from having to
+    // notice the error and click "ถาม" again herself.
+    const MAX_ATTEMPTS = 3;
+    const RETRYABLE_CODES = [503, 429];
+    let response, responseCode, responseText;
+
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      response = UrlFetchApp.fetch(url, fetchOptions);
+      responseCode = response.getResponseCode();
+      responseText = response.getContentText();
+
+      const isRetryable = RETRYABLE_CODES.indexOf(responseCode) !== -1;
+      const isLastAttempt = attempt === MAX_ATTEMPTS;
+
+      if (!isRetryable || isLastAttempt) break;
+
+      // Exponential backoff: ~1s, then ~2s before the next attempt
+      Logger.log('Gemini API returned ' + responseCode + ' (attempt ' + attempt + '/' + MAX_ATTEMPTS + '), retrying...');
+      Utilities.sleep(Math.pow(2, attempt - 1) * 1000);
+    }
     
     if (responseCode !== 200) {
+      // เก็บ error body เต็มๆ ไว้ใน Logger (View > Executions ใน Apps Script)
+      // เพื่อให้เห็นสาเหตุจริง (เช่น ชื่อโมเดลผิด, key ไม่ถูกต้อง, โควต้าหมด)
+      Logger.log('Gemini API error ' + responseCode + ' (after retries): ' + responseText);
+      const friendlyMessage = (responseCode === 503 || responseCode === 429)
+        ? 'CANDI กำลังอยู่ในช่วงพัฒนาค่ะ (เซิร์ฟเวอร์ AI มีผู้ใช้งานหนาแน่นชั่วคราว HTTP ' + responseCode + ' กรุณาลองกดถามอีกครั้งใน 1-2 นาทีนะคะ)'
+        : 'CANDI กำลังอยู่ในช่วงพัฒนาค่ะ (ติดต่อกับ Gemini API ไม่สำเร็จ HTTP ' + responseCode + ')';
       return res({
         status: 'error',
-        message: 'CANDI กำลังอยู่ในช่วงพัฒนาค่ะ (ติดต่อกับ Gemini API ไม่สำเร็จ HTTP ' + responseCode + ')'
+        message: friendlyMessage
       });
     }
     
     const responseJson = JSON.parse(responseText);
     
-    // Extract generated text from response structure
+    // Extract generated text from response structure.
+    // Gemini 3.x can return several "parts" (e.g. a "thought" part plus the
+    // actual answer part), so concatenate all non-thought text parts instead
+    // of assuming the answer is always parts[0].
     let replyText = '';
-    if (responseJson.candidates && 
-        responseJson.candidates[0] && 
-        responseJson.candidates[0].content && 
-        responseJson.candidates[0].content.parts && 
-        responseJson.candidates[0].content.parts[0]) {
-      replyText = responseJson.candidates[0].content.parts[0].text;
+    if (responseJson.candidates &&
+        responseJson.candidates[0] &&
+        responseJson.candidates[0].content &&
+        responseJson.candidates[0].content.parts) {
+      replyText = responseJson.candidates[0].content.parts
+        .filter(function(part) { return part.text && !part.thought; })
+        .map(function(part) { return part.text; })
+        .join('\n');
     }
     
     if (!replyText || replyText.trim() === '') {
@@ -3077,6 +3170,15 @@ function handleCandiChat_(question, context) {
         status: 'error',
         message: 'ไม่ได้รับข้อความตอบกลับจาก AI โมเดล โปรดตรวจสอบความถูกต้องของ API Key หรือโควต้าการใช้งาน'
       });
+    }
+
+    // If the model got cut off mid-answer because it hit maxOutputTokens
+    // (finishReason "MAX_TOKENS"), warn the nurse instead of silently handing
+    // back an incomplete note.
+    const finishReason = responseJson.candidates[0].finishReason;
+    if (finishReason === 'MAX_TOKENS') {
+      Logger.log('Gemini response truncated (MAX_TOKENS). usageMetadata: ' + JSON.stringify(responseJson.usageMetadata));
+      replyText += '\n\n⚠️ *คำตอบอาจไม่ครบถ้วน เนื่องจากยาวเกินขีดจำกัดของระบบ กรุณากดถามซ้ำ หรือขอให้สรุปให้สั้นลง*';
     }
     
     return res({
@@ -3091,4 +3193,3 @@ function handleCandiChat_(question, context) {
     });
   }
 }
-
