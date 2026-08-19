@@ -4250,6 +4250,17 @@ function nurseApp() {
                     timestamp: new Date().toISOString()
                 });
                 this.scheduleFallRiskRefresh(this.selectedPatient.an);
+
+                // เปิด Popup แนวปฏิบัติตามคะแนนความเสี่ยงที่เพิ่งประเมินในครั้งนี้
+                // ใช้ค่าคะแนนที่เพิ่งกรอก (ไม่รอข้อมูล latestMorse/latestMaas ของผู้ป่วยที่ยังรีเฟรชไม่ทัน)
+                const justAssessedMorse = this.calcMorseTotal(form.scores);
+                const justAssessedMaas = form.maas;
+                const guidelineType = hasMorse ? 'morse' : 'maas';
+                this.openGuidelineModal(guidelineType, {
+                    ...this.selectedPatient,
+                    latestMorse: justAssessedMorse,
+                    latestMaas: justAssessedMaas
+                });
             } catch (error) {
                 this.showAlert('Error', error.message);
             } finally {
@@ -5363,6 +5374,12 @@ function nurseApp() {
                     this.invalidateResource('braden_scale', payload.an);
                     await this.loadBraden(payload.an, { force: true, silent: true });
                     this.showBradenModal = false; // ปิดแค่ฟอร์มบันทึก แล้วจบเลย
+
+                    // เปิด Popup แนวปฏิบัติตามคะแนนความเสี่ยงแผลกดทับที่เพิ่งประเมินในครั้งนี้
+                    this.openGuidelineModal('braden', {
+                        ...this.selectedPatient,
+                        latestBraden: this.bradenForm.totalScore
+                    });
                 }
             } catch(e) { alert('เกิดข้อผิดพลาดในการบันทึก'); }
             this.isLoading = false;
