@@ -490,6 +490,23 @@ function spreadsheetSerialToDate(value) {
   const date = new Date(utcMs);
   return isNaN(date.getTime()) ? null : date;
 }
+// เทียบค่า AN แบบทนทานต่อกรณี Google Sheets แอบแปลงชนิดข้อมูลของ AN
+// จาก Text เป็น Number ตอนเขียนด้วย setValues() (เกิดขึ้นเมื่อคอลัมน์ยังเป็น
+// รูปแบบ General และค่า AN ที่ส่งเข้ามาเป็นตัวเลขล้วนๆ) ซึ่งทำให้เลข 0 ที่นำหน้า
+// AN หายไป (เช่น "0158421" กลายเป็น 158421) ผลคือแถวข้อมูลยังอยู่ในชีตจริง
+// แต่หน้าเว็บค้นหาด้วย AN แบบ Text ตรงๆ แล้วไม่เจอ ทำให้ประวัติดูเหมือนหายไป
+// ทั้งที่มีข้อมูลอยู่ในฐานข้อมูล ฟังก์ชันนี้จึงเทียบทั้งแบบ Text ตรงๆ ก่อน แล้ว
+// ค่อย fallback ไปเทียบค่าตัวเลขเผื่อกรณีนี้
+function anMatches_(cellValue, targetAN) {
+  const cellText = String(cellValue === null || cellValue === undefined ? '' : cellValue).trim();
+  const targetText = String(targetAN === null || targetAN === undefined ? '' : targetAN).trim();
+  if (!targetText) return false;
+  if (cellText === targetText) return true;
+  if (/^\d+$/.test(cellText) && /^\d+$/.test(targetText)) {
+    return Number(cellText) === Number(targetText);
+  }
+  return false;
+}
 function normalizeSheetDisplayText(rawValue, displayValue) {
   const displayText = String(displayValue || '').trim();
   if (displayText) return displayText;
@@ -593,10 +610,15 @@ function buildSerializedHistoryRow(sourceHeaders, rawRow, displayRow, targetHead
   });
 }
 function getOrCreateNursingNotesDetailSheet() {
-  return getOrCreateSheet('Nursing_Notes_Detail', [
+  const sheet = getOrCreateSheet('Nursing_Notes_Detail', [
     'SavedAt', 'AN', 'HN', 'Ward', 'NoteID', 'NoteDate', 'Shift', 'NoteTime',
     'Focus', 'S', 'O', 'I', 'E', 'ETime', 'Nurse', 'Position', 'PayloadJSON'
   ]);
+  // บังคับให้คอลัมน์ AN (คอลัมน์ B) เป็นรูปแบบ Plain Text เสมอ กัน Google Sheets
+  // แปลงค่า AN ที่เป็นตัวเลขล้วนให้กลายเป็นชนิด Number โดยอัตโนมัติตอนเขียนค่า
+  // (ซึ่งจะทำให้เลข 0 นำหน้า AN หายไปและค้นหาประวัติไม่เจอในภายหลัง)
+  try { sheet.getRange('B:B').setNumberFormat('@'); } catch (e) {}
+  return sheet;
 }
 function normalizeNursingNoteItem(note, defaults) {
   const source = note || {};
@@ -1870,11 +1892,13 @@ function saveFocusList(p) {
     sheet = ss.insertSheet('Focus_List');
     sheet.appendRow(['Timestamp', 'AN', 'HN', 'Ward', 'DataJSON']);
   }
+  // บังคับคอลัมน์ AN ให้เป็น Plain Text กันปัญหาเดียวกับ Nursing_Notes_Detail
+  try { sheet.getRange('B:B').setNumberFormat('@'); } catch (e) {}
   
   const data = sheet.getDataRange().getValues();
   let rowIndex = -1;
   for (let i = 1; i < data.length; i++) {
-    if (data[i][1].toString() === p.an.toString()) { rowIndex = i + 1; break; }
+    if (anMatches_(data[i][1], p.an)) { rowIndex = i + 1; break; }
   }
   
   const rowData = [new Date(), p.an, p.hn, p.ward, JSON.stringify(p.focusData)];
@@ -1893,7 +1917,7 @@ function getFocusList(an) {
   if (!sheet) return [];
   const data = sheet.getDataRange().getValues();
   for (let i = data.length - 1; i >= 1; i--) {
-    if (data[i][1].toString() === an.toString()) return JSON.parse(data[i][4] || '[]');
+    if (anMatches_(data[i][1], an)) return JSON.parse(data[i][4] || '[]');
   }
   return [];
 }
@@ -1946,7 +1970,7 @@ function saveNursingNotes(p) {
     }
 
     for (let i = 1; i < data.length; i++) {
-      if (String(data[i][1] || '') !== defaults.an) continue;
+      if (!anMatches_(data[i][1], defaults.an)) continue;
       const noteId = String(data[i][4] || '');
       if (noteId) existingRowsById[noteId] = i + 1;
       if (noteId && !incomingIds[noteId]) rowsToDelete.push(i + 1);
@@ -2009,7 +2033,7 @@ function getNursingNotes(an) {
     const detailData = detailSheet.getDataRange().getValues();
     const notes = [];
     for (let i = 1; i < detailData.length; i++) {
-      if (String(detailData[i][1] || '') !== targetAN) continue;
+      if (!anMatches_(detailData[i][1], targetAN)) continue;
       notes.push(parseStoredNursingNoteRow(detailData[i]));
     }
     if (notes.length > 0) return notes;
@@ -2019,7 +2043,7 @@ function getNursingNotes(an) {
   if (!legacySheet) return [];
   const data = legacySheet.getDataRange().getValues();
   for (let i = data.length - 1; i >= 1; i--) {
-    if (String(data[i][1] || '') === targetAN) return JSON.parse(data[i][4] || '[]');
+    if (anMatches_(data[i][1], targetAN)) return JSON.parse(data[i][4] || '[]');
   }
   return [];
 }
