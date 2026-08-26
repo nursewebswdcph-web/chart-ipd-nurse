@@ -2,6 +2,62 @@
    CANDI AI Assistant Stylesheet - IPD Nurse Workbench
    ========================================================================== */
 
+/* ==========================================================================
+   Tablet / iPad Responsive Enhancements
+   ครอบคลุมช่วงความกว้างของ iPad และแท็บเล็ตทั่วไป (แนวตั้ง ~744-834px,
+   แนวนอน ~1024-1194px) เพื่อให้ Nursing form และตาราง Chart ต่างๆ จัดวางพอดี
+   หน้าจอและใช้งานง่ายขึ้นเมื่อสัมผัสหน้าจอ (touch)
+   ========================================================================== */
+
+/* 1) เพิ่มพื้นที่แตะ (touch target) ของ checkbox / radio ที่ใช้อยู่ทั่วฟอร์ม
+   ประเมินต่างๆ ให้ใหญ่พอสำหรับการแตะด้วยนิ้วบนแท็บเล็ต (ค่าเริ่มต้น 16px
+   เล็กเกินไปสำหรับหน้าจอสัมผัส) โดยไม่กระทบ layout ของฟอร์มที่หนาแน่น */
+@media (pointer: coarse) {
+    input[type="checkbox"],
+    input[type="radio"] {
+        min-width: 1.15rem;
+        min-height: 1.15rem;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="date"],
+    input[type="time"],
+    select {
+        min-height: 2.5rem;
+    }
+}
+
+/* 2) แผงแชท CANDI แบบปักหมุด (docked): ความกว้างคงที่ 440px เดิมกว้างเกินไป
+   บนแท็บเล็ตแนวตั้ง ทำให้พื้นที่ฟอร์ม/ชาร์ตด้านซ้ายเหลือน้อยเกินใช้งาน
+   ปรับให้ยึดตามความกว้างจอแทนบนแท็บเล็ต/มือถือ */
+@media (max-width: 1024px) {
+    #candi-chat-panel.docked {
+        width: min(440px, 92vw) !important;
+    }
+}
+
+/* 3) ตารางประเมิน/ฟอร์มที่กว้าง (เลื่อนแนวนอนได้ด้วย overflow-x-auto อยู่แล้ว)
+   เพิ่ม padding แนวตั้งของเซลล์เล็กน้อยบนแท็บเล็ต เพื่อให้กดแตะแต่ละช่องได้
+   แม่นยำขึ้นโดยไม่ทำให้ตารางสูงเกินไปจนต้องเลื่อนดูมาก */
+@media (min-width: 641px) and (max-width: 1024px) {
+    table.table-fixed td,
+    table.table-fixed th {
+        padding-top: 0.45rem;
+        padding-bottom: 0.45rem;
+    }
+}
+
+/* 4) Modal/Panel ที่เปิดแบบเต็มจอด้านล่าง (bottom-sheet) บนจอเล็กกว่า md
+   ให้เว้นระยะขอบล่างสำหรับพื้นที่ปลอดภัย (safe-area) ของ iPad/iPhone ที่มี
+   แถบท่าทาง (home indicator) */
+@media (max-width: 1024px) {
+    .no-print.fixed.inset-0 > div[class*="rounded-t-"],
+    .no-print.fixed.inset-0 > div.w-full.md\:rounded-\[2rem\] {
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+}
+
 /* Toggle Chat Panel Visibility with animations */
 #candi-chat-panel {
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.15);
