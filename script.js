@@ -1,7 +1,7 @@
 function nurseApp() {
     return {
         // --- 1. CONFIG & STATE ---
-        API_URL: 'https://script.google.com/macros/s/AKfycbwL0kpOkiPGep6M9uUumXr50Y4U669r8AILoaoP2V6LR2JOI_m8glzA17PFjfidtlO8/exec',
+        API_URL: 'https://script.google.com/macros/s/AKfycbx7g8PgKoQYZM3Ha5fXBeGCHRMSHEAfJvAjIe_FCejFH0lVl0ABx9adTGcI4oALDGmkIA/exec',
 
         // --- ตัวช่วยยิง API แบบมี retry อัตโนมัติ ---
         // แก้ปัญหา Google Apps Script บางครั้งตอบ 404 (macros/echo) หรือส่ง HTML แทน JSON
