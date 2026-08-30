@@ -19,15 +19,6 @@
             darkMode: 'class',
             theme: {
                 extend: {
-                    // ปรับ breakpoint "md" ให้กว้างขึ้นกว่าค่าเริ่มต้น (768px) ของ Tailwind
-                    // เนื่องจากหน้าจอ iPad/แท็บเล็ตแนวตั้งส่วนใหญ่มีความกว้าง CSS อยู่ในช่วง
-                    // 744-834px ซึ่งตรงกับ md พอดี ทำให้ฟอร์ม/ตารางที่ออกแบบเป็นแบบหลายคอลัมน์
-                    // สำหรับจอเดสก์ท็อป (md:grid-cols-3/4/5/6 ฯลฯ) ถูกบีบอัดจนใช้งานยากบนแท็บเล็ต
-                    // การขยับ md ไปที่ 900px ทำให้แท็บเล็ตแนวตั้งทุกรุ่นยังคงแสดงผลแบบ 1 คอลัมน์
-                    // (stacked) ที่กรอกข้อมูลง่าย ส่วนแนวนอน (lg, 1024px ขึ้นไป) ไม่กระทบ
-                    screens: {
-                        md: '900px',
-                    },
                     colors: {
                         teal: {
                             50: '#f0fdfa',
@@ -48,6 +39,7 @@
             }
         }
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="script.js?v=20260815_08" charset="UTF-8"></script>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
@@ -413,19 +405,12 @@
                 <div x-show="authMode === 'forgot'" x-cloak class="space-y-4">
                     <div>
                         <h2 class="text-2xl font-black text-slate-800 dark:text-white">ลืมรหัสผ่าน</h2>
-                        <p class="mt-1 text-xs text-slate-400 dark:text-slate-400 font-bold">กรอกชื่อผู้ใช้หรืออีเมลที่ลงทะเบียนไว้ ระบบจะส่งลิงก์ตั้งรหัสผ่านใหม่ไปยังอีเมลอัตโนมัติ</p>
+                        <p class="mt-1 text-xs text-slate-400 dark:text-slate-400 font-bold">กรุณาติดต่อแอดมินระบบเพื่อรีเซ็ตรหัสผ่านให้ แอดมินจะตั้งรหัสผ่านชั่วคราวให้ แล้วระบบจะบังคับให้ตั้งรหัสใหม่ทันทีที่เข้าสู่ระบบครั้งแรก</p>
                     </div>
                     <div class="space-y-4">
-                        <div>
-                            <label class="block text-xs font-black text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wide">ชื่อผู้ใช้หรือ E-mail</label>
-                            <input type="text" x-model="authForgotForm.identifier" @keydown.enter.prevent="submitForgotPassword()" class="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100 dark:focus:ring-teal-950/30 dark:text-white transition-colors" placeholder="username หรือ yourname@hospital.go.th">
-                        </div>
-                        <button @click="submitForgotPassword()" type="button" class="w-full rounded-2xl bg-slate-800 dark:bg-slate-700 px-4 py-3 text-white font-black shadow-lg shadow-slate-200 hover:bg-slate-900 transition-all cursor-pointer">
-                            ส่งลิงก์ตั้งรหัสผ่านใหม่
+                        <button @click="authMode = 'login'" type="button" class="w-full rounded-2xl bg-slate-800 dark:bg-slate-700 px-4 py-3 text-white font-black shadow-lg shadow-slate-200 hover:bg-slate-900 transition-all cursor-pointer">
+                            กลับไปหน้าเข้าสู่ระบบ
                         </button>
-                        <div class="text-center text-xs text-slate-500 font-bold">
-                            <button @click="authMode = 'login'" type="button" class="font-black text-teal-700 hover:text-teal-800 dark:text-teal-400 dark:hover:text-teal-300 cursor-pointer">กลับไปหน้าเข้าสู่ระบบ</button>
-                        </div>
                     </div>
                 </div>
 
@@ -519,17 +504,9 @@
                 <div x-show="authMode === 'reset'" x-cloak class="space-y-4">
                     <div>
                         <h2 class="text-2xl font-black text-slate-800 dark:text-white">ตั้งรหัสผ่านใหม่</h2>
-                        <p class="mt-1 text-xs text-slate-400 dark:text-slate-400 font-bold">ตั้งรหัสผ่านใหม่จากลิงก์ยืนยันที่ส่งไปทางอีเมล เมื่อบันทึกสำเร็จระบบจะพากลับไปหน้าเข้าสู่ระบบ</p>
+                        <p class="mt-1 text-xs text-slate-400 dark:text-slate-400 font-bold">กรอกรหัสผ่านใหม่ 2 ช่องด้านล่าง เมื่อบันทึกสำเร็จระบบจะพาเข้าใช้งานทันที</p>
                     </div>
                     <div class="space-y-4">
-                        <div>
-                            <label class="block text-xs font-black text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wide">E-mail</label>
-                            <input type="email" x-model="authResetForm.email" class="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100 dark:focus:ring-teal-950/30 dark:text-white transition-colors" placeholder="yourname@hospital.go.th">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-black text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wide">รหัสยืนยันจากลิงก์</label>
-                            <input type="text" x-model="authResetForm.token" class="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100 dark:focus:ring-teal-950/30 dark:text-white transition-colors" placeholder="token จากอีเมล">
-                        </div>
                         <div class="grid gap-3 grid-cols-2">
                             <div>
                                 <label class="block text-xs font-black text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wide">รหัสผ่านใหม่</label>
@@ -1323,7 +1300,7 @@
                     </div>
                 
                     <div x-show="!isSidebarCollapsed" class="p-6 bg-slate-50 border-t border-slate-100" x-transition>
-                        <p class="text-[9px] font-bold text-slate-300 uppercase tracking-widest text-center">Nurse Workbench v3.0</p>
+                        <p class="text-[9px] font-bold text-slate-300 uppercase tracking-widest text-center">Nurse Workbench v3.1</p>
                     </div>
                 </aside>
 
@@ -6505,7 +6482,7 @@
         <div class="bg-white rounded-[2rem] shadow-2xl max-w-sm w-full overflow-hidden border border-white/20 p-8 text-center">
             <template x-if="dialog.type === 'confirm'"><div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fa-solid fa-circle-exclamation text-3xl"></i></div></template>
             <h3 class="text-xl font-black text-slate-800 mb-2" x-text="dialog.title"></h3>
-            <p class="text-xs text-slate-400 mb-6 leading-tight" x-text="dialog.msg"></p>
+            <p class="text-xs text-slate-400 mb-6 leading-tight whitespace-pre-line" x-text="dialog.msg"></p>
             <div class="flex gap-3">
                 <button x-show="dialog.type === 'confirm'" @click="dialog.show = false" class="flex-1 py-3 rounded-xl font-bold text-slate-400 hover:bg-slate-50 transition text-sm">ยกเลิก</button>
                 <button @click="handleDialogConfirm()":class="dialog.type === 'confirm' ? 'bg-red-600' : 'bg-emerald-600'"class="flex-1 py-3 rounded-xl font-bold text-white shadow-lg transition active:scale-95 text-sm"x-text="dialog.confirmBtnText"></button>

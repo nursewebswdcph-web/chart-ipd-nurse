@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ipd-nurse-workbench-v20260817_01';
+const CACHE_NAME = 'ipd-nurse-workbench-v20260830_31';
 
 // Install: Skip waiting immediately to activate new SW
 self.addEventListener('install', (event) => {

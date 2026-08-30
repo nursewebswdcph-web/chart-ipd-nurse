@@ -3,6 +3,16 @@ function nurseApp() {
         // --- 1. CONFIG & STATE ---
         API_URL: 'https://script.google.com/macros/s/AKfycbzBsOJPSesR-Wb8Rgz-p7hvSMrW-WgrZnainnLMbMNlcRk50dw73UpF_uAooDCnWXDiHw/exec',
 
+        // --- Supabase ---
+        SUPABASE_URL: 'https://ipodmceqazxgxwuzbbfo.supabase.co',
+        SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlwb2RtY2VxYXp4Z3h3dXpiYmZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2NjMzMTgsImV4cCI6MjEwMzIzOTMxOH0.0zPO93RYX3_3sQ9EeeTxYEfPYdGxsz14nnvGkEDmk38',
+        supabaseClient: null,
+        getSupabase() {
+            if (!this.supabaseClient) {
+                this.supabaseClient = window.supabase.createClient(this.SUPABASE_URL, this.SUPABASE_ANON_KEY);
+            }
+            return this.supabaseClient;
+        },
         // --- ตัวช่วยยิง API แบบมี retry อัตโนมัติ ---
         // แก้ปัญหา Google Apps Script บางครั้งตอบ 404 (macros/echo) หรือส่ง HTML แทน JSON
         // แบบชั่วคราว โดยเฉพาะเวลายิง POST ตามด้วย GET ติดกันเร็วๆ (เช่น login แล้วโหลดข้อมูลต่อ)
@@ -31,7 +41,7 @@ function nurseApp() {
             throw lastError;
         },
         APP_WEB_URL: 'https://nursewebswdcph-web.github.io/chart-ipd-nurse/',
-        CURRENT_VERSION: '3', // เวอร์ชันปัจจุบันของระบบ อัปเดตเลขนี้ทุกครั้งที่ปล่อยเวอร์ชันใหม่
+        CURRENT_VERSION: '3.1', // เวอร์ชันปัจจุบันของระบบ อัปเดตเลขนี้ทุกครั้งที่ปล่อยเวอร์ชันใหม่
         appVersionStorageKey: 'ipd_nurse_app_version',
         showUpdateModal: false, // ควบคุมการแสดง Popup แจ้งเตือนเวอร์ชันใหม่
         isUpdatingApp: false,
@@ -308,8 +318,7 @@ function nurseApp() {
             this.resetActiveForms();
             if (!an) return;
             try {
-                const res = await fetch(`${this.API_URL}?action=getNutritionAssessment&an=${encodeURIComponent(an)}&_=${Date.now()}`);
-                const data = await res.json();
+                const data = await this.getLatestFormData('nutrition_assessment', an, null);
                 const hasNutritionData = !!(data && typeof data === 'object' && Object.keys(data).length > 0);
                 if (hasNutritionData) {
                     this.addForm(this.availableExtraForms.find(form => form.id === 'nutrition_assessment'));
@@ -999,19 +1008,14 @@ function nurseApp() {
                 async () => {
                     this.isLoading = true;
                     try {
-                        const response = await fetch(this.API_URL, {
-                            method: 'POST',
-                            body: JSON.stringify({
-                                action: 'deleteClassification',
-                                payload: {
-                                    an: this.selectedPatient.an,
-                                    evalDate: date,
-                                    shift
-                                }
-                            })
-                        });
-                        const res = await response.json();
-                        if (res.status !== 'success') throw new Error(res.message);
+                        const sb = this.getSupabase();
+                        const { error } = await sb
+                            .from('patient_classification')
+                            .delete()
+                            .eq('an', String(this.selectedPatient.an))
+                            .eq('eval_date', date)
+                            .eq('shift', shift);
+                        if (error) throw error;
                         this.showClassModal = false;
                         this.successMsg = `ลบเวร${shift} วันที่ ${this.formatThaiDateShort(date)} เรียบร้อยแล้ว`;
                         this.showSuccess = true;
@@ -1042,19 +1046,14 @@ function nurseApp() {
                 async () => {
                     this.isLoading = true;
                     try {
-                        const response = await fetch(this.API_URL, {
-                            method: 'POST',
-                            body: JSON.stringify({
-                                action: 'deleteClassificationPed',
-                                payload: {
-                                    an: currentAN,
-                                    evalDate: date,
-                                    shift
-                                }
-                            })
-                        });
-                        const res = await response.json();
-                        if (res.status !== 'success') throw new Error(res.message);
+                        const sb = this.getSupabase();
+                        const { error } = await sb
+                            .from('classifications_pediatric')
+                            .delete()
+                            .eq('an', String(currentAN))
+                            .eq('eval_date', date)
+                            .eq('shift', shift);
+                        if (error) throw error;
 
                         this.showPedShiftModal = false;
                         this.successMsg = `ลบเวร${shift} วันที่ ${this.formatThaiDateShort(date)} เรียบร้อยแล้ว`;
@@ -1085,19 +1084,14 @@ function nurseApp() {
                 async () => {
                     this.isLoading = true;
                     try {
-                        const response = await fetch(this.API_URL, {
-                            method: 'POST',
-                            body: JSON.stringify({
-                                action: 'deleteFallRisk',
-                                payload: {
-                                    an: this.selectedPatient.an,
-                                    evalDate: date,
-                                    shift
-                                }
-                            })
-                        });
-                        const res = await response.json();
-                        if (res.status !== 'success') throw new Error(res.message);
+                        const sb = this.getSupabase();
+                        const { error } = await sb
+                            .from('fall_risk_morse')
+                            .delete()
+                            .eq('an', String(this.selectedPatient.an))
+                            .eq('eval_date', date)
+                            .eq('shift', shift);
+                        if (error) throw error;
 
                         this.showFallShiftModal = false;
                         this.successMsg = `ลบเวร${shift} วันที่ ${this.formatThaiDateShort(date)} เรียบร้อยแล้ว`;
@@ -1243,22 +1237,36 @@ function nurseApp() {
             }
 
             const task = (async () => {
-                const response = await fetch(this.API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        action: 'getServiceRequests',
-                        payload: { sessionToken: this.sessionToken }
-                    })
-                });
-                const result = await response.json();
-                if (result.status !== 'success') {
-                    throw new Error(result.message || 'โหลดรายการ Service ไม่สำเร็จ');
+                const sb = this.getSupabase();
+                let query = sb.from('it_nurse_service').select('*').order('created_at', { ascending: false });
+                if (!this.isServiceAdmin) {
+                    const { data: { user } } = await sb.auth.getUser();
+                    query = query.eq('requester_email', (user?.email || '').toLowerCase());
                 }
-                this.serviceRequests = Array.isArray(result.requests) ? result.requests.map(item => ({
+                const { data: rows, error } = await query;
+                if (error) throw new Error(error.message || 'โหลดรายการ Service ไม่สำเร็จ');
+                const requests = (rows || []).map(r => ({
+                    requestId: r.request_id,
+                    timestamp: r.created_at,
+                    requesterEmail: r.requester_email,
+                    requesterUsername: r.requester_username,
+                    requesterName: r.requester_name,
+                    requesterPosition: r.requester_position,
+                    category: r.category,
+                    subject: r.subject,
+                    details: r.details,
+                    status: r.status,
+                    adminNote: r.admin_note,
+                    updatedAt: r.updated_at,
+                    updatedBy: r.updated_by,
+                    attachments: r.attachments || [],
+                    department: r.department
+                }));
+                this.serviceRequests = requests.map(item => ({
                     ...item,
                     statusDraft: item.status || 'ใหม่',
                     adminNoteDraft: item.adminNote || ''
-                })) : [];
+                }));
                 return this.serviceRequests;
             })();
 
@@ -1272,70 +1280,59 @@ function nurseApp() {
             }
         },
         async submitForgotPassword() {
-            const identifier = String(this.authForgotForm.identifier || '').trim();
-            if (!identifier) {
-                return this.showAlert('แจ้งเตือน', 'กรุณากรอกชื่อผู้ใช้หรืออีเมลที่ลงทะเบียนไว้');
-            }
-
-            this.isLoading = true;
-            try {
-                const response = await fetch(this.API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        action: 'sendPasswordResetLink',
-                        payload: {
-                            identifier,
-                            resetBaseUrl: this.effectiveAppBaseUrl
-                        }
-                    })
-                });
-                const result = await response.json();
-                if (result.status !== 'success') {
-                    throw new Error(result.message || 'ส่งลิงก์รีเซ็ตรหัสผ่านไม่สำเร็จ');
-                }
-                this.authForgotForm.identifier = '';
-                this.authMode = 'login';
-                this.showSuccess = true;
-                this.successMsg = result.message || 'ส่งลิงก์ตั้งรหัสผ่านใหม่เรียบร้อยแล้ว';
-                setTimeout(() => this.showSuccess = false, 3000);
-            } catch (error) {
-                this.showAlert('ลืมรหัสผ่าน', error.message);
-            } finally {
-                this.isLoading = false;
-            }
+            this.showAlert('ลืมรหัสผ่าน', 'กรุณาติดต่อแอดมินเพื่อรีเซ็ตรหัสผ่านให้ค่ะ แอดมินจะตั้งรหัสผ่านชั่วคราวให้ แล้วระบบจะบังคับให้ตั้งรหัสใหม่ทันทีที่เข้าสู่ระบบครั้งแรก');
+            this.authMode = 'login';
         },
         async submitPasswordReset() {
             const payload = {
-                email: String(this.authResetForm.email || '').trim(),
-                token: String(this.authResetForm.token || '').trim(),
                 password: String(this.authResetForm.password || ''),
                 confirmPassword: String(this.authResetForm.confirmPassword || '')
             };
-            if (!payload.email || !payload.token || !payload.password || !payload.confirmPassword) {
-                return this.showAlert('แจ้งเตือน', 'กรุณากรอกข้อมูลตั้งรหัสผ่านใหม่ให้ครบถ้วน');
+            if (!payload.password || !payload.confirmPassword) {
+                return this.showAlert('แจ้งเตือน', 'กรุณากรอกรหัสผ่านใหม่ให้ครบถ้วน');
             }
             if (payload.password !== payload.confirmPassword) {
                 return this.showAlert('แจ้งเตือน', 'รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน');
             }
+                if (payload.password.length < 6) {
+                return this.showAlert('แจ้งเตือน', 'รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร');
+            }
 
             this.isLoading = true;
             try {
-                const response = await fetch(this.API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        action: 'resetPasswordWithToken',
-                        payload
-                    })
-                });
-                const result = await response.json();
-                if (result.status !== 'success') {
-                    throw new Error(result.message || 'ตั้งรหัสผ่านใหม่ไม่สำเร็จ');
+                const sb = this.getSupabase();
+                const { data: { session } } = await sb.auth.getSession();
+                if (!session) {
+                    throw new Error('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้งด้วยรหัสผ่านเดิม');
                 }
-                this.authResetForm = { email: '', token: '', password: '', confirmPassword: '' };
+
+                const { error: updateError } = await sb.auth.updateUser({ password: payload.password });
+                if (updateError) {
+                    throw new Error(updateError.message || 'ตั้งรหัสผ่านใหม่ไม่สำเร็จ');
+                }
+
+                // ปลด flag บังคับเปลี่ยนรหัสผ่าน
+                await sb.from('profiles').update({ must_change_password: false }).eq('id', session.user.id);
+
+                const { data: profile } = await sb
+                    .from('profiles')
+                    .select('full_name, position, username, role')
+                    .eq('id', session.user.id)
+                    .single();
+
+                const user = {
+                    fullName: profile?.full_name || '',
+                    position: profile?.position || '',
+                    username: profile?.username || '',
+                    role: profile?.role || 'nurse',
+                    mustChangePassword: false
+                };
+                this.setAuthenticatedUser(user, session.access_token);
+                this.resetAuthForms();
                 this.authMode = 'login';
-                this.clearAuthRoute();
+                await this.loadInitialData();
                 this.showSuccess = true;
-                this.successMsg = result.message || 'ตั้งรหัสผ่านใหม่เรียบร้อยแล้ว';
+                this.successMsg = 'ตั้งรหัสผ่านใหม่สำเร็จ';
                 setTimeout(() => this.showSuccess = false, 3000);
             } catch (error) {
                 this.showAlert('ตั้งรหัสผ่านใหม่ไม่สำเร็จ', error.message);
@@ -1343,6 +1340,7 @@ function nurseApp() {
                 this.isLoading = false;
             }
         },
+
         async submitServiceRequest() {
             const payload = {
                 category: String(this.serviceForm.category || '').trim(),
@@ -1358,22 +1356,28 @@ function nurseApp() {
 
             this.isLoading = true;
             try {
-                const response = await fetch(this.API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        action: 'createServiceRequest',
-                        payload
-                    })
+                const sb = this.getSupabase();
+                const { data: { user } } = await sb.auth.getUser();
+                const requestId = 'SRV' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 6).toUpperCase();
+                const { error } = await sb.from('it_nurse_service').insert({
+                    request_id: requestId,
+                    requester_email: user?.email || '',
+                    requester_username: this.currentUser?.username || '',
+                    requester_name: this.currentUser?.fullName || '',
+                    requester_position: this.currentUser?.position || '',
+                    category: payload.category || 'แจ้งปัญหาการใช้งาน',
+                    subject: payload.subject,
+                    details: payload.details,
+                    status: 'ใหม่',
+                    attachments: payload.attachments || [],
+                    department: payload.department
                 });
-                const result = await response.json();
-                if (result.status !== 'success') {
-                    throw new Error(result.message || 'ส่งคำขอไม่สำเร็จ');
-                }
+                if (error) throw new Error(error.message || 'ส่งคำขอไม่สำเร็จ');
                 this.resetServiceForm();
                 await this.loadServiceRequests({ force: true });
                 this.serviceView = this.isServiceAdmin ? 'admin' : 'mine';
                 this.showSuccess = true;
-                this.successMsg = result.message || 'ส่งคำขอเรียบร้อยแล้ว';
+                this.successMsg = 'ส่งคำขอเรียบร้อยแล้ว';
                 setTimeout(() => this.showSuccess = false, 3000);
             } catch (error) {
                 this.showAlert('IT Nurse Service', error.message);
@@ -1385,25 +1389,17 @@ function nurseApp() {
             if (!this.isServiceAdmin) return;
             this.isLoading = true;
             try {
-                const response = await fetch(this.API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        action: 'updateServiceRequestStatus',
-                        payload: {
-                            sessionToken: this.sessionToken,
-                            requestId: request.requestId,
-                            status: String(request.statusDraft || request.status || '').trim(),
-                            adminNote: String(request.adminNoteDraft || '').trim()
-                        }
-                    })
-                });
-                const result = await response.json();
-                if (result.status !== 'success') {
-                    throw new Error(result.message || 'อัปเดตสถานะไม่สำเร็จ');
-                }
+                const sb = this.getSupabase();
+                const { error } = await sb.from('it_nurse_service').update({
+                    status: String(request.statusDraft || request.status || '').trim(),
+                    admin_note: String(request.adminNoteDraft || '').trim(),
+                    updated_at: new Date().toISOString(),
+                    updated_by: this.currentUser?.username || ''
+                }).eq('request_id', request.requestId);
+                if (error) throw new Error(error.message || 'อัปเดตสถานะไม่สำเร็จ');
                 await this.loadServiceRequests({ force: true });
                 this.showSuccess = true;
-                this.successMsg = result.message || 'อัปเดตสถานะเรียบร้อยแล้ว';
+                this.successMsg = 'อัปเดตสถานะเรียบร้อยแล้ว';
                 setTimeout(() => this.showSuccess = false, 2500);
             } catch (error) {
                 this.showAlert('อัปเดตสถานะไม่สำเร็จ', error.message);
@@ -1538,10 +1534,17 @@ function nurseApp() {
             this.startClock();
             this.setupPwaInstallPrompt();
             this.registerServiceWorker();
-            const hasAuthRoute = this.applyAuthRouteFromUrl();
-            if (!hasAuthRoute) {
-                this.restoreSession();
-            }
+
+            // ฟังการเปลี่ยนสถานะ login ของ Supabase ตลอดเวลา
+            // (ครอบคลุมทั้งกรณี login/logout ปกติ และกรณีคลิกลิงก์ "ลืมรหัสผ่าน" จากอีเมล)
+            this.getSupabase().auth.onAuthStateChange((event) => {
+                if (event === 'PASSWORD_RECOVERY') {
+                    this.resetAuthForms();
+                    this.authMode = 'reset';
+                }
+            });
+
+            this.restoreSession();
         },
         initNightShift() {
             const saved = localStorage.getItem('isNightShift');
@@ -1640,6 +1643,13 @@ function nurseApp() {
             this.nurseName = user?.fullName || '';
             this.nursePosition = user?.position || '';
             this.applyCurrentUserDefaults();
+
+            // บังคับเปลี่ยนรหัสผ่านก่อนเข้าใช้งาน ถ้ายังไม่เคยเปลี่ยนตั้งแต่ import เข้าระบบ
+            if (user && user.mustChangePassword) {
+                this.resetAuthForms();
+                this.authMode = 'reset';
+                this.isAuthenticated = false; // กันไม่ให้เข้าหน้าแอปจนกว่าจะเปลี่ยนรหัสเสร็จ
+            }
         },
         resetAuthForms() {
             this.authMode = 'login';
@@ -1647,7 +1657,7 @@ function nurseApp() {
             this.authRegisterForm = { username: '', prefix: 'นางสาว', firstName: '', lastName: '', email: '', password: '', confirmPassword: '' };
             this.authVerifyForm = { email: '', code: '' };
             this.authForgotForm = { identifier: '' };
-            this.authResetForm = { email: '', token: '', password: '', confirmPassword: '' };
+            this.authResetForm = { password: '', confirmPassword: '' };
             this.authPasswordVisibility = {
                 login: false,
                 register: false,
@@ -1766,8 +1776,17 @@ function nurseApp() {
             }
 
             const task = (async () => {
-                const response = await fetch(`${this.API_URL}?action=${action}`);
-                const data = await response.json();
+                const sb = this.getSupabase();
+                let data = [];
+                if (action === 'getFocusTemplates') {
+                    const { data: rows, error } = await sb.from('focus_templates').select('id,problem_name,focus,goal').order('id');
+                    if (error) throw error;
+                    data = (rows || []).map(r => ({ id: r.id, problemName: r.problem_name, focus: r.focus, goal: r.goal }));
+                } else if (action === 'getNursingTemplates') {
+                    const { data: rows, error } = await sb.from('nursing_templates').select('id,template_name,focus,s,o,i,e').order('id');
+                    if (error) throw error;
+                    data = (rows || []).map(r => ({ id: r.id, templateName: r.template_name, focus: r.focus, s: r.s, o: r.o, i: r.i, e: r.e }));
+                }
                 this.templateCache[cacheKey] = Array.isArray(data) ? data : [];
                 return this.templateCache[cacheKey];
             })();
@@ -1784,24 +1803,37 @@ function nurseApp() {
         async restoreSession() {
             this.isLoading = true;
             try {
-                const savedToken = window.localStorage.getItem(this.authSessionKey) || '';
-                if (!savedToken) {
+                const sb = this.getSupabase();
+                const { data: { session } } = await sb.auth.getSession();
+                if (!session) {
                     this.setAuthenticatedUser(null, '');
                     return;
                 }
 
-                const result = await this.apiFetch(`${this.API_URL}?action=getSessionUser&sessionToken=${encodeURIComponent(savedToken)}&_=${Date.now()}`);
-                if (result.status !== 'success' || !result.user) {
-                    window.localStorage.removeItem(this.authSessionKey);
+                const { data: profile, error: profileError } = await sb
+                    .from('profiles')
+                    .select('full_name, position, username, role, must_change_password')
+                    .eq('id', session.user.id)
+                    .single();
+                if (profileError || !profile) {
                     this.setAuthenticatedUser(null, '');
                     return;
                 }
 
-                this.setAuthenticatedUser(result.user, savedToken);
-                await this.loadInitialData();
+                const user = {
+                    fullName: profile.full_name,
+                    position: profile.position,
+                    username: profile.username,
+                    role: profile.role,
+                    mustChangePassword: profile.must_change_password
+                };
+
+                this.setAuthenticatedUser(user, session.access_token);
+                if (this.isAuthenticated) {
+                    await this.loadInitialData();
+                }
             } catch (error) {
                 console.error('Restore session error:', error);
-                window.localStorage.removeItem(this.authSessionKey);
                 this.setAuthenticatedUser(null, '');
             } finally {
                 this.isLoading = false;
@@ -1816,22 +1848,38 @@ function nurseApp() {
 
             this.isLoading = true;
             try {
-                const result = await this.apiFetch(this.API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        action: 'loginUser',
-                        payload: {
-                            username,
-                            password
-                        }
-                    })
-                });
-                if (result.status !== 'success' || !result.sessionToken || !result.user) {
-                    throw new Error(result.message || 'เข้าสู่ระบบไม่สำเร็จ');
+                const sb = this.getSupabase();
+
+                // แปลง username -> email ก่อน เพราะ Supabase login ด้วยอีเมลเท่านั้น
+                const { data: email, error: lookupError } = await sb.rpc('email_for_username', { p_username: username });
+                if (lookupError || !email) {
+                    throw new Error('ไม่พบชื่อผู้ใช้นี้ในระบบ');
                 }
 
-                window.localStorage.setItem(this.authSessionKey, result.sessionToken);
-                this.setAuthenticatedUser(result.user, result.sessionToken);
+                const { data: authData, error: authError } = await sb.auth.signInWithPassword({ email, password });
+                if (authError) {
+                    // username ถูกต้อง แต่รหัสผ่านไม่ถูก → อาจเป็นเพราะระบบเพิ่งอัพเดท
+                    throw new Error('__WRONG_PASSWORD__');
+                }
+
+                const { data: profile, error: profileError } = await sb
+                    .from('profiles')
+                    .select('full_name, position, username, role, must_change_password')
+                    .eq('id', authData.user.id)
+                    .single();
+                if (profileError || !profile) {
+                    throw new Error('เข้าสู่ระบบสำเร็จ แต่โหลดข้อมูลผู้ใช้ไม่สำเร็จ');
+                }
+
+                const user = {
+                    fullName: profile.full_name,
+                    position: profile.position,
+                    username: profile.username,
+                    role: profile.role,
+                    mustChangePassword: profile.must_change_password
+                };
+
+                this.setAuthenticatedUser(user, authData.session.access_token);
                 this.authLoginForm.password = '';
                 
                 // ล้างแคชเบราว์เซอร์เก่าเมื่อเข้าสู่ระบบเพื่อให้แน่ใจว่าเห็นโค้ดอัปเดตเวอร์ชันล่าสุดเสมอ
@@ -1844,7 +1892,14 @@ function nurseApp() {
                 this.successMsg = 'เข้าสู่ระบบสำเร็จ';
                 setTimeout(() => this.showSuccess = false, 2500);
             } catch (error) {
-                this.showAlert('เข้าสู่ระบบไม่สำเร็จ', error.message);
+                if (error.message === '__WRONG_PASSWORD__') {
+                    this.showAlert(
+                        '🔄 ระบบได้รับการอัพเดท',
+                        `ชื่อผู้ใช้ถูกต้อง แต่รหัสผ่านไม่ตรง\n\nหากคุณยังไม่เคยเปลี่ยนรหัสผ่านหลังอัพเดทระบบ กรุณาใช้รหัสผ่านเริ่มต้น:\n\n🔑 รหัสผ่าน: 1234\n\n(แนะนำให้เปลี่ยนรหัสผ่านทันทีหลังเข้าสู่ระบบ)`
+                    );
+                } else {
+                    this.showAlert('เข้าสู่ระบบไม่สำเร็จ', error.message);
+                }
             } finally {
                 this.isLoading = false;
             }
@@ -1869,24 +1924,40 @@ function nurseApp() {
 
             this.isLoading = true;
             try {
-                const response = await fetch(this.API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        action: 'sendRegistrationVerification',
-                        payload: form
-                    })
+                const sb = this.getSupabase();
+                const fullName = `${form.prefix}${form.firstName} ${form.lastName}`.trim();
+
+                const { data, error } = await sb.auth.signUp({
+                    email: form.email,
+                    password: form.password,
+                    options: {
+                        data: {
+                            full_name: fullName,
+                            username: form.username,
+                            position: ''
+                        }
+                    }
                 });
-                const result = await response.json();
-                if (result.status !== 'success') {
-                    throw new Error(result.message || 'ส่งรหัสยืนยันไม่สำเร็จ');
+                if (error) {
+                    throw new Error(error.message || 'ลงทะเบียนไม่สำเร็จ');
+                }
+                if (!data.session) {
+                    // เผื่อกรณี dashboard ยังไม่ได้ปิด confirm email ไว้จริง
+                    throw new Error('สมัครสำเร็จ แต่ยังไม่สามารถเข้าสู่ระบบอัตโนมัติได้ กรุณาติดต่อแอดมิน');
                 }
 
-                this.authVerifyForm.email = result.email || form.email;
-                this.authVerifyForm.code = '';
-                this.authMode = 'verify';
-                this.authLoginForm.username = result.username || form.username;
+                const user = {
+                    fullName,
+                    position: '',
+                    username: form.username,
+                    role: 'nurse',
+                    mustChangePassword: false
+                };
+                this.setAuthenticatedUser(user, data.session.access_token);
+                this.authRegisterForm = { username: '', prefix: 'นางสาว', firstName: '', lastName: '', email: '', password: '', confirmPassword: '' };
+                await this.loadInitialData();
                 this.showSuccess = true;
-                this.successMsg = result.message || 'ส่งรหัสยืนยันเรียบร้อยแล้ว';
+                this.successMsg = 'สมัครสมาชิกสำเร็จ เข้าสู่ระบบให้อัตโนมัติแล้ว';
                 setTimeout(() => this.showSuccess = false, 3000);
             } catch (error) {
                 this.showAlert('ลงทะเบียนไม่สำเร็จ', error.message);
@@ -1894,39 +1965,11 @@ function nurseApp() {
                 this.isLoading = false;
             }
         },
+        // เดิมใช้ยืนยัน OTP ทางอีเมล แต่ตอนนี้ signUp ผ่าน Supabase Auth ล็อกอินให้ทันทีอยู่แล้ว (ไม่ต้องรอยืนยันอีเมล)
+        // เก็บฟังก์ชันนี้ไว้กันหน้าจอเดิมพังเฉยๆ เผื่อยังมีปุ่ม/ลิงก์เก่าเรียกอยู่
         async submitVerification() {
-            const email = String(this.authVerifyForm.email || '').trim();
-            const code = String(this.authVerifyForm.code || '').trim();
-            if (!email || !code) {
-                return this.showAlert('แจ้งเตือน', 'กรุณากรอกอีเมลและรหัสยืนยัน');
-            }
-
-            this.isLoading = true;
-            try {
-                const response = await fetch(this.API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        action: 'verifyRegistrationCode',
-                        payload: { email, code }
-                    })
-                });
-                const result = await response.json();
-                if (result.status !== 'success') {
-                    throw new Error(result.message || 'ยืนยันอีเมลไม่สำเร็จ');
-                }
-
-                this.authLoginForm.username = result.user?.username || this.authLoginForm.username;
-                this.authLoginForm.password = '';
-                this.authMode = 'login';
-                this.authVerifyForm.code = '';
-                this.showSuccess = true;
-                this.successMsg = result.message || 'ยืนยันอีเมลเรียบร้อยแล้ว';
-                setTimeout(() => this.showSuccess = false, 3000);
-            } catch (error) {
-                this.showAlert('ยืนยันอีเมลไม่สำเร็จ', error.message);
-            } finally {
-                this.isLoading = false;
-            }
+            this.authMode = 'login';
+            this.showAlert('ไม่จำเป็นต้องยืนยันอีเมลแล้ว', 'ระบบสมัครสมาชิกปัจจุบันเข้าสู่ระบบให้อัตโนมัติ กรุณาเข้าสู่ระบบด้วยชื่อผู้ใช้และรหัสผ่านที่ตั้งไว้ได้เลย');
         },
         // หาเวลาสิ้นสุดเวรที่ใกล้ที่สุดในอนาคต (08:00 สิ้นสุดเวรดึก / 16:00 สิ้นสุดเวรเช้า / 24:00(00:00) สิ้นสุดเวรบ่าย)
         getNextShiftBoundaryDate(fromDate = new Date()) {
@@ -2024,22 +2067,12 @@ function nurseApp() {
             this.showAlert('ออกจากระบบอัตโนมัติ', reasonText);
         },
         async logout() {
-            const currentToken = this.sessionToken || window.localStorage.getItem(this.authSessionKey) || '';
             this.isLoading = true;
             try {
-                if (currentToken) {
-                    await fetch(this.API_URL, {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            action: 'logoutUser',
-                            payload: { sessionToken: currentToken }
-                        })
-                    });
-                }
+                await this.getSupabase().auth.signOut();
             } catch (error) {
                 console.error('Logout error:', error);
             } finally {
-                window.localStorage.removeItem(this.authSessionKey);
                 this.setAuthenticatedUser(null, '');
                 this.resetAuthForms();
                 this.currentWard = null;
@@ -2371,6 +2404,68 @@ function nurseApp() {
             return this.progressNotes.filter(p => p.focus && p.focus.toLowerCase().includes(q));
         },
 
+                async getAvailableBeds(ward) {
+            if (!ward) return [];
+            const sb = this.getSupabase();
+            const { data, error } = await sb
+                .from('beds')
+                .select('bed_name')
+                .eq('ward', ward)
+                .eq('status', 'ว่าง')
+                .order('bed_name');
+            if (error) {
+                console.error('getAvailableBeds error:', error);
+                return [];
+            }
+            return (data || []).map(row => row.bed_name);
+        },
+        
+        // ดึง "คะแนนล่าสุด" ของแต่ละ AN จากตาราง classification / fall risk / braden (เดิมคือ getLatestScoresMap() ฝั่ง Apps Script)
+        // เรียงตาม created_at จากเก่า->ใหม่ แล้วเขียนทับ map ไปเรื่อยๆ ให้ค่าสุดท้ายคือค่าล่าสุด (พฤติกรรมเดิมเป๊ะๆ)
+        async getLatestScoresMap(ans) {
+            const empty = { classMap: {}, classPedMap: {}, morseMap: {}, maasMap: {}, bradenMap: {}, bradenDateMap: {} };
+            const anList = Array.from(new Set((ans || []).map(a => String(a).trim()).filter(Boolean)));
+            if (!anList.length) return empty;
+
+            const sb = this.getSupabase();
+            const [classRes, classPedRes, morseRes, bradenRes] = await Promise.all([
+                sb.from('patient_classification').select('an,category,total,created_at').in('an', anList).order('created_at', { ascending: true }),
+                sb.from('classifications_pediatric').select('an,class_type,score,created_at').in('an', anList).order('created_at', { ascending: true }),
+                sb.from('fall_risk_morse').select('an,morse_total,maas_score,created_at').in('an', anList).order('created_at', { ascending: true }),
+                sb.from('braden_scale').select('an,total_score,eval_date,created_at').in('an', anList).order('created_at', { ascending: true })
+            ]);
+
+            const classMap = {};
+            (classRes.data || []).forEach(r => {
+                const an = String(r.an || '').trim();
+                if (an) classMap[an] = { category: r.category || '', total: r.total != null ? String(r.total) : '' };
+            });
+
+            const classPedMap = {};
+            (classPedRes.data || []).forEach(r => {
+                const an = String(r.an || '').trim();
+                if (an) classPedMap[an] = { classType: r.class_type || '', score: r.score != null ? String(r.score) : '' };
+            });
+
+            const morseMap = {}, maasMap = {};
+            (morseRes.data || []).forEach(r => {
+                const an = String(r.an || '').trim();
+                if (!an) return;
+                if (r.morse_total != null) morseMap[an] = String(r.morse_total);
+                if (r.maas_score != null) maasMap[an] = String(r.maas_score);
+            });
+
+            const bradenMap = {}, bradenDateMap = {};
+            (bradenRes.data || []).forEach(r => {
+                const an = String(r.an || '').trim();
+                if (!an) return;
+                if (r.total_score != null) bradenMap[an] = String(r.total_score);
+                if (r.eval_date) bradenDateMap[an] = String(r.eval_date);
+            });
+
+            return { classMap, classPedMap, morseMap, maasMap, bradenMap, bradenDateMap };
+        },
+
         async loadInitialData(options = {}) {
             if (!options.force && this.initDataLoadedAt && (Date.now() - this.initDataLoadedAt) < this.initDataTTL) {
                 return;
@@ -2381,11 +2476,19 @@ function nurseApp() {
 
             if (!options.silent) this.isLoading = true;
             const task = (async () => {
-                const data = await this.apiFetch(`${this.API_URL}?action=getInitData`);
-                this.wards = data.wards || [];
-                this.configs.depts = data.depts || [];
-                this.doctors = data.doctors || [];
-                this.nurses = data.nurses || [];
+                const sb = this.getSupabase();
+
+                const [wardsRes, deptsRes, doctorsRes, staffRes] = await Promise.all([
+                    sb.from('config').select('value').eq('category', 'Ward').order('value'),
+                    sb.from('config').select('value').eq('category', 'Dept').order('value'),
+                    sb.from('doctors').select('name').order('name'),
+                    sb.from('staff').select('name').order('name')
+                ]);
+
+                this.wards = (wardsRes.data || []).map(row => row.value);
+                this.configs.depts = (deptsRes.data || []).map(row => row.value);
+                this.doctors = (doctorsRes.data || []).map(row => row.name);
+                this.nurses = (staffRes.data || []).map(row => ({ name: row.name }));
                 this.initDataLoadedAt = Date.now();
             })();
 
@@ -2434,15 +2537,56 @@ function nurseApp() {
 
             if (!options.silent) this.isLoading = true;
             const task = (async () => {
-                const res = await fetch(`${this.API_URL}?action=getPatients&ward=${encodeURIComponent(wardKey)}`);
-                const data = await res.json();
-                const patientList = (Array.isArray(data) ? data : []).map((patient) => {
+                const sb = this.getSupabase();
+                const { data: rows, error } = await sb
+                    .from('current_patients')
+                    .select('*')
+                    .eq('ward', wardKey)
+                    .order('admit_date', { ascending: true });
+                if (error) {
+                    console.error('fetchPatients error:', error);
+                    this.patients = [];
+                    this.checkCriticalAlerts();
+                    return [];
+                }
+
+                const ansOnWard = (rows || []).map(r => String(r.an || '').trim()).filter(Boolean);
+                const scores = await this.getLatestScoresMap(ansOnWard);
+
+                const patientList = (rows || []).map((row) => {
+                    // แปลง snake_case (Supabase) -> camelCase เดิมที่หน้าจอใช้อยู่
+                    const patient = {
+                        date: row.admit_date || '',
+                        time: row.admit_time || '',
+                        ward: row.ward || '',
+                        bed: row.bed || '',
+                        receivedFrom: row.received_from || '',
+                        referFrom: row.refer_from || '',
+                        hn: row.hn || '',
+                        an: row.an || '',
+                        name: row.name || '',
+                        address: row.address || '',
+                        dob: row.dob || '',
+                        ageDisplay: row.age_display || '',
+                        dept: row.dept || '',
+                        cc: row.cc || '',
+                        pi: row.pi || '',
+                        dx: row.dx || '',
+                        doctor: row.doctor || '',
+                        status: row.status || ''
+                    };
                     const ageDisplay = this.resolvePatientAgeDisplay(patient);
+                    const anStr = String(patient.an).trim();
                     return {
                         ...patient,
-                        dob: patient.dob || patient.DOB || '',
-                        age: patient.age || patient.Age || ageDisplay || '',
-                        ageDisplay: ageDisplay || ''
+                        age: ageDisplay || '',
+                        ageDisplay: ageDisplay || '',
+                        latestClass: scores.classMap[anStr] || null,
+                        latestClassPed: scores.classPedMap[anStr] || null,
+                        latestMorse: scores.morseMap[anStr] || '',
+                        latestMaas: scores.maasMap[anStr] || '',
+                        latestBraden: scores.bradenMap[anStr] || '',
+                        latestBradenDate: scores.bradenDateMap[anStr] || ''
                     };
                 });
                 this.patients = patientList;
@@ -2572,6 +2716,27 @@ function nurseApp() {
             }
         },
 
+        // Upsert อย่างง่าย: หา row ล่าสุดที่ match คอลัมน์ that แล้ว update ถ้าเจอ ไม่เจอก็ insert ใหม่
+        // ใช้แทน pattern เดิมของ Apps Script ที่ loop หาแถวแล้ว setValues/appendRow
+        async upsertFormRow(table, matchCol, matchVal, row) {
+            const sb = this.getSupabase();
+            const { data: existing, error: findErr } = await sb
+                .from(table)
+                .select('id')
+                .eq(matchCol, String(matchVal))
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+            if (findErr) throw findErr;
+            if (existing && existing.id) {
+                const { error } = await sb.from(table).update(row).eq('id', existing.id);
+                if (error) throw error;
+            } else {
+                const { error } = await sb.from(table).insert({ ...row, [matchCol]: String(matchVal) });
+                if (error) throw error;
+            }
+        },
+
         async saveAssessmentData(shouldPrint = false) {
             const formElement = document.getElementById('assessment-form-v2');
             if (!formElement) return this.showAlert('Error', 'ไม่พบฟอร์มข้อมูล');
@@ -2586,13 +2751,22 @@ function nurseApp() {
         
             this.isLoading = true;
             try {
-                const payload = { an: this.selectedPatient?.an, formData: data, ward: this.currentWard };
-                const res = await fetch(this.API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'saveAssessmentInitial', payload: payload })
+                const an = this.selectedPatient?.an;
+                await this.upsertFormRow('assessment_initial', 'an', an, {
+                    hn: this.selectedPatient?.hn || '',
+                    patient_name: this.selectedPatient?.name || '',
+                    ward: this.currentWard || '',
+                    admit_date: data.AdmitDate || null,
+                    admit_time: data.AdmitTime || '',
+                    chief_complaint: data.ChiefComplaint || '',
+                    present_illness: data.PresentIllness || '',
+                    pain_score: data.Pain_Scale_Score || '',
+                    assessor_name: data.Assessor_Name || '',
+                    assessor_position: data.Assessor_Pos || '',
+                    full_json: data
                 });
-                const result = await res.json();
-                
+                const result = { status: 'success', message: 'บันทึกข้อมูลประเมินแรกรับเรียบร้อยแล้ว' };
+
                 if (result.status === 'success') {
                     this.successMsg = result.message;
                     this.showSuccess = true;
@@ -2635,8 +2809,15 @@ function nurseApp() {
             if (!options.silent) this.isLoading = true;
             const task = (async () => {
             try {
-                const response = await fetch(`${this.API_URL}?action=getAssessmentPed&an=${an}`);
-                const data = await response.json();
+                const sb = this.getSupabase();
+                const { data: rows, error } = await sb
+                    .from('assessment_pediatric')
+                    .select('form_data')
+                    .eq('an', String(an))
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+                if (error) throw error;
+                const data = (rows && rows[0] && rows[0].form_data) || null;
         
                 if (data && Object.keys(data).length > 0) {
                     this.savedAssessmentPed = data;
@@ -2727,12 +2908,15 @@ function nurseApp() {
         
             this.isLoading = true;
             try {
-                const payload = { an: this.selectedPatient?.an, formData: data, ward: this.currentWard, bed: this.selectedPatient?.bed };
-                const res = await fetch(this.API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'saveAssessmentPed', payload: payload })
+                const an = this.selectedPatient?.an;
+                await this.upsertFormRow('assessment_pediatric', 'an', an, {
+                    ward: this.currentWard || '',
+                    bed: this.selectedPatient?.bed || '',
+                    assessor_name: data.ped_AssessorName || '',
+                    assessor_position: data.ped_AssessorPosition || '',
+                    form_data: data
                 });
-                const result = await res.json();
+                const result = { status: 'success', message: 'บันทึกประเมินแรกรับเด็กสำเร็จ' };
                 
                 if (result.status === 'success') {
                     this.successMsg = result.message;
@@ -2759,9 +2943,15 @@ function nurseApp() {
             if (!options.silent) this.isLoading = true; // เปิดสถานะโหลด
             const task = (async () => {
             try {
-                // เรียกใช้ fetch ไปที่ API_URL ของคุณ เหมือนฟังก์ชันอื่นๆ
-                const response = await fetch(`${this.API_URL}?action=getAssessmentInitial&an=${an}`);
-                const data = await response.json();
+                const sb = this.getSupabase();
+                const { data: rows, error } = await sb
+                    .from('assessment_initial')
+                    .select('full_json')
+                    .eq('an', String(an))
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+                if (error) throw error;
+                const data = (rows && rows[0] && rows[0].full_json) || null;
         
                 if (data && Object.keys(data).length > 0) {
                     // 🟢 มีข้อมูลแล้ว -> เก็บใส่ตัวแปรและเปิดโหมด A4 Preview ทันที
@@ -2848,8 +3038,7 @@ function nurseApp() {
             this.isEditing = false;
             this.resetForm();
             try {
-                const res = await fetch(`${this.API_URL}?action=getBeds&ward=${this.currentWard}`);
-                this.availableBeds = await res.json();
+                this.availableBeds = await this.getAvailableBeds(this.currentWard);
                 this.form.date = new Date().toISOString().split('T')[0];
                 this.form.time = new Date().toLocaleTimeString('th-TH', { hour12: false, hour: '2-digit', minute: '2-digit' });
                 this.showAdmitModal = true;
@@ -2907,9 +3096,7 @@ function nurseApp() {
                 }
         
                 // 6. โหลดเตียงว่าง และเพิ่มเตียงปัจจุบันของคนไข้เข้าไปในตัวเลือก
-                const res = await fetch(`${this.API_URL}?action=getBeds&ward=${this.currentWard}`);
-                let fetchedBeds = await res.json();
-                this.availableBeds = Array.isArray(fetchedBeds) ? fetchedBeds : [];
+                this.availableBeds = await this.getAvailableBeds(this.currentWard);
                 
                 if (bedVal && !this.availableBeds.includes(bedVal)) {
                     this.availableBeds.unshift(bedVal);
@@ -2941,8 +3128,7 @@ function nurseApp() {
         async fetchMoveBeds() {
             this.isLoading = true;
             try {
-                const res = await fetch(`${this.API_URL}?action=getBeds&ward=${this.moveForm.targetWard}`);
-                this.moveBeds = await res.json();
+                this.moveBeds = await this.getAvailableBeds(this.moveForm.targetWard);
             } catch (e) { this.moveBeds = []; }
             this.isLoading = false;
         },
@@ -2962,15 +3148,84 @@ function nurseApp() {
             });
         },
 
+        // แปลงข้อมูลผู้ป่วยจาก form (camelCase) ให้เป็นคอลัมน์ของตาราง current_patients/registry_history (snake_case) ใน Supabase
+        mapPatientFormToRow(p) {
+            return {
+                admit_date: p.date || null,
+                admit_time: p.time || '',
+                ward: p.ward || '',
+                bed: p.bed || '',
+                received_from: p.receivedFrom || '',
+                refer_from: p.referFrom || '',
+                hn: p.hn || '',
+                an: p.an || '',
+                name: p.name || '',
+                address: p.address || '',
+                dob: p.dob || null,
+                age_display: p.ageDisplay || '',
+                dept: p.dept || '',
+                cc: p.cc || '',
+                pi: p.pi || '',
+                dx: p.dx || '',
+                doctor: p.doctor || ''
+            };
+        },
+
+        async setBedStatus(ward, bedName, status) {
+            if (!ward || !bedName) return;
+            const sb = this.getSupabase();
+            const { error } = await sb.from('beds').update({ status }).eq('ward', ward).eq('bed_name', bedName);
+            if (error) console.error('setBedStatus error:', error);
+        },
+
+        // เดิมยิงไป Google Apps Script (postToGAS) ตอนนี้เขียนตรงเข้า Supabase แทน
+        // action ที่รองรับ: admitPatient, editPatient, discharge, movePatient
         async postToGAS(action, payload, msg) {
             this.isLoading = true;
             try {
-                await fetch(this.API_URL, { 
-                    method: 'POST', 
-                    mode: 'no-cors', 
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action, payload }) 
-                });
+                const sb = this.getSupabase();
+
+                if (action === 'admitPatient') {
+                    const row = this.mapPatientFormToRow(payload);
+                    row.status = 'Active';
+                    const { error } = await sb.from('current_patients').insert(row);
+                    if (error) throw error;
+                    await this.setBedStatus(payload.ward, payload.bed, 'ไม่ว่าง');
+
+                } else if (action === 'editPatient') {
+                    const row = this.mapPatientFormToRow(payload);
+                    const { error } = await sb.from('current_patients').update(row).eq('an', String(payload.an));
+                    if (error) throw error;
+
+                } else if (action === 'discharge') {
+                    const { data: existing, error: fetchErr } = await sb
+                        .from('current_patients')
+                        .select('*')
+                        .eq('an', String(payload.an))
+                        .limit(1)
+                        .maybeSingle();
+                    if (fetchErr) throw fetchErr;
+                    if (existing) {
+                        const { id, created_at, ...historyRow } = existing;
+                        historyRow.status = 'Discharged';
+                        historyRow.discharge_date = new Date().toISOString().split('T')[0];
+                        const { error: insErr } = await sb.from('registry_history').insert(historyRow);
+                        if (insErr) throw insErr;
+                        const { error: delErr } = await sb.from('current_patients').delete().eq('an', String(payload.an));
+                        if (delErr) throw delErr;
+                        await this.setBedStatus(payload.ward, payload.bed, 'ว่าง');
+                    }
+
+                } else if (action === 'movePatient') {
+                    const { error } = await sb
+                        .from('current_patients')
+                        .update({ ward: payload.newWard, bed: payload.newBed })
+                        .eq('an', String(payload.an));
+                    if (error) throw error;
+                    await this.setBedStatus(payload.oldWard, payload.oldBed, 'ว่าง');
+                    await this.setBedStatus(payload.newWard, payload.newBed, 'ไม่ว่าง');
+                }
+
                 if (action === 'movePatient') {
                     this.invalidateWardPatientsCache(payload.oldWard);
                     this.invalidateWardPatientsCache(payload.newWard);
@@ -2980,10 +3235,11 @@ function nurseApp() {
                 this.successMsg = msg;
                 this.showSuccess = true;
                 setTimeout(() => { this.showSuccess = false; }, 3000);
-                setTimeout(async () => { await this.fetchPatients(); this.isLoading = false; }, 1000);
-            } catch (e) { 
-                this.isLoading = false; 
-                this.showAlert("Error", "ไม่สามารถบันทึกข้อมูลได้: " + e.message); 
+                setTimeout(async () => { await this.fetchPatients({ force: true }); this.isLoading = false; }, 300);
+            } catch (e) {
+                this.isLoading = false;
+                console.error('postToGAS (Supabase) error:', e);
+                this.showAlert("Error", "ไม่สามารถบันทึกข้อมูลได้: " + (e.message || e));
             }
         },
 
@@ -3504,9 +3760,30 @@ function nurseApp() {
             if (!options.silent) this.isLoading = true;
 
             const loadTask = (async () => {
+                const sb = this.getSupabase();
                 if (pediatric) {
-                    const res = await fetch(`${this.API_URL}?action=getClassificationsPed&an=${an}&_=${Date.now()}`);
-                    const rawHistory = await res.json();
+                    const { data: rowsData, error } = await sb
+                        .from('classifications_pediatric')
+                        .select('*')
+                        .eq('an', String(an))
+                        .order('created_at', { ascending: true });
+                    if (error) throw error;
+                    const rawHistory = (rowsData || []).map(r => {
+                        const formData = r.form_data || {};
+                        return {
+                            timestamp: r.created_at,
+                            an: r.an,
+                            ward: r.ward || '',
+                            bed: r.bed || '',
+                            evalDate: r.eval_date,
+                            shift: r.shift,
+                            score: r.score,
+                            classType: r.class_type,
+                            assessor: r.assessor || '',
+                            formData,
+                            scores: [1,2,3,4,5,6,7,8,9,10].map(n => formData['item' + n] || '')
+                        };
+                    });
                     if (String(this.selectedPatient?.an || this.selectedPatient?.AN || '') !== String(an)) return [];
                     this.classHistoryPed = this.normalizePedClassificationHistory(rawHistory);
                     this.rebuildClassificationGrid(this.classHistoryPed);
@@ -3515,8 +3792,22 @@ function nurseApp() {
                     return this.classHistoryPed;
                 }
 
-                const res = await fetch(`${this.API_URL}?action=getClassifications&an=${an}&_=${Date.now()}`);
-                const rawHistory = await res.json();
+                const { data: rowsData2, error: error2 } = await sb
+                    .from('patient_classification')
+                    .select('*')
+                    .eq('an', String(an))
+                    .order('created_at', { ascending: true });
+                if (error2) throw error2;
+                const rawHistory = (rowsData2 || []).map(r => ({
+                    timestamp: r.created_at,
+                    an: r.an,
+                    evalDate: r.eval_date,
+                    shift: r.shift,
+                    scores: [1,2,3,4,5,6,7,8].map(n => r['q' + n] != null ? Number(r['q' + n]) : ''),
+                    total: r.total || 0,
+                    category: r.category || '',
+                    assessor: r.assessor || ''
+                }));
                 if (String(this.selectedPatient?.an || this.selectedPatient?.AN || '') !== String(an)) return [];
                 this.classHistory = this.normalizeAdultClassificationHistory(rawHistory);
                 this.rebuildClassificationGrid(this.classHistory);
@@ -3564,6 +3855,70 @@ function nurseApp() {
             else if (total > 0) cat = 'ประเภท 1';
             
             return { total: total, category: cat };
+        },
+
+        // เดิม saveClassification / saveClassificationSingle ฝั่ง Apps Script: upsert ตาม an+evalDate+shift
+        async saveClassificationRow(payload) {
+            const sb = this.getSupabase();
+            const targetDate = payload.evalDate || payload.date;
+            const targetShift = payload.shift;
+            const { data: existing, error: findErr } = await sb
+                .from('patient_classification')
+                .select('id')
+                .eq('an', String(payload.an))
+                .eq('eval_date', targetDate)
+                .eq('shift', targetShift)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+            if (findErr) throw findErr;
+            const scores = payload.scores || [];
+            const row = {
+                an: String(payload.an), hn: payload.hn || '', ward: payload.ward || '',
+                eval_date: targetDate, shift: targetShift,
+                q1: scores[0] ?? null, q2: scores[1] ?? null, q3: scores[2] ?? null, q4: scores[3] ?? null,
+                q5: scores[4] ?? null, q6: scores[5] ?? null, q7: scores[6] ?? null, q8: scores[7] ?? null,
+                total: payload.total ?? null, category: payload.category || '', assessor: payload.assessor || ''
+            };
+            if (existing && existing.id) {
+                const { error } = await sb.from('patient_classification').update(row).eq('id', existing.id);
+                if (error) throw error;
+            } else {
+                const { error } = await sb.from('patient_classification').insert(row);
+                if (error) throw error;
+            }
+            return { status: 'success', message: 'บันทึกข้อมูลเรียบร้อยแล้ว' };
+        },
+
+        // เดิม saveClassificationPed ฝั่ง Apps Script: upsert ตาม an+evalDate+shift
+        async saveClassificationPedRow(payload) {
+            const sb = this.getSupabase();
+            const targetDate = payload.evalDate || payload.date;
+            const targetShift = payload.shift;
+            const { data: existing, error: findErr } = await sb
+                .from('classifications_pediatric')
+                .select('id')
+                .eq('an', String(payload.an))
+                .eq('eval_date', targetDate)
+                .eq('shift', targetShift)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+            if (findErr) throw findErr;
+            const row = {
+                an: String(payload.an), ward: payload.ward || '', bed: payload.bed || '',
+                eval_date: targetDate, shift: targetShift,
+                score: payload.score ?? null, class_type: payload.classType || '',
+                assessor: payload.assessor || '', form_data: payload.formData || {}
+            };
+            if (existing && existing.id) {
+                const { error } = await sb.from('classifications_pediatric').update(row).eq('id', existing.id);
+                if (error) throw error;
+            } else {
+                const { error } = await sb.from('classifications_pediatric').insert(row);
+                if (error) throw error;
+            }
+            return { status: 'success', message: 'บันทึกการจำแนกประเภทผู้ป่วยเด็กสำเร็จ' };
         },
 
         // บันทึกคะแนนเด็ก (แยก Shift)
@@ -3620,12 +3975,7 @@ function nurseApp() {
             
             this.isLoading = true;
             try {
-                const response = await fetch(this.API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'saveClassificationPed', payload: payload }) // 
-                });
-                
-                const res = await response.json();
+                const res = await this.saveClassificationPedRow(payload);
                 if (res.status === 'success') {
                     this.showSuccess = true;
                     this.successMsg = `บันทึกเวร${shift} วันที่ ${this.formatThaiDateShort(date)} สำเร็จ`;
@@ -3679,12 +4029,7 @@ function nurseApp() {
                     formData: this.pedClassForm.scores
                 };
                 
-                const response = await fetch(this.API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'saveClassificationPed', payload: payload }) 
-                });
-                
-                const res = await response.json();
+                const res = await this.saveClassificationPedRow(payload);
                 if (res.status === 'success') {
                     this.showSuccess = true;
                     this.successMsg = res.message;
@@ -3915,11 +4260,7 @@ function nurseApp() {
             this.isLoading = true;
             try {
                 for (const payload of recordsToSave) {
-                    await fetch(this.API_URL, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        body: JSON.stringify({ action: 'saveClassification', payload })
-                    });
+                    await this.saveClassificationRow(payload);
                 }
                 this.successMsg = 'บันทึกข้อมูลเรียบร้อยแล้ว';
                 this.showSuccess = true;
@@ -4115,11 +4456,7 @@ function nurseApp() {
 
             this.isLoading = true;
             try {
-                const response = await fetch(this.API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'saveClassification', payload: payload })
-                });
-                const res = await response.json();
+                const res = await this.saveClassificationRow(payload);
                 if (res.status !== 'success') throw new Error(res.message || 'บันทึกข้อมูลไม่สำเร็จ');
 
                 this.upsertClassificationRecord({
@@ -4173,11 +4510,7 @@ function nurseApp() {
 
             this.isLoading = true;
             try {
-                const response = await fetch(this.API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'saveClassificationPed', payload })
-                });
-                const res = await response.json();
+                const res = await this.saveClassificationPedRow(payload);
                 if (res.status !== 'success') throw new Error(res.message);
 
                 this.showPedShiftModal = false;
@@ -4196,6 +4529,39 @@ function nurseApp() {
                 this.isLoading = false;
             }
         },
+        // เดิม saveFallRisk / saveFallRiskSingle ฝั่ง Apps Script: upsert ตาม an+evalDate+shift
+        async saveFallRiskRow(payload) {
+            const sb = this.getSupabase();
+            const targetDate = payload.evalDate;
+            const targetShift = payload.shift;
+            const { data: existing, error: findErr } = await sb
+                .from('fall_risk_morse')
+                .select('id')
+                .eq('an', String(payload.an))
+                .eq('eval_date', targetDate)
+                .eq('shift', targetShift)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+            if (findErr) throw findErr;
+            const row = {
+                an: String(payload.an), hn: payload.hn || '', ward: payload.ward || '',
+                eval_date: targetDate, shift: targetShift,
+                m1: payload.m1 || 0, m2: payload.m2 || 0, m3: payload.m3 || 0,
+                m4: payload.m4 || 0, m5: payload.m5 || 0, m6: payload.m6 || 0,
+                morse_total: payload.morseTotal || 0, maas_score: payload.maasScore || '',
+                assessor: payload.assessor || ''
+            };
+            if (existing && existing.id) {
+                const { error } = await sb.from('fall_risk_morse').update(row).eq('id', existing.id);
+                if (error) throw error;
+            } else {
+                const { error } = await sb.from('fall_risk_morse').insert(row);
+                if (error) throw error;
+            }
+            return { status: 'success', message: 'บันทึกข้อมูลเรียบร้อย' };
+        },
+
         async saveFallShiftForm() {
             if (this.isLoading) return;
             const form = this.fallShiftForm;
@@ -4209,7 +4575,6 @@ function nurseApp() {
             }
 
             const payload = {
-                action: 'saveFallRiskSingle',
                 an: this.selectedPatient.an,
                 hn: this.selectedPatient.hn,
                 ward: this.currentWard,
@@ -4224,11 +4589,7 @@ function nurseApp() {
 
             this.isLoading = true;
             try {
-                const response = await fetch(this.API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify(payload)
-                });
-                const res = await response.json();
+                const res = await this.saveFallRiskRow(payload);
                 if (res.status !== 'success') throw new Error(res.message);
 
                 this.showFallShiftModal = false;
@@ -4280,24 +4641,18 @@ function nurseApp() {
             try {
                 const scoresResult = this.calcScores(cell.scores);
                 const payload = {
-                    action: 'saveClassificationSingle', // เรียกฟังก์ชันใหม่ที่บันทึกแถวเดียว
                     an: this.selectedPatient.an,
                     hn: this.selectedPatient.hn,
                     ward: this.currentWard,
                     evalDate: date,
                     shift: shift,
-                    q1: cell.scores[0], q2: cell.scores[1], q3: cell.scores[2], q4: cell.scores[3],
-                    q5: cell.scores[4], q6: cell.scores[5], q7: cell.scores[6], q8: cell.scores[7],
+                    scores: cell.scores,
                     total: scoresResult.total,
                     category: scoresResult.category,
                     assessor: cell.assessor
                 };
         
-                const response = await fetch(this.API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify(payload)
-                });
-                const res = await response.json();
+                const res = await this.saveClassificationRow(payload);
         
             if (res.status === 'success') {
                 this.dialog = { show: true, type: 'alert', title: 'สำเร็จ', msg: `บันทึกข้อมูลเวร ${shift} ของวันที่ ${date} เรียบร้อยแล้ว` };
@@ -4773,25 +5128,13 @@ function nurseApp() {
 
             this.isLoading = true;
             try {
-                const response = await fetch(this.API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ 
-                        action: 'saveDischargeDate', 
-                        an: an, 
-                        date: dateStr 
-                    })
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const res = await response.json();
-                if (res.status === 'success') {
-                    this.showAlert('สำเร็จ', 'บันทึกวันจำหน่ายเรียบร้อยแล้ว');
-                } else {
-                    this.showAlert('เกิดข้อผิดพลาด', res.message);
-                }
+                const sb = this.getSupabase();
+                const { error } = await sb
+                    .from('current_patients')
+                    .update({ discharge_date: dateStr })
+                    .eq('an', String(an));
+                if (error) throw error;
+                this.showAlert('สำเร็จ', 'บันทึกวันจำหน่ายเรียบร้อยแล้ว');
             } catch (error) {
                 console.error("Save Discharge Date Error:", error);
                 // แจ้งเตือนผู้ใช้กรณีเน็ตหลุดหรือถูกบล็อก
@@ -4811,9 +5154,23 @@ function nurseApp() {
             if (!options.silent) this.isLoading = true;
 
             const loadTask = (async () => {
-                const response = await fetch(`${this.API_URL}?action=getFallRisk&an=${an}&_=${Date.now()}`);
-                if (!response.ok) throw new Error('Network response was not ok');
-                const rawHistory = await response.json();
+                const sb = this.getSupabase();
+                const { data: rows, error } = await sb
+                    .from('fall_risk_morse')
+                    .select('*')
+                    .eq('an', String(an))
+                    .order('created_at', { ascending: true });
+                if (error) throw error;
+                const rawHistory = (rows || []).map(r => ({
+                    timestamp: r.created_at,
+                    an: r.an,
+                    evalDate: r.eval_date,
+                    shift: r.shift,
+                    morseTotal: r.morse_total,
+                    maasScore: r.maas_score,
+                    assessor: r.assessor || '',
+                    m1: r.m1, m2: r.m2, m3: r.m3, m4: r.m4, m5: r.m5, m6: r.m6
+                }));
                 if (String(this.selectedPatient?.an || this.selectedPatient?.AN || '') !== String(an)) return [];
                 this.fallHistory = this.normalizeFallRiskHistory(rawHistory);
                 this.rebuildFallGrid(this.fallHistory);
@@ -4894,16 +5251,8 @@ function nurseApp() {
         
             this.isLoading = true;
             try {
-                // แนะนำให้ส่งข้อมูลทีละ Record เพื่อความชัวร์ หรือปรับ API ให้รับ Array (แต่เบื้องต้นแก้ให้ส่งผ่านก่อน)
                 for (const payload of recordsToSave) {
-                    const response = await fetch(this.API_URL, {
-                        method: 'POST',
-                        // ห้ามใส่ mode: 'no-cors'
-                        body: JSON.stringify({ action: 'saveFallRisk', payload: payload })
-                    });
-                    
-                    // ตรวจสอบผลลัพธ์ (Google Script จะส่งเป็น Redirect/CORS มา ต้องระวังการอ่าน JSON)
-                    // หากบันทึกแล้วนิ่ง ให้เช็คใน Sheet ว่าข้อมูลเข้าหรือไม่
+                    await this.saveFallRiskRow(payload);
                 }
                 
                 this.successMsg = 'บันทึกข้อมูลพลัดตกหกล้มเรียบร้อยแล้ว';
@@ -4935,7 +5284,6 @@ function nurseApp() {
         this.isLoading = true;
         try {
             const payload = {
-                action: 'saveFallRiskSingle',
                 an: this.selectedPatient.an,
                 hn: this.selectedPatient.hn,
                 ward: this.currentWard,
@@ -4948,11 +5296,7 @@ function nurseApp() {
                 assessor: cell.assessor
             };
     
-            const response = await fetch(this.API_URL, {
-                method: 'POST',
-                body: JSON.stringify(payload)
-            });
-            const res = await response.json();
+            const res = await this.saveFallRiskRow(payload);
     
             if (res.status === 'success') {
                 this.dialog = { show: true, type: 'alert', title: 'สำเร็จ', msg: `บันทึกประเมิน Fall Risk เวร ${shift} เรียบร้อย` };
@@ -5261,12 +5605,34 @@ function nurseApp() {
             this.loadBradenByDate();
             this.showBradenModal = true;
         },
+        // แปลง row จากตาราง braden_scale (snake_case) กลับเป็น PascalCase คีย์เดิมที่หน้าจอ/ฟังก์ชันพิมพ์ใช้อยู่ (ตรงกับหัวคอลัมน์ชีตเดิม)
+        mapBradenRowToLegacy(r) {
+            return {
+                Timestamp: r.created_at, AN: r.an, HN: r.hn, Ward: r.ward,
+                EvalDate: r.eval_date, AdmitDate: r.admit_date, TransferDate: r.transfer_date,
+                FromWard: r.from_ward, FirstEvalDate: r.first_eval_date, Diagnosis: r.diagnosis,
+                InitialUlcer: r.initial_ulcer, InitialUlcerDetail: r.initial_ulcer_detail,
+                Albumin: r.albumin, Hb: r.hb, Hct: r.hct, BMI: r.bmi,
+                S1_M1: r.s1_m1, S1_M2: r.s1_m2, S1_M3: r.s1_m3, S1_M4: r.s1_m4, S1_M5: r.s1_m5, S1_M6: r.s1_m6,
+                TotalScore: r.total_score, S3_Location: r.s3_location, S3_Stage: r.s3_stage, S3_Appearance: r.s3_appearance,
+                Assessor: r.assessor,
+                S4_DischargeDate: r.s4_discharge_date, S4_Outcome: r.s4_outcome, S4_UlcerDate: r.s4_ulcer_date,
+                S4_Location: r.s4_location, S4_Size: r.s4_size, S4_Appearance: r.s4_appearance,
+                S4_Stage: r.s4_stage, S4_Count: r.s4_count, _id: r.id
+            };
+        },
         async loadBraden(an, options = {}) {
             if (!options.force && this.isResourceFresh('braden_scale', an)) return this.bradenHistory;
             if (!options.silent) this.isLoading = true;
             try {
-                const r = await fetch(`${this.API_URL}?action=getBradenScale&an=${an}`);
-                const data = await r.json();
+                const sb = this.getSupabase();
+                const { data: rows, error } = await sb
+                    .from('braden_scale')
+                    .select('*')
+                    .eq('an', String(an))
+                    .order('created_at', { ascending: true });
+                if (error) throw error;
+                const data = (rows || []).map(r => this.mapBradenRowToLegacy(r));
                 this.bradenHistory = data;
                 
                 // ฟังก์ชันแปลงวันที่ให้ตรงกับโซนเวลาไทย (แก้ปัญหาดึงข้อมูลมาแล้ววันเหลื่อม) และฟอร์แมตสำหรับ type="date"
@@ -5362,8 +5728,43 @@ function nurseApp() {
             this.isLoading = true;
             const payload = { ...this.bradenForm, an: this.selectedPatient.an, hn: this.selectedPatient.hn, ward: this.currentWard };
             try {
-                const res = await fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveBradenScale', payload }) });
-                const out = await res.json();
+                const sb = this.getSupabase();
+                const targetDate = payload.evalDate;
+                const targetAN = String(payload.an);
+                const { data: existing, error: findErr } = await sb
+                    .from('braden_scale')
+                    .select('id')
+                    .eq('an', targetAN)
+                    .eq('eval_date', targetDate)
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+                if (findErr) throw findErr;
+                const row = {
+                    an: targetAN, hn: payload.hn || '', ward: payload.ward || '', eval_date: targetDate,
+                    admit_date: payload.admitDate || null, transfer_date: payload.transferDate || null,
+                    from_ward: payload.fromWard || '', first_eval_date: payload.firstEvalDate || null,
+                    diagnosis: payload.diagnosis || '', initial_ulcer: payload.initialUlcer || '',
+                    initial_ulcer_detail: payload.initialUlcerDetail || '',
+                    albumin: payload.albumin || '', hb: payload.hb || '', hct: payload.hct || '', bmi: payload.bmi || '',
+                    s1_m1: payload.s1_m1 || 0, s1_m2: payload.s1_m2 || 0, s1_m3: payload.s1_m3 || 0,
+                    s1_m4: payload.s1_m4 || 0, s1_m5: payload.s1_m5 || 0, s1_m6: payload.s1_m6 || 0,
+                    total_score: payload.totalScore || 0,
+                    s3_location: payload.s3_location || '', s3_stage: payload.s3_stage || '', s3_appearance: payload.s3_appearance || '',
+                    assessor: payload.assessor || '',
+                    s4_discharge_date: payload.s4_dischargeDate || null, s4_outcome: payload.s4_outcome || '',
+                    s4_ulcer_date: payload.s4_ulcerDate || null, s4_location: payload.s4_location || '',
+                    s4_size: payload.s4_size || '', s4_appearance: payload.s4_appearance || '',
+                    s4_stage: payload.s4_stage || '', s4_count: payload.s4_count || ''
+                };
+                if (existing && existing.id) {
+                    const { error } = await sb.from('braden_scale').update(row).eq('id', existing.id);
+                    if (error) throw error;
+                } else {
+                    const { error } = await sb.from('braden_scale').insert(row);
+                    if (error) throw error;
+                }
+                const out = { status: 'success' };
                 if(out.status === 'success') {
                     this.showSuccess = true; 
                     this.successMsg = 'บันทึกข้อมูลแบบประเมินเรียบร้อย';
@@ -5417,11 +5818,25 @@ function nurseApp() {
             };
 
             try {
-                const res = await fetch(this.API_URL, { 
-                    method: 'POST', 
-                    body: JSON.stringify({ action: 'saveBradenScale', payload }) 
-                });
-                const out = await res.json();
+                const sb = this.getSupabase();
+                const targetAN = String(payload.an);
+                const { data: existing, error: findErr } = await sb
+                    .from('braden_scale')
+                    .select('id')
+                    .eq('an', targetAN)
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+                if (findErr) throw findErr;
+                if (!existing || !existing.id) throw new Error('ไม่พบประวัติการประเมินแผลกดทับของผู้ป่วยรายนี้ จึงไม่สามารถบันทึกสรุปได้');
+                const { error } = await sb.from('braden_scale').update({
+                    s4_discharge_date: payload.s4_dischargeDate || null, s4_outcome: payload.s4_outcome || '',
+                    s4_ulcer_date: payload.s4_ulcerDate || null, s4_location: payload.s4_location || '',
+                    s4_size: payload.s4_size || '', s4_appearance: payload.s4_appearance || '',
+                    s4_stage: payload.s4_stage || '', s4_count: payload.s4_count || ''
+                }).eq('id', existing.id);
+                if (error) throw error;
+                const out = { status: 'success' };
                 
                 if(out.status === 'success') {
                     this.showSuccess = true; 
@@ -5706,14 +6121,44 @@ function nurseApp() {
             <script>window.onload=()=>{setTimeout(()=>{window.print();},800)};</script></body></html>`);
             pri.document.close();
         },
+        // helper: อ่านฟอร์มล่าสุด (jsonb column `data`) ของ AN จากตารางกลุ่ม patient_education/focus_list/discharge_record/nutrition_assessment
+        async getLatestFormData(table, an, defaultValue = null) {
+            const sb = this.getSupabase();
+            const { data: rows, error } = await sb
+                .from(table)
+                .select('data')
+                .eq('an', String(an))
+                .order('created_at', { ascending: false })
+                .limit(1);
+            if (error) throw error;
+            return (rows && rows[0] && rows[0].data) || defaultValue;
+        },
+        // helper: บันทึก/อัปเดตฟอร์มล่าสุด (jsonb column `data`) ของ AN ในตารางกลุ่มเดียวกัน
+        async upsertLatestFormData(table, an, hn, ward, dataObj) {
+            const sb = this.getSupabase();
+            const { data: existing, error: findErr } = await sb
+                .from(table)
+                .select('id')
+                .eq('an', String(an))
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+            if (findErr) throw findErr;
+            if (existing && existing.id) {
+                const { error } = await sb.from(table).update({ hn: hn || '', ward: ward || '', data: dataObj }).eq('id', existing.id);
+                if (error) throw error;
+            } else {
+                const { error } = await sb.from(table).insert({ an: String(an), hn: hn || '', ward: ward || '', data: dataObj });
+                if (error) throw error;
+            }
+        },
         async loadPatientEdu(an, options = {}) {
             if (!options.force && this.isResourceFresh('patient_edu', an)) return this.eduForm;
             if (!options.silent) this.isLoading = true;
             this.isEduEditing = false; // ปิดโหมดแก้ไขไว้เสมอตอนเริ่มเปิด
             
             try {
-                const res = await fetch(`${this.API_URL}?action=getPatientEdu&an=${an}`);
-                const data = await res.json();
+                const data = await this.getLatestFormData('patient_education', an, {});
                 
                 // ใช้ค่า Default เป็นฐาน ป้องกัน error กรณีก่อนหน้ามีข้อบกพร่อง
                 const base = this.defaultEduForm();
@@ -5754,14 +6199,8 @@ function nurseApp() {
             async savePatientEdu() {
                 this.isLoading = true;
                 try {
-                    const payload = {
-                        an: this.selectedPatient.an,
-                        hn: this.selectedPatient.hn,
-                        ward: this.currentWard,
-                        formData: this.eduForm
-                    };
-                    const res = await fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'savePatientEdu', payload }) });
-                    const out = await res.json();
+                    await this.upsertLatestFormData('patient_education', this.selectedPatient.an, this.selectedPatient.hn, this.currentWard, this.eduForm);
+                    const out = { status: 'success' };
                     
                     if(out.status === 'success') {
                         this.showSuccess = true;
@@ -6049,8 +6488,10 @@ function nurseApp() {
                 
                 try {
                     const payload = { problemName: pName, focus: this.focusForm.focus, goal: this.focusForm.goal };
-                    const res = await fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveFocusTemplate', payload }) });
-                    const out = await res.json();
+                    const sb = this.getSupabase();
+                    const { error } = await sb.from('focus_templates').insert({ problem_name: payload.problemName, focus: payload.focus, goal: payload.goal });
+                    if (error) throw error;
+                    const out = { status: 'success' };
                     
                     if(out.status === 'success') {
                         this.focusTemplates.push({...payload, id: new Date().getTime()});
@@ -6075,8 +6516,10 @@ function nurseApp() {
                         focus: this.pnForm.focus, 
                         s: this.pnForm.s, o: this.pnForm.o, i: this.pnForm.i, e: this.pnForm.e 
                     };
-                    const res = await fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveNursingTemplate', payload }) });
-                    const out = await res.json();
+                    const sb = this.getSupabase();
+                    const { error } = await sb.from('nursing_templates').insert({ template_name: payload.templateName, focus: payload.focus, s: payload.s, o: payload.o, i: payload.i, e: payload.e });
+                    if (error) throw error;
+                    const out = { status: 'success' };
                     
                     if(out.status === 'success') {
                         this.nursingTemplates.push({...payload, id: new Date().getTime()});
@@ -6099,8 +6542,7 @@ function nurseApp() {
             if (!options.silent) this.isLoading = true;
             try {
                 // โหลด List ของคนไข้
-                const res = await fetch(`${this.API_URL}?action=getFocusList&an=${an}`);
-                this.focusList = await res.json() || [];
+                this.focusList = await this.getLatestFormData('focus_list', an, []) || [];
                 
                 // โหลด Template ทั้งหมด
                 this.focusTemplates = await this.loadTemplateCollection('focusTemplates', 'getFocusTemplates', options.force === true);
@@ -6176,14 +6618,8 @@ function nurseApp() {
         async saveFocusToDB() {
             // เอา this.isLoading = true ออก เพื่อให้หน้าเว็บไม่กระตุกเวลาบันทึกเบื้องหลัง
             try {
-                const payload = {
-                    an: this.selectedPatient.an,
-                    hn: this.selectedPatient.hn,
-                    ward: this.currentWard,
-                    focusData: this.focusList
-                };
-                const res = await fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveFocusList', payload }) });
-                const out = await res.json();
+                await this.upsertLatestFormData('focus_list', this.selectedPatient.an, this.selectedPatient.hn, this.currentWard, this.focusList);
+                const out = { status: 'success' };
                 
                 if(out.status === 'success') {
                     this.markResourceLoaded('focus_list', this.selectedPatient.an);
@@ -6371,8 +6807,18 @@ function nurseApp() {
             if (!options.silent) this.isLoading = true;
             try {
                 // ดึง Note ของผู้ป่วย
-                const res = await fetch(`${this.API_URL}?action=getNursingNotes&an=${an}`);
-                let notes = await res.json() || [];
+                const sb = this.getSupabase();
+                const { data: rows, error } = await sb
+                    .from('nursing_notes_detail')
+                    .select('*')
+                    .eq('an', String(an))
+                    .order('saved_at', { ascending: true });
+                if (error) throw error;
+                let notes = (rows || []).map(r => (r.payload && typeof r.payload === 'object') ? r.payload : {
+                    id: String(r.note_id || ''), date: r.note_date, shift: r.shift || '', time: r.note_time || '',
+                    focus: r.focus || '', s: r.s || '', o: r.o || '', i: r.i || '', e: r.e || '',
+                    eTime: r.e_time || '', nurse: r.nurse || '', pos: r.position || ''
+                });
                 
                 // สั่งเรียงลำดับจาก "ใหม่ล่าสุด" ไป "เก่า" (อิงจาก ID ที่ตั้งเป็น Timestamp ไว้)
                 this.progressNotes = notes.sort((a, b) => Number(b.id) - Number(a.id));
@@ -6385,8 +6831,7 @@ function nurseApp() {
                 //    เพราะถ้าเช็คแค่ความว่าง จะทำให้ Focus List ของคนไข้คนก่อนหน้า (ที่ยังไม่ว่าง)
                 //    ค้างอยู่ไม่ถูกโหลดใหม่เมื่อสลับไปดูคนไข้คนใหม่
                 if (!this.isResourceFresh('focus_list', an)) {
-                    const resF = await fetch(`${this.API_URL}?action=getFocusList&an=${an}`);
-                    this.focusList = await resF.json() || [];
+                    this.focusList = await this.getLatestFormData('focus_list', an, []) || [];
                     this.markResourceLoaded('focus_list', an);
                 }
 
@@ -6433,8 +6878,7 @@ function nurseApp() {
                         endDate: ''
                     });
                     // เซฟ Focus List ขึ้น DB ทันที
-                    const pF = { an: this.selectedPatient.an, hn: this.selectedPatient.hn, ward: this.currentWard, focusData: this.focusList };
-                    fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveFocusList', payload: pF }) });
+                    this.upsertLatestFormData('focus_list', this.selectedPatient.an, this.selectedPatient.hn, this.currentWard, this.focusList);
                 }
             }
 
@@ -6452,12 +6896,50 @@ function nurseApp() {
                 return false;
             }
             try {
-                const payload = { an: this.selectedPatient.an, hn: this.selectedPatient.hn, ward: this.currentWard, noteData: this.progressNotes };
-                const response = await fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveNursingNotes', payload }) });
-                const result = await response.json();
-                if (result.status !== 'success') {
-                    throw new Error(result.message || 'บันทึก Nursing Progress Note ไม่สำเร็จ');
+                const an = String(this.selectedPatient.an);
+                const hn = String(this.selectedPatient.hn || '');
+                const ward = String(this.currentWard || '');
+                const sb = this.getSupabase();
+
+                const normalizedNotes = (this.progressNotes || []).map(note => ({
+                    id: String(note.id || Date.now()),
+                    date: note.date || '', shift: note.shift || '', time: note.time || '',
+                    focus: note.focus || '', s: note.s || '', o: note.o || '', i: note.i || '', e: note.e || '',
+                    eTime: note.eTime || '', nurse: note.nurse || '', pos: note.pos || '',
+                    an, hn, ward
+                }));
+
+                const { data: existingRows, error: findErr } = await sb
+                    .from('nursing_notes_detail')
+                    .select('id, note_id')
+                    .eq('an', an);
+                if (findErr) throw findErr;
+
+                const existingByNoteId = {};
+                (existingRows || []).forEach(r => { if (r.note_id) existingByNoteId[r.note_id] = r.id; });
+                const incomingIds = new Set(normalizedNotes.map(n => n.id));
+
+                const rowsToDelete = (existingRows || []).filter(r => r.note_id && !incomingIds.has(r.note_id)).map(r => r.id);
+                if (rowsToDelete.length > 0) {
+                    const { error: delErr } = await sb.from('nursing_notes_detail').delete().in('id', rowsToDelete);
+                    if (delErr) throw delErr;
                 }
+
+                for (const note of normalizedNotes) {
+                    const row = {
+                        an, hn, ward, note_id: note.id, note_date: note.date || null, shift: note.shift,
+                        note_time: note.time, focus: note.focus, s: note.s, o: note.o, i: note.i, e: note.e,
+                        e_time: note.eTime, nurse: note.nurse, position: note.pos, payload: note
+                    };
+                    if (existingByNoteId[note.id]) {
+                        const { error } = await sb.from('nursing_notes_detail').update(row).eq('id', existingByNoteId[note.id]);
+                        if (error) throw error;
+                    } else {
+                        const { error } = await sb.from('nursing_notes_detail').insert(row);
+                        if (error) throw error;
+                    }
+                }
+
                 this.markResourceLoaded('progress_note', this.selectedPatient.an);
                 
                 this.showSuccess = true; this.successMsg = 'ซิงค์ข้อมูลลงฐานข้อมูลเรียบร้อย';
@@ -6511,8 +6993,10 @@ function nurseApp() {
             this.isLoading = true;
             try {
                 const payload = { ...this.newTemplateForm };
-                const res = await fetch(this.API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveNursingTemplate', payload }) });
-                const out = await res.json();
+                const sb = this.getSupabase();
+                const { error } = await sb.from('nursing_templates').insert({ template_name: payload.templateName, focus: payload.focus, s: payload.s, o: payload.o, i: payload.i, e: payload.e });
+                if (error) throw error;
+                const out = { status: 'success' };
                 
                 if (out.status === 'success') {
                     // ยัดลง Array เพื่อให้กดใช้ได้เลยไม่ต้องรีเฟรช
@@ -6919,8 +7403,7 @@ function nurseApp() {
         async loadNutritionAssessmentInit() {
             this.isLoading = true;
             try {
-                const res = await fetch(`${this.API_URL}?action=getNutritionAssessment&an=${this.selectedPatient.an}`);
-                const data = await res.json();
+                const data = await this.getLatestFormData('nutrition_assessment', this.selectedPatient.an, {});
                 this.nutritionForm = this.normalizeNutritionForm(data);
             } catch (e) {
                 console.error(e);
@@ -6933,17 +7416,8 @@ function nurseApp() {
             if (!this.selectedPatient) return;
             this.isLoading = true;
             try {
-                const payload = {
-                    an: this.selectedPatient.an,
-                    hn: this.selectedPatient.hn,
-                    ward: this.currentWard,
-                    formData: this.nutritionForm
-                };
-                const response = await fetch(this.API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'saveNutritionAssessment', payload })
-                });
-                const result = await response.json();
+                await this.upsertLatestFormData('nutrition_assessment', this.selectedPatient.an, this.selectedPatient.hn, this.currentWard, this.nutritionForm);
+                const result = { status: 'success' };
                 if (result.status === 'success') {
                     this.successMsg = 'บันทึกแบบคัดกรองและประเมินภาวะโภชนาการเรียบร้อย';
                     this.showSuccess = true;
@@ -7324,8 +7798,7 @@ function nurseApp() {
         async loadDischargeRecordInit() {
             this.isLoading = true;
             try {
-                const res = await fetch(`${this.API_URL}?action=getDischargeRecord&an=${this.selectedPatient.an}`);
-                const data = await res.json();
+                const data = await this.getLatestFormData('discharge_record', this.selectedPatient.an, null);
                 // ถ้ามีข้อมูลเดิมให้ดึงมาแสดง ถ้าไม่มีให้ใช้ฟอร์มเปล่า
                 this.dischargeForm = (data && Object.keys(data).length > 0) ? data : this.defaultDischargeForm();
                 if (!String(this.dischargeForm.nurseName || '').trim()) this.dischargeForm.nurseName = this.getDefaultSignatureName();
@@ -7341,23 +7814,8 @@ function nurseApp() {
             
             this.isLoading = true;
             try {
-                // จัดรูปแบบให้ตรงกับโครงสร้าง data.action และ data.payload ใน doPost ของคุณ
-                const requestData = {
-                    action: 'saveDischargeRecord', // ตรงกับ case ใน switch
-                    payload: {                     // มัดรวมตัวแปรใส่ payload
-                        an: this.selectedPatient.an,
-                        hn: this.selectedPatient.hn,
-                        ward: this.currentWard,
-                        formData: this.dischargeForm
-                    }
-                };
-
-                const response = await fetch(this.API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify(requestData)
-                });
-                
-                const result = await response.json();
+                await this.upsertLatestFormData('discharge_record', this.selectedPatient.an, this.selectedPatient.hn, this.currentWard, this.dischargeForm);
+                const result = { status: 'success' };
                 
                 if (result.status === 'success') {
                     // แสดงแจ้งเตือนสำเร็จ
@@ -7581,22 +8039,20 @@ function nurseApp() {
                 if (this.selectedPrintForms.includes('braden_scale')) await this.loadBraden(this.selectedPatient.an);
                 if (this.selectedPrintForms.includes('patient_edu')) await this.loadPatientEdu(this.selectedPatient.an);
                 if (this.selectedPrintForms.includes('focus_list')) {
-                    const resF = await fetch(`${this.API_URL}?action=getFocusList&an=${this.selectedPatient.an}`);
-                    this.focusList = await resF.json() || [];
+                    this.focusList = await this.getLatestFormData('focus_list', this.selectedPatient.an, []) || [];
                 }
                 if (this.selectedPrintForms.includes('progress_note')) {
-                    const resN = await fetch(`${this.API_URL}?action=getNursingNotes&an=${this.selectedPatient.an}`);
-                    let notes = await resN.json() || [];
+                    const sb = this.getSupabase();
+                    const { data: rows } = await sb.from('nursing_notes_detail').select('payload').eq('an', String(this.selectedPatient.an)).order('saved_at', { ascending: true });
+                    let notes = (rows || []).map(r => r.payload || {});
                     this.progressNotes = notes.sort((a, b) => Number(b.id) - Number(a.id));
                 }
                 if (this.selectedPrintForms.includes('discharge_record')) {
-                    const resD = await fetch(`${this.API_URL}?action=getDischargeRecord&an=${this.selectedPatient.an}`);
-                    const data = await resD.json();
+                    const data = await this.getLatestFormData('discharge_record', this.selectedPatient.an, null);
                     this.dischargeForm = (data && Object.keys(data).length > 0) ? data : this.defaultDischargeForm();
                 }
                 if (this.selectedPrintForms.includes('nutrition_assessment')) {
-                    const resNutrition = await fetch(`${this.API_URL}?action=getNutritionAssessment&an=${this.selectedPatient.an}`);
-                    const dataNutrition = await resNutrition.json();
+                    const dataNutrition = await this.getLatestFormData('nutrition_assessment', this.selectedPatient.an, {});
                     this.nutritionForm = this.normalizeNutritionForm(dataNutrition);
                 }
 
@@ -7718,16 +8174,31 @@ function nurseApp() {
 
             this.isLoading = true;
             try {
-                // ลบ headers ออกเพื่อแก้ปัญหา CORS
-                const response = await fetch(this.API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        action: 'dischargePatient',
-                        an: this.selectedPatient.an
-                    })
-                });
-                
-                const res = await response.json();
+                const sb = this.getSupabase();
+                const an = String(this.selectedPatient.an);
+                const { data: existing, error: fetchErr } = await sb
+                    .from('current_patients')
+                    .select('*')
+                    .eq('an', an)
+                    .limit(1)
+                    .maybeSingle();
+                if (fetchErr) throw fetchErr;
+                let res;
+                if (existing) {
+                    const { id, created_at, ...historyRow } = existing;
+                    historyRow.status = 'Discharged';
+                    historyRow.discharge_date = new Date().toISOString().split('T')[0];
+                    const { error: insErr } = await sb.from('registry_history').insert(historyRow);
+                    if (insErr) throw insErr;
+                    const { error: delErr } = await sb.from('current_patients').delete().eq('an', an);
+                    if (delErr) throw delErr;
+                    if (existing.ward && existing.bed) {
+                        await this.setBedStatus(existing.ward, existing.bed, 'ว่าง');
+                    }
+                    res = { status: 'success', message: 'จำหน่ายผู้ป่วยเรียบร้อย' };
+                } else {
+                    res = { status: 'error', message: 'ไม่พบผู้ป่วยที่ต้องการจำหน่ายในระบบ' };
+                }
 
                 if (res.status === 'success') {
                     // 1. ปิด Popup ยืนยันการจำหน่าย
@@ -7765,19 +8236,23 @@ function nurseApp() {
             this.isLoading = true;
             this.dischargedPatients = [];
             try {
-                const response = await fetch(this.API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        action: 'searchDischargedPatients',
-                        payload: { 
-                            ward: this.currentWard,
-                            searchType: this.searchHistoryType,
-                            searchDate: this.searchHistoryDate,
-                            searchMonth: this.searchHistoryMonth
-                        }
-                    })
-                });
-                const res = await response.json();
+                const sb = this.getSupabase();
+                let query = sb.from('registry_history').select('*');
+                if (this.currentWard) query = query.eq('ward', this.currentWard);
+                if (this.searchHistoryType === 'date' && this.searchHistoryDate) {
+                    query = query.eq('discharge_date', this.searchHistoryDate);
+                } else if (this.searchHistoryType === 'month' && this.searchHistoryMonth) {
+                    query = query.gte('discharge_date', `${this.searchHistoryMonth}-01`).lt('discharge_date', `${this.searchHistoryMonth}-32`);
+                }
+                const { data: rows, error } = await query.order('discharge_date', { ascending: false });
+                if (error) throw error;
+                const res = {
+                    status: 'success',
+                    data: (rows || []).map(r => ({
+                        an: r.an, hn: r.hn, name: r.name, dob: r.dob, dept: r.dept, doctor: r.doctor,
+                        ward: r.ward, bed: r.bed, dx: r.dx, dischargeDate: r.discharge_date, admitDate: r.admit_date
+                    }))
+                };
                 if (res.status === 'success') {
                     // ปรับแต่งข้อมูลให้ตรงกับที่หน้า Detail ต้องการ
                     this.dischargedPatients = res.data.map(p => {
@@ -7814,14 +8289,32 @@ function nurseApp() {
             // ลบส่วน const isConfirm = confirm(...) ออก
             this.isLoading = true;
             try {
-                const response = await fetch(this.API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        action: 'undoDischargePatient',
-                        an: this.selectedPatient.an || this.selectedPatient.AN
-                    })
-                });
-                const res = await response.json();
+                const sb = this.getSupabase();
+                const an = String(this.selectedPatient.an || this.selectedPatient.AN);
+                const { data: existing, error: fetchErr } = await sb
+                    .from('registry_history')
+                    .select('*')
+                    .eq('an', an)
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+                if (fetchErr) throw fetchErr;
+
+                let res;
+                if (existing) {
+                    const { id, created_at, discharge_date, ...currentRow } = existing;
+                    currentRow.status = 'Active';
+                    const { error: insErr } = await sb.from('current_patients').insert(currentRow);
+                    if (insErr) throw insErr;
+                    const { error: delErr } = await sb.from('registry_history').delete().eq('id', id);
+                    if (delErr) throw delErr;
+                    if (existing.ward && existing.bed) {
+                        await this.setBedStatus(existing.ward, existing.bed, 'ไม่ว่าง');
+                    }
+                    res = { status: 'success', message: 'ยกเลิกจำหน่ายเรียบร้อย' };
+                } else {
+                    res = { status: 'error', message: 'ไม่พบผู้ป่วยในระบบประวัติ' };
+                }
         
                 if (res.status === 'success') {
                     this.showUndoDischargeConfirm = false; // ปิด Modal ยืนยัน
