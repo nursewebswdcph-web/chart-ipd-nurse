@@ -6813,12 +6813,30 @@ function nurseApp() {
             return id;
         },
 
-        // คำนวณค่าวันที่+เวลา (ที่ผู้ใช้กรอกเองในฟอร์ม) ของ Note หนึ่งรายการ ให้เป็น timestamp สำหรับเรียงลำดับ
+        // คำนวณค่าวันที่+เวลา (ที่ผู้ใช้กรอกเองในฟอร์ม) ของ Note หนึ่งรายการ ให้เป็นตัวเลขสำหรับเรียงลำดับ
         // คืนค่า NaN ถ้าไม่มีวันที่ (จะถูกจัดไปไว้ท้ายสุดเสมอ ไม่ว่าจะเรียงทิศทางไหน)
+        //
+        // ⚠️ จงใจไม่ใช้ new Date(`${date}T${time}`) ตรงๆ เพราะ browser/JS ต้องการรูปแบบเวลา
+        // เป็น 2 หลักเท่านั้น (เช่น "09:45") ถ้าเวลาที่บันทึกไว้เก่าๆ ในฐานข้อมูลเป็น "9:45"
+        // (ไม่มีเลข 0 นำหน้า ซึ่งพบได้จริงในข้อมูล) จะได้ Invalid Date ทันที ทำให้รายการนั้น
+        // หลุดไปอยู่ท้ายลิสต์เสมอไม่ว่าจะเป็นวันไหน นี่คือสาเหตุหลักที่พิมพ์แล้ววันที่ยังสลับกัน
+        // จึงแยกวิเคราะห์ทีละส่วน (ปี/เดือน/วัน/ชม./นาที) เองแล้วประกอบเป็นเลขเปรียบเทียบแทน
         getNoteRecordedTimestamp(note) {
             if (!note || !note.date) return NaN;
-            const time = note.time || '00:00';
-            return new Date(`${note.date}T${time}`).getTime();
+            const dateParts = String(note.date).trim().split('-');
+            if (dateParts.length !== 3) return NaN;
+            const y = parseInt(dateParts[0], 10);
+            const m = parseInt(dateParts[1], 10);
+            const d = parseInt(dateParts[2], 10);
+            if (!y || !m || !d) return NaN;
+
+            const timeStr = String(note.time || '00:00').trim();
+            const timeParts = timeStr.split(':');
+            const hh = parseInt(timeParts[0], 10) || 0;
+            const mm = parseInt(timeParts[1], 10) || 0;
+
+            // ประกอบเป็นเลขรูปแบบ YYYYMMDDHHmm เพื่อเปรียบเทียบลำดับได้ตรงไปตรงมา
+            return (y * 100000000) + (m * 1000000) + (d * 10000) + (hh * 100) + mm;
         },
 
         // เรียงลำดับ Progress Note ตาม "วันที่และเวลาที่ผู้ใช้บันทึกเอง" (note.date / note.time)
@@ -8073,8 +8091,16 @@ function nurseApp() {
                 }
                 if (this.selectedPrintForms.includes('progress_note')) {
                     const sb = this.getSupabase();
-                    const { data: rows } = await sb.from('nursing_notes_detail').select('payload').eq('an', String(this.selectedPatient.an)).order('saved_at', { ascending: true });
-                    let notes = (rows || []).map(r => r.payload || {});
+                    // ⚠️ ต้อง select('*') ไม่ใช่แค่ 'payload' เพราะบันทึกเก่าบางรายการยังไม่มีคอลัมน์ payload
+                    // (payload เป็น null) ถ้า select แค่ payload อย่างเดียว รายการเหล่านั้นจะกลายเป็น {}
+                    // ไม่มีวันที่/เวลาเลย ทำให้เรียงลำดับตอนพิมพ์ผิดสลับกัน ต้อง fallback ไปอ่านจาก
+                    // คอลัมน์ note_date / note_time ตรงๆ เหมือนกับตอนโหลดขึ้นหน้าเว็บ (loadProgressNotesInit)
+                    const { data: rows } = await sb.from('nursing_notes_detail').select('*').eq('an', String(this.selectedPatient.an)).order('saved_at', { ascending: true });
+                    let notes = (rows || []).map(r => (r.payload && typeof r.payload === 'object') ? r.payload : {
+                        id: String(r.note_id || ''), date: r.note_date, shift: r.shift || '', time: r.note_time || '',
+                        focus: r.focus || '', s: r.s || '', o: r.o || '', i: r.i || '', e: r.e || '',
+                        eTime: r.e_time || '', nurse: r.nurse || '', pos: r.position || ''
+                    });
                     this.progressNotes = this.sortProgressNotesByRecordedTime(notes, 'desc');
                 }
                 if (this.selectedPrintForms.includes('discharge_record')) {
