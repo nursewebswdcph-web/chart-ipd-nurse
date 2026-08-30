@@ -6798,6 +6798,47 @@ function nurseApp() {
         // ==========================================
         // ฟังก์ชันสำหรับ Nursing Progress Note
         // ==========================================
+
+        // สร้าง note_id ที่ไม่ซ้ำกันแน่นอน แม้บันทึกในมิลลิวินาทีเดียวกัน (เช่น กดบันทึกซ้ำเร็วๆ)
+        // และตรวจสอบกับรายการที่โหลดไว้ในเครื่องด้วยอีกชั้นเพื่อความชัวร์
+        generateUniqueNoteId() {
+            const existing = new Set((this.progressNotes || []).map(n => String(n.id)));
+            let id;
+            do {
+                const rand = (window.crypto && crypto.getRandomValues)
+                    ? crypto.getRandomValues(new Uint32Array(1))[0].toString().slice(0, 4).padStart(4, '0')
+                    : Math.floor(1000 + Math.random() * 9000).toString();
+                id = `${Date.now()}${rand}`;
+            } while (existing.has(id));
+            return id;
+        },
+
+        // คำนวณค่าวันที่+เวลา (ที่ผู้ใช้กรอกเองในฟอร์ม) ของ Note หนึ่งรายการ ให้เป็น timestamp สำหรับเรียงลำดับ
+        // คืนค่า NaN ถ้าไม่มีวันที่ (จะถูกจัดไปไว้ท้ายสุดเสมอ ไม่ว่าจะเรียงทิศทางไหน)
+        getNoteRecordedTimestamp(note) {
+            if (!note || !note.date) return NaN;
+            const time = note.time || '00:00';
+            return new Date(`${note.date}T${time}`).getTime();
+        },
+
+        // เรียงลำดับ Progress Note ตาม "วันที่และเวลาที่ผู้ใช้บันทึกเอง" (note.date / note.time)
+        // order: 'asc' = เก่า -> ใหม่ (ใช้ตอนพิมพ์เอกสาร ให้อ่านเรียงตามลำดับเวลาจริง)
+        //        'desc' = ใหม่ -> เก่า (ใช้แสดงในหน้าเว็บ ให้เห็นรายการล่าสุดก่อน)
+        sortProgressNotesByRecordedTime(notes, order = 'desc') {
+            const dir = order === 'asc' ? 1 : -1;
+            return [...(notes || [])].sort((a, b) => {
+                const tsA = this.getNoteRecordedTimestamp(a);
+                const tsB = this.getNoteRecordedTimestamp(b);
+                const aInvalid = isNaN(tsA), bInvalid = isNaN(tsB);
+                if (aInvalid && bInvalid) return 0;
+                if (aInvalid) return 1;  // ไม่มีวันที่ -> ไปท้ายสุดเสมอ
+                if (bInvalid) return -1;
+                if (tsA !== tsB) return (tsA - tsB) * dir;
+                // วันที่และเวลาเท่ากันเป๊ะ: ใช้ id เป็นตัวตัดสินลำดับให้ผลลัพธ์คงที่ (deterministic)
+                return String(a.id || '').localeCompare(String(b.id || ''));
+            });
+        },
+
         async loadProgressNotesInit(options = {}) {
             const an = this.selectedPatient?.an;
             if (!an) return [];
@@ -6820,8 +6861,9 @@ function nurseApp() {
                     eTime: r.e_time || '', nurse: r.nurse || '', pos: r.position || ''
                 });
                 
-                // สั่งเรียงลำดับจาก "ใหม่ล่าสุด" ไป "เก่า" (อิงจาก ID ที่ตั้งเป็น Timestamp ไว้)
-                this.progressNotes = notes.sort((a, b) => Number(b.id) - Number(a.id));
+                // สั่งเรียงลำดับจาก "ใหม่ล่าสุด" ไป "เก่า" โดยอิงจากวันที่และเวลาที่ผู้ใช้บันทึกเอง (note.date / note.time)
+                // ไม่ใช้ id (ซึ่งเป็นเวลาที่ระบบบันทึก) เป็นตัวเรียงอีกต่อไป
+                this.progressNotes = this.sortProgressNotesByRecordedTime(notes, 'desc');
                 
                 // ดึง Template กลาง
                 this.nursingTemplates = await this.loadTemplateCollection('nursingTemplates', 'getNursingTemplates', options.force === true);
@@ -6857,13 +6899,17 @@ function nurseApp() {
                 this.focusAlert('กรุณากรอก FOCUS และรายละเอียดอย่างน้อย 1 ช่อง (S,O,I,E)'); return;
             }
             
-            const newItem = { ...this.pnForm, id: this.pnForm.id || new Date().getTime().toString() };
+            const newItem = { ...this.pnForm, id: this.pnForm.id || this.generateUniqueNoteId() };
             
             if (this.editingProgressIndex > -1) {
                 this.progressNotes[this.editingProgressIndex] = newItem;
             } else {
                 this.progressNotes.unshift(newItem);
             }
+
+            // จัดเรียงรายการใหม่ตามวันที่/เวลาที่ผู้ใช้บันทึกเองทันที เพื่อให้รายการที่เพิ่ม/แก้ไข
+            // ไปอยู่ตำแหน่งที่ถูกต้องในหน้าเว็บ ไม่ใช่ไปโผล่บนสุดเสมอ
+            this.progressNotes = this.sortProgressNotesByRecordedTime(this.progressNotes, 'desc');
 
             // --- ซิงค์เข้า Focus List อัตโนมัติ ---
             if (this.pnForm.addToFocusList) {
@@ -7014,24 +7060,8 @@ function nurseApp() {
                 this.focusAlert('ยังไม่มีข้อมูลสำหรับพิมพ์'); return;
             }
         
-            // 1. คัดลอกข้อมูลและสั่งเรียงลำดับใหม่เฉพาะสำหรับพิมพ์
-            const sortedNotesForPrint = [...this.progressNotes].sort((a, b) => {
-                // จัดการกรณีเวลาเป็นค่าว่างให้เป็น 00:00 เพื่อไม่ให้ Date Error
-                const timeA = a.time || '00:00';
-                const timeB = b.time || '00:00';
-                
-                const dateTimeA = new Date(`${a.date}T${timeA}`).getTime();
-                const dateTimeB = new Date(`${b.date}T${timeB}`).getTime();
-                
-                // หากวันที่และเวลา Actual Time เท่ากันเป๊ะ
-                if (dateTimeA === dateTimeB) {
-                    // ให้เรียงตาม ID (เวลาที่กดบันทึก) จากเก่าไปใหม่ (ค่าน้อยไปค่ามาก)
-                    return Number(a.id) - Number(b.id);
-                }
-                
-                // เรียงตามวันที่และเวลา Actual Time (เก่าไปใหม่)
-                return dateTimeA - dateTimeB; 
-            });
+            // 1. คัดลอกข้อมูลและสั่งเรียงลำดับใหม่เฉพาะสำหรับพิมพ์ (เก่า -> ใหม่ ตามวันที่/เวลาที่ผู้ใช้บันทึกเอง)
+            const sortedNotesForPrint = this.sortProgressNotesByRecordedTime(this.progressNotes, 'asc');
         
             let htmlRows = '';
             
@@ -8045,7 +8075,7 @@ function nurseApp() {
                     const sb = this.getSupabase();
                     const { data: rows } = await sb.from('nursing_notes_detail').select('payload').eq('an', String(this.selectedPatient.an)).order('saved_at', { ascending: true });
                     let notes = (rows || []).map(r => r.payload || {});
-                    this.progressNotes = notes.sort((a, b) => Number(b.id) - Number(a.id));
+                    this.progressNotes = this.sortProgressNotesByRecordedTime(notes, 'desc');
                 }
                 if (this.selectedPrintForms.includes('discharge_record')) {
                     const data = await this.getLatestFormData('discharge_record', this.selectedPatient.an, null);
