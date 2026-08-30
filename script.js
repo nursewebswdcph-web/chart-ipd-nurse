@@ -5633,6 +5633,23 @@ function nurseApp() {
                     .order('created_at', { ascending: true });
                 if (error) throw error;
                 const data = (rows || []).map(r => this.mapBradenRowToLegacy(r));
+
+                // เรียงตาม "วันที่ประเมิน" (EvalDate) ที่ผู้ใช้เลือกเอง ไม่ใช่ created_at (เวลาที่ระบบบันทึก)
+                // เพราะผู้ใช้อาจย้อนหลังไปบันทึกวันที่เก่ากว่าทีหลัง ทำให้ created_at ไม่ตรงกับลำดับวันที่จริง
+                // การเรียงแบบนี้จะทำให้ทั้ง "รายการล่าสุด" (ใช้เติมฟอร์มอัตโนมัติด้านล่าง) และตารางประวัติ
+                // ในหน้าเว็บ (ซึ่งเอา array นี้ไป .reverse() แสดง) เรียงตามวันที่ประเมินจริงถูกต้อง
+                data.sort((a, b) => {
+                    const tsA = a.EvalDate ? new Date(a.EvalDate).getTime() : NaN;
+                    const tsB = b.EvalDate ? new Date(b.EvalDate).getTime() : NaN;
+                    const aInvalid = isNaN(tsA), bInvalid = isNaN(tsB);
+                    if (aInvalid && bInvalid) return 0;
+                    if (aInvalid) return -1; // ไม่มีวันที่ -> ถือว่าเก่าสุด กันไม่ให้ไปแอบเป็น "รายการล่าสุด"
+                    if (bInvalid) return 1;
+                    if (tsA !== tsB) return tsA - tsB;
+                    // วันที่ประเมินเดียวกัน: ใช้เวลาที่บันทึกเข้าระบบ (Timestamp/created_at) เป็นตัวตัดสินลำดับ (เก่า -> ใหม่)
+                    return new Date(a.Timestamp || 0) - new Date(b.Timestamp || 0);
+                });
+
                 this.bradenHistory = data;
                 
                 // ฟังก์ชันแปลงวันที่ให้ตรงกับโซนเวลาไทย (แก้ปัญหาดึงข้อมูลมาแล้ววันเหลื่อม) และฟอร์แมตสำหรับ type="date"
