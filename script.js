@@ -41,7 +41,7 @@ function nurseApp() {
             throw lastError;
         },
         APP_WEB_URL: 'https://nursewebswdcph-web.github.io/chart-ipd-nurse/',
-        CURRENT_VERSION: '3.1', // เวอร์ชันปัจจุบันของระบบ อัปเดตเลขนี้ทุกครั้งที่ปล่อยเวอร์ชันใหม่
+        CURRENT_VERSION: '3.2', // เวอร์ชันปัจจุบันของระบบ อัปเดตเลขนี้ทุกครั้งที่ปล่อยเวอร์ชันใหม่
         appVersionStorageKey: 'ipd_nurse_app_version',
         showUpdateModal: false, // ควบคุมการแสดง Popup แจ้งเตือนเวอร์ชันใหม่
         isUpdatingApp: false,
@@ -1546,6 +1546,177 @@ function nurseApp() {
 
             this.restoreSession();
         },
+
+        // ============================================================
+        // initPatientsPage — ใช้ใน patients.html
+        // ตรวจสอบ Auth และโหลดข้อมูลผู้ป่วยตาม current_ward จาก sessionStorage
+        // ============================================================
+        async initPatientsPage() {
+            this.initNightShift();
+            this.checkAppVersion();
+            this.setupInactivityWatcher();
+            this.resetActiveForms();
+            this.startClock();
+            this.setupPwaInstallPrompt();
+            this.registerServiceWorker();
+
+            this.getSupabase().auth.onAuthStateChange((event) => {
+                if (event === 'PASSWORD_RECOVERY') {
+                    this.resetAuthForms();
+                    this.authMode = 'reset';
+                }
+            });
+
+            await this.restoreSession();
+
+            if (!this.isAuthenticated) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            const ward = sessionStorage.getItem('current_ward');
+            if (!ward) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            this.currentWard = ward;
+            this.viewMode = 'list';
+            await this.fetchPatients();
+        },
+
+        // ============================================================
+        // goBackToWards — ปุ่มไอคอนบ้านใน patients.html เพื่อกลับไปเลือกตึกใน index.html
+        // ============================================================
+        goBackToWards() {
+            sessionStorage.removeItem('current_ward');
+            window.location.href = 'index.html';
+        },
+
+        // ============================================================
+        // initChartPage — ใช้ใน chart.html แทน init()
+        // โหลด patient จาก sessionStorage แล้วรัน chart logic
+        // ============================================================
+        async initChartPage() {
+            this.initNightShift();
+            this.resetActiveForms();
+            this.startClock();
+
+            this.getSupabase().auth.onAuthStateChange((event) => {
+                if (event === 'PASSWORD_RECOVERY') {
+                    this.resetAuthForms();
+                    this.authMode = 'reset';
+                }
+            });
+
+            // โหลด session auth ก่อน
+            await this.restoreSession();
+
+            // ถ้าไม่ได้ล็อกอินให้ redirect กลับหน้าหลักเพื่อ login ใหม่
+            if (!this.isAuthenticated) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            // อ่านค่าจาก URL (?an=...&form=...) ไว้เป็นช่องทางกู้คืนข้อมูล
+            // เผื่อ sessionStorage หายไประหว่างเปลี่ยนหน้า (เช่นเปิดแอปแบบ PWA/standalone)
+            const urlParams = new URLSearchParams(window.location.search || '');
+            const anFromUrl = urlParams.get('an') || '';
+            const formFromUrl = urlParams.get('form') || null;
+
+            // ดึงข้อมูล patient จาก sessionStorage ก่อนเป็นหลัก
+            let raw = sessionStorage.getItem('chart_patient');
+            let targetFormId = sessionStorage.getItem('chart_target_form') || formFromUrl || null;
+
+            // ชั้นที่ 2: ถ้า sessionStorage หาย ลองกู้จาก localStorage backup
+            // (ต้องเป็นข้อมูลผู้ป่วยคนเดียวกับที่ระบุใน URL เท่านั้น กันข้อมูลเก่าของคนไข้คนอื่นหลุดมา)
+            if (!raw) {
+                try {
+                    const backupRaw = localStorage.getItem('chart_patient_backup');
+                    if (backupRaw) {
+                        const backupPatient = JSON.parse(backupRaw);
+                        if (!anFromUrl || String(backupPatient.an || '') === String(anFromUrl)) {
+                            raw = backupRaw;
+                            if (!targetFormId) targetFormId = localStorage.getItem('chart_patient_backup_form') || null;
+                        }
+                    }
+                } catch (e) {
+                    console.error('initChartPage backup restore error:', e);
+                }
+            }
+
+            let patient = raw ? JSON.parse(raw) : null;
+
+            // ชั้นที่ 3: ถ้ายังไม่มีข้อมูลเลย แต่รู้ AN จาก URL ให้ดึงข้อมูลผู้ป่วยจาก Supabase ใหม่โดยตรง
+            if (!patient && anFromUrl) {
+                try {
+                    const sb = this.getSupabase();
+                    const { data: row, error } = await sb
+                        .from('current_patients')
+                        .select('*')
+                        .eq('an', anFromUrl)
+                        .maybeSingle();
+                    if (!error && row) {
+                        patient = {
+                            date: row.admit_date || '',
+                            time: row.admit_time || '',
+                            ward: row.ward || '',
+                            bed: row.bed || '',
+                            receivedFrom: row.received_from || '',
+                            referFrom: row.refer_from || '',
+                            hn: row.hn || '',
+                            an: row.an || '',
+                            name: row.name || '',
+                            address: row.address || '',
+                            dob: row.dob || '',
+                            ageDisplay: row.age_display || '',
+                            dept: row.dept || '',
+                            cc: row.cc || '',
+                            pi: row.pi || '',
+                            dx: row.dx || '',
+                            doctor: row.doctor || '',
+                            status: row.status || ''
+                        };
+                        patient.ageDisplay = this.resolvePatientAgeDisplay(patient) || patient.ageDisplay;
+                    }
+                } catch (e) {
+                    console.error('initChartPage refetch by AN error:', e);
+                }
+            }
+
+            if (!patient) {
+                // กู้คืนข้อมูลไม่ได้จริงๆ จึง redirect กลับหน้ารายชื่อผู้ป่วย
+                window.location.href = 'patients.html';
+                return;
+            }
+
+            // กู้ข้อมูลสำเร็จ (จาก backup หรือ refetch) — เขียนกลับลง sessionStorage เพื่อให้ใช้งานต่อได้ตามปกติ
+            sessionStorage.setItem('chart_patient', JSON.stringify(patient));
+            if (targetFormId) sessionStorage.setItem('chart_target_form', targetFormId);
+
+            // ตั้ง viewMode เป็น 'chart' เพื่อให้ AlpineJS แสดง UI ถูกต้อง
+            this.viewMode = 'chart';
+
+            // รัน logic เดียวกับ openNursingChart (เวอร์ชัน in-page)
+            await this._loadChart(patient, targetFormId);
+        },
+
+        // ============================================================
+        // goBackToList — ปุ่ม X/ปิดใน chart.html กลับไปหน้า patients.html
+        // ============================================================
+        goBackToList() {
+            // Clear chart-specific session data but keep current ward
+            sessionStorage.removeItem('chart_patient');
+            sessionStorage.removeItem('chart_target_form');
+            // เคลียร์ backup ใน localStorage ด้วย ป้องกันข้อมูลผู้ป่วยคนเก่าหลุดไปให้คนไข้คนถัดไปตอนกู้คืน
+            try {
+                localStorage.removeItem('chart_patient_backup');
+                localStorage.removeItem('chart_patient_backup_ward');
+                localStorage.removeItem('chart_patient_backup_form');
+            } catch (e) { /* ignore */ }
+            // Reset view mode to list for patients page
+            this.viewMode = 'list';
+        },
         initNightShift() {
             const saved = localStorage.getItem('isNightShift');
             if (saved === 'true') {
@@ -1831,6 +2002,11 @@ function nurseApp() {
                 this.setAuthenticatedUser(user, session.access_token);
                 if (this.isAuthenticated) {
                     await this.loadInitialData();
+                    const returnWard = sessionStorage.getItem('chart_return_ward');
+                    if (returnWard) {
+                        this.selectWard(returnWard);
+                        sessionStorage.removeItem('chart_return_ward');
+                    }
                 }
             } catch (error) {
                 console.error('Restore session error:', error);
@@ -2505,7 +2681,14 @@ function nurseApp() {
 
         async selectWard(ward) {
             this.currentWard = ward;
-            this.viewMode = 'list';
+            sessionStorage.setItem('current_ward', ward);
+            if (!window.location.pathname.includes('patients.html') && !window.location.pathname.includes('chart.html')) {
+                window.location.href = 'patients.html';
+                return;
+            }
+            if (this.viewMode !== 'chart') {
+                this.viewMode = 'list';
+            }
             await this.fetchPatients();
         },
 
@@ -2613,9 +2796,31 @@ function nurseApp() {
             }
         },
 
+        // ============================================================
+        // openNursingChart — เรียกจาก index.html หรือ patients.html เพื่อเปิดหน้า chart
+        // เปลี่ยน viewMode เป็น 'chart' แทนการเปลี่ยนหน้าต่าง
+        // ============================================================
         async openNursingChart(patient, targetFormId = null) {
+            // ตั้ง viewMode เป็น 'chart' เพื่อให้ AlpineJS แสดง UI ของ chart
+            this.viewMode = 'chart';
+            
+            // บันทึก current form ถ้ามี
+            if (targetFormId) {
+                sessionStorage.setItem('chart_target_form', targetFormId);
+            } else {
+                sessionStorage.removeItem('chart_target_form');
+            }
+
+            // รัน _loadChart ในหน้าเดียวกัน
+            await this._loadChart(patient, targetFormId);
+        },
+
+        // ============================================================
+        // _loadChart — logic หลักของการโหลด Chart (ใช้ร่วมกันระหว่างสองหน้า)
+        // ============================================================
+        async _loadChart(patient, targetFormId = null) {
             this.isLoading = true;
-            const ageDisplay = this.resolvePatientAgeDisplay(patient);
+            const ageDisplay = patient.ageDisplay || this.resolvePatientAgeDisplay(patient);
             this.selectedPatient = { ...patient, ageDisplay };
             this.resetActiveForms();
             // ✅ เคลียร์ฟอร์มที่เลือกไว้ของคนไข้คนก่อนหน้าทิ้งก่อนเสมอ
@@ -2640,7 +2845,6 @@ function nurseApp() {
             const defaultFormId = this.isAdult ? 'assess_initial' : 'assess_initial_ped';
             const formIdToSelect = targetFormId || defaultFormId;
             
-            this.viewMode = 'chart';
             window.scrollTo(0, 0);
 
             try {
