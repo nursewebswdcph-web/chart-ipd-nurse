@@ -2260,6 +2260,10 @@ function nurseApp() {
                 this.showServicePanel = false;
                 this.resetServiceForm();
                 this.isLoading = false;
+                if (!window.location.pathname.includes('index.html') && window.location.pathname !== '/' ) {
+                    window.location.href = 'index.html';
+                    return;
+                }
             }
         },
 
