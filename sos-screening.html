@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SOS Screening | IPD Nurse Workbench</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<style>
+  body{font-family:'Sarabun',sans-serif;background:#f8fafc;color:#1e293b;}
+  [x-cloak]{display:none!important;}
+  .tap{-webkit-tap-highlight-color:transparent;}
+  .chip{
+    padding:14px 10px;border-radius:14px;border:2px solid #e2e8f0;background:#fff;
+    font-weight:700;font-size:14px;text-align:center;line-height:1.3;
+    transition:all .12s ease;
+  }
+  .chip.selected{border-color:#0f766e;background:#0f766e;color:#fff;box-shadow:0 6px 16px -6px rgba(15,118,110,.5);}
+  .numpad-input{
+    width:100%;text-align:center;font-size:34px;font-weight:800;
+    border:2px solid #e2e8f0;border-radius:16px;padding:14px 8px;background:#fff;
+    -moz-appearance:textfield;
+  }
+  .numpad-input::-webkit-outer-spin-button,.numpad-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+  .numpad-input:focus{outline:none;border-color:#0f766e;box-shadow:0 0 0 4px rgba(15,118,110,.12);}
+  .score-badge-normal{background:#ecfdf5;border-color:#6ee7b7;color:#047857;}
+  .score-badge-watch{background:#fffbeb;border-color:#fcd34d;color:#b45309;}
+  .score-badge-critical{background:#fef2f2;border-color:#fca5a5;color:#b91c1c;animation:pulse-crit 1.4s infinite;}
+  @keyframes pulse-crit{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.35);}50%{box-shadow:0 0 0 10px rgba(220,38,38,0);}}
+</style>
+</head>
+<body x-data="sosApp()" x-init="init()" class="min-h-screen pb-10">
+
+  <!-- ===== LOGIN ===== -->
+  <div x-show="screen==='login'" x-cloak class="min-h-screen flex items-center justify-center px-5">
+    <div class="w-full max-w-sm">
+      <div class="text-center mb-8">
+        <div class="w-16 h-16 rounded-2xl bg-rose-600 text-white flex items-center justify-center text-2xl mx-auto mb-4 shadow-lg shadow-rose-200">
+          <i class="fa-solid fa-heart-pulse"></i>
+        </div>
+        <h1 class="text-xl font-extrabold">SOS / PEWS Screening</h1>
+        <p class="text-xs text-slate-400 mt-1">สำหรับพนักงานผู้ช่วยเหลือคนไข้ · IPD Nurse Workbench</p>
+      </div>
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 space-y-3">
+        <input x-model="loginForm.username" type="text" placeholder="ชื่อผู้ใช้" autocomplete="username"
+               class="w-full px-4 py-3.5 rounded-xl border border-slate-200 text-base focus:outline-none focus:border-teal-600">
+        <input x-model="loginForm.password" type="password" placeholder="รหัสผ่าน" autocomplete="current-password"
+               class="w-full px-4 py-3.5 rounded-xl border border-slate-200 text-base focus:outline-none focus:border-teal-600">
+        <button @click="login()" :disabled="isLoading" class="tap w-full py-3.5 rounded-xl bg-rose-600 text-white font-bold text-base active:scale-95 transition disabled:opacity-50">
+          <span x-show="!isLoading">เข้าสู่ระบบ</span>
+          <span x-show="isLoading"><i class="fa-solid fa-spinner fa-spin"></i></span>
+        </button>
+        <p x-show="loginError" x-text="loginError" class="text-rose-600 text-xs text-center font-semibold"></p>
+      </div>
+      <a href="index.html" class="block text-center text-xs text-slate-400 mt-6"><i class="fa-solid fa-arrow-left mr-1"></i> กลับไประบบ Nurse Workbench หลัก</a>
+    </div>
+  </div>
+
+  <!-- ===== TOP BAR (after login) ===== -->
+  <div x-show="screen!=='login'" x-cloak class="sticky top-0 z-30 bg-white border-b border-slate-200">
+    <div class="flex items-center justify-between px-4 py-3">
+      <div class="flex items-center gap-2">
+        <button x-show="screen!=='wardSelect'" @click="goBack()" class="tap w-9 h-9 flex items-center justify-center rounded-lg text-slate-500 active:bg-slate-100">
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <div>
+          <div class="text-sm font-extrabold leading-none">SOS / PEWS Screening</div>
+          <div class="text-[11px] text-slate-400 mt-0.5" x-text="currentWard ? ('ตึก: ' + currentWard) : 'เลือกตึกผู้ป่วย'"></div>
+        </div>
+      </div>
+      <button @click="logout()" class="tap w-9 h-9 flex items-center justify-center rounded-lg text-rose-500 active:bg-rose-50">
+        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== WARD SELECT ===== -->
+  <div x-show="screen==='wardSelect'" x-cloak class="px-4 pt-5">
+    <h2 class="text-sm font-bold text-slate-500 mb-3">เลือกตึกผู้ป่วย</h2>
+    <div class="grid grid-cols-1 gap-3">
+      <template x-for="w in wards" :key="w">
+        <button @click="selectWard(w)" class="tap w-full flex items-center justify-between bg-white border border-slate-200 rounded-2xl px-5 py-4 active:scale-[0.98] transition">
+          <span class="font-bold text-base" x-text="w"></span>
+          <i class="fa-solid fa-chevron-right text-slate-300"></i>
+        </button>
+      </template>
+      <p x-show="!isLoading && wards.length===0" class="text-center text-sm text-slate-400 py-8">ไม่พบข้อมูลตึก</p>
+    </div>
+  </div>
+
+  <!-- ===== PATIENT SELECT ===== -->
+  <div x-show="screen==='patientSelect'" x-cloak class="px-4 pt-5">
+    <div class="relative mb-4">
+      <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 text-sm"></i>
+      <input x-model="patientSearch" type="text" placeholder="ค้นหาชื่อ / เตียง / AN"
+             class="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:border-teal-600">
+    </div>
+    <div class="grid grid-cols-1 gap-2.5">
+      <template x-for="p in filteredPatients" :key="p.an">
+        <button @click="selectPatient(p)" class="tap w-full flex items-center gap-3 bg-white border border-slate-200 rounded-2xl px-4 py-3.5 active:scale-[0.98] transition text-left">
+          <div class="w-11 h-11 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center font-extrabold text-emerald-700 text-sm shrink-0" x-text="p.bed"></div>
+          <div class="min-w-0 flex-1">
+            <div class="font-bold text-sm truncate" x-text="p.name"></div>
+            <div class="text-[11px] text-slate-400 mt-0.5" x-text="'AN ' + p.an + (p.isPediatric ? ' · เด็ก (' + p.ageBandLabel + ')' : ' · ผู้ใหญ่')"></div>
+          </div>
+          <i class="fa-solid fa-chevron-right text-slate-300 text-xs"></i>
+        </button>
+      </template>
+      <p x-show="!isLoading && filteredPatients.length===0" class="text-center text-sm text-slate-400 py-8">ไม่พบผู้ป่วย</p>
+    </div>
+  </div>
+
+  <!-- ===== SCREENING FORM ===== -->
+  <div x-show="screen==='form'" x-cloak class="px-4 pt-5 pb-24">
+    <div class="bg-white rounded-2xl border border-slate-200 p-4 mb-5 flex items-center gap-3">
+      <div class="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center font-extrabold text-emerald-700" x-text="selectedPatient?.bed"></div>
+      <div class="min-w-0">
+        <div class="font-extrabold text-base truncate" x-text="selectedPatient?.name"></div>
+        <div class="text-[11px] text-slate-400" x-text="'HN ' + selectedPatient?.hn + ' · AN ' + selectedPatient?.an"></div>
+      </div>
+      <div class="ml-auto text-[11px] font-bold px-2.5 py-1 rounded-full"
+           :class="selectedPatient?.isPediatric ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'bg-slate-100 text-slate-600 border border-slate-200'"
+           x-text="selectedPatient?.isPediatric ? 'PEWS · ' + selectedPatient?.ageBandLabel : 'SOS Score'"></div>
+    </div>
+
+    <div x-show="selectedPatient?.isPediatric" x-cloak class="mb-4 text-xs bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-3.5 py-2.5 font-semibold flex gap-2">
+      <i class="fa-solid fa-triangle-exclamation mt-0.5"></i>
+      <span>โครงสร้างคะแนน PEWS นี้อ้างอิงงานวิจัยที่ตีพิมพ์ แต่<b>ช่วงค่าปกติของ HR/RR/SBP ตามอายุ</b>ยังเป็นค่าตัวอย่าง รอทีมกุมารเวชกรรมยืนยันตารางที่ใช้จริงก่อนนำไปตัดสินใจทางคลินิก</span>
+    </div>
+
+    <!-- Vitals grid -->
+    <div class="grid grid-cols-2 gap-3 mb-3">
+      <div>
+        <label class="text-xs font-bold text-slate-500 mb-1.5 block">อุณหภูมิ (°C)</label>
+        <input x-model.number="vitals.bt" type="number" inputmode="decimal" step="0.1" class="numpad-input">
+      </div>
+      <div>
+        <label class="text-xs font-bold text-slate-500 mb-1.5 block" x-text="selectedPatient?.isPediatric ? 'HR (ครั้ง/นาที)' : 'ชีพจร PR (ครั้ง/นาที)'"></label>
+        <input x-model.number="vitals.pr" type="number" inputmode="numeric" class="numpad-input">
+      </div>
+      <div>
+        <label class="text-xs font-bold text-slate-500 mb-1.5 block">RR (ครั้ง/นาที)</label>
+        <input x-model.number="vitals.rr" type="number" inputmode="numeric" class="numpad-input">
+      </div>
+      <div>
+        <label class="text-xs font-bold text-slate-500 mb-1.5 block">SBP (mmHg)</label>
+        <input x-model.number="vitals.sbp" type="number" inputmode="numeric" class="numpad-input">
+      </div>
+      <div>
+        <label class="text-xs font-bold text-slate-500 mb-1.5 block">DBP (mmHg)</label>
+        <input x-model.number="vitals.dbp" type="number" inputmode="numeric" class="numpad-input">
+      </div>
+      <div>
+        <label class="text-xs font-bold text-slate-500 mb-1.5 block">O2 Sat (%)</label>
+        <input x-model.number="vitals.o2_sat" type="number" inputmode="numeric" class="numpad-input">
+      </div>
+    </div>
+
+    <div class="mb-4">
+      <label class="text-xs font-bold text-slate-500 mb-2 block">อุปกรณ์ให้ออกซิเจน</label>
+      <div class="grid grid-cols-3 gap-2">
+        <template x-for="opt in o2DeviceOptions" :key="opt">
+          <button @click="vitals.o2_device = opt" class="chip tap" :class="vitals.o2_device === opt ? 'selected' : ''" x-text="opt"></button>
+        </template>
+      </div>
+    </div>
+
+    <div class="mb-4">
+      <label class="text-xs font-bold text-slate-500 mb-2 block">ระดับความรู้สึกตัว (LOC)</label>
+      <div class="grid grid-cols-1 gap-2">
+        <template x-for="opt in locOptions" :key="opt.value">
+          <button @click="vitals.loc_status = opt.value" class="chip tap !text-left" :class="vitals.loc_status === opt.value ? 'selected' : ''" x-text="opt.label"></button>
+        </template>
+      </div>
+    </div>
+
+    <!-- Pediatric-only fields -->
+    <template x-if="selectedPatient?.isPediatric">
+      <div>
+        <div class="mb-4">
+          <label class="text-xs font-bold text-slate-500 mb-2 block">ความพยายามในการหายใจ</label>
+          <div class="grid grid-cols-3 gap-2">
+            <template x-for="opt in respEffortOptions" :key="opt">
+              <button @click="vitals.resp_effort = opt" class="chip tap" :class="vitals.resp_effort === opt ? 'selected' : ''" x-text="opt"></button>
+            </template>
+          </div>
+        </div>
+        <div class="mb-4">
+          <label class="text-xs font-bold text-slate-500 mb-2 block">Capillary Refill</label>
+          <div class="grid grid-cols-3 gap-2">
+            <template x-for="opt in capRefillOptions" :key="opt">
+              <button @click="vitals.cap_refill = opt" class="chip tap" :class="vitals.cap_refill === opt ? 'selected' : ''" x-text="opt"></button>
+            </template>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- Adult-only overrides -->
+    <template x-if="!selectedPatient?.isPediatric">
+      <div class="grid grid-cols-2 gap-3 mb-4">
+        <button @click="vitals.on_vasopressor = !vitals.on_vasopressor" class="chip tap !text-left flex items-center gap-2" :class="vitals.on_vasopressor ? 'selected' : ''">
+          <i class="fa-solid fa-droplet"></i> ใช้ยากระตุ้นความดัน
+        </button>
+        <button @click="vitals.on_ventilator = !vitals.on_ventilator" class="chip tap !text-left flex items-center gap-2" :class="vitals.on_ventilator ? 'selected' : ''">
+          <i class="fa-solid fa-lungs"></i> ใช้เครื่องช่วยหายใจ
+        </button>
+      </div>
+    </template>
+
+    <!-- Urine output (ไม่บังคับกรอก) — เฉพาะผู้ใหญ่ ตามเอกสาร SOS score -->
+    <template x-if="!selectedPatient?.isPediatric">
+      <div class="mb-4">
+        <label class="text-xs font-bold text-slate-500 mb-2 block">ปริมาณปัสสาวะ (ไม่บังคับกรอก)</label>
+        <div class="grid grid-cols-4 gap-2 mb-2">
+          <template x-for="w in urineWindowOptions" :key="w.value">
+            <button @click="vitals.urine_window = w.value" class="chip tap !text-xs !py-2.5" :class="vitals.urine_window === w.value ? 'selected' : ''" x-text="w.label"></button>
+          </template>
+        </div>
+        <input x-show="vitals.urine_window" x-model.number="vitals.urine_value" type="number" inputmode="numeric"
+               placeholder="ปริมาณ (มล.)" class="numpad-input !text-xl !py-3">
+      </div>
+    </template>
+
+    <!-- Live score -->
+    <div class="rounded-2xl border-2 px-5 py-4 mb-5 transition-colors"
+         :class="{'score-badge-normal': liveScore.level==='normal','score-badge-watch': liveScore.level==='watch','score-badge-critical': liveScore.level==='critical'}">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-[11px] font-extrabold uppercase tracking-wide opacity-70" x-text="selectedPatient?.isPediatric ? 'คะแนน PEWS' : 'คะแนน SOS'"></div>
+          <div class="text-3xl font-extrabold leading-none mt-1" x-text="liveScore.total"></div>
+        </div>
+        <div class="text-right text-xs font-bold max-w-[55%]" x-text="liveScore.message"></div>
+      </div>
+    </div>
+
+    <button @click="submitScreening()" :disabled="isLoading" class="tap w-full py-4 rounded-2xl bg-teal-700 text-white font-extrabold text-base active:scale-[0.98] transition disabled:opacity-50 shadow-lg shadow-teal-100">
+      <span x-show="!isLoading"><i class="fa-solid fa-check mr-1.5"></i> บันทึกผลการคัดกรอง</span>
+      <span x-show="isLoading"><i class="fa-solid fa-spinner fa-spin"></i></span>
+    </button>
+  </div>
+
+  <!-- ===== SUCCESS TOAST ===== -->
+  <div x-show="showSuccess" x-cloak x-transition
+       class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-sm font-bold px-5 py-3 rounded-xl shadow-xl z-50 flex items-center gap-2">
+    <i class="fa-solid fa-circle-check text-emerald-400"></i> บันทึกผลการคัดกรองเรียบร้อยแล้ว
+  </div>
+
+<script>
+function sosApp() {
+  return {
+    // ---------- config ----------
+    SUPABASE_URL: 'https://ipodmceqazxgxwuzbbfo.supabase.co',
+    SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlwb2RtY2VxYXp4Z3h3dXpiYmZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2NjMzMTgsImV4cCI6MjEwMzIzOTMxOH0.0zPO93RYX3_3sQ9EeeTxYEfPYdGxsz14nnvGkEDmk38',
+    supabaseClient: null,
+
+    // ---------- state ----------
+    screen: 'login',
+    isLoading: false,
+    loginError: '',
+    loginForm: { username: '', password: '' },
+    currentUser: null,
+
+    wards: [],
+    currentWard: '',
+    patients: [],
+    patientSearch: '',
+    selectedPatient: null,
+
+    vitals: {
+      bt: null, pr: null, rr: null, sbp: null, dbp: null, o2_sat: null,
+      o2_device: 'อากาศห้อง (Room Air)', loc_status: '', cap_refill: '', resp_effort: '',
+      on_vasopressor: false, on_ventilator: false, urine_window: '', urine_value: null
+    },
+
+    o2DeviceOptions: ['อากาศห้อง (Room Air)', 'สายออกซิเจน (Cannula)', 'หน้ากากออกซิเจน (Mask)', 'HFNC', 'เครื่องช่วยหายใจ'],
+    // ระดับความรู้สึกตัวตามเอกสาร SOS score จริง (AVPU + New Confusion/Agitation)
+    locOptions: [
+      { value: 'alert', label: 'A — ตื่นดี รู้สึกตัวปกติ (Alert)' },
+      { value: 'new_confusion', label: 'สับสน/กระสับกระส่ายที่เพิ่งเกิดขึ้นใหม่ (New Confusion/Agitation)' },
+      { value: 'voice', label: 'V — ตอบสนองต่อเสียงเรียก (Responds to Voice)' },
+      { value: 'pain', label: 'P — ตอบสนองต่อความเจ็บปวด (Responds to Pain)' },
+      { value: 'unresponsive', label: 'U — ไม่ตอบสนองเลย (Unresponsive)' }
+    ],
+    respEffortOptions: ['ปกติ', 'หายใจแรงขึ้น', 'หายใจลำบากมาก'],
+    capRefillOptions: ['≤2 วิ', '3 วิ', '≥4 วิ'],
+
+    showSuccess: false,
+    pendingDeepLink: null,
+
+    init() {
+      this.supabaseClient = window.supabase.createClient(this.SUPABASE_URL, this.SUPABASE_ANON_KEY);
+
+      // รองรับลิงก์ลัดจากหน้าทะเบียนผู้ป่วย เช่น sos-screening.html?an=690012345&ward=ปาริฉัตร
+      const params = new URLSearchParams(window.location.search);
+      const anParam = params.get('an');
+      const wardParam = params.get('ward');
+      if (anParam && wardParam) {
+        this.pendingDeepLink = { an: anParam, ward: wardParam };
+      }
+
+      this.supabaseClient.auth.getSession().then(async ({ data }) => {
+        if (data?.session) {
+          this.currentUser = data.session.user;
+          this.screen = 'wardSelect';
+          await this.loadWards();
+          await this.resolveDeepLinkIfAny();
+        }
+      });
+    },
+
+    async resolveDeepLinkIfAny() {
+      if (!this.pendingDeepLink) return;
+      const { an, ward } = this.pendingDeepLink;
+      this.pendingDeepLink = null;
+      await this.selectWard(ward);
+      const match = this.patients.find(p => String(p.an) === String(an));
+      if (match) this.selectPatient(match);
+    },
+
+    async login() {
+      if (!this.loginForm.username || !this.loginForm.password) {
+        this.loginError = 'กรุณากรอกชื่อผู้ใช้และรหัสผ่าน';
+        return;
+      }
+      this.isLoading = true;
+      this.loginError = '';
+      try {
+        // แปลง username -> email ด้วย RPC เดียวกับระบบ Nurse Workbench หลัก (email_for_username)
+        const { data: email, error: lookupError } = await this.supabaseClient.rpc('email_for_username', { p_username: this.loginForm.username.trim() });
+        if (lookupError || !email) throw new Error('ไม่พบชื่อผู้ใช้นี้ในระบบ');
+
+        const { data, error } = await this.supabaseClient.auth.signInWithPassword({ email, password: this.loginForm.password });
+        if (error) throw new Error('รหัสผ่านไม่ถูกต้อง');
+        this.currentUser = data.user;
+        this.screen = 'wardSelect';
+        await this.loadWards();
+        await this.resolveDeepLinkIfAny();
+      } catch (e) {
+        this.loginError = 'เข้าสู่ระบบไม่สำเร็จ: ' + (e.message || 'กรุณาตรวจสอบชื่อผู้ใช้/รหัสผ่าน');
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    async logout() {
+      await this.supabaseClient.auth.signOut();
+      this.currentUser = null;
+      this.screen = 'login';
+      this.currentWard = '';
+    },
+
+    goBack() {
+      if (this.screen === 'form') { this.screen = 'patientSelect'; this.selectedPatient = null; }
+      else if (this.screen === 'patientSelect') { this.screen = 'wardSelect'; this.currentWard = ''; }
+    },
+
+    async loadWards() {
+      this.isLoading = true;
+      try {
+        const { data, error } = await this.supabaseClient.from('current_patients').select('ward').eq('status', 'Active');
+        if (error) throw error;
+        this.wards = [...new Set((data || []).map(r => r.ward).filter(Boolean))].sort();
+      } catch (e) {
+        console.error(e);
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    async selectWard(ward) {
+      this.currentWard = ward;
+      this.screen = 'patientSelect';
+      this.isLoading = true;
+      try {
+        const { data, error } = await this.supabaseClient
+          .from('current_patients')
+          .select('an, hn, name, bed, dob, age_display, dept')
+          .eq('ward', ward)
+          .eq('status', 'Active')
+          .order('bed', { ascending: true });
+        if (error) throw error;
+        this.patients = (data || []).map(p => {
+          const ageInfo = this.resolveAgeBand(p.dob, p.dept);
+          return { ...p, isPediatric: ageInfo.isPediatric, ageBand: ageInfo.ageBand, ageBandLabel: ageInfo.label };
+        });
+      } catch (e) {
+        console.error(e);
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    get filteredPatients() {
+      const q = (this.patientSearch || '').trim().toLowerCase();
+      if (!q) return this.patients;
+      return this.patients.filter(p =>
+        (p.name || '').toLowerCase().includes(q) ||
+        (p.bed || '').toLowerCase().includes(q) ||
+        (p.an || '').toLowerCase().includes(q)
+      );
+    },
+
+    // อายุ < 15 ปี หรือ dept เป็นกุมารเวชกรรม -> ถือเป็นเด็ก (ตรรกะเดียวกับ isAdult ในระบบหลัก)
+    resolveAgeBand(dob, dept) {
+      let ageMonths = null;
+      if (dob) {
+        const birth = new Date(dob);
+        const now = new Date();
+        ageMonths = (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth());
+      }
+      const isPedDept = String(dept || '').includes('กุมาร') || String(dept || '').toUpperCase().includes('PED');
+      const isPediatric = (ageMonths !== null && ageMonths < 15 * 12) || isPedDept;
+      if (!isPediatric) return { isPediatric: false, ageBand: null, label: '' };
+
+      let ageBand = '5-11y', label = '5-11 ปี';
+      if (ageMonths !== null) {
+        if (ageMonths <= 3) { ageBand = '0-3m'; label = '0-3 เดือน'; }
+        else if (ageMonths <= 11) { ageBand = '4-11m'; label = '4-11 เดือน'; }
+        else if (ageMonths <= 4 * 12) { ageBand = '1-4y'; label = '1-4 ปี'; }
+        else if (ageMonths <= 11 * 12) { ageBand = '5-11y'; label = '5-11 ปี'; }
+        else { ageBand = '12y+'; label = '12 ปีขึ้นไป'; }
+      }
+      return { isPediatric: true, ageBand, label };
+    },
+
+    selectPatient(p) {
+      this.selectedPatient = p;
+      this.vitals = {
+        bt: null, pr: null, rr: null, sbp: null, dbp: null, o2_sat: null,
+        o2_device: 'อากาศห้อง (Room Air)', loc_status: '', cap_refill: '', resp_effort: '',
+        on_vasopressor: false, on_ventilator: false, urine_window: '', urine_value: null
+      };
+      this.screen = 'form';
+    },
+
+    // ========================================================================
+    // ตารางคะแนน SOS Score (ผู้ใหญ่) — อ้างอิงจากเอกสาร SOS (Search Out Severity)
+    // Score ที่ใช้จริงในโรงพยาบาลไทยหลายแห่ง ปรับให้แก้ตัวเลขได้ง่ายในจุดเดียว
+    // ========================================================================
+    scoreT(t) {
+      if (t == null || t === '') return 0;
+      if (t <= 35) return 3;
+      if (t <= 36) return 2;
+      if (t <= 38) return 0;
+      if (t <= 38.4) return 1;
+      return 3;
+    },
+    scoreSBP(sbp, onVaso) {
+      if (onVaso) return 3;
+      if (sbp == null || sbp === '') return 0;
+      if (sbp <= 80) return 3;
+      if (sbp <= 90) return 2;
+      if (sbp <= 100) return 1;
+      if (sbp <= 180) return 0;
+      if (sbp <= 199) return 1;
+      return 2;
+    },
+    scorePR(pr) {
+      if (pr == null || pr === '') return 0;
+      if (pr <= 40) return 3;
+      if (pr <= 50) return 2;
+      if (pr <= 100) return 0;
+      if (pr <= 120) return 1;
+      if (pr <= 139) return 2;
+      return 3;
+    },
+    scoreRR(rr, onVent) {
+      if (onVent) return 3;
+      if (rr == null || rr === '') return 0;
+      if (rr <= 8) return 3;
+      if (rr <= 20) return 0;
+      if (rr <= 25) return 1;
+      if (rr <= 35) return 2;
+      return 3;
+    },
+    // A(Alert)=0, สับสน/กระสับกระส่ายใหม่=1, V(ตอบสนองเสียง)=2, P(ตอบสนองความเจ็บปวด)=3, U(ไม่ตอบสนอง)=3
+    scoreLOC(loc) {
+      const map = { alert: 0, new_confusion: 1, voice: 2, pain: 3, unresponsive: 3, '': 0 };
+      return map[loc] ?? 0;
+    },
+
+    // ========================================================================
+    // ตารางคะแนน PEWS (เด็ก) — ⚠️ ค่าตัวอย่างเบื้องต้นเท่านั้น ต้องแทนที่ด้วยตาราง
+    // ที่ทีมกุมารเวชกรรมของโรงพยาบาลรับรองใช้จริงตามช่วงอายุ ก่อนใช้งานจริง
+    // โครงสร้าง (7 พารามิเตอร์ x 5 ช่วงอายุ x คะแนน 0-3) พร้อมใช้งาน เหลือแค่แทนตัวเลข
+    // ========================================================================
+    PEWS_REFERENCE_RANGES: {
+      '0-3m':  { hr: [100, 160], rr: [30, 60], sbp: [65, 85] },
+      '4-11m': { hr: [90, 150],  rr: [25, 50], sbp: [70, 90] },
+      '1-4y':  { hr: [80, 140],  rr: [20, 40], sbp: [75, 100] },
+      '5-11y': { hr: [70, 120],  rr: [16, 30], sbp: [85, 110] },
+      '12y+':  { hr: [60, 100],  rr: [12, 20], sbp: [95, 120] }
+    },
+    scoreAgainstRange(value, range) {
+      if (value == null || value === '' || !range) return 0;
+      const [low, high] = range;
+      const span = high - low || 1;
+      if (value < low - span * 0.4) return 3;
+      if (value < low - span * 0.2) return 2;
+      if (value < low) return 1;
+      if (value <= high) return 0;
+      if (value <= high + span * 0.2) return 1;
+      if (value <= high + span * 0.4) return 2;
+      return 3;
+    },
+    scoreO2Sat(o2) {
+      if (o2 == null || o2 === '') return 0;
+      if (o2 >= 95) return 0;
+      if (o2 >= 90) return 1;
+      if (o2 >= 85) return 2;
+      return 3;
+    },
+    scoreRespEffort(v) {
+      return { 'ปกติ': 0, 'หายใจแรงขึ้น': 2, 'หายใจลำบากมาก': 3, '': 0 }[v] ?? 0;
+    },
+    scoreCapRefill(v) {
+      return { '≤2 วิ': 0, '3 วิ': 1, '≥4 วิ': 3, '': 0 }[v] ?? 0;
+    },
+
+    // ปริมาณปัสสาวะ (เฉพาะผู้ใหญ่ ตามเอกสาร SOS score จริง) — ยิ่งน้อยยิ่งคะแนนสูง (แย่)
+    // ไม่บังคับกรอก ถ้าไม่เลือกช่วงเวลา/ไม่กรอกค่า = ไม่คิดคะแนนส่วนนี้ (ถือเป็น 0)
+    urineWindowOptions: [
+      { value: '1hr', label: '1 ชม.' },
+      { value: '4hr', label: '4 ชม.' },
+      { value: '8hr', label: '8 ชม.' },
+      { value: 'day', label: '24 ชม.' }
+    ],
+    URINE_THRESHOLDS: {
+      day: { low: 500, mid: 999 },
+      '8hr': { low: 160, mid: 319 },
+      '4hr': { low: 80, mid: 159 },
+      '1hr': { low: 20, mid: 39 }
+    },
+    scoreUrine(window, value) {
+      if (!window || value == null || value === '') return 0;
+      const t = this.URINE_THRESHOLDS[window];
+      if (!t) return 0;
+      if (value <= t.low) return 3;
+      if (value <= t.mid) return 1;
+      return 0;
+    },
+
+    computeScore(patient, v) {
+      if (!patient) return { total: 0, breakdown: {}, level: 'normal', message: '' };
+
+      if (!patient.isPediatric) {
+        // ตรงตามเอกสาร "แนวปฏิบัติการประเมินสภาพผู้ป่วยที่มีอาการทรุดลงโดยใช้ SOS score"
+        const breakdown = {
+          Temp: this.scoreT(v.bt),
+          SysBP: this.scoreSBP(v.sbp, v.on_vasopressor),
+          HR: this.scorePR(v.pr),
+          RR: this.scoreRR(v.rr, v.on_ventilator),
+          Neuro: this.scoreLOC(v.loc_status),
+          Urine: this.scoreUrine(v.urine_window, v.urine_value)
+        };
+        const total = Object.values(breakdown).reduce((a, b) => a + b, 0);
+        let level = 'normal', message = 'Record V/S ตามปกติ · ประเมิน SOS score ตามปกติ';
+        if (total >= 4) {
+          level = 'critical';
+          message = 'คะแนน ≥4: วิกฤต! รายงานพยาบาลเจ้าของไข้/incharge/แพทย์ทันที · Record V/S, I/O ทุก 15-30 นาที · พิจารณาย้าย ICU';
+        } else if (total >= 1) {
+          level = 'watch';
+          message = 'คะแนน 1-3: เฝ้าระวัง · Record V/S, I/O ทุก 4 ชม. · รายงานพยาบาลเจ้าของไข้ · พิจารณารายงานแพทย์ตามความเหมาะสม';
+        }
+        return { total, breakdown, level, message };
+      }
+
+      // PEWS ผู้ป่วยเด็ก — โครงสร้าง 8 พารามิเตอร์ตามงานวิจัยที่ใช้อ้างอิง (Krishnan et al. 2020)
+      // ⚠️ ตัวเลขช่วงค่าปกติ HR/RR/SBP ต่อไปนี้ยังเป็นค่าตัวอย่าง รอตารางจริงจากทีมกุมารเวชกรรมยืนยัน
+      const range = this.PEWS_REFERENCE_RANGES[patient.ageBand] || this.PEWS_REFERENCE_RANGES['5-11y'];
+      const breakdown = {
+        RespEffort: this.scoreRespEffort(v.resp_effort),
+        RR: this.scoreAgainstRange(v.rr, range.rr),
+        O2Sat: this.scoreO2Sat(v.o2_sat),
+        HR: this.scoreAgainstRange(v.pr, range.hr),
+        SysBP: this.scoreAgainstRange(v.sbp, range.sbp),
+        CapRefill: this.scoreCapRefill(v.cap_refill),
+        AVPU: this.scoreLOC(v.loc_status)
+      };
+      const values = Object.values(breakdown);
+      const total = values.reduce((a, b) => a + b, 0);
+      const hasSingleThree = values.some(s => s >= 3);
+
+      let level = 'normal', message = 'คะแนนรวมปกติ · ประเมินตามปกติ';
+      if (total >= 5) {
+        level = 'critical';
+        message = `คะแนนรวม ${total} (≥5): ควรได้รับการประเมินโดยกุมารแพทย์ผู้ดูแลผู้ป่วยวิกฤต (Intensivist) ทันที`;
+      } else if (total >= 3 || hasSingleThree) {
+        level = 'critical';
+        message = hasSingleThree && total < 3
+          ? 'มีพารามิเตอร์ใดพารามิเตอร์หนึ่งได้ 3 คะแนน: ต้องรายงานแพทย์เพื่อประเมินทันที'
+          : `คะแนนรวม ${total} (≥3): ต้องรายงานแพทย์เพื่อประเมินทันที`;
+      } else if (total >= 1) {
+        level = 'watch';
+        message = 'เฝ้าระวัง · ประเมินซ้ำถี่ขึ้น · หากคะแนนเปลี่ยนแปลง ≥2 จุดจากครั้งก่อน ต้องให้แพทย์ประเมิน';
+      }
+      return { total, breakdown, level, message };
+    },
+
+    get liveScore() {
+      return this.computeScore(this.selectedPatient, this.vitals);
+    },
+
+    async submitScreening() {
+      if (!this.selectedPatient) return;
+      this.isLoading = true;
+      try {
+        const score = this.liveScore;
+        const row = {
+          an: this.selectedPatient.an,
+          hn: this.selectedPatient.hn,
+          ward: this.currentWard,
+          bed: this.selectedPatient.bed,
+          patient_type: this.selectedPatient.isPediatric ? 'pediatric' : 'adult',
+          age_band: this.selectedPatient.isPediatric ? this.selectedPatient.ageBand : null,
+          bt: this.vitals.bt, pr: this.vitals.pr, rr: this.vitals.rr,
+          sbp: this.vitals.sbp, dbp: this.vitals.dbp, o2_sat: this.vitals.o2_sat,
+          o2_device: this.vitals.o2_device, loc_status: this.vitals.loc_status,
+          cap_refill: this.vitals.cap_refill, resp_effort: this.vitals.resp_effort,
+          on_vasopressor: this.vitals.on_vasopressor, on_ventilator: this.vitals.on_ventilator,
+          urine_window: this.vitals.urine_window || null, urine_value: this.vitals.urine_value,
+          score_breakdown: score.breakdown,
+          total_score: score.total,
+          alert_level: score.level,
+          recorded_by: this.currentUser?.id || null,
+          recorded_by_name: this.currentUser?.user_metadata?.full_name || this.currentUser?.email || ''
+        };
+        const { error } = await this.supabaseClient.from('vital_signs_screening').insert(row);
+        if (error) throw error;
+
+        this.showSuccess = true;
+        setTimeout(() => { this.showSuccess = false; }, 2500);
+        this.screen = 'patientSelect';
+        this.selectedPatient = null;
+      } catch (e) {
+        alert('บันทึกไม่สำเร็จ: ' + (e.message || e));
+      } finally {
+        this.isLoading = false;
+      }
+    }
+  };
+}
+</script>
+</body>
+</html>
