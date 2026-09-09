@@ -2602,6 +2602,29 @@ function nurseApp() {
         
         // ดึง "คะแนนล่าสุด" ของแต่ละ AN จากตาราง classification / fall risk / braden (เดิมคือ getLatestScoresMap() ฝั่ง Apps Script)
         // เรียงตาม created_at จากเก่า->ใหม่ แล้วเขียนทับ map ไปเรื่อยๆ ให้ค่าสุดท้ายคือค่าล่าสุด (พฤติกรรมเดิมเป๊ะๆ)
+        // ดึง "สัญญาณชีพล่าสุด" ของแต่ละ AN จากตาราง vital_signs_screening (ที่พนักงานผู้ช่วยบันทึกจากหน้า SOS Screening)
+        // ใช้ pattern เดียวกับ getLatestScoresMap: เรียงตาม created_at เก่า->ใหม่ แล้วเขียนทับ map ให้ค่าสุดท้ายคือค่าล่าสุด
+        async getLatestVitalsMap(ans) {
+            const empty = {};
+            const anList = Array.from(new Set((ans || []).map(a => String(a).trim()).filter(Boolean)));
+            if (!anList.length) return empty;
+
+            const sb = this.getSupabase();
+            const { data, error } = await sb
+                .from('vital_signs_screening')
+                .select('an, bt, pr, rr, sbp, dbp, total_score, alert_level, created_at')
+                .in('an', anList)
+                .order('created_at', { ascending: true });
+            if (error) { console.error('getLatestVitalsMap error:', error); return empty; }
+
+            const map = {};
+            (data || []).forEach(r => {
+                const an = String(r.an || '').trim();
+                if (an) map[an] = r;
+            });
+            return map;
+        },
+
         async getLatestScoresMap(ans) {
             const empty = { classMap: {}, classPedMap: {}, morseMap: {}, maasMap: {}, bradenMap: {}, bradenDateMap: {} };
             const anList = Array.from(new Set((ans || []).map(a => String(a).trim()).filter(Boolean)));
@@ -2738,7 +2761,10 @@ function nurseApp() {
                 }
 
                 const ansOnWard = (rows || []).map(r => String(r.an || '').trim()).filter(Boolean);
-                const scores = await this.getLatestScoresMap(ansOnWard);
+                const [scores, vitalsMap] = await Promise.all([
+                    this.getLatestScoresMap(ansOnWard),
+                    this.getLatestVitalsMap(ansOnWard)
+                ]);
 
                 const patientList = (rows || []).map((row) => {
                     // แปลง snake_case (Supabase) -> camelCase เดิมที่หน้าจอใช้อยู่
@@ -2773,7 +2799,8 @@ function nurseApp() {
                         latestMorse: scores.morseMap[anStr] || '',
                         latestMaas: scores.maasMap[anStr] || '',
                         latestBraden: scores.bradenMap[anStr] || '',
-                        latestBradenDate: scores.bradenDateMap[anStr] || ''
+                        latestBradenDate: scores.bradenDateMap[anStr] || '',
+                        latestVitals: vitalsMap[anStr] || null
                     };
                 });
                 this.patients = patientList;
