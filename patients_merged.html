@@ -411,8 +411,8 @@
                     <table class="w-full text-left border-collapse">
                         <thead class="bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-100 dark:border-slate-700">
                             <tr class="text-slate-400 text-[10px] uppercase font-bold tracking-widest">
-                                <th class="p-5 text-center w-24">Chart</th>
-                                <th class="p-5 w-24 text-center">เตียง</th>
+                                <th class="p-5 text-center w-28">เตียง / Chart</th>
+                                <th class="p-5 w-40 text-center">V/S</th>
                                 <th class="p-5">ข้อมูลผู้ป่วย</th>
                                 <th class="p-5">แผนก / แพทย์</th>
                                 <th class="p-5 text-center">Admit / LOS</th>
@@ -424,20 +424,35 @@
                             <tbody class="group border-b border-slate-100 dark:border-slate-700/60 last:border-b-0 bg-white dark:bg-slate-800">
                                 <tr @click="openPatientDetail(p)" class="group-hover:bg-slate-50/80 dark:group-hover:bg-slate-750 transition-all cursor-pointer">
                                     <td class="p-4 text-center">
-                                        <button @click.stop="openNursingChart(p)" 
-                                                class="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl shadow-md transition-all active:scale-95 border-2 border-indigo-100 min-w-[90px]">
-                                            <i class="fa-solid fa-file-medical text-sm"></i>
-                                            <span class="font-bold text-xs tracking-wide">Chart</span>
-                                        </button>
+                                        <div class="flex flex-col items-center gap-1.5">
+                                            <button @click.stop="openNursingChart(p)"
+                                                    class="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl shadow-md transition-all active:scale-95 border-2 border-indigo-100 min-w-[90px]">
+                                                <i class="fa-solid fa-file-medical text-sm"></i>
+                                                <span class="font-bold text-xs tracking-wide">Chart</span>
+                                            </button>
+                                            <span class="bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 px-4 py-1.5 rounded-2xl font-black text-sm border border-emerald-200 dark:border-emerald-800 shadow-sm inline-block min-w-[90px]" x-text="p.bed"></span>
+                                        </div>
                                     </td>
                                     <td class="p-4 text-center">
-                                        <span class="bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 px-4 py-2 rounded-2xl font-black text-base border border-emerald-200 dark:border-emerald-800 shadow-sm inline-block min-w-[60px]" x-text="p.bed"></span>
-                                        <a :href="'sos-screening.html?an=' + encodeURIComponent(p.an) + '&ward=' + encodeURIComponent(p.ward)"
-                                           @click.stop
-                                           title="บันทึกสัญญาณชีพ (V/S) ของผู้ป่วยรายนี้"
-                                           class="mt-1.5 flex items-center justify-center gap-1 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-950/70 text-rose-600 dark:text-rose-400 px-2 py-1 rounded-lg text-[10px] font-extrabold border border-rose-200 dark:border-rose-800 transition-all active:scale-95">
-                                            <i class="fa-solid fa-heart-pulse"></i> V/S
-                                        </a>
+                                        <div class="flex flex-col items-center gap-1.5">
+                                            <a :href="'sos-screening.html?an=' + encodeURIComponent(p.an) + '&ward=' + encodeURIComponent(p.ward)"
+                                               @click.stop
+                                               title="บันทึกสัญญาณชีพ (V/S) ของผู้ป่วยรายนี้"
+                                               class="flex items-center justify-center gap-1 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-950/70 text-rose-600 dark:text-rose-400 px-3 py-1.5 rounded-lg text-[11px] font-extrabold border border-rose-200 dark:border-rose-800 transition-all active:scale-95 min-w-[90px]">
+                                                <i class="fa-solid fa-heart-pulse"></i> บันทึก V/S
+                                            </a>
+                                            <!-- ค่าสัญญาณชีพล่าสุด (จากหน้า SOS Screening) แสดงเป็นไอคอน Temp/HR/RR/BP -->
+                                            <template x-if="p.latestVitals">
+                                                <div class="grid grid-cols-2 gap-x-2 gap-y-0.5 text-[10px] font-bold leading-tight w-full max-w-[110px] mx-auto"
+                                                     :class="p.latestVitals?.alert_level === 'critical' ? 'text-red-600' : (p.latestVitals?.alert_level === 'watch' ? 'text-amber-600' : 'text-slate-500')">
+                                                    <span class="flex items-center gap-1" title="อุณหภูมิ"><i class="fa-solid fa-temperature-half w-3"></i><span x-text="(p.latestVitals?.bt ?? '-') + '°'"></span></span>
+                                                    <span class="flex items-center gap-1" title="ชีพจร/HR"><i class="fa-solid fa-heart-pulse w-3"></i><span x-text="p.latestVitals?.pr ?? '-'"></span></span>
+                                                    <span class="flex items-center gap-1" title="RR"><i class="fa-solid fa-lungs w-3"></i><span x-text="p.latestVitals?.rr ?? '-'"></span></span>
+                                                    <span class="flex items-center gap-1" title="BP"><i class="fa-solid fa-droplet w-3"></i><span x-text="(p.latestVitals?.sbp ?? '-') + '/' + (p.latestVitals?.dbp ?? '-')"></span></span>
+                                                </div>
+                                            </template>
+                                            <span x-show="!p.latestVitals" class="text-[10px] text-slate-300 dark:text-slate-600 font-semibold">ยังไม่มีข้อมูล</span>
+                                        </div>
                                     </td>
                                     <td class="p-4">
                                         <div class="flex items-center gap-2 leading-tight">
