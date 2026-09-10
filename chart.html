@@ -355,6 +355,27 @@
                                             <span class="text-sm font-black text-purple-700" x-text="selectedPatient.latestMaas"></span>
                                         </button>
                                     </template>
+
+                                    <!-- SOS / PEWS score ล่าสุด (จากหน้า SOS Screening) -->
+                                    <template x-if="selectedPatient?.latestVitals">
+                                        <button @click.stop="openGuidelineModal(isAdult ? 'sos' : 'pews', selectedPatient)"
+                                            class="flex items-center gap-1 rounded-lg px-2 py-0.5 border cursor-pointer hover:scale-105 transition-transform"
+                                            :title="'ดูแนวปฏิบัติ ' + (isAdult ? 'SOS Score' : 'PEWS')"
+                                            :class="selectedPatient.latestVitals.alert_level === 'critical'
+                                                ? 'bg-red-50 border-red-200 hover:bg-red-100'
+                                                : selectedPatient.latestVitals.alert_level === 'watch'
+                                                    ? 'bg-amber-50 border-amber-200 hover:bg-amber-100'
+                                                    : 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100'">
+                                            <i class="fa-solid fa-heart-pulse text-[9px]"
+                                                :class="selectedPatient.latestVitals.alert_level === 'critical' ? 'text-red-400' : selectedPatient.latestVitals.alert_level === 'watch' ? 'text-amber-400' : 'text-emerald-400'"></i>
+                                            <span class="text-[9px] font-black uppercase tracking-wide"
+                                                :class="selectedPatient.latestVitals.alert_level === 'critical' ? 'text-red-400' : selectedPatient.latestVitals.alert_level === 'watch' ? 'text-amber-400' : 'text-emerald-400'"
+                                                x-text="isAdult ? 'SOS' : 'PEWS'"></span>
+                                            <span class="text-sm font-black"
+                                                :class="selectedPatient.latestVitals.alert_level === 'critical' ? 'text-red-700' : selectedPatient.latestVitals.alert_level === 'watch' ? 'text-amber-700' : 'text-emerald-700'"
+                                                x-text="selectedPatient.latestVitals.total_score"></span>
+                                        </button>
+                                    </template>
                                 </div>
                             </div>
                             
@@ -592,6 +613,10 @@
                                         <div class="flex items-center gap-2">PR <input type="text" name="Admit_PR" class="w-16 bg-white border border-emerald-200 rounded-lg p-2 text-center font-bold"> /min</div>
                                         <div class="flex items-center gap-2">RR <input type="text" name="Admit_RR" class="w-16 bg-white border border-emerald-200 rounded-lg p-2 text-center font-bold"> /min</div>
                                         <div class="flex items-center gap-2">BP <input type="text" name="Admit_BP" class="w-24 bg-white border border-emerald-200 rounded-lg p-2 text-center font-bold"> mmHg</div>
+                                        <button type="button" @click="syncLatestVitalsIntoForm(['Admit_BT','Admit_PR','Admit_RR','Admit_BP'])"
+                                                class="flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-lg px-3 py-2 text-xs font-extrabold transition active:scale-95">
+                                            <i class="fa-solid fa-arrow-rotate-right"></i> Sync ค่าล่าสุด
+                                        </button>
                                     </div>
                 
                                     <div class="bg-white p-6 rounded-3xl border border-slate-200">
@@ -4630,6 +4655,10 @@
                                     <div class="flex items-center gap-2"><b>PR:</b> <input type="number" x-model="dischargeForm.pr" @change="autoSaveDischarge()" class="w-16 p-1 border rounded text-center"> /min</div>
                                     <div class="flex items-center gap-2"><b>RR:</b> <input type="number" x-model="dischargeForm.rr" @change="autoSaveDischarge()" class="w-16 p-1 border rounded text-center"> /min</div>
                                     <div class="flex items-center gap-2"><b>BP:</b> <input type="text" x-model="dischargeForm.bp" @change="autoSaveDischarge()" class="w-20 p-1 border rounded text-center" placeholder="120/80"> mmHg</div>
+                                    <button type="button" @click="syncLatestVitalsIntoDischargeForm()"
+                                            class="col-span-2 md:col-span-4 flex items-center justify-center gap-1.5 bg-rose-100 hover:bg-rose-200 text-rose-700 border border-rose-300 rounded-lg px-3 py-2 text-xs font-extrabold transition active:scale-95">
+                                        <i class="fa-solid fa-arrow-rotate-right"></i> Sync ค่าสัญญาณชีพล่าสุด
+                                    </button>
                                 </div>
                             </div>
                 
@@ -5215,19 +5244,22 @@
                  :class="{
                     'bg-orange-50': activeGuidelineType === 'morse',
                     'bg-purple-50': activeGuidelineType === 'maas',
-                    'bg-blue-50': activeGuidelineType === 'braden'
+                    'bg-blue-50': activeGuidelineType === 'braden',
+                    'bg-rose-50': activeGuidelineType === 'sos' || activeGuidelineType === 'pews'
                  }">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-black"
                          :class="{
                             'bg-orange-100 text-orange-600': activeGuidelineType === 'morse',
                             'bg-purple-100 text-purple-600': activeGuidelineType === 'maas',
-                            'bg-blue-100 text-blue-600': activeGuidelineType === 'braden'
+                            'bg-blue-100 text-blue-600': activeGuidelineType === 'braden',
+                            'bg-rose-100 text-rose-600': activeGuidelineType === 'sos' || activeGuidelineType === 'pews'
                          }">
                         <i class="fa-solid" :class="{
                             'fa-person-falling': activeGuidelineType === 'morse',
                             'fa-hand-dots': activeGuidelineType === 'maas',
-                            'fa-bed': activeGuidelineType === 'braden'
+                            'fa-bed': activeGuidelineType === 'braden',
+                            'fa-heart-pulse': activeGuidelineType === 'sos' || activeGuidelineType === 'pews'
                         }"></i>
                     </div>
                     <div>
@@ -5235,11 +5267,12 @@
                              :class="{
                                 'text-orange-500': activeGuidelineType === 'morse',
                                 'text-purple-500': activeGuidelineType === 'maas',
-                                'text-blue-500': activeGuidelineType === 'braden'
+                                'text-blue-500': activeGuidelineType === 'braden',
+                                'text-rose-500': activeGuidelineType === 'sos' || activeGuidelineType === 'pews'
                              }"
-                             x-text="activeGuidelineType === 'morse' ? 'Morse Fall Scale' : (activeGuidelineType === 'maas' ? 'MAAS' : 'Braden Scale')"></div>
+                             x-text="activeGuidelineType === 'morse' ? 'Morse Fall Scale' : (activeGuidelineType === 'maas' ? 'MAAS' : (activeGuidelineType === 'braden' ? 'Braden Scale' : (activeGuidelineType === 'sos' ? 'SOS Score' : 'PEWS')))"></div>
                         <h3 class="text-base font-black text-slate-800"
-                            x-text="activeGuidelineType === 'morse' ? 'แนวปฏิบัติการป้องกันการพลัดตกหกล้ม (Morse)' : (activeGuidelineType === 'maas' ? 'แนวปฏิบัติการป้องกันการดึงอุปกรณ์ (MAAS)' : 'แนวปฏิบัติ การประเมินความเสี่ยงต่อการเกิดแผลกดทับ (Braden)')"></h3>
+                            x-text="activeGuidelineType === 'morse' ? 'แนวปฏิบัติการป้องกันการพลัดตกหกล้ม (Morse)' : (activeGuidelineType === 'maas' ? 'แนวปฏิบัติการป้องกันการดึงอุปกรณ์ (MAAS)' : (activeGuidelineType === 'braden' ? 'แนวปฏิบัติ การประเมินความเสี่ยงต่อการเกิดแผลกดทับ (Braden)' : (activeGuidelineType === 'sos' ? 'แนวปฏิบัติการประเมินสภาพผู้ป่วยที่มีอาการทรุดลง (SOS Score)' : 'แนวปฏิบัติการเฝ้าระวังอาการทรุดลงในผู้ป่วยเด็ก (PEWS)')))"></h3>
                     </div>
                 </div>
                 <button @click="closeGuidelineModal()" class="text-slate-400 hover:text-rose-500 transition-colors p-1"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -5491,6 +5524,89 @@
                         </template>
                     </div>
                 </template>
+
+                <!-- SOS Score (ผู้ใหญ่) — อ้างอิงเอกสาร "แนวปฏิบัติการประเมินสภาพผู้ป่วยที่มีอาการทรุดลงโดยใช้ SOS score" -->
+                <template x-if="activeGuidelineType === 'sos'">
+                    <div class="space-y-4">
+                        <template x-if="selectedGuidelinePatient">
+                            <div class="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
+                                <div class="w-10 h-10 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center font-black text-emerald-700 text-sm" x-text="selectedGuidelinePatient.bed"></div>
+                                <div class="min-w-0">
+                                    <div class="font-bold text-sm truncate" x-text="selectedGuidelinePatient.name"></div>
+                                    <div class="text-[11px] text-slate-400" x-text="'AN ' + selectedGuidelinePatient.an"></div>
+                                </div>
+                                <div class="ml-auto text-center bg-rose-50 border-2 border-rose-200 rounded-lg px-3 py-1">
+                                    <div class="text-[9px] font-black text-rose-400 uppercase">คะแนนล่าสุด</div>
+                                    <div class="text-xl font-black text-rose-700 leading-none" x-text="selectedGuidelinePatient.latestVitals?.total_score ?? '-'"></div>
+                                </div>
+                            </div>
+                        </template>
+
+                        <div class="grid grid-cols-1 gap-2.5">
+                            <div class="border border-emerald-200 bg-emerald-50 rounded-xl px-4 py-3">
+                                <div class="font-black text-emerald-700 text-xs mb-1">คะแนน 0 — ปกติ</div>
+                                <div class="text-slate-600">Record V/S ตามปกติ · ประเมิน SOS score ตามปกติ</div>
+                            </div>
+                            <div class="border border-amber-200 bg-amber-50 rounded-xl px-4 py-3">
+                                <div class="font-black text-amber-700 text-xs mb-1">คะแนน 1–3 — เฝ้าระวัง</div>
+                                <div class="text-slate-600">Record V/S, I/O ทุก 4 ชม. · ประเมิน SOS score ตามความเหมาะสม · รายงานพยาบาลเจ้าของไข้ · พยาบาลเจ้าของไข้พิจารณารายงานแพทย์ตามความเหมาะสม</div>
+                            </div>
+                            <div class="border border-rose-300 bg-rose-50 rounded-xl px-4 py-3">
+                                <div class="font-black text-rose-700 text-xs mb-1">คะแนน ≥ 4 — วิกฤต</div>
+                                <ul class="text-slate-600 list-disc list-inside space-y-0.5">
+                                    <li>Record V/S, I/O ทุก 15–30 นาที</li>
+                                    <li>พิจารณาย้ายผู้ป่วยมาอยู่ในบริเวณที่ดูแลได้ใกล้ชิด ร่วมกับพิจารณาจอง ICU</li>
+                                    <li>ค้นหาสาเหตุที่ทำให้ผู้ป่วยแย่ลง เช่น severe sepsis/septic shock, Acute MI, Acute PTE</li>
+                                    <li>Monitor ทุก 15–30 นาที จน SOS &lt;4 หรือแพทย์บอกว่า stable แล้ว monitor ทุก 1 ชม. อีก 4 ชม. จน SOS &lt;4 แล้ว monitor ทุก 4 ชม. จนครบ 24 ชม.</li>
+                                    <li>รายงานพยาบาลเจ้าของไข้ · รายงานพยาบาล incharge · รายงาน Extern/Intern ทันที</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <p class="text-[11px] text-slate-400">Vasopressor = Dopamine, Levophed, Dobutamine, Adrenaline · on Ventilator = ผู้ป่วยใส่เครื่องช่วยหายใจ</p>
+                        <p class="text-[11px] text-slate-400">หากค้นหาสาเหตุแล้วพบว่าเป็น severe sepsis/septic shock ให้ปฏิบัติตาม flow แนวปฏิบัติการดูแลผู้ป่วยติดเชื้อในกระแสโลหิตของโรงพยาบาล</p>
+                    </div>
+                </template>
+
+                <!-- PEWS (เด็ก) -->
+                <template x-if="activeGuidelineType === 'pews'">
+                    <div class="space-y-4">
+                        <template x-if="selectedGuidelinePatient">
+                            <div class="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
+                                <div class="w-10 h-10 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center font-black text-emerald-700 text-sm" x-text="selectedGuidelinePatient.bed"></div>
+                                <div class="min-w-0">
+                                    <div class="font-bold text-sm truncate" x-text="selectedGuidelinePatient.name"></div>
+                                    <div class="text-[11px] text-slate-400" x-text="'AN ' + selectedGuidelinePatient.an"></div>
+                                </div>
+                                <div class="ml-auto text-center bg-rose-50 border-2 border-rose-200 rounded-lg px-3 py-1">
+                                    <div class="text-[9px] font-black text-rose-400 uppercase">คะแนนล่าสุด</div>
+                                    <div class="text-xl font-black text-rose-700 leading-none" x-text="selectedGuidelinePatient.latestVitals?.total_score ?? '-'"></div>
+                                </div>
+                            </div>
+                        </template>
+                        <div class="grid grid-cols-1 gap-2.5">
+                            <div class="border border-emerald-200 bg-emerald-50 rounded-xl px-4 py-3">
+                                <div class="font-black text-emerald-700 text-xs mb-1">คะแนนรวม 0 — ปกติ</div>
+                                <div class="text-slate-600">ประเมินตามปกติ</div>
+                            </div>
+                            <div class="border border-amber-200 bg-amber-50 rounded-xl px-4 py-3">
+                                <div class="font-black text-amber-700 text-xs mb-1">คะแนนรวม 1–2 — เฝ้าระวัง</div>
+                                <div class="text-slate-600">ประเมินซ้ำถี่ขึ้น · หากคะแนนเปลี่ยนแปลง ≥2 จุดจากครั้งก่อน ต้องให้แพทย์ประเมิน</div>
+                            </div>
+                            <div class="border border-rose-300 bg-rose-50 rounded-xl px-4 py-3">
+                                <div class="font-black text-rose-700 text-xs mb-1">คะแนนรวม ≥3 (หรือพารามิเตอร์เดียวได้ 3) — ต้องรายงานแพทย์ทันที</div>
+                                <div class="text-slate-600">ประเมินโดยแพทย์เพื่อพิจารณาการรักษา</div>
+                            </div>
+                            <div class="border-2 border-rose-500 bg-rose-100 rounded-xl px-4 py-3">
+                                <div class="font-black text-rose-800 text-xs mb-1">คะแนนรวม ≥5 — ปรึกษา Intensivist</div>
+                                <div class="text-slate-700">ควรได้รับการประเมินโดยกุมารแพทย์ผู้ดูแลผู้ป่วยวิกฤตทันที เพื่อพิจารณาการดูแลระดับ ICU</div>
+                            </div>
+                        </div>
+                        <p class="text-[11px] text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 font-semibold">
+                            <i class="fa-solid fa-triangle-exclamation mr-1"></i>
+                            ช่วงค่าปกติของ HR/RR/SBP ตามอายุที่ใช้คำนวณคะแนนนี้ยังเป็นค่าตัวอย่าง รอทีมกุมารเวชกรรมยืนยันตารางที่ใช้จริง
+                        </p>
+                    </div>
+                </template>
             </div>
             
         </div>
@@ -5720,6 +5836,60 @@
          ========================================== -->
     <!-- Floating Action Button (FAB) -->
      <!-- Floating Action Button (FAB) -->
+    <!-- ===== Popup แจ้งเตือนวิกฤต SOS/PEWS ===== -->
+    <div x-show="showCriticalAlertPopup" x-cloak x-transition
+         class="no-print fixed inset-0 z-[20000] flex items-center justify-center p-4 bg-red-950/70 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border-4 border-red-500" style="animation: critical-pulse-border 1.2s infinite;">
+            <div class="bg-red-600 px-5 py-4 flex items-center gap-3">
+                <div class="w-11 h-11 rounded-full bg-white/20 flex items-center justify-center text-white text-xl flex-shrink-0">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div class="text-white">
+                    <div class="font-black text-base leading-tight">แจ้งเตือนคัดกรองเข้าเกณฑ์วิกฤต</div>
+                    <div class="text-[11px] font-bold opacity-90" x-text="currentCriticalAlert?.patient_type === 'pediatric' ? 'PEWS Score' : 'SOS Score'"></div>
+                </div>
+            </div>
+            <div class="p-5">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center font-black text-emerald-700" x-text="currentCriticalAlert?.bed"></div>
+                    <div class="min-w-0">
+                        <div class="font-extrabold text-base truncate" x-text="currentCriticalAlert?.patientName"></div>
+                        <div class="text-[11px] text-slate-400" x-text="'AN ' + currentCriticalAlert?.an + ' · ตึก ' + currentCriticalAlert?.ward"></div>
+                    </div>
+                    <div class="ml-auto text-center bg-red-50 border-2 border-red-200 rounded-xl px-3 py-1.5">
+                        <div class="text-[9px] font-black text-red-400 uppercase">คะแนน</div>
+                        <div class="text-2xl font-black text-red-700 leading-none" x-text="currentCriticalAlert?.total_score"></div>
+                    </div>
+                </div>
+                <div class="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm font-semibold text-red-800 mb-4">
+                    <span x-text="currentCriticalAlert?.total_score >= 4 || currentCriticalAlert?.total_score >= 5 ? 'ต้องรายงานพยาบาลเจ้าของไข้/แพทย์ทันที และเฝ้าติดตามใกล้ชิด' : 'เข้าเกณฑ์ที่ต้องได้รับการประเมินโดยแพทย์'"></span>
+                </div>
+                <div class="text-[11px] text-slate-400 mb-4">
+                    บันทึกโดย <span x-text="currentCriticalAlert?.recorded_by_name || 'พนักงานผู้ช่วยเหลือคนไข้'"></span>
+                    · <span x-text="currentCriticalAlert?.created_at ? new Date(currentCriticalAlert.created_at).toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'}) : ''"></span>
+                </div>
+                <div class="grid grid-cols-2 gap-2.5">
+                    <button @click="const _p=(patients || []).find(p => String(p.an) === String(currentCriticalAlert?.an)) || {an: currentCriticalAlert?.an, ward: currentCriticalAlert?.ward, hn: currentCriticalAlert?.hn, bed: currentCriticalAlert?.bed, name: currentCriticalAlert?.patientName}; showNextCriticalAlert(); openNursingChart(_p);"
+                            class="py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm transition active:scale-95">
+                        <i class="fa-solid fa-file-medical mr-1"></i> เปิดชาร์ท
+                    </button>
+                    <button @click="acknowledgeCriticalAlert()" class="py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm transition active:scale-95">
+                        <i class="fa-solid fa-check mr-1"></i> รับทราบ
+                    </button>
+                </div>
+                <div x-show="criticalAlertQueue.length > 0" class="text-center text-[11px] text-slate-400 font-semibold mt-3">
+                    มีการแจ้งเตือนอีก <span x-text="criticalAlertQueue.length"></span> รายการรออยู่
+                </div>
+            </div>
+        </div>
+    </div>
+    <style>
+        @keyframes critical-pulse-border {
+            0%, 100% { border-color: #ef4444; }
+            50% { border-color: #fca5a5; }
+        }
+    </style>
+
     <div id="candi-fab-container" x-show="!(isCandiOpen && isCandiDocked)" class="no-print fixed z-[15000] bottom-[90px] right-[20px] flex flex-col items-center select-none">
         <span class="candi-badge mb-1.5 text-[10px] font-black bg-white text-[#00a896] px-2.5 py-0.5 rounded-full shadow-lg border-2 border-[#00a896]">
             CANDI
