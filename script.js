@@ -1583,6 +1583,7 @@ function nurseApp() {
             this.currentWard = ward;
             this.viewMode = 'list';
             await this.fetchPatients();
+            this.initCriticalVitalsAlerts();
         },
 
         // ============================================================
@@ -1699,6 +1700,10 @@ function nurseApp() {
 
             // รัน logic เดียวกับ openNursingChart (เวอร์ชัน in-page)
             await this._loadChart(patient, targetFormId);
+
+            // เริ่มระบบแจ้งเตือนวิกฤต SOS/PEWS สำหรับ ward ของผู้ป่วยรายนี้ (เผื่อมีคนไข้รายอื่นใน ward เดียวกันเข้าเกณฑ์วิกฤตระหว่างที่ดูชาร์ทอยู่)
+            this.currentWard = patient.ward || this.currentWard;
+            this.initCriticalVitalsAlerts();
         },
 
         // ============================================================
@@ -2604,6 +2609,165 @@ function nurseApp() {
         // เรียงตาม created_at จากเก่า->ใหม่ แล้วเขียนทับ map ไปเรื่อยๆ ให้ค่าสุดท้ายคือค่าล่าสุด (พฤติกรรมเดิมเป๊ะๆ)
         // ดึง "สัญญาณชีพล่าสุด" ของแต่ละ AN จากตาราง vital_signs_screening (ที่พนักงานผู้ช่วยบันทึกจากหน้า SOS Screening)
         // ใช้ pattern เดียวกับ getLatestScoresMap: เรียงตาม created_at เก่า->ใหม่ แล้วเขียนทับ map ให้ค่าสุดท้ายคือค่าล่าสุด
+        // ========================================================================
+        // ระบบ Popup แจ้งเตือนวิกฤต (SOS/PEWS) — ฟังการบันทึกใหม่จากหน้า SOS Screening
+        // แบบ Real-time ผ่าน Supabase Realtime บนตาราง vital_signs_screening
+        // ========================================================================
+        criticalAlertQueue: [],
+        currentCriticalAlert: null,
+        showCriticalAlertPopup: false,
+        _criticalAlertsChannel: null,
+
+        async initCriticalVitalsAlerts() {
+            if (!this.currentWard) return;
+            const sb = this.getSupabase();
+
+            // 1) เช็คก่อนว่ามีรายการวิกฤตที่ยังไม่มีใคร "รับทราบ" ค้างอยู่ก่อนหน้านี้ไหม (เผื่อพยาบาลเพิ่งเปิดหน้าเข้ามา)
+            try {
+                const { data, error } = await sb
+                    .from('vital_signs_screening')
+                    .select('*')
+                    .eq('ward', this.currentWard)
+                    .eq('alert_level', 'critical')
+                    .is('nurse_acknowledged_at', null)
+                    .order('created_at', { ascending: true });
+                if (!error && data && data.length) {
+                    data.forEach(row => this.enqueueCriticalAlert(row));
+                }
+            } catch (e) { console.error('initCriticalVitalsAlerts (backlog) error:', e); }
+
+            // 2) ฟังรายการใหม่แบบ real-time
+            if (this._criticalAlertsChannel) {
+                sb.removeChannel(this._criticalAlertsChannel);
+            }
+            this._criticalAlertsChannel = sb
+                .channel('critical-vitals-' + this.currentWard)
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'vital_signs_screening' }, (payload) => {
+                    const row = payload.new;
+                    if (row && row.ward === this.currentWard && row.alert_level === 'critical' && !row.nurse_acknowledged_at) {
+                        this.enqueueCriticalAlert(row);
+                    }
+                })
+                .subscribe();
+        },
+
+        enqueueCriticalAlert(row) {
+            // กันแจ้งซ้ำถ้า id เดียวกันเข้าคิวอยู่แล้ว
+            if (this.criticalAlertQueue.some(r => r.id === row.id) || this.currentCriticalAlert?.id === row.id) return;
+            this.criticalAlertQueue.push(row);
+            this.playCriticalAlertSound();
+            if (!this.showCriticalAlertPopup) this.showNextCriticalAlert();
+        },
+
+        showNextCriticalAlert() {
+            if (this.criticalAlertQueue.length === 0) {
+                this.showCriticalAlertPopup = false;
+                this.currentCriticalAlert = null;
+                return;
+            }
+            const row = this.criticalAlertQueue.shift();
+            const patient = (this.patients || []).find(p => String(p.an) === String(row.an));
+            this.currentCriticalAlert = {
+                ...row,
+                patientName: patient?.name || '(ไม่พบชื่อในทะเบียน ward นี้)',
+            };
+            this.showCriticalAlertPopup = true;
+        },
+
+        async acknowledgeCriticalAlert() {
+            if (!this.currentCriticalAlert) return;
+            try {
+                const sb = this.getSupabase();
+                await sb.from('vital_signs_screening')
+                    .update({ nurse_acknowledged_at: new Date().toISOString(), nurse_acknowledged_by: this.currentUser?.id || null })
+                    .eq('id', this.currentCriticalAlert.id);
+            } catch (e) {
+                console.error('acknowledgeCriticalAlert error:', e);
+            }
+            this.showNextCriticalAlert();
+            // รีเฟรชค่าสัญญาณชีพในทะเบียนผู้ป่วยให้ตรงกับล่าสุด
+            this.fetchPatients({ force: true, silent: true });
+        },
+
+        // เสียงเตือน — สร้างสดด้วย Web Audio API ไม่ต้องพึ่งไฟล์เสียงภายนอก
+        playCriticalAlertSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const beep = (start, freq) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'square';
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0.15, ctx.currentTime + start);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + 0.25);
+                    osc.connect(gain).connect(ctx.destination);
+                    osc.start(ctx.currentTime + start);
+                    osc.stop(ctx.currentTime + start + 0.25);
+                };
+                beep(0, 880); beep(0.3, 880); beep(0.6, 1046);
+            } catch (e) { /* เบราว์เซอร์บางตัวอาจบล็อกเสียงจนกว่าจะมี user interaction ก่อน ไม่ถือเป็น error ร้ายแรง */ }
+        },
+
+        // ดึงสัญญาณชีพล่าสุดของผู้ป่วยที่กำลังเปิดชาร์ทอยู่ จากตาราง vital_signs_screening (หน้า SOS Screening)
+        async fetchLatestVitalsForSelectedPatient() {
+            const an = this.selectedPatient?.an;
+            if (!an) return null;
+            try {
+                const sb = this.getSupabase();
+                const { data, error } = await sb
+                    .from('vital_signs_screening')
+                    .select('bt, pr, rr, sbp, dbp, created_at')
+                    .eq('an', String(an))
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+                if (error) throw error;
+                return data || null;
+            } catch (e) {
+                console.error('fetchLatestVitalsForSelectedPatient error:', e);
+                return null;
+            }
+        },
+
+        // Sync เข้าฟอร์มแบบ raw DOM (ใช้กับแบบประเมินแรกรับ ที่อ่านค่าผ่าน FormData ตอนบันทึก ไม่ใช่ Alpine x-model)
+        // fieldNames = [ชื่อ input BT, ชื่อ input PR, ชื่อ input RR, ชื่อ input BP] ตามลำดับ
+        async syncLatestVitalsIntoForm(fieldNames) {
+            const vitals = await this.fetchLatestVitalsForSelectedPatient();
+            if (!vitals) {
+                this.showAlert('ไม่พบข้อมูล', 'ยังไม่มีการบันทึกสัญญาณชีพจากหน้า SOS Screening สำหรับผู้ป่วยรายนี้');
+                return;
+            }
+            const [btName, prName, rrName, bpName] = fieldNames;
+            const setVal = (name, value) => {
+                const el = document.querySelector(`[name="${name}"]`);
+                if (el && value !== null && value !== undefined) el.value = value;
+            };
+            setVal(btName, vitals.bt);
+            setVal(prName, vitals.pr);
+            setVal(rrName, vitals.rr);
+            if (vitals.sbp != null && vitals.dbp != null) setVal(bpName, `${vitals.sbp}/${vitals.dbp}`);
+            this.showSuccess = true;
+            this.successMsg = 'ดึงค่าสัญญาณชีพล่าสุดมาเติมในฟอร์มแล้ว (ตรวจสอบความถูกต้องก่อนบันทึก)';
+            setTimeout(() => { this.showSuccess = false; }, 2500);
+        },
+
+        // Sync เข้าแบบบันทึกจำหน่าย (dischargeForm เป็น Alpine reactive object)
+        async syncLatestVitalsIntoDischargeForm() {
+            const vitals = await this.fetchLatestVitalsForSelectedPatient();
+            if (!vitals) {
+                this.showAlert('ไม่พบข้อมูล', 'ยังไม่มีการบันทึกสัญญาณชีพจากหน้า SOS Screening สำหรับผู้ป่วยรายนี้');
+                return;
+            }
+            if (vitals.bt != null) this.dischargeForm.bt = vitals.bt;
+            if (vitals.pr != null) this.dischargeForm.pr = vitals.pr;
+            if (vitals.rr != null) this.dischargeForm.rr = vitals.rr;
+            if (vitals.sbp != null && vitals.dbp != null) this.dischargeForm.bp = `${vitals.sbp}/${vitals.dbp}`;
+            this.autoSaveDischarge();
+            this.showSuccess = true;
+            this.successMsg = 'ดึงค่าสัญญาณชีพล่าสุดมาเติมในฟอร์มแล้ว (ตรวจสอบความถูกต้องก่อนบันทึก)';
+            setTimeout(() => { this.showSuccess = false; }, 2500);
+        },
+
         async getLatestVitalsMap(ans) {
             const empty = {};
             const anList = Array.from(new Set((ans || []).map(a => String(a).trim()).filter(Boolean)));
@@ -2859,6 +3023,16 @@ function nurseApp() {
             //  selectForm() จะเจอว่า currentForm.id ตรงกับฟอร์มเดิม แล้ว return ทันที
             //  โดยไม่โหลดข้อมูลใหม่ ทำให้ค้างข้อมูลของคนไข้คนเก่าอยู่)
             this.currentForm = null;
+
+            // ดึงสัญญาณชีพล่าสุด (SOS/PEWS) มาแนบกับ selectedPatient ไว้แสดงใน Top bar
+            // (ถ้ามาจากหน้าทะเบียนอยู่แล้วจะมี latestVitals ติดมาด้วย แต่ถ้าเปิดตรงจาก URL/refresh ยังไม่มี จึงดึงซ้ำเผื่อไว้)
+            if (!this.selectedPatient.latestVitals && patient.an) {
+                this.fetchLatestVitalsForSelectedPatient().then(v => {
+                    if (v && this.selectedPatient?.an === patient.an) {
+                        this.selectedPatient.latestVitals = { ...v, total_score: v.total_score, alert_level: v.alert_level };
+                    }
+                });
+            }
             
             // 1. ตรวจสอบกลุ่มอายุทันทีที่กดปุ่ม Chart
             const patientAge = ageDisplay || patient.age || patient.Age || patient.ageDisplay || patient.agedisplay || "";
