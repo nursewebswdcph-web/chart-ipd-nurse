@@ -7294,45 +7294,35 @@ function nurseApp() {
         async loadProgressNotesInit(options = {}) {
             const an = this.selectedPatient?.an;
             if (!an) return [];
-            if (!options.force && this.isResourceFresh('progress_note', an)) {
-                return this.progressNotes;
-            }
+            const requestedAn = String(an);
+            const loadSeq = ++this.progressNotesLoadSeq;
+            if (!options.force && this.isResourceFresh('progress_note', requestedAn)) return this.progressNotes;
             if (!options.silent) this.isLoading = true;
             try {
-                // ดึง Note ของผู้ป่วย
                 const sb = this.getSupabase();
-                const { data: rows, error } = await sb
-                    .from('nursing_notes_detail')
-                    .select('*')
-                    .eq('an', String(an))
-                    .order('saved_at', { ascending: true });
+                const { data: rows, error } = await sb.from('nursing_notes_detail').select('*').eq('an', requestedAn).order('saved_at', { ascending: true });
                 if (error) throw error;
-                let notes = (rows || []).map(r => (r.payload && typeof r.payload === 'object') ? r.payload : {
+                if (String(this.selectedPatient?.an || '') !== requestedAn || this.progressNotesLoadSeq !== loadSeq) {
+                    console.warn('[Nurse Note] ignore stale load', { requestedAn, currentAn: this.selectedPatient?.an });
+                    return [];
+                }
+                const notes = (rows || []).map(r => (r.payload && typeof r.payload === 'object') ? r.payload : {
                     id: String(r.note_id || ''), date: r.note_date, shift: r.shift || '', time: r.note_time || '',
                     focus: r.focus || '', s: r.s || '', o: r.o || '', i: r.i || '', e: r.e || '',
                     eTime: r.e_time || '', nurse: r.nurse || '', pos: r.position || ''
                 });
-                
-                // สั่งเรียงลำดับจาก "ใหม่ล่าสุด" ไป "เก่า" โดยอิงจากวันที่และเวลาที่ผู้ใช้บันทึกเอง (note.date / note.time)
-                // ไม่ใช้ id (ซึ่งเป็นเวลาที่ระบบบันทึก) เป็นตัวเรียงอีกต่อไป
                 this.progressNotes = this.sortProgressNotesByRecordedTime(notes, 'desc');
-                
-                // ดึง Template กลาง
                 this.nursingTemplates = await this.loadTemplateCollection('nursingTemplates', 'getNursingTemplates', options.force === true);
-                
-                // ตรวจสอบ Focus List เผื่อมีการสั่งซิงค์ข้ามไฟล์
-                // ✅ เช็คจาก isResourceFresh ของคนไข้คนนี้ (an) แทนการเช็คแค่ "ว่างหรือไม่"
-                //    เพราะถ้าเช็คแค่ความว่าง จะทำให้ Focus List ของคนไข้คนก่อนหน้า (ที่ยังไม่ว่าง)
-                //    ค้างอยู่ไม่ถูกโหลดใหม่เมื่อสลับไปดูคนไข้คนใหม่
-                if (!this.isResourceFresh('focus_list', an)) {
-                    this.focusList = await this.getLatestFormData('focus_list', an, []) || [];
-                    this.markResourceLoaded('focus_list', an);
-                }
-
+                if (String(this.selectedPatient?.an || '') !== requestedAn || this.progressNotesLoadSeq !== loadSeq) return [];
                 this.clearProgressForm();
-                this.markResourceLoaded('progress_note', an);
-            } catch (e) { console.error(e); }
-            if (!options.silent) this.isLoading = false;
+                this.markResourceLoaded('progress_note', requestedAn);
+                return this.progressNotes;
+            } catch (e) {
+                console.error(e);
+                return [];
+            } finally {
+                if (!options.silent) this.isLoading = false;
+            }
         },
 
         clearProgressForm() {
@@ -7389,64 +7379,57 @@ function nurseApp() {
         },
 
         async saveProgressToDB() {
-            if (!this.selectedPatient?.an) {
-                this.focusAlert('ไม่พบเลข AN ของผู้ป่วย');
-                return false;
-            }
+            if (!this.selectedPatient?.an) { this.focusAlert('ไม่พบเลข AN ของผู้ป่วย'); return false; }
+            const saveAn = String(this.selectedPatient.an);
+            const saveHn = String(this.selectedPatient.hn || '');
+            const saveWard = String(this.currentWard || '');
+            const saveSeq = ++this.progressSaveSeq;
+            const notesSnapshot = (this.progressNotes || []).map(note => ({
+                id: String(note.id || this.generateUniqueNoteId()), date: note.date || '', shift: note.shift || '',
+                time: note.time || '', focus: note.focus || '', s: note.s || '', o: note.o || '', i: note.i || '',
+                e: note.e || '', eTime: note.eTime || '', nurse: note.nurse || '', pos: note.pos || '',
+                an: saveAn, hn: saveHn, ward: saveWard
+            }));
+            const assertSaveContext = () => {
+                if (String(this.selectedPatient?.an || '') !== saveAn || this.progressSaveSeq !== saveSeq)
+                    throw new Error('ยกเลิกการบันทึก เนื่องจากมีการเปลี่ยนผู้ป่วยระหว่างบันทึกข้อมูล');
+            };
             try {
-                const an = String(this.selectedPatient.an);
-                const hn = String(this.selectedPatient.hn || '');
-                const ward = String(this.currentWard || '');
+                assertSaveContext();
                 const sb = this.getSupabase();
-
-                const normalizedNotes = (this.progressNotes || []).map(note => ({
-                    id: String(note.id || Date.now()),
-                    date: note.date || '', shift: note.shift || '', time: note.time || '',
-                    focus: note.focus || '', s: note.s || '', o: note.o || '', i: note.i || '', e: note.e || '',
-                    eTime: note.eTime || '', nurse: note.nurse || '', pos: note.pos || '',
-                    an, hn, ward
-                }));
-
-                const { data: existingRows, error: findErr } = await sb
-                    .from('nursing_notes_detail')
-                    .select('id, note_id')
-                    .eq('an', an);
+                const { data: existingRows, error: findErr } = await sb.from('nursing_notes_detail').select('id, note_id').eq('an', saveAn);
                 if (findErr) throw findErr;
-
+                assertSaveContext();
                 const existingByNoteId = {};
-                (existingRows || []).forEach(r => { if (r.note_id) existingByNoteId[r.note_id] = r.id; });
-                const incomingIds = new Set(normalizedNotes.map(n => n.id));
-
-                const rowsToDelete = (existingRows || []).filter(r => r.note_id && !incomingIds.has(r.note_id)).map(r => r.id);
-                if (rowsToDelete.length > 0) {
-                    const { error: delErr } = await sb.from('nursing_notes_detail').delete().in('id', rowsToDelete);
-                    if (delErr) throw delErr;
+                (existingRows || []).forEach(r => { if (r.note_id) existingByNoteId[String(r.note_id)] = r.id; });
+                const incomingIds = new Set(notesSnapshot.map(n => n.id));
+                const rowsToDelete = (existingRows || []).filter(r => r.note_id && !incomingIds.has(String(r.note_id))).map(r => r.id);
+                if (rowsToDelete.length) {
+                    assertSaveContext();
+                    const { error } = await sb.from('nursing_notes_detail').delete().in('id', rowsToDelete);
+                    if (error) throw error;
                 }
-
-                for (const note of normalizedNotes) {
-                    const row = {
-                        an, hn, ward, note_id: note.id, note_date: note.date || null, shift: note.shift,
-                        note_time: note.time, focus: note.focus, s: note.s, o: note.o, i: note.i, e: note.e,
-                        e_time: note.eTime, nurse: note.nurse, position: note.pos, payload: note
-                    };
+                for (const note of notesSnapshot) {
+                    assertSaveContext();
+                    const row = { an: saveAn, hn: saveHn, ward: saveWard, note_id: note.id, note_date: note.date || null,
+                        shift: note.shift, note_time: note.time, focus: note.focus, s: note.s, o: note.o, i: note.i, e: note.e,
+                        e_time: note.eTime, nurse: note.nurse, position: note.pos, payload: note };
                     if (existingByNoteId[note.id]) {
-                        const { error } = await sb.from('nursing_notes_detail').update(row).eq('id', existingByNoteId[note.id]);
+                        const { error } = await sb.from('nursing_notes_detail').update(row).eq('id', existingByNoteId[note.id]).eq('an', saveAn);
                         if (error) throw error;
                     } else {
                         const { error } = await sb.from('nursing_notes_detail').insert(row);
                         if (error) throw error;
                     }
                 }
-
-                this.markResourceLoaded('progress_note', this.selectedPatient.an);
-                
+                assertSaveContext();
+                this.markResourceLoaded('progress_note', saveAn);
                 this.showSuccess = true; this.successMsg = 'ซิงค์ข้อมูลลงฐานข้อมูลเรียบร้อย';
                 setTimeout(() => { this.showSuccess = false; }, 3000);
                 return true;
             } catch(e) {
-                console.error(e);
-                this.focusAlert(`บันทึกข้อมูลไม่สำเร็จ: ${e.message}`);
-                return false;
+                console.error('saveProgressToDB error:', e);
+                this.focusAlert(e.message || 'บันทึกข้อมูลไม่สำเร็จ'); return false;
             }
         },
 
