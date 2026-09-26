@@ -179,6 +179,8 @@ function nurseApp() {
 
         progressNotes: [],
         nursingTemplates: [],
+        progressNotesLoadSeq: 0,
+        progressSaveSeq: 0,
         editingProgressIndex: -1,
         showNurseListForProgress: false,
         
@@ -3015,6 +3017,8 @@ function nurseApp() {
         // ============================================================
         async _loadChart(patient, targetFormId = null) {
             this.isLoading = true;
+            this.progressNotesLoadSeq++;
+            this.progressSaveSeq++;
             const ageDisplay = patient.ageDisplay || this.resolvePatientAgeDisplay(patient);
             this.selectedPatient = { ...patient, ageDisplay };
             this.resetActiveForms();
@@ -7231,10 +7235,14 @@ function nurseApp() {
             const existing = new Set((this.progressNotes || []).map(n => String(n.id)));
             let id;
             do {
-                const rand = (window.crypto && crypto.getRandomValues)
-                    ? crypto.getRandomValues(new Uint32Array(1))[0].toString().slice(0, 4).padStart(4, '0')
-                    : Math.floor(1000 + Math.random() * 9000).toString();
-                id = `${Date.now()}${rand}`;
+                if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+                    id = window.crypto.randomUUID();
+                } else {
+                    const rand = (window.crypto && crypto.getRandomValues)
+                        ? Array.from(crypto.getRandomValues(new Uint32Array(2))).map(v => v.toString(16).padStart(8, '0')).join('')
+                        : Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+                    id = `${Date.now()}-${rand}`;
+                }
             } while (existing.has(id));
             return id;
         },
