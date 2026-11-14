@@ -621,9 +621,14 @@
                 <i class="fa-solid fa-file-medical"></i><span>Nurse Chart</span>
             </button>
             <button type="button" class="workbench-nav-item" :disabled="!selectedPatient"
-                :title="selectedPatient ? 'เปิดหน้าบันทึก Nurse Note และ Focus List ใน Nurse Chart' : 'กรุณาเลือกผู้ป่วยก่อน'"
-                @click="selectedPatient && (viewMode = 'chart')">
-                <i class="fa-solid fa-notes-medical"></i><span>Nurse Note / Focus</span>
+                :title="selectedPatient ? 'เปิดแบบบันทึก Focus List ของผู้ป่วยที่เลือก' : 'กรุณาเลือกผู้ป่วยก่อน'"
+                @click="if (selectedPatient) { viewMode = 'chart'; const form = activeForms.find(item => item.id === 'focus_list'); if (form) selectForm(form); }">
+                <i class="fa-solid fa-list-check"></i><span>Focus List</span>
+            </button>
+            <button type="button" class="workbench-nav-item" :disabled="!selectedPatient"
+                :title="selectedPatient ? 'เปิดแบบบันทึก Nursing Progress Note ของผู้ป่วยที่เลือก' : 'กรุณาเลือกผู้ป่วยก่อน'"
+                @click="if (selectedPatient) { viewMode = 'chart'; const form = activeForms.find(item => item.id === 'progress_note'); if (form) selectForm(form); }">
+                <i class="fa-solid fa-notes-medical"></i><span>Nurse Note</span>
             </button>
             <button type="button" class="workbench-nav-item"
                 @click="document.getElementById('candi-fab')?.click()">
