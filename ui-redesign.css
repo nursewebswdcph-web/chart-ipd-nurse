@@ -1,0 +1,174 @@
+/* Integrated IPD Workbench UI refresh
+   Visual layer only. Clinical form markup and print rules remain untouched. */
+@media screen {
+  :root {
+    --work-bg: #f6f8fc;
+    --work-surface: #ffffff;
+    --work-surface-soft: #f1f4f9;
+    --work-ink: #17233b;
+    --work-muted: #68758c;
+    --work-line: #e4e9f1;
+    --work-primary: #176b62;
+    --work-primary-soft: #e2f3ef;
+    --work-shadow: 0 8px 28px rgba(35, 57, 91, .055);
+    --work-radius: 18px;
+  }
+
+  html:not(.dark) body {
+    background: var(--work-bg) !important;
+    color: var(--work-ink);
+    font-family: 'Sarabun', sans-serif;
+  }
+
+  html:not(.dark) body > nav.sticky-glass-header {
+    background: rgba(255,255,255,.92) !important;
+    border-bottom: 1px solid var(--work-line) !important;
+    box-shadow: 0 2px 14px rgba(35,57,91,.045) !important;
+    backdrop-filter: blur(16px);
+  }
+
+  body > nav.sticky-glass-header > .container {
+    max-width: 1600px;
+    min-height: 58px;
+  }
+
+  body > main.container {
+    max-width: 1600px;
+    padding: 24px clamp(14px, 2.4vw, 36px) 42px;
+  }
+
+  body > main.container > div:not([x-show="viewMode === 'chart'"]) {
+    border-radius: var(--work-radius);
+  }
+
+  body > main.container .bg-white.rounded,
+  body > main.container .bg-white[class*="rounded-"] {
+    border-color: var(--work-line);
+    box-shadow: var(--work-shadow);
+  }
+
+  body > main.container .rounded-\[2\.5rem\] {
+    border-radius: 22px !important;
+  }
+
+  body > main.container .rounded-\[2rem\] {
+    border-radius: 18px !important;
+  }
+
+  body > main.container button,
+  body > nav button {
+    transition: background-color .18s ease, border-color .18s ease,
+      box-shadow .18s ease, transform .18s ease;
+  }
+
+  body > main.container input:not(#a4-print-area input),
+  body > main.container select:not(#a4-print-area select),
+  body > main.container textarea:not(#a4-print-area textarea) {
+    border-color: var(--work-line);
+    border-radius: 11px;
+  }
+
+  body > main.container input:focus:not(#a4-print-area input),
+  body > main.container select:focus:not(#a4-print-area select),
+  body > main.container textarea:focus:not(#a4-print-area textarea) {
+    outline: none;
+    border-color: #6bb8aa;
+    box-shadow: 0 0 0 3px rgba(23,107,98,.11);
+  }
+
+  body > main.container table:not(#a4-print-area table) {
+    border-color: var(--work-line);
+  }
+
+  body > main.container table:not(#a4-print-area table) thead {
+    background: #f5f7fb;
+  }
+
+  body > main.container table:not(#a4-print-area table) th {
+    color: #526078;
+    font-weight: 700;
+  }
+
+  body > main.container table:not(#a4-print-area table) tbody tr:hover {
+    background: #f7fafc;
+  }
+
+  /* Ward chooser and registry panels */
+  body > main.container .group.cursor-pointer {
+    border: 1px solid var(--work-line);
+    border-radius: 19px;
+    box-shadow: 0 3px 14px rgba(35,57,91,.035);
+  }
+
+  body > main.container .group.cursor-pointer:hover {
+    box-shadow: 0 12px 28px rgba(23,107,98,.10);
+  }
+
+  /* Patient chart workspace */
+  body > main .fixed.inset-0.z-\[5000\] {
+    background: #f4f6fa;
+  }
+
+  body > main .fixed.inset-0.z-\[5000\] > header {
+    background: rgba(255,255,255,.96);
+    border-bottom-color: var(--work-line);
+    box-shadow: 0 3px 14px rgba(35,57,91,.045);
+  }
+
+  /* Existing chart form navigator */
+  body > main .fixed.inset-0.z-\[5000\] aside {
+    border-right-color: var(--work-line);
+  }
+
+  body > main .fixed.inset-0.z-\[5000\] aside nav button {
+    border-radius: 12px;
+  }
+
+  /* CANDI panel keeps its existing Alpine state and event handlers. */
+  #candi-chat-panel {
+    border-color: var(--work-line);
+    box-shadow: 0 18px 55px rgba(23,35,59,.18);
+  }
+
+  html.dark body {
+    background: #101827 !important;
+    color: #edf3fb;
+  }
+
+  html.dark body > nav.sticky-glass-header {
+    background: rgba(20,32,49,.94) !important;
+    border-bottom-color: #2a3a50 !important;
+  }
+
+  html.dark body > main.container .bg-white.rounded,
+  html.dark body > main.container .bg-white[class*="rounded-"] {
+    border-color: #2a3a50;
+  }
+
+  html.dark body > main.container table:not(#a4-print-area table) thead {
+    background: #1b2a40;
+  }
+
+  html.dark body > main.container table:not(#a4-print-area table) tbody tr:hover {
+    background: #1b2a40;
+  }
+
+  @media (max-width: 768px) {
+    body > main.container {
+      padding: 14px 12px 30px;
+    }
+
+    body > nav.sticky-glass-header {
+      padding-left: 10px;
+      padding-right: 10px;
+    }
+
+    body > nav.sticky-glass-header > .container {
+      min-height: 52px;
+    }
+
+    body > main.container .rounded-\[2\.5rem\] {
+      border-radius: 17px !important;
+    }
+  }
+}
