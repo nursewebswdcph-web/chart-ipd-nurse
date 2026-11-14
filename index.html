@@ -46,7 +46,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- CANDI AI Assistant Components -->
     <link rel="stylesheet" href="style.css?v=20260910_01">
-    <link rel="stylesheet" href="ui-redesign.css?v=20261114_01">
     <script src="app.js?v=20260910_01" charset="UTF-8" defer></script>
 
     <style>
@@ -595,60 +594,6 @@
             </div>
         </div>
     </nav>
-
-    <!-- Integrated workbench navigation: UI-only shortcuts to existing application state/actions -->
-    <aside x-show="isAuthenticated" x-cloak class="workbench-sidebar no-print" aria-label="เมนูหลัก">
-        <div class="workbench-sidebar-brand">
-            <div class="workbench-brand-mark"><i class="fa-solid fa-staff-snake"></i></div>
-            <div class="min-w-0">
-                <div class="workbench-brand-title">IPD Workbench</div>
-                <div class="workbench-brand-subtitle">Sawang Daen Din Hospital</div>
-            </div>
-        </div>
-        <div class="workbench-nav-label">เมนูหลัก</div>
-        <nav class="workbench-nav">
-            <button type="button" class="workbench-nav-item" :class="!currentWard && viewMode !== 'chart' ? 'is-active' : ''"
-                @click="currentWard = null; viewMode = 'list'; patients = []; checkCriticalAlerts()">
-                <i class="fa-solid fa-house"></i><span>ภาพรวม</span>
-            </button>
-            <button type="button" class="workbench-nav-item" :class="currentWard && viewMode === 'list' ? 'is-active' : ''"
-                @click="viewMode = 'list'">
-                <i class="fa-solid fa-hospital-user"></i><span>ทะเบียนผู้ป่วย</span>
-            </button>
-            <button type="button" class="workbench-nav-item" :class="viewMode === 'chart' ? 'is-active' : ''"
-                :disabled="!selectedPatient" :title="selectedPatient ? 'เปิด Nurse Chart ของผู้ป่วยที่เลือก' : 'กรุณาเลือกผู้ป่วยก่อน'"
-                @click="selectedPatient && (viewMode = 'chart')">
-                <i class="fa-solid fa-file-medical"></i><span>Nurse Chart</span>
-            </button>
-            <button type="button" class="workbench-nav-item" :disabled="!selectedPatient"
-                :title="selectedPatient ? 'เปิดแบบบันทึก Focus List ของผู้ป่วยที่เลือก' : 'กรุณาเลือกผู้ป่วยก่อน'"
-                @click="if (selectedPatient) { viewMode = 'chart'; const form = activeForms.find(item => item.id === 'focus_list'); if (form) selectForm(form); }">
-                <i class="fa-solid fa-list-check"></i><span>Focus List</span>
-            </button>
-            <button type="button" class="workbench-nav-item" :disabled="!selectedPatient"
-                :title="selectedPatient ? 'เปิดแบบบันทึก Nursing Progress Note ของผู้ป่วยที่เลือก' : 'กรุณาเลือกผู้ป่วยก่อน'"
-                @click="if (selectedPatient) { viewMode = 'chart'; const form = activeForms.find(item => item.id === 'progress_note'); if (form) selectForm(form); }">
-                <i class="fa-solid fa-notes-medical"></i><span>Nurse Note</span>
-            </button>
-            <button type="button" class="workbench-nav-item"
-                @click="document.getElementById('candi-fab')?.click()">
-                <i class="fa-solid fa-sparkles"></i><span>CANDI AI Assistant</span>
-            </button>
-        </nav>
-        <div class="workbench-sidebar-bottom">
-            <div class="workbench-current-user" x-show="currentUser">
-                <div class="workbench-user-avatar"><i class="fa-solid fa-user-nurse"></i></div>
-                <div class="min-w-0">
-                    <div class="workbench-user-name" x-text="currentUser?.fullName || 'ผู้ใช้งาน'"></div>
-                    <div class="workbench-user-role" x-text="currentUser?.position || 'บุคลากรทางการพยาบาล'"></div>
-                </div>
-            </div>
-            <button type="button" class="workbench-nav-item workbench-support"
-                @click="openServicePanel(isServiceAdmin ? 'admin' : 'create')">
-                <i class="fa-solid fa-headset"></i><span>แจ้งปัญหา / IT Support</span>
-            </button>
-        </div>
-    </aside>
 
     <main x-show="isAuthenticated" x-cloak class="container mx-auto p-4 md:p-6 lg:p-8">
         <div x-show="!currentWard && viewMode !== 'chart'" x-cloak class="max-w-7xl mx-auto px-4 mt-6">
