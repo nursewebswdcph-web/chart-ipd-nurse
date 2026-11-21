@@ -2285,30 +2285,10 @@ function nurseApp() {
             setInterval(update, 1000);
         },
 
-        // 1. ฟังก์ชันตรวจสอบกลุ่มอายุ (เด็ก 0-15 ปี)
-        checkAgeGroup(ageStr) {
-            if (!ageStr) return true; // ถ้าไม่มีข้อมูล ให้ถือว่าเป็นผู้ใหญ่ไว้ก่อน
-            
-            const ageString = String(ageStr);
-            // ดึงตัวเลขชุดแรกที่เจอ (เช่นจาก "15 ปี 2 เดือน" จะได้ 15)
-            const match = ageString.match(/\d+/);
-            const ageNum = match ? parseInt(match[0], 10) : 0;
-        
-            const hasYear = ageString.includes('ปี');
-            const hasMonth = ageString.includes('เดือน');
-            const hasDay = ageString.includes('วัน');
-        
-            // กรณีเด็กทารก/เด็กเล็ก (หน่วยเป็นเดือนหรือวัน และไม่มีหน่วยปี)
-            if ((hasMonth || hasDay) && !hasYear) {
-                return false; // เป็นกลุ่มเด็ก
-            }
-        
-            // ตามโจทย์: ผู้ป่วยเด็กคืออายุ 0-14 ปี (ไม่รวมอายุ 15)
-            // ดังนั้นถ้าอายุมากกว่าหรือเท่ากับ 15 ถึงจะเป็นผู้ใหญ่ (isAdult = true)
-        },
-        
+        // ตรวจสอบกลุ่มอายุจากข้อความอายุที่คำนวณจากวันเกิด
+        // คืน null เมื่อไม่มีข้อมูล เพื่อไม่ตีความผู้ป่วยที่ไม่ทราบอายุเป็นผู้ใหญ่หรือเด็ก
         isPatientAdult(patient) {
-            return this.checkAgeGroup(this.resolvePatientAgeDisplay(patient));
+            return this.checkAgeGroup(this.resolvePatientAgeDisplay(patient)) === true;
         },
 
         // ฟังก์ชันคืนค่า CSS class สีตามระดับความเสี่ยง
@@ -2485,23 +2465,22 @@ function nurseApp() {
         selectPatient(patient) {
             if (!patient) return;
             const ageDisplay = this.resolvePatientAgeDisplay(patient);
+            const isAdult = this.checkAgeGroup(ageDisplay);
+            if (isAdult === null) {
+                this.showAlert("ไม่สามารถเปิด Chart ได้", "ไม่พบวันเกิดหรืออายุผู้ป่วย กรุณาแก้ไขข้อมูลทะเบียนก่อน เพื่อป้องกันการเลือกแบบประเมินผิดประเภท");
+                return;
+            }
             this.selectedPatient = { ...patient, ageDisplay };
-            
-            // ตรวจสอบอายุและตั้งค่า isAdult
-            const patientAge = ageDisplay || patient.age || patient.Age || "";
-            this.isAdult = this.checkAgeGroup(patientAge);
-            
-            // Debug ตรวจสอบใน Console (กด F12 ดูได้)
-            console.log(`เลือกผู้ป่วย: ${patient.name}, อายุ: ${patientAge}, กลุ่ม: ${this.isAdult ? 'ผู้ใหญ่' : 'เด็ก'}`);
-        
+            this.isAdult = isAdult;
+            console.log(`เลือกผู้ป่วย: ${patient.name}, อายุ: ${ageDisplay}, กลุ่ม: ${this.isAdult ? 'ผู้ใหญ่' : 'เด็ก'}`);
             this.viewMode = 'detail';
             this.currentForm = null;
             window.scrollTo({ top: 0, behavior: 'smooth' });
-        
-            // โหลดข้อมูลประวัติเบื้องต้น
             const an = patient.an || patient.AN;
             if (an) {
-                this.loadAssessmentData(an);
+                this.loadDynamicExtraFormsForPatient(an);
+                if (this.isAdult) this.loadAssessmentData(an);
+                else this.loadAssessmentPedData(an);
                 this.loadClassifications(an);
                 this.loadFallRisk(an);
                 this.loadBraden(an);
@@ -3038,9 +3017,15 @@ function nurseApp() {
                 });
             }
             
-            // 1. ตรวจสอบกลุ่มอายุทันทีที่กดปุ่ม Chart
+            // ตรวจสอบกลุ่มอายุก่อนเลือกแบบประเมิน หากไม่มีข้อมูลให้หยุดและแจ้งเตือน
             const patientAge = ageDisplay || patient.age || patient.Age || patient.ageDisplay || patient.agedisplay || "";
-            this.isAdult = this.checkAgeGroup(patientAge);
+            const isAdult = this.checkAgeGroup(patientAge);
+            if (isAdult === null) {
+                this.isLoading = false;
+                this.showAlert("ไม่สามารถเปิด Chart ได้", "ไม่พบวันเกิดหรืออายุผู้ป่วย กรุณาแก้ไขข้อมูลทะเบียนก่อน เพื่อป้องกันการเลือกแบบประเมินผิดประเภท");
+                return;
+            }
+            this.isAdult = isAdult;
             
             // 2. ล้างข้อมูลเก่าของคนไข้คนก่อนหน้าทิ้งให้หมด
             this.savedAssessment = null;                             
@@ -3525,6 +3510,10 @@ function nurseApp() {
         },
 
         async submitAdmit() {
+            if (!this.updateAgeFromText() || !this.form.dob || !this.form.ageDisplay || this.form.ageDisplay.includes('ไม่ถูกต้อง') || this.form.ageDisplay.includes('ต้องไม่อยู่')) {
+                this.showAlert("ข้อมูลไม่ครบถ้วน", "กรุณาระบุวันเกิดเป็น วว/ดด/พ.ศ. ให้ถูกต้องก่อนบันทึก");
+                return;
+            }
             const action = this.isEditing ? 'editPatient' : 'admitPatient';
             const msg = this.isEditing ? "อัปเดตข้อมูลผู้ป่วยสำเร็จ" : "รับผู้ป่วยใหม่เข้าตึกสำเร็จ";
             await this.postToGAS(action, this.form, msg);
@@ -3665,35 +3654,55 @@ function nurseApp() {
         },
 
         updateAgeFromText() {
-            const input = this.form.dobInput;
-            if (!input || input.length < 10) return;
-        
-            try {
-                const [d, m, yBE] = input.split('/').map(Number);
-                const yAD = yBE - 543; // แปลง พ.ศ. เป็น ค.ศ.
-                const birthDate = new Date(yAD, m - 1, d);
-                const today = new Date();
-        
-                if (isNaN(birthDate.getTime())) throw new Error();
-        
-                let years = today.getFullYear() - birthDate.getFullYear();
-                let months = today.getMonth() - birthDate.getMonth();
-                let days = today.getDate() - birthDate.getDate();
-        
-                if (days < 0) {
-                    months--;
-                    days += new Date(today.getFullYear(), today.getMonth(), 0).getDate();
-                }
-                if (months < 0) {
-                    years--;
-                    months += 12;
-                }
-        
-                this.form.ageDisplay = `${years} ปี ${months} เดือน ${days} วัน`;
-                this.form.dob = `${yAD}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-            } catch (e) {
-                this.form.ageDisplay = "รูปแบบวันที่ไม่ถูกต้อง";
+            const input = String(this.form.dobInput || '').trim();
+            if (!input) {
+                this.form.dob = '';
+                this.form.ageDisplay = '';
+                return false;
             }
+            const match = input.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+            if (!match) {
+                this.form.dob = '';
+                this.form.ageDisplay = 'รูปแบบวันที่ไม่ถูกต้อง';
+                return false;
+            }
+            const d = Number(match[1]);
+            const m = Number(match[2]);
+            const yBE = Number(match[3]);
+            const yAD = yBE >= 2400 ? yBE - 543 : yBE;
+            const birthDate = new Date(yAD, m - 1, d);
+            if (birthDate.getFullYear() !== yAD || birthDate.getMonth() !== m - 1 || birthDate.getDate() !== d) {
+                this.form.dob = '';
+                this.form.ageDisplay = 'วันที่ไม่ถูกต้อง';
+                return false;
+            }
+
+            // คำนวณอายุ ณ วันที่รับไว้ (ถ้าไม่มีวันที่รับไว้ ใช้วันที่ปัจจุบัน)
+            const refRaw = this.form.date;
+            const refMatch = refRaw && String(refRaw).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            const today = refMatch
+                ? new Date(Number(refMatch[1]), Number(refMatch[2]) - 1, Number(refMatch[3]))
+                : new Date();
+            if (birthDate > today) {
+                this.form.dob = '';
+                this.form.ageDisplay = 'วันเกิดต้องไม่อยู่หลังวันที่รับไว้';
+                return false;
+            }
+
+            let years = today.getFullYear() - yAD;
+            let months = today.getMonth() - (m - 1);
+            let days = today.getDate() - d;
+            if (days < 0) {
+                months--;
+                days += new Date(today.getFullYear(), today.getMonth(), 0).getDate();
+            }
+            if (months < 0) {
+                years--;
+                months += 12;
+            }
+            this.form.dob = `${yAD}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            this.form.ageDisplay = `${years} ปี ${months} เดือน ${days} วัน`;
+            return true;
         },
 
         parsePatientDobToDate(dobValue) {
@@ -3765,35 +3774,29 @@ function nurseApp() {
         showConfirm(title, msg, onConfirm) { this.dialog = { show: true, type: 'confirm', title, msg, confirmBtnText: 'ยืนยัน', onConfirm }; },
         handleDialogConfirm() { if (this.dialog.onConfirm) this.dialog.onConfirm(); this.dialog.show = false; },
         
-        // 1. เพิ่มฟังก์ชันเช็คอายุเด็ก/ผู้ใหญ่
+        // เด็กอายุ 0-14 ปี / ผู้ใหญ่ตั้งแต่ 15 ปี / ไม่มีอายุคืน null
         checkAgeGroup(ageStr) {
-            if (!ageStr || ageStr === "undefined") return true; // ถ้าไม่มีข้อมูล ให้ถือว่าเป็นผู้ใหญ่
-            
-            const StringAge = String(ageStr);
-            const match = StringAge.match(/\d+/);
-            const ageNum = match ? parseInt(match[0], 10) : 0;
-        
-            const hasYear = StringAge.includes('ปี');
-            const hasMonth = StringAge.includes('เดือน');
-            const hasDay = StringAge.includes('วัน');
-        
-            // ถ้ามีคำว่า "เดือน" หรือ "วัน" แต่ไม่มีคำว่า "ปี" ถือว่าเป็นเด็กแน่นอน
-            if ((hasMonth || hasDay) && !hasYear) return false; 
-        
-            // ตามที่คุณระบุ: เด็กคือ 0-14 ปี ดังนั้น >= 15 คือผู้ใหญ่
-            return ageNum >= 15;
+            if (ageStr == null || String(ageStr).trim() === '' || String(ageStr) === 'undefined') return null;
+            const value = String(ageStr).trim();
+            const match = value.match(/(\d+)\s*ปี/);
+            if (match) return parseInt(match[1], 10) >= 15;
+            if (/\d+\s*(เดือน|วัน)/.test(value)) return false;
+            return null;
         },
 
         // 2. ปรับปรุงฟังก์ชันเลือกผู้ป่วยให้เช็คอายุก่อนแสดงผล
         openPatientDetail(p) {
             if (!p) return;
             const ageDisplay = this.resolvePatientAgeDisplay(p);
+            const patientAge = ageDisplay || p.age || p.Age || p.ageDisplay || p.agedisplay || "";
+            const isAdult = this.checkAgeGroup(patientAge);
+            if (isAdult === null) {
+                this.showAlert("ไม่สามารถเปิด Chart ได้", "ไม่พบวันเกิดหรืออายุผู้ป่วย กรุณาแก้ไขข้อมูลทะเบียนก่อน เพื่อป้องกันการเลือกแบบประเมินผิดประเภท");
+                return;
+            }
             this.selectedPatient = { ...p, ageDisplay };
             this.resetActiveForms();
-            
-            // --- ตรวจสอบอายุทุกครั้งที่คลิกดูรายละเอียด ---
-            const patientAge = ageDisplay || p.age || p.Age || p.ageDisplay || p.agedisplay || "";
-            this.isAdult = this.checkAgeGroup(patientAge);
+            this.isAdult = isAdult;
             
             console.log(`ดูรายละเอียด: ${p.name}, อายุ: ${patientAge}, เป็น: ${this.isAdult ? 'ผู้ใหญ่' : 'เด็ก'}`);
             // --------------------------------------------------------
